@@ -1,0 +1,79 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RadeonProRenderMaxPlugin", "RadeonProRenderMaxPlugin.vcxproj", "{1589B416-D7A7-48EE-988E-7191B5B24D28}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5359BEC9-275A-4728-A26E-06B8140B8651}"
+	ProjectSection(SolutionItems) = preProject
+		ABOUT.rtf = ABOUT.rtf
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{A3C85371-EA12-4805-B1D7-94C4343E6CEA}"
+	ProjectSection(SolutionItems) = preProject
+		Docs\FireRender Parameters.txt = Docs\FireRender Parameters.txt
+		Docs\Shader params.txt = Docs\Shader params.txt
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "expatw_static", "ThirdParty\Expat 2.1.0\Source\lib\expatw_static.vcxproj", "{EF133AA3-21E3-465C-89CA-3C346591B55C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug-2014|x64 = Debug-2014|x64
+		Debug-2015|x64 = Debug-2015|x64
+		Debug-2016|x64 = Debug-2016|x64
+		Debug-2017|x64 = Debug-2017|x64
+		Release|x64 = Release|x64
+		Release-2014|x64 = Release-2014|x64
+		Release-2015|x64 = Release-2015|x64
+		Release-2016|x64 = Release-2016|x64
+		Release-2017|x64 = Release-2017|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug|x64.ActiveCfg = Debug-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug|x64.Build.0 = Debug-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2014|x64.ActiveCfg = Debug-2014|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2014|x64.Build.0 = Debug-2014|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2015|x64.ActiveCfg = Debug-2015|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2015|x64.Build.0 = Debug-2015|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2016|x64.ActiveCfg = Debug-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2016|x64.Build.0 = Debug-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2017|x64.ActiveCfg = Debug-2017|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2017|x64.Build.0 = Debug-2017|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release|x64.ActiveCfg = Release-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release|x64.Build.0 = Release-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2014|x64.ActiveCfg = Release-2014|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2014|x64.Build.0 = Release-2014|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2015|x64.ActiveCfg = Release-2015|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2015|x64.Build.0 = Release-2015|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2016|x64.ActiveCfg = Release-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2016|x64.Build.0 = Release-2016|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2017|x64.ActiveCfg = Release-2017|x64
+		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2017|x64.Build.0 = Release-2017|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug|x64.ActiveCfg = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug|x64.Build.0 = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2014|x64.ActiveCfg = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2014|x64.Build.0 = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2015|x64.ActiveCfg = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2015|x64.Build.0 = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2016|x64.ActiveCfg = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2016|x64.Build.0 = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2017|x64.ActiveCfg = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2017|x64.Build.0 = Debug|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release|x64.ActiveCfg = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release|x64.Build.0 = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2014|x64.ActiveCfg = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2014|x64.Build.0 = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2015|x64.ActiveCfg = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2015|x64.Build.0 = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2016|x64.ActiveCfg = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2016|x64.Build.0 = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2017|x64.ActiveCfg = Release|x64
+		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2017|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

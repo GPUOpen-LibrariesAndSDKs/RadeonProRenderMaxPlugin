@@ -1,0 +1,553 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug-2013|x64">
+      <Configuration>Debug-2013</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug-2015|x64">
+      <Configuration>Debug-2015</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug-2014|x64">
+      <Configuration>Debug-2014</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug-2016|x64">
+      <Configuration>Debug-2016</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug-2017|x64">
+      <Configuration>Debug-2017</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-2013|x64">
+      <Configuration>Release-2013</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-2014|x64">
+      <Configuration>Release-2014</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-2015|x64">
+      <Configuration>Release-2015</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-2016|x64">
+      <Configuration>Release-2016</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release-2017|x64">
+      <Configuration>Release-2017</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{1589B416-D7A7-48EE-988E-7191B5B24D28}</ProjectGuid>
+    <RootNamespace>FireMax</RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2014|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2013|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2015|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2015|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2014|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2013|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2014|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2013|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Max2016.props" />
+    <Import Project="FireMax.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Max2017.props" />
+    <Import Project="FireMax.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2015|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2015|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2014|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2013|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Max2016.props" />
+    <Import Project="FireMax.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="Max2017.props" />
+    <Import Project="FireMax.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2015|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2014|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2013|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2015|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2014|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2013|x64'">
+    <OutDir>$(SolutionDir)\bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\bin\intermediate\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2014|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)installer/nsisexec2/3rdParty/OpenCL/include;$(ProjectDir)plugins/FireRender/FireRender/include;$(ProjectDir)plugins/obj/obj;$(ProjectDir)plugins/Expat 2.1.0/Source/lib;plugins/maxsdk 2014/include;src</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>FIREMAX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MinimalRebuild>false</MinimalRebuild>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2013|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)installer/nsisexec2/3rdParty/OpenCL/include;$(ProjectDir)plugins/FireRender/FireRender/include;$(ProjectDir)plugins/obj/obj;$(ProjectDir)plugins/Expat 2.1.0/Source/lib;plugins/maxsdk 2013/include;src</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>FIREMAX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MinimalRebuild>false</MinimalRebuild>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>FIREMAX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MinimalRebuild>false</MinimalRebuild>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>FIREMAX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MinimalRebuild>false</MinimalRebuild>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2015|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)installer/nsisexec2/3rdParty/OpenCL/include;$(ProjectDir)plugins/FireRender/FireRender/include;$(ProjectDir)plugins/obj/obj;$(ProjectDir)plugins/Expat 2.1.0/Source/lib;plugins/maxsdk 2015/include;src</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>FIREMAX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MinimalRebuild>false</MinimalRebuild>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2015|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)installer/nsisexec2/3rdParty/OpenCL/include;$(ProjectDir)plugins/FireRender/FireRender/include;$(ProjectDir)plugins/obj/obj;$(ProjectDir)plugins/Expat 2.1.0/Source/lib;plugins/maxsdk 2015/include;src</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2014|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)installer/nsisexec2/3rdParty/OpenCL/include;$(ProjectDir)plugins/FireRender/FireRender/include;$(ProjectDir)plugins/obj/obj;$(ProjectDir)plugins/Expat 2.1.0/Source/lib;plugins/maxsdk 2014/include;src</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2013|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>$(ProjectDir)installer/nsisexec2/3rdParty/OpenCL/include;$(ProjectDir)plugins/FireRender/FireRender/include;$(ProjectDir)plugins/obj/obj;$(ProjectDir)plugins/Expat 2.1.0/Source/lib;plugins/maxsdk 2013/include;src</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <OpenMPSupport>true</OpenMPSupport>
+      <ExceptionHandling>Async</ExceptionHandling>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="FireRender.Max.Plugin\3dsMaxDeclarations.h" />
+    <ClInclude Include="FireRender.Max.Plugin\autotesting\Testing.h" />
+    <ClInclude Include="FireRender.Max.Plugin\Common.h" />
+    <ClInclude Include="FireRender.Max.Plugin\CoronaDeclarations.h" />
+    <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
+    <ClInclude Include="FireRender.Max.Plugin\frWrap.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\MaterialLoader.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\MaterialParser.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\RenderParameters.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\SceneCallbacks.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\SceneParser.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\Synchronizer.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\UvwContext.h" />
+    <ClInclude Include="FireRender.Max.Plugin\parser\XMLMaterialParser.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ActiveShader.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\BgManager.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\CamManager.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ClassDescs.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAddMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAnalyticalSun.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderArithmMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAvgMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderBlendMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderBlendValueMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderColorMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseRefractionMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDisplacementMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderEmissiveMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderEnvironment.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderer.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderFresnelMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderFresnelSchlickMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderInputLUMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMaterialMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMFRefractionMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMicrofacetMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMtlBase.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderNormalMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderOrenNayarMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderPortalLight.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderReflectionMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderRefractionMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderStandardMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderTransparentMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderUberMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderUberMtlv2.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderVolumeMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderWardMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_CIEXYZ.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_RGB.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_Spectral.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\MPManager.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ParamBlock.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ParamDlg.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\PRManager.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ScopeManager.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\SkyGen.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\TmManager.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\WarningDlg.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\XMLMaterialExporter.h" />
+    <ClInclude Include="FireRender.Max.Plugin\Resource.h" />
+    <ClInclude Include="FireRender.Max.Plugin\utils\HashValue.h" />
+    <ClInclude Include="FireRender.Max.Plugin\utils\Stack.h" />
+    <ClInclude Include="FireRender.Max.Plugin\utils\Thread.h" />
+    <ClInclude Include="FireRender.Max.Plugin\utils\Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="FireRender.Max.Plugin\autotesting\Plugin.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\FrScope.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\Main.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\MaterialLoader.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\MaterialParser.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\SceneParser.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_Geometry.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_Light.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_Material.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_RenderSettings.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_ToneMapper.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\parser\XMLMaterialParser.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ActiveShader.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\AOVs.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\BgManager.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\CamManager.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAddMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAnalyticalSun.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderArithmMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAvgMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderBlendMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderBlendValueMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderColorMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseRefractionMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDisplacementMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderEmissiveMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderEnvironment.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderer.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderFresnelMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderFresnelSchlickMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderInputLUMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMaterialMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMFRefractionMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMicrofacetMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderNormalMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderOrenNayarMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderPortalLight.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderReflectionMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderRefractionMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderStandardMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderTransparentMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderUberMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderUberMtlv2.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderVolumeMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderWardMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FRExportMaterialXML.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\MPManager.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ParamBlock.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ParamDlg.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\PRManager.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ScopeManager.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\SkyGen.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\TmManager.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\WarningDlg.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\XMLMaterialExporter.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\utils\HashValue.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\utils\Thread.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\utils\Utils.cpp" />
+    <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp" />
+    <Image Include="FireRender.Max.Plugin\resource\worldmap.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="ThirdParty\Expat 2.1.0\Source\lib\expatw_static.vcxproj">
+      <Project>{ef133aa3-21e3-465c-89ca-3c346591b55c}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

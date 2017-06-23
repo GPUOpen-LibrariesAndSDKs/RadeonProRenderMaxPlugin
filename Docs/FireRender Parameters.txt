@@ -1,0 +1,27 @@
+
+	aacellsize (int) Number of cells for stratified sampling
+	aasamples (int) Number of samples per pixel
+	imagefilter.blackmanharris.radius (float) Filter radius
+	imagefilter.box.radius (float) Image filter to use
+	imagefilter.gaussian.radius (float) Filter radius
+	imagefilter.lanczos.radius (float) Filter radius
+	imagefilter.mitchell.radius (float) Filter radius
+	imagefilter.triangle.radius (float) Filter radius
+	imagefilter.type (int/enum) Image filter to use
+	maxRecursion (int/enum) Ray trace depth
+	pdfThreshold (float) pdf Threshold
+	radianceclamp (float) Max radiance value
+	raycastepsilon (float) Ray epsilon
+	roughnessCap (float) roughness Cap
+	rendermode (int/enum) render mode
+	texturegamma (float) Texture gamma
+	tonemapping.linear.scale (float) Linear scale
+	tonemapping.photolinear.exposure (float) Photolinear exposure
+	tonemapping.photolinear.fstop (float) Photolinear fstop
+	tonemapping.photolinear.sensitivity (float) Linear sensitivity
+	tonemapping.reinhard02.burn (float) Reinhard burn
+	tonemapping.reinhard02.postscale (float) Reinhard postscale
+	tonemapping.reinhard02.prescale (float) Reinhard prescale
+	tonemapping.type (int/enum) Tonemapping operator
+	xflip (float) Flip framebuffer output along X axis
+	yflip (float) Flip framebuffer output along Y axis

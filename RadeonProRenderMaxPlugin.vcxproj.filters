@@ -1,0 +1,436 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="AutoTesting">
+      <UniqueIdentifier>{c4ea1006-7011-4af6-94f5-6c3c347a731f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Parser">
+      <UniqueIdentifier>{05eb047f-5780-4de7-81f4-837f3dfc4073}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugin">
+      <UniqueIdentifier>{47e9354f-56c5-4910-8c45-bf9475908075}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{83e337cc-a3ea-4eae-9cc0-7b21d631b1c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{922e1506-5692-475b-843c-9a41c4bb84bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugin\Hosek">
+      <UniqueIdentifier>{af53d67a-f4ae-42f6-a3f7-a0c54a455bdd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Decl">
+      <UniqueIdentifier>{9c48ae23-a19d-4d50-87db-843fe20ac870}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="RprTools">
+      <UniqueIdentifier>{516e1504-e478-4432-aa94-49464d6bf871}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
+    <ClInclude Include="FireRender.Max.Plugin\frWrap.h" />
+    <ClInclude Include="FireRender.Max.Plugin\Resource.h" />
+    <ClInclude Include="FireRender.Max.Plugin\utils\HashValue.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\utils\Stack.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\utils\Thread.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\utils\Utils.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\MaterialLoader.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\MaterialParser.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\RenderParameters.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\SceneCallbacks.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\SceneParser.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\Synchronizer.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\UvwContext.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\parser\XMLMaterialParser.h">
+      <Filter>Parser</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\autotesting\Testing.h">
+      <Filter>AutoTesting</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ActiveShader.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\BgManager.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\CamManager.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ClassDescs.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAddMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAnalyticalSun.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderArithmMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAvgMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderBlendMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderBlendValueMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderColorMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseRefractionMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDisplacementMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderEmissiveMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderEnvironment.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderer.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderFresnelMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderFresnelSchlickMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderInputLUMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMaterialMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMFRefractionMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMicrofacetMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMtlBase.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderNormalMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderOrenNayarMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderPortalLight.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderReflectionMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderRefractionMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderStandardMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderTransparentMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderUberMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderUberMtlv2.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderVolumeMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderWardMtl.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\MPManager.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ParamBlock.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ParamDlg.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\PRManager.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\ScopeManager.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\SkyGen.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\TmManager.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\WarningDlg.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\XMLMaterialExporter.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.h">
+      <Filter>Plugin\Hosek</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_CIEXYZ.h">
+      <Filter>Plugin\Hosek</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_RGB.h">
+      <Filter>Plugin\Hosek</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_Spectral.h">
+      <Filter>Plugin\Hosek</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\3dsMaxDeclarations.h">
+      <Filter>Decl</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\Common.h">
+      <Filter>Decl</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\CoronaDeclarations.h">
+      <Filter>Decl</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="FireRender.Max.Plugin\FrScope.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\Main.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\utils\HashValue.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\utils\Thread.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\utils\Utils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\MaterialLoader.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\MaterialParser.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\SceneParser.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_Geometry.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_Light.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_Material.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_RenderSettings.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\Synchronizer_ToneMapper.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\parser\XMLMaterialParser.cpp">
+      <Filter>Parser</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\autotesting\Plugin.cpp">
+      <Filter>AutoTesting</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp">
+      <Filter>AutoTesting</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ActiveShader.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\AOVs.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\BgManager.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\CamManager.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAddMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAnalyticalSun.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderArithmMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAvgMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderBlendMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderBlendValueMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderColorMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseRefractionMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDisplacementMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderEmissiveMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderEnvironment.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderer.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderFresnelMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderFresnelSchlickMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderInputLUMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMaterialMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMFRefractionMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMicrofacetMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderNormalMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderOrenNayarMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderPortalLight.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderReflectionMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderRefractionMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderStandardMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderTransparentMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderUberMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderUberMtlv2.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderVolumeMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderWardMtl.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FRExportMaterialXML.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\MPManager.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ParamBlock.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ParamDlg.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\PRManager.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\ScopeManager.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\SkyGen.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\TmManager.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\WarningDlg.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\XMLMaterialExporter.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.cpp">
+      <Filter>Plugin\Hosek</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp">
+      <Filter>RprTools</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp">
+      <Filter>Resource</Filter>
+    </Image>
+    <Image Include="FireRender.Max.Plugin\resource\worldmap.bmp">
+      <Filter>Resource</Filter>
+    </Image>
+  </ItemGroup>
+</Project>
