@@ -49,7 +49,7 @@
 #include "plugin/PRManager.h"
 
 #ifdef FIREMAX_DEBUG
-#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/RadeonProRender64.lib") // no 'D' suffix as no debug lib supplied
+#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RadeonProRender64.lib") // no 'D' suffix as no debug lib supplied
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprSupport64.lib")
 #else

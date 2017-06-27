@@ -10,7 +10,7 @@
       <Command>Support/copy_max.bat "$(Configuration)"</Command>
     </PostBuildEvent>
     <ClCompile>
-      <AdditionalIncludeDirectories>.\ThirdParty\RadeonProRender SDK\Win\inc;.\ThirdParty\RadeonProRender SDK\Win;FireRender.Max.Plugin;.\ThirdParty\AxfPackage\AxfInclude\;.\ThirdParty\AxfPackage\include\;.\ThirdParty\Expat 2.1.0\Source\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\FireRender.Components\cpp\inc;.\ThirdParty\RadeonProRender SDK\Win\inc;.\ThirdParty\RadeonProRender SDK\Win;FireRender.Max.Plugin;.\ThirdParty\AxfPackage\AxfInclude\;.\ThirdParty\AxfPackage\include\;.\ThirdParty\Expat 2.1.0\Source\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>MAX_PLUGIN;XML_UNICODE_WCHAR_T;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>

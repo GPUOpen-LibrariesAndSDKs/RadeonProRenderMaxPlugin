@@ -25,6 +25,15 @@
     <Filter Include="RprTools">
       <UniqueIdentifier>{516e1504-e478-4432-aa94-49464d6bf871}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FireRender.Components">
+      <UniqueIdentifier>{a81d41ed-a9c0-42be-ac91-e21625843678}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FireRender.Components\include">
+      <UniqueIdentifier>{14c79fd1-0115-4015-a1cc-30461ba9ec80}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="FireRender.Components\source">
+      <UniqueIdentifier>{3e57b731-582f-4b1d-afba-a24444350caf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
@@ -228,6 +237,9 @@
     <ClInclude Include="FireRender.Max.Plugin\CoronaDeclarations.h">
       <Filter>Decl</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Components\cpp\inc\PluginContext.h">
+      <Filter>FireRender.Components\include</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -423,6 +435,9 @@
     </ClCompile>
     <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp">
       <Filter>RprTools</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Components\cpp\src\PluginContext.cpp">
+      <Filter>FireRender.Components\source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

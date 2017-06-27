@@ -398,6 +398,7 @@
     <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="FireRender.Components\cpp\inc\PluginContext.h" />
     <ClInclude Include="FireRender.Max.Plugin\3dsMaxDeclarations.h" />
     <ClInclude Include="FireRender.Max.Plugin\autotesting\Testing.h" />
     <ClInclude Include="FireRender.Max.Plugin\Common.h" />
@@ -472,6 +473,7 @@
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FireRender.Components\cpp\src\PluginContext.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Plugin.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\FrScope.cpp" />
