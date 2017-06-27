@@ -51,6 +51,9 @@ public:
 
 	std::string rootCacheFolder;
 	std::string subCacheFolder;
+
+	static bool CoronaOK;
+
 public:
 	ScopeManagerMax();
 	~ScopeManagerMax() {}

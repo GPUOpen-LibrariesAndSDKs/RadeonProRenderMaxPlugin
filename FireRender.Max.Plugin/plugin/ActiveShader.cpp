@@ -68,7 +68,7 @@ class ActiveShadeRenderCore : public BaseThread
 public:
 	// termination
 	Event terminationReached;
-	std::atomic<ULONGLONG> timeLimit = 100;
+	std::atomic<DWORD> timeLimit = 100;
 	std::atomic<unsigned int> passLimit = 1;
 	volatile TerminationCriteria termination = Termination_None;
 	typedef enum
@@ -177,7 +177,7 @@ public:
 	{
 		if (val <= 1)
 			val = 1;
-		ULONGLONG uval = val;
+		DWORD uval = val;
 		uval *= 1000; // seconds to milliseconds
 		bool reset = ((termination == TerminationCriteria::Termination_Time) && (uval > timeLimit));
 		timeLimit = uval;
@@ -198,6 +198,11 @@ public:
 	inline void SetLimitType(int type)
 	{
 		termination = (TerminationCriteria)type;
+	}
+
+	inline void ResetTermination()
+	{
+		terminationReached.Reset();
 	}
 
 	explicit ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::Scope rscope, ActiveShadeBitmapWriter *pwriter,
@@ -1387,6 +1392,12 @@ void ActiveShadeSynchronizerBridge::SetLimitType(int type)
 {
 	if (mActiveShader->mRenderThread)
 		mActiveShader->mRenderThread->SetLimitType(type);
+}
+
+void ActiveShadeSynchronizerBridge::ResetInteractiveTermination()
+{
+	if (mActiveShader->mRenderThread)
+		mActiveShader->mRenderThread->ResetTermination();
 }
 
 FIRERENDER_NAMESPACE_END;

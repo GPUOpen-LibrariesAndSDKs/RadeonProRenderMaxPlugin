@@ -23,6 +23,23 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 {
+	// remove the light's counterpart from RPR scene (if exists)
+	auto ll = mLights.find(node);
+	if (ll != mLights.end())
+	{
+		mScope.GetScene().Detach(ll->second->Get());
+		mLights.erase(ll);
+	}
+	else
+	{
+		auto el = mLightShapes.find(node);
+		if (el != mLightShapes.end())
+		{
+			mScope.GetScene().Detach(el->second->Get());
+			mLightShapes.erase(el);
+		}
+	}
+	
 	auto tm = node->GetObjTMAfterWSM(mBridge->t());
 	tm.SetTrans(tm.GetTrans() * mMasterScale);
 	BOOL parity = tm.Parity();

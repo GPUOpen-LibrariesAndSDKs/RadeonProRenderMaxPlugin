@@ -382,7 +382,7 @@ void IFireRender::OnNotify(NotifyInfo* info)
 		case NOTIFY_POST_RENDERER_CHANGE:
 		{
 			int id = reinterpret_cast<int>(info->callParam);
-			if (id == 0)
+			if (id == 2)
 			{
 				auto renderer = GetCOREInterface()->GetRenderer((RenderSettingID)id, false);
 				if (renderer)
@@ -403,6 +403,7 @@ void IFireRender::OnNotify(NotifyInfo* info)
 		case NOTIFY_PRE_RENDER:
 		{
 			// don't want activeshader on while rendering production
+			EndSession();
 			auto mgr = GetIIRenderMgr(0);
 			if (mgr)
 				mgr->Close();

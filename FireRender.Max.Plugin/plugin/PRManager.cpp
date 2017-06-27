@@ -700,6 +700,8 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 
 	auto &parameters = pRenderer->parameters;
 	
+	BroadcastNotification(NOTIFY_PRE_RENDER, &parameters.rendParams);
+	
 	if (parameters.rendParams.IsToneOperatorPreviewRender())
 	{
 		data->isToneOperatorPreviewRender = true;
@@ -752,8 +754,6 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 		parameters.pblock->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
 	context.SetParameter("radianceclamp", irradianceClamp);
 
-	BroadcastNotification(NOTIFY_PRE_RENDER, &parameters.rendParams);
-	
 	return 1;
 }
 

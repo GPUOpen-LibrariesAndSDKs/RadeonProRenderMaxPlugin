@@ -17,6 +17,8 @@
 #include "plugin/TmManager.h"
 #include "plugin/BgManager.h"
 #include "plugin/CamManager.h"
+#include "plugin/ScopeManager.h"
+
 #include "SceneCallbacks.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
@@ -125,6 +127,8 @@ void Synchronizer::MakeInitialReferences(ReferenceTarget* ref)
 			{
 // this is intentional. This code needs to be ported. Do not remove.
 #ifdef CODE_TO_PORT 
+				if (ScopeManagerMax::CoronaOK)
+				{
 				// If this is a scatter node, we will use its function publishing interface to get list of scattered nodes and report them 
 				// all with their transformation matrices
 				Corona::ScatterFpOps* ops = GetScatterOpsInterface(objRef->GetParamBlockByID(0)->GetDesc()->cd);
@@ -140,6 +144,7 @@ void Synchronizer::MakeInitialReferences(ReferenceTarget* ref)
 					tm.SetTrans(tm.GetTrans() * masterScale);
 					output.push_back(ParsedNode((id << 16) + i, node, tm));
 				}
+			}
 #endif
 			}
 			else
@@ -895,6 +900,7 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 					}
 					else if (classId == Corona::SUN_OBJECT_CID)
 					{
+						if (ScopeManagerMax::CoronaOK)
 						synch->RebuildCoronaSun(node, state.obj);
 					}
 					else if (classId == FIRERENDER_PORTALLIGHT_CLASS_ID)
@@ -1152,6 +1158,8 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 		
 		if (ClearEvent)
 			synch->mBridge->ClearFB();
+		else
+			synch->mBridge->ResetInteractiveTermination();
 
 		if (synch->mBridge->GetProgressCB())
 			synch->mBridge->GetProgressCB()->SetTitle(_T(""));

@@ -10,6 +10,10 @@
 #include "parser\MaterialParser.h"
 #include "maxscript\mxsplugin\mxsPlugin.h"
 #include "ParamBlock.h"
+#include "PluginContext.h"
+
+#include <emmintrin.h>
+#include <functional>
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -438,41 +442,66 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Te
 
 frw::Image FRMTLCLASSNAME(NormalMtl)::bitmap2image(Bitmap *bmp, MaterialParser& mtlParser)
 {
+	std::function<__m128i(__m128i, __m128i)> mm_packus_epi32_impl = [](__m128i a, __m128i b) {
+		return _mm_packus_epi32(a, b);
+	};
+
+	if ( !PluginContext::instance().HasSSE41() )
+	{
+		// use SSE2 to perform calculations
+		mm_packus_epi32_impl = [](__m128i a, __m128i b) {
+			__m128i t0 = _mm_slli_epi32(a, 16);
+			t0 = _mm_srai_epi32(t0, 16);
+			__m128i t1 = _mm_slli_epi32(b, 16);
+			t1 = _mm_srai_epi32(t1, 16);
+			return _mm_packs_epi32(t0, t1);
+		};
+	}
+
 	rpr_image_desc imgDesc = {};
 	imgDesc.image_width = bmp->Width();
 	imgDesc.image_height = bmp->Height();
 	frw::Image img;
 
 	int type;
-	void *bmstorage = bmp->GetStoragePtr(&type);
+	void* bmstorage = bmp->GetStoragePtr(&type);
+
 	if (bmstorage && (type == BMM_TRUE_24))
 	{
 		img = frw::Image(mtlParser.getScope(), { 3, RPR_COMPONENT_TYPE_UINT8 }, imgDesc, bmstorage);
 	}
 	else
 	{
-	RgbByte *buffer8 = new RgbByte[imgDesc.image_width * imgDesc.image_height + 1];
-	__m128 va = _mm_set1_ps(255.f);
+		RgbByte* buffer8 = new RgbByte[imgDesc.image_width * imgDesc.image_height + 1];
+
+		__m128 va = _mm_set1_ps(255.f);
+
 #pragma omp parallel for
-	for (int y = 0; y < imgDesc.image_height; y++)
-	{
-		std::vector<BMM_Color_fl> buffer(imgDesc.image_width);
-		bmp->GetPixels(0, y, imgDesc.image_width, &buffer[0]);
-		int raster = y * imgDesc.image_width;
-		for (int x = 0; x < imgDesc.image_width; x++)
+		for (int y = 0; y < imgDesc.image_height; y++)
 		{
-			__m128 vb = _mm_load_ps(buffer[x]); // load RGBA in
-			__m128 vc = _mm_mul_ps(va, vb); // multiply by 255
-			__m128i y = _mm_cvtps_epi32(vc); // convert to integers
-			y = _mm_packus_epi32(y, y); // pack to 16 bits
-			y = _mm_packus_epi16(y, y); // pack to 8 bits
-			*(int*)(&buffer8[raster + x]) = _mm_cvtsi128_si32(y); // store lower 32 bits
+			std::vector<BMM_Color_fl> buffer(imgDesc.image_width);
+
+			bmp->GetPixels(0, y, imgDesc.image_width, &buffer[0]);
+			int raster = y * imgDesc.image_width;
+
+			for (int x = 0; x < imgDesc.image_width; x++)
+			{
+				__m128 vb = _mm_load_ps(buffer[x]); // load RGBA in
+				__m128 vc = _mm_mul_ps(va, vb); // multiply by 255
+				__m128i y = _mm_cvtps_epi32(vc); // convert to integers
+
+				y = mm_packus_epi32_impl(y, y); // pack to 16 bits
+				y = _mm_packus_epi16(y, y); // pack to 8 bits
+
+				*(int*)(&buffer8[raster + x]) = _mm_cvtsi128_si32(y); // store lower 32 bits
+			}
 		}
-	}
+
 		img = frw::Image(mtlParser.getScope(), { 3, RPR_COMPONENT_TYPE_UINT8 }, imgDesc, buffer8);
-	delete[] buffer8;
+
+		delete[] buffer8;
 	}
-	
+
 	return img;
 }
 

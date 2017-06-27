@@ -166,8 +166,10 @@ EXPORT_TO_MAX int LibInitialize()
 	int bytes = GetModuleFileName(NULL, bufp, MAX_PATH);
 	std::wstring modulep = bufp;
 	std::wstring::size_type pos = modulep.find_last_of('\\');
+
 	if (pos != std::wstring::npos)
 		modulep = modulep.substr(0, pos + 1);
+
 	std::wstring checkp[4] =
 	{
 		{L"Tahoe64.dll" },
@@ -175,6 +177,7 @@ EXPORT_TO_MAX int LibInitialize()
 		{L"RadeonProRender64.dll" },
 		{L"OpenImageIO_RPR.dll" },
 	};
+
 	for (int i = 0; i < 4; i++)
 	{
 		std::wstring toCheck = modulep + checkp[i];

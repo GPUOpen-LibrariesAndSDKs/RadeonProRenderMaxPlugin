@@ -12,6 +12,7 @@
 #include "plugin/FireRenderMaterialMtl.h"
 #include "plugin/FireRenderUberMtl.h"
 #include "plugin/FireRenderDisplacementMtl.h"
+#include "plugin/ScopeManager.h"
 #include <list>
 
 FIRERENDER_NAMESPACE_BEGIN;
@@ -70,6 +71,8 @@ bool Synchronizer::CreateMesh(std::vector<frw::Shape>& result, bool& directlyVis
 	directlyVisible = inode->GetPrimaryVisibility() != FALSE;
 	if (evaluatedObject->ClassID() == Corona::LIGHT_CID)
 	{
+		if (ScopeManagerMax::CoronaOK)
+		{
 		// Corona lights require some special processing - we will get its mesh via function publishing interface.
 		// But when we have it, we can parse the mesh as any other geometry object, because we also handle their the lights 
 		// material specially in MaterialParser.
@@ -80,6 +83,7 @@ bool Synchronizer::CreateMesh(std::vector<frw::Shape>& result, bool& directlyVis
 			lightInterface->fmGetRenderMesh(timeValue, mesh, needsDelete);
 		else
 			MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Too old Corona version."), _T("Radeon ProRender warning"), MB_OK);
+	}
 	}
 
 	if (!mesh)  //nothing to do here
@@ -417,6 +421,8 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 				}
 				else if (currentMtl && currentMtl->ClassID() == Corona::MTL_CID)
 				{
+					if (ScopeManagerMax::CoronaOK)
+					{
 					IParamBlock2* pb = currentMtl->GetParamBlock(0);
 					const bool useCaustics = GetFromPb<bool>(pb, Corona::MTLP_USE_CAUSTICS, t);
 					const float lRefract = GetFromPb<float>(pb, Corona::MTLP_LEVEL_REFRACT, t);
@@ -424,6 +430,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 					
 					if ((lRefract > 0.f || lOpacity < 1.f) && !useCaustics)
 						castsShadows = false;
+				}
 				}
 				else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID)
 				{
@@ -439,6 +446,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 				}
 				else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 				{
+					if (ScopeManagerMax::CoronaOK)
 					shadowCatcher = true;
 				}
 
@@ -576,6 +584,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 				// placeholder code: do not remove
 				// Set any shape with portal material as RPR portal
 				//if (currentMtl && currentMtl->ClassID() == Corona::PORTAL_MTL_CID && enviroLight)
+				//	if (ScopeManagerMax::CoronaOK)
 				//	enviroLight.SetPortal(shape);
 			}
 		}
@@ -692,6 +701,8 @@ bool Synchronizer::ResetMaterial(INode *node)
 		}
 		else if (currentMtl && currentMtl->ClassID() == Corona::MTL_CID)
 		{
+			if (ScopeManagerMax::CoronaOK)
+			{
 			IParamBlock2* pb = currentMtl->GetParamBlock(0);
 			const bool useCaustics = GetFromPb<bool>(pb, Corona::MTLP_USE_CAUSTICS, t);
 			const float lRefract = GetFromPb<float>(pb, Corona::MTLP_LEVEL_REFRACT, t);
@@ -701,6 +712,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 			if ((lRefract > 0.f || lOpacity < 1.f) && !useCaustics) {
 				castsShadows = false;
 			}
+		}
 		}
 		else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID)
 		{
@@ -716,6 +728,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 		}
 		else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 		{
+			if (ScopeManagerMax::CoronaOK)
 			shadowCatcher = true;
 		}
 
@@ -832,18 +845,34 @@ bool Synchronizer::ResetMaterial(INode *node)
 
 //////////////////////////////////////////////////////////////////////////////
 // Called when a node is being unhidden
+// If the object was shown, returns true
+// If the object doesn't exist yet, returns false. This will prompt the
+// Synchronizer to schedule the rebuilding of that object.
+// For this reason light objects return true always, because hiding/unhiding
+// a light does not affect the light itself in rendering. Since Hiding a
+// light's geometry does not mean to switch the light off.
 //
 
 bool Synchronizer::Show(INode *node)
 {
-	auto ss = mShapes.find(node);
-	if (ss == mShapes.end())
-		return false;
+	bool res = false;
 
+	auto ss = mShapes.find(node);
+	if (ss != mShapes.end())
+	{
 	for (auto &shape : ss->second)
 		shape->Get().SetVisibility(true);
+		res = true;
+	}
+	else
+	{
+		// maybe a light?
+		auto ll = mLights.find(node);
+		if (ll != mLights.end())
+			res = true;
+	}
 
-	return true;
+	return res;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -853,10 +882,11 @@ bool Synchronizer::Show(INode *node)
 void Synchronizer::Hide(INode *node)
 {
 	auto ss = mShapes.find(node);
-	if (ss == mShapes.end())
-		return;
-	for (auto &shape : ss->second)
-		shape->Get().SetVisibility(false);
+	if (ss != mShapes.end())
+	{
+		for (auto &shape : ss->second)
+			shape->Get().SetVisibility(false);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////

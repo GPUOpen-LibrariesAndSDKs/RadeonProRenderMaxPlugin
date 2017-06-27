@@ -11,6 +11,7 @@
 #include "plugin/FireRenderMaterialMtl.h"
 #include "plugin/FireRenderUberMtl.h"
 #include "plugin/FireRenderDisplacementMtl.h"
+#include "plugin/ScopeManager.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -149,6 +150,8 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 						// Handling of some special flags for Corona Material is necessary here at geometry level
 						if (pMat && pMat->ClassID() == Corona::MTL_CID)
 						{
+							if (ScopeManagerMax::CoronaOK)
+							{
 							IParamBlock2* pb = pMat->GetParamBlock(0);
 							const bool useCaustics = GetFromPb<bool>(pb, Corona::MTLP_USE_CAUSTICS, t);
 							const float lRefract = GetFromPb<float>(pb, Corona::MTLP_LEVEL_REFRACT, t);
@@ -156,6 +159,7 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 
 							if ((lRefract > 0.f || lOpacity < 1.f) && !useCaustics)
 								castsShadows = false;
+						}
 						}
 						else if (pMat && pMat->ClassID() == FIRERENDER_MATERIALMTL_CID)
 						{
@@ -171,6 +175,7 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 						}
 						else if (pMat && pMat->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 						{
+							if (ScopeManagerMax::CoronaOK)
 							shadowCatcher = true;
 						}
 

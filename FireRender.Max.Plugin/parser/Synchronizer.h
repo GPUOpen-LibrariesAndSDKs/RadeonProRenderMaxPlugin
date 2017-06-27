@@ -42,6 +42,7 @@ public:
 	virtual void SetTimeLimit(int val) = 0; // sets the termination's time limit
 	virtual void SetPassLimit(int val) = 0; // sets the termination's passes limit
 	virtual void SetLimitType(int type) = 0; // sets the termination type
+	virtual void ResetInteractiveTermination() = 0; // resets the termination if interactive renderer is ongoing
 };
 
 class SBase

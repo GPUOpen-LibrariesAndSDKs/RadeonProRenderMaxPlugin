@@ -50,6 +50,7 @@ public:
 	void SetTimeLimit(int val);
 	void SetPassLimit(int val);
 	void SetLimitType(int type);
+	void ResetInteractiveTermination();
 };
 
 class ActiveShadeSynchronizer : public Synchronizer

@@ -14,6 +14,7 @@
 #include "CoronaDeclarations.h"
 #include "3dsMaxDeclarations.h"
 #include "plugin/ParamBlock.h"
+#include "plugin/ScopeManager.h"
 #include "plugin/FireRenderDiffuseMtl.h"
 #include "plugin/FireRenderBlendMtl.h"
 #include "plugin/FireRenderAddMtl.h"
@@ -692,9 +693,9 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		result = dynamic_cast<FRMTLCLASSNAME(FresnelSchlickMtl)*>(texmap)->getShader(mT, *this);
 	//else if (classId == NORMALBUMP_CID)
 	//	result = createNormalBumpMap(texmap);
-	else if (classId == Corona::MIX_TEX_CID)
+	else if (classId == Corona::MIX_TEX_CID && ScopeManagerMax::CoronaOK)
 		result = createCoronaMixMap(texmap);
-	else if (classId == Corona::COLOR_TEX_CID)
+	else if (classId == Corona::COLOR_TEX_CID && ScopeManagerMax::CoronaOK)
 		result = createCoronaColorMap(texmap);
 	else switch (classId.PartA())
 	{
@@ -954,6 +955,9 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 		return shader;
 
 	if (node && node->GetObjectRef()->ClassID() == Corona::LIGHT_CID) 
+		if (!ScopeManagerMax::CoronaOK)
+			return shader;
+		else
 		material = nullptr; // to correctly handle CoronaLights - we need to ignore any material that might be already assigned
 
 	if (!material) 
@@ -962,6 +966,7 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 		// wire color of the object)
 		if (node->GetObjectRef()->ClassID() == Corona::LIGHT_CID) 
 		{
+			if  (ScopeManagerMax::CoronaOK)
 			shader = parseCoronaLightObject(node);
 		}
 		else 
@@ -1039,25 +1044,32 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 				shader = dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(material)->getShader(mT, *this, node);
 			}
 			else if (cid == Corona::LAYERED_MTL_CID) {
-				shader = parseCoronaLayeredMtl(material, node); // CRASH when set to emissive
+				if (ScopeManagerMax::CoronaOK)
+					shader = parseCoronaLayeredMtl(material, node);
 			}
 			else if (cid == Corona::MTL_CID) {
-				shader = parseCoronaMtl(material); // OK
+				if (ScopeManagerMax::CoronaOK)
+					shader = parseCoronaMtl(material);
 			}
 			else if (cid == Corona::LIGHT_MTL_CID) {
-				shader = parseCoronaLightMtl(material); // CRASH when set to EMISSIVE
+				if (ScopeManagerMax::CoronaOK)
+					shader = parseCoronaLightMtl(material);
 			}
 			else if (cid == Corona::PORTAL_MTL_CID) {
-				shader = parseCoronaPortalMtl(material);  // CRASH when set to TRANSPARENT
+				if (ScopeManagerMax::CoronaOK)
+					shader = parseCoronaPortalMtl(material);
 			}
 			else if (cid == Corona::SHADOW_CATCHER_MTL_CID) {
-				shader = parseCoronaShadowCatcherMtl(material); // CRASH when set to emissive
+				if (ScopeManagerMax::CoronaOK)
+					shader = parseCoronaShadowCatcherMtl(material);
 			}
 			else if (cid == Corona::VOLUME_MTL_CID) {
-				shader = parseCoronaVolumeMtl(material); // OK just returns transparent for now
+				if (ScopeManagerMax::CoronaOK)
+					shader = parseCoronaVolumeMtl(material);
 			}
 			else if (cid == Corona::RAY_SWITCH_MTL_CID) {
-				shader = parseCoronaRaySwitchMtl(material); // OK
+				if (ScopeManagerMax::CoronaOK)
+					shader = parseCoronaRaySwitchMtl(material);
 			}
 			else if (cid == Class_ID(BAKE_SHELL_CLASS_ID, 0))
 			{

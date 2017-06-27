@@ -13,6 +13,12 @@
 #include "plugin/ParamBlock.h"
 #include "utils/Thread.h"
 #include "ScopeManager.h"
+#include "CoronaDeclarations.h"
+
+#include <maxscript/maxscript.h>
+#include <maxscript/compiler/parser.h>
+#include <maxscript/macros/value_locals.h>
+#include <maxscript/kernel/exceptions.h>
 
 #define _WIN32_DCOM
 #include <iostream>
@@ -23,9 +29,11 @@ extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-using namespace frw;
-
 ScopeManagerMax ScopeManagerMax::TheManager;
+
+GpuInfoArray ScopeManagerMax::gpuInfoArray;
+
+bool ScopeManagerMax::CoronaOK = false;
 
 class ScopeManagerMaxClassDesc : public ClassDesc
 {
@@ -84,9 +92,6 @@ namespace
 };
 
 
-GpuInfoArray ScopeManagerMax::gpuInfoArray;
-
-
 ScopeManagerMax::ScopeManagerMax()
 {
 	gpuComputed = false;
@@ -105,21 +110,30 @@ ScopeManagerMax::ScopeManagerMax()
 	CreateDirectoryA(subCacheFolder.c_str(), NULL);
 }
 
+
 static void NotifyProc(void *param, NotifyInfo *info)
 {
-	ScopeManagerMax *bg = reinterpret_cast<ScopeManagerMax*>(param);
+	if (info->intcode == NOTIFY_SYSTEM_STARTUP)
+	{
+		FPValue res = 0;
 
-	if (info->intcode == NOTIFY_FILE_POST_OPEN)
-	{
-	}
-	else if (info->intcode == NOTIFY_SYSTEM_STARTUP)
-	{
-	}
-	else if (info->intcode == NOTIFY_SYSTEM_POST_RESET)
-	{
-	}
-	else if (info->intcode == NOTIFY_SYSTEM_POST_NEW)
-	{
+		FASSERT(ExecuteMAXScriptScript(
+			L"quiet = GetQuietMode()\n"
+			L"SetQuietMode true\n"
+			L"r = renderers.current\n"
+			L"coronaOK = 1\n"
+			L"try\n"
+			L"(renderers.current = CoronaRenderer())\n"
+			L"catch\n"
+			L"(\n"
+			L"	coronaOK = 0\n"
+			L")\n"
+			L"renderers.current = r\n"
+			L"SetQuietMode quiet\n"
+			L"coronaOK;"
+			, TRUE, &res));
+
+		ScopeManagerMax::CoronaOK = (res.i == 1);
 	}
 }
 
@@ -129,19 +143,13 @@ static void NotifyProc(void *param, NotifyInfo *info)
 DWORD ScopeManagerMax::Start()
 {
 	int res;
-	res = RegisterNotification(NotifyProc, this, NOTIFY_FILE_POST_OPEN);
 	res = RegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_STARTUP);
-	res = RegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_POST_RESET);
-	res = RegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_POST_NEW);
 	return GUPRESULT_KEEP;
 }
 
 void ScopeManagerMax::Stop()
 {
-	UnRegisterNotification(NotifyProc, this, NOTIFY_FILE_POST_OPEN);
 	UnRegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_STARTUP);
-	UnRegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_POST_RESET);
-	UnRegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_POST_NEW);
 }
 
 void ScopeManagerMax::DeleteThis()
@@ -173,7 +181,7 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 	bool contextCreated = CreateContext(createFlags, context);
 	FASSERT(contextCreated);
 
-	Scope theScope = Scope(context, true);
+	frw::Scope theScope = frw::Scope(context, true);
 
 	if (auto ctx = theScope.GetContext())
 	{
@@ -219,10 +227,10 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 
 ScopeID ScopeManagerMax::CreateLocalScope(ScopeID parent)
 {
-	Scope theParent = GetScope(parent);
+	frw::Scope theParent = GetScope(parent);
 	if (!theParent.IsValid())
 		return -1;
-	Scope theScope = theParent.CreateLocalScope();
+	frw::Scope theScope = theParent.CreateLocalScope();
 	if (!theScope.IsValid())
 		return -1;
 
@@ -238,10 +246,10 @@ ScopeID ScopeManagerMax::CreateLocalScope(ScopeID parent)
 
 ScopeID ScopeManagerMax::CreateChildScope(ScopeID parent)
 {
-	Scope theParent = GetScope(parent);
+	frw::Scope theParent = GetScope(parent);
 	if (!theParent.IsValid())
 		return -1;
-	Scope theScope = theParent.CreateChildScope();
+	frw::Scope theScope = theParent.CreateChildScope();
 	if (!theScope.IsValid())
 		return -1;
 

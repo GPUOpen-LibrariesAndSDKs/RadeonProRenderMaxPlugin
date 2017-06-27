@@ -10,6 +10,7 @@
 #include "RenderParameters.h"
 #include "plugin/ParamBlock.h"
 #include "plugin/CamManager.h"
+#include "plugin/ScopeManager.h"
 #include <iparamm2.h>
 #include <lslights.h>
 #include <ICustAttribContainer.h>
@@ -348,6 +349,8 @@ void SceneParser::traverseNode(INode* input, const bool processXRef, const Rende
 		auto id = Animatable::GetHandleByAnim(input);
 		if (objRef->ClassID() == Corona::SCATTER_CID)
 		{
+			if (ScopeManagerMax::CoronaOK)
+			{
 			// If this is a scatter node, we will use its function publishing interface to get list of scattered nodes and report them 
 			// all with their transformation matrices
 			Corona::ScatterFpOps* ops = GetScatterOpsInterface(objRef->GetParamBlockByID(0)->GetDesc()->cd);
@@ -363,6 +366,7 @@ void SceneParser::traverseNode(INode* input, const bool processXRef, const Rende
 				tm.SetTrans(tm.GetTrans() * masterScale);
 				output.push_back(ParsedNode((id << 16) + i, node, tm));
 			}
+		}
 		}
 		else
 		{
@@ -399,6 +403,8 @@ bool createMesh(std::vector<frw::Shape>& result, bool& directlyVisible,
 
 	directlyVisible = inode->GetPrimaryVisibility() != FALSE;
 	if (evaluatedObject->ClassID() == Corona::LIGHT_CID) {
+		if (ScopeManagerMax::CoronaOK)
+		{
 		// Corona lights require some special processing - we will get its mesh via function publishing interface.
 		// But when we have it, we can parse the mesh as any other geometry object, because we also handle their the lights 
 		// material specially in MaterialParser.
@@ -411,7 +417,7 @@ bool createMesh(std::vector<frw::Shape>& result, bool& directlyVisible,
 		else {
 			MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Too old Corona version."), _T("Radeon ProRender warning"), MB_OK);
 		}
-
+		}
 	}
 
 	if (!mesh)  //nothing to do here
@@ -889,6 +895,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
         } 
 		else if (classId == Corona::SUN_OBJECT_CID)
 		{
+			if (ScopeManagerMax::CoronaOK)
 			parseCoronaSun(actual, state.obj);
 		}
 		else if (classId == FIRERENDER_ENVIRONMENT_CLASS_ID)
@@ -1006,6 +1013,8 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					}
 					else if (currentMtl && currentMtl->ClassID() == Corona::MTL_CID) 
 					{
+						if (ScopeManagerMax::CoronaOK)
+						{
 						IParamBlock2* pb = currentMtl->GetParamBlock(0);
 						const bool useCaustics = GetFromPb<bool>(pb, Corona::MTLP_USE_CAUSTICS, this->params.t);
 						const float lRefract = GetFromPb<float>(pb, Corona::MTLP_LEVEL_REFRACT, this->params.t);
@@ -1015,6 +1024,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 						if ((lRefract > 0.f || lOpacity < 1.f) && !useCaustics) {
 							castsShadows = false;
 						}
+					}
 					}
 					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID) 
 					{
@@ -1030,6 +1040,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					}
 					else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 					{
+						if (ScopeManagerMax::CoronaOK)
 						shadowCatcher = true;
 					}
 

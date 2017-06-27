@@ -326,8 +326,8 @@ inline bool SaveBitmapToFile(const std::string& path, Bitmap* bitmap)
 class AccumulationTimer
 {
 private:
-	ULONGLONG mStartedAt;
-	ULONGLONG mElapsed;
+	DWORD mStartedAt;
+	DWORD mElapsed;
 
 public:
 	AccumulationTimer()
@@ -339,13 +339,13 @@ public:
 	inline void Start()
 	{
 		FASSERT(mStartedAt == 0);
-		mStartedAt = GetTickCount64();
+		mStartedAt = GetTickCount();
 	}
 
 	inline void Stop()
 	{
 		FASSERT(mStartedAt != 0);
-		mElapsed += GetTickCount64() - mStartedAt;
+		mElapsed += GetTickCount() - mStartedAt;
 		mStartedAt = 0;
 	}
 
@@ -355,7 +355,7 @@ public:
 		mStartedAt = 0;
 	}
 
-	inline const ULONGLONG &GetElapsed() const
+	inline const DWORD &GetElapsed() const
 	{
 		return mElapsed;
 	}
