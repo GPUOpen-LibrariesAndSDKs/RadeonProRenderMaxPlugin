@@ -32,6 +32,8 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 #define BMUI_TIMER_PERIOD 33
 
+Event PRManagerMax::bmDone;
+
 class ProductionRenderCore : public BaseThread
 {
 public:
@@ -62,7 +64,7 @@ public:
 	TerminationResult result;
 
 	FrameData lastFrameData;
-	std::atomic<int> frameDataCount;
+	std::atomic<int> lastFrameDataWritedCount;
 
 	std::atomic<bool> isNormals;
 	std::atomic<bool> isToneOperatorPreviewRender;
@@ -75,7 +77,6 @@ public:
 	Box2 region;
 
 private:
-	PRManagerMax::Data *mData;
 	frw::Scope scope;
 	frw::FrameBuffer frameBufferColor;
 	frw::FrameBuffer frameBufferColorResolve;
@@ -104,7 +105,7 @@ public:
 
 	void RenderStamp(Bitmap* DstBuffer, FrameData& frameData);
 
-	explicit ProductionRenderCore(PRManagerMax::Data *pData, frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
+	explicit ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
 	
 	void Worker() override;
 
@@ -113,7 +114,7 @@ public:
 		errorCode = err;
 		rpr_int errorCode = RPR_SUCCESS;
 		result = res;
-		mData->bmDone.Fire();
+		PRManagerMax::bmDone.Fire();
 
 		if(bImmediateAbort)
 			scope.DestroyFrameBuffers();
@@ -133,33 +134,7 @@ public:
 	void Restart();
 };
 
-class ProductionRenderHelper : public BaseThread
-{
-private:
-	PRManagerMax::Data *mData;
-
-public:
-
-	ProductionRenderHelper(PRManagerMax::Data *pData)
-		: BaseThread("ProductionRenderHelper")
-		, mData(pData)
-	{
-	}
-
-	void Worker()
-	{
-		while (!mStop.Wait(0))
-		{
-			if (mData->renderThread->frameDataCount > 0 && mData->CanCopyFrameBuffer.Wait(0))
-			{
-				// Copy last rendered frame to bitmap
-				mData->renderThread->CopyLastFrameToBitmap(mData->backBuffer);
-				mData->BitmapCopyDone.Fire();
-			}
-			Sleep(30);
-		}
-	}
-};
+std::mutex frameDataBuffersLock;
 
 void ProductionRenderCore::SaveFrameData()
 {
@@ -184,31 +159,19 @@ void ProductionRenderCore::SaveFrameData()
 	data.passesDone = passesDone;
 
 	// SaveFrameData() called on renderThread, main(UI) thread wants safe read access to the following datas
-	try
-	{
-		ScopeLock(mData->frameDataBuffersLock);
+	frameDataBuffersLock.lock();
 		lastFrameData = std::move(data);
-		++frameDataCount;
-	}
-	catch (...)
-	{
-	}
+	++lastFrameDataWritedCount;
+	frameDataBuffersLock.unlock();
 }
 
 void ProductionRenderCore::CopyLastFrameToBitmap(::Bitmap* bitmap)
 {
 	// CopyLastFrameToBitmap(..) called on main(UI) thread, renderThread wants safe write access
-	FrameData data;
-	try
-	{
-		ScopeLock(mData->frameDataBuffersLock);
-		data = std::move(lastFrameData);
-		frameDataCount = 0;
-	}
-	catch (...)
-	{
-		return;
-	}
+	frameDataBuffersLock.lock();
+	FrameData data = std::move(lastFrameData);
+	lastFrameDataWritedCount = 0;
+	frameDataBuffersLock.unlock();
 
 	float exposure = IsReal((float)this->exposure) ? (float)this->exposure : 1.f;
 	CompositeFrameBuffersToBitmap(data.colorData, data.alphaData, bitmap, exposure, isNormals, isToneOperatorPreviewRender);
@@ -221,8 +184,8 @@ void ProductionRenderCore::CopyLastFrameToBitmap(::Bitmap* bitmap)
 
 
 
-ProductionRenderCore::ProductionRenderCore(PRManagerMax::Data *pData, frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name)
-: BaseThread(name, priority), scope(rscope), eRestart(true), bImmediateAbort(false), mData(pData)
+ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name)
+: BaseThread(name, priority), scope(rscope), eRestart(true), bImmediateAbort(false)
 {
 	// termination
 	passLimit = 1;
@@ -230,7 +193,7 @@ ProductionRenderCore::ProductionRenderCore(PRManagerMax::Data *pData, frw::Scope
 	timeLimit = 10;
 	term = Termination_None;
 	errorCode = RPR_SUCCESS;
-	frameDataCount = 0;
+	lastFrameDataWritedCount = 0;
 
 	isNormals = false;
 	isToneOperatorPreviewRender = false;
@@ -574,7 +537,7 @@ PRManagerMax::PRManagerMax()
 PRManagerMax::~PRManagerMax()
 {
 	for (auto renderer : mInstances)
-		CleanWaitRender(renderer.first);
+		CleanUpRender(renderer.first);
 }
 
 void PRManagerMax::NotifyProc(void *param, NotifyInfo *info)
@@ -629,18 +592,17 @@ void PRManagerMax::NotifyProc(void *param, NotifyInfo *info)
 	}
 }
 
-void PRManagerMax::CleanWaitRender(FireRenderer *pRenderer)
+void PRManagerMax::CleanUpRender(FireRenderer *pRenderer)
 {
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
 	if (dd != mInstances.end())
 	{
 		auto data = dd->second;
-		
 		if (data->helperThread)
 		{
-			data->helperThread->Abort();
+			data->helperThread->join();
 			delete data->helperThread;
-			data->helperThread = 0;
+			data->helperThread = nullptr;
 		}
 
 		if (data->renderThread)
@@ -648,7 +610,7 @@ void PRManagerMax::CleanWaitRender(FireRenderer *pRenderer)
 			data->renderThread->Abort();
 
 			if (!data->bRenderThreadDone)
-				data->bmDone.Wait();
+				bmDone.Wait();
 
 			delete data->renderThread;
 			data->renderThread = nullptr;
@@ -699,9 +661,7 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 	mInstances.insert(std::make_pair(pRenderer, data));
 
 	auto &parameters = pRenderer->parameters;
-	
-	BroadcastNotification(NOTIFY_PRE_RENDER, &parameters.rendParams);
-	
+
 	if (parameters.rendParams.IsToneOperatorPreviewRender())
 	{
 		data->isToneOperatorPreviewRender = true;
@@ -754,6 +714,8 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 		parameters.pblock->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
 	context.SetParameter("radianceclamp", irradianceClamp);
 
+	BroadcastNotification(NOTIFY_PRE_RENDER, &parameters.rendParams);
+	
 	return 1;
 }
 
@@ -867,7 +829,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	auto &parameters = pRenderer->parameters;
 
 	// It can happen that the user immediately cancelled the PREVIOUS render, and here we do a lazy cleanup
-	CleanWaitRender(pRenderer);
+	CleanUpRender(pRenderer);
 
 	int renderWidth = frontBuffer->Width();
 	int renderHeight = frontBuffer->Height();
@@ -1087,7 +1049,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 	SetupCamera(parser->view, renderWidth, renderHeight, camera.Handle());
 	
-	data->renderThread = new ProductionRenderCore(data, scope, bRenderAlpha, renderWidth, renderHeight);
+	data->renderThread = new ProductionRenderCore(scope, bRenderAlpha, renderWidth, renderHeight);
 	data->renderThread->term = data->termCriteria;
 	data->renderThread->passLimit = data->passLimit;
 	data->renderThread->timeLimit = data->timeLimit;
@@ -1115,17 +1077,35 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	}
 
 	// bmDone event will be fired when renderThread finished his job
-	data->bmDone.Reset();
+	bmDone.Reset();
 
 	// Start rendering
 	data->renderThread->Start();
 
 	data->bRenderCancelled = false;
+	data->bCanLunchNewThread = true;
+	data->bBitmapCopyDone = false;
 	data->bRenderThreadDone = false;
+	data->bQuitHelperThread = false;
 	
 
-	data->helperThread = new ProductionRenderHelper(data);
-	data->helperThread->Start();
+	data->helperThread = new std::thread([data]()
+	{
+		while (!data->bQuitHelperThread)
+		{
+			// Launch a new thread that will copy the last frame from renderThread, to improve UI responsiveness
+			if (data->renderThread->lastFrameDataWritedCount > 0 && data->bCanLunchNewThread)
+			{
+				data->bCanLunchNewThread = false;
+				data->bBitmapCopyDone = false;
+
+				// Copy last rendered frame to bitmap
+				data->renderThread->CopyLastFrameToBitmap(data->backBuffer);
+				data->bBitmapCopyDone = true;
+			}
+			Sleep(30);
+		}
+	});
 
 	std::wstring prevProgressString;
 	HWND shaderCacheDlg = NULL;
@@ -1158,9 +1138,8 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 				DestroyWindow(shaderCacheDlg);
 				shaderCacheDlg = NULL;
 			}
-
-			//data->renderThread->AbortImmediate();
-			data->renderThread->Abort();
+			data->renderThread->AbortImmediate();
+			data->bQuitHelperThread = true;
 			data->bRenderCancelled = true;
 			break;
 		}
@@ -1234,11 +1213,11 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		}
 
 		// Render thread finished
-		data->bRenderThreadDone |= data->bmDone.Wait(0);
+		data->bRenderThreadDone |= bmDone.Wait(0);
 
 		bool bBlitDone = false;
 
-		if (data->BitmapCopyDone.Wait(0))
+		if (data->bBitmapCopyDone)
 		{
 			// Copy backBuffer to frontBuffer
 			frontBuffer->CopyImage(data->backBuffer, COPY_IMAGE_CROP, 0);
@@ -1248,12 +1227,13 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 			// bitmap readed, we can prepare next bitmap on new thread
 			bBlitDone = true;
-			data->CanCopyFrameBuffer.Fire();
+			data->bCanLunchNewThread = true;
 		}
 
 		// Render thread finished, but wait till all frameData got blitted
 		if (data->bRenderThreadDone && bBlitDone)
 		{
+			data->bQuitHelperThread = true;
 			break;
 		}
 
@@ -1298,13 +1278,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		MessageBox(GetCOREInterface()->GetMAXHWnd(), errorMsg.c_str(), L"Radeon ProRender", MB_OK | MB_ICONERROR);
 	}
 
-	if (data->bRenderCancelled)
-	{
-		// When cancelling a render now always wait the render & other thread till finish, because there would be a crash inside Worker(), when SaveFrameData() -> frameBuffer.Resolve(...) called
-		// Might the main thread already using that context :( Try to improve in future, when done simply remove this line
-		CleanWaitRender(pRenderer);
-	}
-	else
+	if (!data->bRenderCancelled)
 	{
 		// commit render elements
 		if ((data->renderThread->errorCode == RPR_SUCCESS) && (data->renderThread->result != ProductionRenderCore::Result_Catastrophic))
@@ -1344,9 +1318,9 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		}
 
 		scope.DestroyFrameBuffers();
-
-		CleanWaitRender(pRenderer);
 	}
+
+	CleanUpRender(pRenderer);
 
 	BroadcastNotification(NOTIFY_POST_RENDERFRAME, &parameters.renderGlobalContext);
 	

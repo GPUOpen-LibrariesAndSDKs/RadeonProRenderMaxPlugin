@@ -26,7 +26,6 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 class FireRenderer;
 class ProductionRenderCore;
-class ProductionRenderHelper;
 
 typedef enum
 {
@@ -65,11 +64,9 @@ typedef enum
 
 class PRManagerMax : public GUP, public ReferenceMaker
 {
-friend class ProductionRenderCore;
-friend class ProductionRenderHelper;
-
 public:
 	static PRManagerMax TheManager;
+	static Event bmDone;
 
 public:
 	PRManagerMax();
@@ -99,28 +96,26 @@ private:
 	class Data
 	{
 	public:
-	ScopeID scopeId;
+		ScopeID scopeId;
 
 		//RenderParameters parameters;
-	TerminationCriteria termCriteria;
-	unsigned int passLimit;
-	__time64_t timeLimit;
-	bool isNormals;
-	bool shouldToneMap;
-	float toneMappingExposure;
-	bool isToneOperatorPreviewRender;
+		TerminationCriteria termCriteria;
+		unsigned int passLimit;
+		__time64_t timeLimit;
+		bool isNormals;
+		bool shouldToneMap;
+		float toneMappingExposure;
+		bool isToneOperatorPreviewRender;
+		
+		class ProductionRenderCore* renderThread;
+	std::thread* helperThread;
+		::Bitmap* backBuffer;
+		std::atomic<bool> bRenderCancelled;
+		bool bRenderThreadDone;
+	std::atomic<bool> bQuitHelperThread;
+	bool bCanLunchNewThread;
+	std::atomic<bool> bBitmapCopyDone;
 
-	class ProductionRenderCore* renderThread;
-		class ProductionRenderHelper* helperThread;
-	::Bitmap* backBuffer;
-	std::atomic<bool> bRenderCancelled;
-	bool bRenderThreadDone;
-		Event CanCopyFrameBuffer;
-		Event BitmapCopyDone;
-
-		Event bmDone;
-		CriticalSection frameDataBuffersLock;
-	
 		Data()
 		{
 			scopeId = -1;
@@ -132,13 +127,14 @@ private:
 			bRenderCancelled = false;
 			isNormals = false;
 			shouldToneMap = false;
-			CanCopyFrameBuffer.Fire();
+			bCanLunchNewThread = true;
+			bBitmapCopyDone = false;
 		}
 	};
 
 	std::map<FireRenderer *, Data *> mInstances;
-
-	void CleanWaitRender(FireRenderer *pRenderer);
+	
+	void CleanUpRender(FireRenderer *pRenderer);
 
 	static void NotifyProc(void *param, NotifyInfo *info);
 
