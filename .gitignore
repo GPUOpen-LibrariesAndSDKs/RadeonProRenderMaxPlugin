@@ -1,0 +1,7 @@
+.suo
+bin/
+dist/
+x64/
+.db
+.opendb
+
