@@ -25,39 +25,44 @@
 #include "parser/SceneCallbacks.h"
 #include "plugin/FireRenderer.h"
 
+/*
+	This class is responsible for drawing thumbnails in Material Editor.
+	When MPManagerMax::Render is invoked a Window message loop is started inside this function to provide
+	a reaction for UI (the call itself is synchronous for 3ds Max). A separate rendering thread is
+	doing rendering itself, implementing several calls to the RPR Core. Scene recalculaion and an acccess to
+	the scene from Core must be synchronized (made in one thread in this implementation).
+*/
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-#define MPMANAGER_VERSION 1
-
-
 class FireRenderer;
-class BitmapRenderCore;
 
 class MPManagerMax : public GUP, public ReferenceMaker
 {
 public:
 	static MPManagerMax TheManager;
-	Event mRenderingPreview;
 
 public:
 	MPManagerMax();
-	~MPManagerMax() {}
+	~MPManagerMax();
 
 	// GUP Methods
 	DWORD Start() override;
 	void Stop() override;
 
-	void DeleteThis() override;
+	virtual void DeleteThis() override;
 
 	static ClassDesc* GetClassDesc();
 
 public:
-	int Render(class FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, FrameRendParams &frp, HWND hwnd, RendProgressCallback* prog, ViewParams* viewPar,
-		INode *sceneNode, INode *viewNode, RendParams &rendParams);
+	int Render(class FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, FrameRendParams &frp, HWND hwnd,
+		RendProgressCallback* prog, ViewParams* viewPar,
+		INode* sceneNode, INode* viewNode, RendParams& rendParams);
 
 	bool Abort();
-	
+
+	void UpdateMaterial();
+
 private:
 	enum ShapeKeys
 	{
@@ -82,7 +87,7 @@ private:
 	BOOL overrideMaxShapes = TRUE;
 	int curObject = ObjMatball;
 
-	int getObjectToRender(INode *sceneNode);
+	int getObjectToRender(INode* sceneNode);
 	void setVisible(int whichObject);
 	
 	enum ShaderKeys
@@ -92,10 +97,8 @@ private:
 		TexturedBgMaterial,
 	};
 
-	Event exitImmediately;
-
-	ScopeID matballScope; // holds the basic matball scene, we won't delete this until we have to
-	ScopeID tempScope; // holds temporary translated materials and operations within one rendering cycle
+	ScopeID matballScopeID; // holds the basic matball scene, we won't delete this until we have to
+	ScopeID tempScopeID; // holds temporary translated materials and operations within one rendering cycle
 	
 	
 	// these hold pointers to the stuff loaded from the matball scene
@@ -107,34 +110,42 @@ private:
 	
 	RenderParameters parameters;
 		
-	class BitmapRenderCore *renderThread;
-
 	void InitializeScene(IParamBlock2 *pblock);
 
-	void UpdateMaterial();
 	void SetMaterial(SceneParser &parser, frw::Shader volumeShader, frw::Shader surfaceShader, bool castShadows, bool env);
 	void SetDisplacement(SceneParser &parser, frw::Value img, const float &minHeight, const float &maxHeight,
 		const float &subdivision, const float &creaseWeight, int boundary);
 	void ResetMaterial();
 
-	Event requestDestroyLoadedAssets;
 	void DestroyLoadedAssets(); // destroy the loaded matball scene
 
 	// reference maker
 	RefTargetHandle refTarget;
+
 	int NumRefs() override
 	{
 		return 1;
 	}
+
 	RefTargetHandle GetReference(int i) override
 	{
 		return refTarget;
 	}
+
 	void SetReference(int i, RefTargetHandle rtarg) override
 	{
 		refTarget = rtarg;
 	}
+
 	RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override;
+
+	void renderingThreadProc(Bitmap*);
+
+	Event mRenderingPreview;
+	Event exitImmediately;
+	Event requestDestroyLoadedAssets;
+	Event bmDone;
+	Event eRestart;
 };
 
 FIRERENDER_NAMESPACE_END;
