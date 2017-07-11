@@ -11,13 +11,18 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">
-    <LocalDebuggerCommand>C:\Program Files\Autodesk\3ds Max 2017\3dsmax.exe</LocalDebuggerCommand>
-    <LocalDebuggerWorkingDirectory>C:\Program Files\Autodesk\3ds Max 2017</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2017)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2017)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'">
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2018)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2018)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'">
-    <LocalDebuggerCommand>C:\Program Files\Autodesk\3ds Max 2017\3dsmax.exe</LocalDebuggerCommand>
-    <LocalDebuggerWorkingDirectory>C:\Program Files\Autodesk\3ds Max 2017</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2016)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2016)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2013|x64'">
@@ -36,13 +41,18 @@
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">
-    <LocalDebuggerCommand>C:\Program Files\Autodesk\3ds Max 2017\3dsmax.exe</LocalDebuggerCommand>
-    <LocalDebuggerWorkingDirectory>C:\Program Files\Autodesk\3ds Max 2017</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2017)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2017)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2018|x64'">
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2018)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2018)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'">
-    <LocalDebuggerCommand>C:\Program Files\Autodesk\3ds Max 2017\3dsmax.exe</LocalDebuggerCommand>
-    <LocalDebuggerWorkingDirectory>C:\Program Files\Autodesk\3ds Max 2017</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2016)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2016)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2013|x64'">
