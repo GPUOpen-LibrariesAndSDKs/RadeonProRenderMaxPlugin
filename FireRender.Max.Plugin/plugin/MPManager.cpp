@@ -22,182 +22,11 @@
 #include <RadeonProRender.h>
 #include <RprLoadStore.h>
 
-extern HINSTANCE hInstance;
+#include <thread>
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-#define BMUI_TIMER_PERIOD 30
-
-static Event bmDone;
-
-class BitmapRenderCore;
-
-class BitmapRenderCore : public BaseThread
-{
-public:
-	volatile unsigned int passLimit;
-	volatile unsigned int passesDone;
-	volatile int catastrophe;
-
-private:
-	frw::Scope scope;
-	frw::FrameBuffer frameBufferMain;
-	std::vector<float> fbData;
-	Event eRestart;
-	
-	bool DumpFrameBuffer();
-
-public:
-	inline const std::vector<float>& GetFrameBuffer()
-	{
-		return fbData;
-	}
-
-	explicit BitmapRenderCore(frw::Scope rscope, int w, int h, int priority = THREAD_PRIORITY_NORMAL, const char* name = "BitmapRenderCore");
-	~BitmapRenderCore();
-
-	void Worker() override;
-
-	void Restart();
-};
-
-
-bool BitmapRenderCore::DumpFrameBuffer()
-{
-	if (!frameBufferMain.Handle())
-		return false;
-
-	size_t fbSize;
-	int res = rprFrameBufferGetInfo(frameBufferMain.Handle(), RPR_FRAMEBUFFER_DATA, 0, NULL, &fbSize);
-	FASSERT(res == RPR_SUCCESS);
-
-	// Get all image data from Radeon ProRender in single call, then use multiple threads to copy them over to 3ds Max
-	fbData.resize(int(fbSize / sizeof(float)));
-	res = rprFrameBufferGetInfo(frameBufferMain.Handle() , RPR_FRAMEBUFFER_DATA, fbData.size() * sizeof(float), fbData.data(), NULL);
-	FASSERT(res == RPR_SUCCESS);
-
-	size_t i = 0, sz = fbData.size();
-	while (i < sz)
-	{
-		if (fbData[i + 3] > 0)
-		{
-			const float actualExp = 1.f / fbData[i + 3];
-			fbData[i++] *= actualExp;
-			fbData[i++] *= actualExp;
-			fbData[i++] *= actualExp;
-		}
-		fbData[i++] = 1.f;
-	}
-
-	return true;
-}
-
-BitmapRenderCore::BitmapRenderCore(frw::Scope rscope, int w, int h, int priority, const char* name)
-: BaseThread(name, priority), scope(rscope), eRestart(true)
-{
-	mSelfDelete = false;
-	passLimit = 0;
-	catastrophe = RPR_SUCCESS;
-	
-	frameBufferMain = scope.GetFrameBuffer(w, h, 0);
-	
-	auto res = rprContextSetAOV(scope.GetContext().Handle(), RPR_AOV_COLOR, frameBufferMain.Handle());
-	FASSERT(res == RPR_SUCCESS);
-	res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
-	FASSERT(res == RPR_SUCCESS);
-}
-
-BitmapRenderCore::~BitmapRenderCore()
-{
-	scope.DestroyFrameBuffer(0);
-	frameBufferMain.Reset();
-
-	auto res = rprContextSetAOV(scope.GetContext().Handle(), RPR_AOV_COLOR, 0);
-	FASSERT(res == RPR_SUCCESS);
-}
-
-void BitmapRenderCore::Worker()
-{
-	unsigned int numPasses = passLimit;
-	if (numPasses < 1)
-		numPasses = 1;
-	unsigned int numPassesMinusOne = numPasses - 1;
-	passesDone = 0;
-
-	bool clearFramebuffer = true;
-
-	// render all passes, unless the render is cancelled (and even then render at least a single pass)
-	for (; passesDone < numPasses; InterlockedIncrement(&passesDone))
-	{
-		if (mStop.Wait(0))
-		{
-			catastrophe = RPR_SUCCESS;
-			passesDone = UINT_MAX;
-			break;
-		}
-		if (eRestart.Wait(0))
-		{
-			clearFramebuffer = true;
-			passesDone = 0;
-		}
-		
-		if (clearFramebuffer)
-		{
-			frameBufferMain.Clear();
-			clearFramebuffer = false;
-		}
-
-		rpr_int res = RPR_SUCCESS;
-		try
-		{
-			res = rprContextRender(scope.GetContext().Handle());
-		}
-		catch (...)
-		{
-			debugPrint("Exception occurred in render call");
-			catastrophe = RPR_ERROR_INTERNAL_ERROR;
-			passesDone = UINT_MAX;
-			bmDone.Fire();
-			return;
-		}
-
-		if (res != RPR_SUCCESS)
-		{
-			TheManager->Max()->Log()->LogEntry(SYSLOG_WARN, NO_DIALOG, L"Radeon ProRender - Warning", L"rprContextRender returned '%d'\n", res);
-			catastrophe = res;
-			passesDone = UINT_MAX;
-			bmDone.Fire();
-			return;
-		}
-
-		// material preview / swatches do not update their bitmap before the render function returns
-		// it seems that the bitmap passed to the render function is a provisional object, it is
-		// not the actual bitmap that will be displayed.
-		// therefore, we do not need to visualize incremental updates
-		if (passesDone >= numPassesMinusOne)
-		{
-			catastrophe = RPR_SUCCESS;
-			DumpFrameBuffer();
-			bmDone.Fire();
-			break;
-		}
-	}
-}
-
-void BitmapRenderCore::Restart()
-{
-	eRestart.Fire();
-	if (!IsRunning())
-		Start();
-}
-
-
-
-//////////////////////////////////////////////////////////////////////////////
-//
-
 MPManagerMax MPManagerMax::TheManager;
-
 
 class MPManagerMaxClassDesc : public ClassDesc
 {
@@ -217,22 +46,22 @@ ClassDesc* MPManagerMax::GetClassDesc()
 	return &MPManagerMaxCD;
 }
 
-
 MPManagerMax::MPManagerMax()
 	: exitImmediately(false)
-	, renderThread(0)
 	, requestDestroyLoadedAssets(false)
-	, matballScope(-1)
-	, tempScope(-1)
+	, matballScopeID(-1)
+	, tempScopeID(-1)
 	, mRenderingPreview(false)
 {
 }
 
-// Activate and Stay Resident
-//
+MPManagerMax::~MPManagerMax()
+{
+}
 
 DWORD MPManagerMax::Start()
 {
+	// Activate and Stay Resident
 	return GUPRESULT_KEEP;
 }
 
@@ -264,13 +93,93 @@ namespace
 bool MPManagerMax::Abort()
 {
 	bool res = true;
+
 	if (mRenderingPreview.Wait(0))
 	{
 		res = false;
 		exitImmediately.Fire();
 		requestDestroyLoadedAssets.Fire();
 	}
+
 	return res;
+}
+
+void MPManagerMax::renderingThreadProc(Bitmap* tobm)
+{
+	int width = tobm->Width();
+	int height = tobm->Height();
+
+	frw::Scope& scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
+
+	frw::FrameBuffer frameBufferMain;
+
+	frameBufferMain = scope.GetFrameBuffer(width, height, 0);
+	frameBufferMain.Clear();
+
+	// initialize core
+	auto res = rprContextSetAOV(scope.GetContext().Handle(), RPR_AOV_COLOR, frameBufferMain.Handle());
+	FASSERT(res == RPR_SUCCESS);
+
+	res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
+	FASSERT(res == RPR_SUCCESS);
+
+	// render
+	int passesDone = 0;
+	int passLimit = GetFromPb<int>(parameters.pblock, PARAM_MTL_PREVIEW_PASSES);
+
+	for (; passesDone < passLimit; passesDone++)
+	{
+		if (eRestart.Wait(0))
+		{
+			MPManagerMax::TheManager.UpdateMaterial();
+			frameBufferMain.Clear();
+			passesDone = 0;
+		}
+
+		if (exitImmediately.Wait(0))
+			break;
+
+		rpr_int res = rprContextRender(scope.GetContext().Handle());
+
+		if (res != RPR_SUCCESS)
+		{
+			Max()->Log()->LogEntry(SYSLOG_WARN, NO_DIALOG, L"Radeon ProRender - Warning", L"rprContextRender returned '%d'\n", res);
+			break;
+		}
+	}
+
+	if (passesDone == passLimit)
+	{
+		// get rendered image from core
+		frw::FrameBuffer normalizedFrameBuffer;
+
+		normalizedFrameBuffer = scope.GetFrameBuffer(width, height, 1);
+		normalizedFrameBuffer.Clear();
+
+		res = rprContextResolveFrameBuffer(scope.GetContext().Handle(), frameBufferMain.Handle(), normalizedFrameBuffer.Handle(), true);
+		FASSERT(res == RPR_SUCCESS);
+
+		size_t fbSize;
+
+		res = rprFrameBufferGetInfo(normalizedFrameBuffer.Handle(), RPR_FRAMEBUFFER_DATA, 0, NULL, &fbSize);
+		FASSERT(res == RPR_SUCCESS);
+
+		std::vector<float> fbData;
+
+		fbData.resize( fbSize / sizeof(float) );
+		res = rprFrameBufferGetInfo(normalizedFrameBuffer.Handle(), RPR_FRAMEBUFFER_DATA, fbData.size() * sizeof(float), fbData.data(), NULL);
+		FASSERT(res == RPR_SUCCESS);
+
+		// copy results to bitmap
+		for (int y = 0; y < height; y++)
+		{
+			tobm->PutPixels(0, y, width, ((BMM_Color_fl*) fbData.data()) + y * width);
+		}
+
+		tobm->RefreshWindow();
+	}
+
+	bmDone.Fire();
 }
 
 int MPManagerMax::Render(FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, FrameRendParams &frp, HWND hwnd, RendProgressCallback* prog, ViewParams* viewPar, INode *sceneNode, INode *viewNode, RendParams &rendParams)
@@ -292,6 +201,7 @@ int MPManagerMax::Render(FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, Fr
 
 	CActiveShadeLocker aslocker; // block activeshader's rendering until finished
 
+	bmDone.Reset();
 	exitImmediately.Reset();
 	requestDestroyLoadedAssets.Reset();
 
@@ -309,89 +219,51 @@ int MPManagerMax::Render(FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, Fr
 	parameters.sceneNode = sceneNode;
 	parameters.viewNode = viewNode;
 	parameters.rendParams = rendParams;
+
 	if (viewPar)
 		parameters.viewParams = *viewPar;
 
 	if (prog)
 		prog->SetTitle(_T("Material Preview: Creating Radeon ProRender context..."));
 
-	if (matballScope == -1)
+	if (matballScopeID == -1)
 		InitializeScene(pblock);
 	else
 		setVisible(curObject);
 	
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScope);
-	
-	tempScope = ScopeManagerMax::TheManager.CreateLocalScope(matballScope);
+	tempScopeID = ScopeManagerMax::TheManager.CreateLocalScope(matballScopeID);
 
-	renderThread = new BitmapRenderCore(scope, tobm->Width(), tobm->Height());
-	renderThread->passLimit = GetFromPb<int>(pblock, PARAM_MTL_PREVIEW_PASSES);
-	
 	UpdateMaterial();
 	
-	renderThread->Start();
+	std::thread renderingThread(&MPManagerMax::renderingThreadProc, this, tobm);
+	renderingThread.detach();
 
-	bmDone.Reset();
-
-	bool loop = true;
-	while (loop)
+	while (true)
 	{
-		if (!exitImmediately.Wait(0) && bmDone.Wait(0)) // rendering is complete
-		{
-			loop = false;
-			if (renderThread->catastrophe == RPR_SUCCESS)
-			{
-				auto fb = renderThread->GetFrameBuffer();
-				int height = tobm->Height();
-				int width = tobm->Width();
-#pragma omp parallel
-				for (int y = 0; y < height; ++y)
-				{
-					tobm->PutPixels(0, y, width, ((BMM_Color_fl*)fb.data()) + y * width);
-				}
-				tobm->RefreshWindow();
-			}
-		}
-		else
-		{
-			if (exitImmediately.Wait(0))
-				loop = false;
-			else
-			{
-				MSG msg;
-				if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-				{
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
+		if (exitImmediately.Wait(0) || bmDone.Wait(0))
+			break;
 
-				}
-				if (exitImmediately.Wait(0))
-					loop = false;
-			}
-		}
-		if (!loop)
+		MSG msg;
+
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
-			ReplaceReference(0, 0);
-			if (renderThread)
-			{
-				renderThread->Abort();
-				delete renderThread;
-				renderThread = 0;
-			}
-
-			ResetMaterial();
-			ScopeManagerMax::TheManager.DestroyScope(tempScope);
-			tempScope = -1;
-
-			if (requestDestroyLoadedAssets.Wait(0))
-			{
-				DestroyLoadedAssets();
-				ScopeManagerMax::TheManager.DestroyScope(matballScope);
-				matballScope = -1;
-				requestDestroyLoadedAssets.Reset();
-			}
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
 		}
-		Sleep(0);
+	}
+
+	ReplaceReference(0, 0);
+	
+	ResetMaterial();
+	ScopeManagerMax::TheManager.DestroyScope(tempScopeID);
+	tempScopeID = -1;
+
+	if (requestDestroyLoadedAssets.Wait(0))
+	{
+		DestroyLoadedAssets();
+		ScopeManagerMax::TheManager.DestroyScope(matballScopeID);
+		matballScopeID = -1;
+		requestDestroyLoadedAssets.Reset();
 	}
 
 	if (exitImmediately.Wait(0))
@@ -406,7 +278,7 @@ void MPManagerMax::UpdateMaterial()
 
 	callbacks.beforeParsing(parameters.t);
 
-	frw::Scope temp = ScopeManagerMax::TheManager.GetScope(tempScope);
+	frw::Scope temp = ScopeManagerMax::TheManager.GetScope(tempScopeID);
 	
 	SceneParser parser(parameters, callbacks, temp);
 
@@ -435,7 +307,7 @@ void MPManagerMax::UpdateMaterial()
 
 void MPManagerMax::SetMaterial(SceneParser &parser, frw::Shader volumeShader, frw::Shader surfaceShader, bool castShadows, bool env)
 {
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScope);
+	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
 	
 	switch (curObject)
 	{
@@ -494,8 +366,8 @@ void MPManagerMax::SetMaterial(SceneParser &parser, frw::Shader volumeShader, fr
 
 void MPManagerMax::SetDisplacement(SceneParser &parser, frw::Value img, const float &minHeight, const float &maxHeight,
 	const float &subdivision, const float &creaseWeight, int boundary)
-		{
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScope);
+{
+	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
 
 	if (img)
 	{
@@ -555,7 +427,7 @@ void MPManagerMax::SetDisplacement(SceneParser &parser, frw::Value img, const fl
 
 void MPManagerMax::ResetMaterial()
 {
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScope);
+	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
 
 	for (auto shapeId : { BallShape1, BallShape2, BallShape3, SphereShape, CylinderShape, CubeShape })
 	{
@@ -568,11 +440,13 @@ void MPManagerMax::ResetMaterial()
 void MPManagerMax::setVisible(int whichObject)
 {
 	// hide all but cur object
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScope);
+	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
+	
 	for (auto shapeId : { BallShape1, BallShape2, BallShape3, SphereShape, CylinderShape, CubeShape })
 	{
 		scope.GetShape(shapeId).SetVisibility(false);
 	}
+	
 	switch (curObject)
 	{
 	case ObjCylinder:
@@ -595,8 +469,8 @@ void MPManagerMax::setVisible(int whichObject)
 
 void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
 {
-	matballScope = ScopeManagerMax::TheManager.CreateScope(pblock);
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScope);
+	matballScopeID = ScopeManagerMax::TheManager.CreateScope(pblock);
+	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
 		
 	auto _ms = scope.GetMaterialSystem().Handle();
 	auto _context = scope.GetContext().Handle();
@@ -707,11 +581,7 @@ RefResult MPManagerMax::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS)
 		case REFMSG_TARGET_DELETED:
 		case REFMSG_REF_DELETED:
 		case REFMSG_REF_ADDED:
-			if (renderThread)
-			{
-				UpdateMaterial();
-				renderThread->Restart();
-			}
+			eRestart.Fire();
 			break;
 		}
 	}
@@ -722,18 +592,20 @@ RefResult MPManagerMax::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS)
 void MPManagerMax::DestroyLoadedAssets()
 {
 	rpr_int res;
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScope);
+	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
 
 	for (auto i : materialList)
 	{
 		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
 	}
+
 	materialList.clear();
 
 	for (auto i : imageList)
 	{
 		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
 	}
+
 	imageList.clear();
 
 	shapeList.clear();
@@ -743,12 +615,14 @@ void MPManagerMax::DestroyLoadedAssets()
 		res = rprSceneDetachLight(scope.GetScene().Handle(), i); FASSERT(res == RPR_SUCCESS);
 		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
 	}
+
 	lightList.clear();
 
 	for (auto i : cameraList)
 	{
 		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
 	}
+
 	cameraList.clear();
 }
 
