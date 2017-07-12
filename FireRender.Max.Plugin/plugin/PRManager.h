@@ -98,7 +98,6 @@ private:
 	public:
 		ScopeID scopeId;
 
-		//RenderParameters parameters;
 		TerminationCriteria termCriteria;
 		unsigned int passLimit;
 		__time64_t timeLimit;
@@ -108,13 +107,11 @@ private:
 		bool isToneOperatorPreviewRender;
 		
 		class ProductionRenderCore* renderThread;
-	std::thread* helperThread;
-		::Bitmap* buffer; // // <= Bitmap copying can not work correctly in Max2016
+		std::thread* helperThread;
+		::Bitmap* buffer; // <= Bitmap copying can not work correctly in Max2016
 		std::atomic<bool> bRenderCancelled;
 		bool bRenderThreadDone;
-	std::atomic<bool> bQuitHelperThread;
-	bool bCanLunchNewThread;
-	std::atomic<bool> bBitmapCopyDone;
+		std::atomic<bool> bQuitHelperThread;
 
 		Data()
 		{
@@ -127,8 +124,6 @@ private:
 			bRenderCancelled = false;
 			isNormals = false;
 			shouldToneMap = false;
-			bCanLunchNewThread = true;
-			bBitmapCopyDone = false;
 		}
 	};
 

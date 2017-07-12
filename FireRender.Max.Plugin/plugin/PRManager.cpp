@@ -45,15 +45,6 @@ public:
 		Result_Catastrophic
 	} TerminationResult;
 
-	/*
-	struct FrameData
-	{
-		std::vector<float> colorData;
-		std::vector<float> alphaData;
-		float timePassed;
-		int passesDone;
-	};*/
-
 	struct FrameDataBuffer
 	{
 		std::vector<float> colorData;
@@ -75,7 +66,6 @@ public:
 
 	std::unique_ptr<FrameDataBuffer> pLastFrameData;
 
-	//FrameData lastFrameData;
 	std::atomic<int> lastFrameDataWritedCount;
 
 	std::atomic<bool> isNormals;
@@ -97,24 +87,11 @@ public:
 private:
 	frw::Scope scope;
 
-	CriticalSection bufSec;
 	Event eRestart;
 
 	void SaveFrameData();
 
 public:
-	void CopyLastFrameToBitmap(::Bitmap* bitmap);
-	
-	inline void StartBlit()
-	{
-		bufSec.Lock();
-	}
-
-	inline void EndBlit()
-	{
-		bufSec.Unlock();
-	}
-
 	void RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const;
 
 	explicit ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
@@ -671,12 +648,6 @@ void PRManagerMax::CleanUpRender(FireRenderer *pRenderer)
 			delete data->renderThread;
 			data->renderThread = nullptr;
 		}
-
-		/*if (data->backBuffer)
-		{
-			data->backBuffer->DeleteThis();
-			data->backBuffer = nullptr;
-		}*/
 	}
 }
 
@@ -708,8 +679,6 @@ void PRManagerMax::DeleteThis()
 
 int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback* pProg)
 {
-	//std::unique_ptr<SuspendAll> uberSuspend = std::unique_ptr<SuspendAll>(new SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
-
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
 	FASSERT(dd == mInstances.end());
 
@@ -777,8 +746,6 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 
 void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallback* prog)
 {
-	//std::unique_ptr<SuspendAll> uberSuspend = std::unique_ptr<SuspendAll>(new SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
-	
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
 	FASSERT(dd != mInstances.end());
 
@@ -890,18 +857,8 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	int renderWidth = frontBuffer->Width();
 	int renderHeight = frontBuffer->Height();
 
-	// Crete backbuffer (used to prevent tearing when immediate render cancel occur)
-	/*BitmapInfo bi;
-	bi.SetType(BMM_TRUE_32);
-	bi.SetFlags(MAP_HAS_ALPHA);
-	bi.SetWidth((WORD)renderWidth);
-	bi.SetHeight((WORD)renderHeight);
-	bi.SetCustomFlag(0);
-	data->backBuffer = ::TheManager->NewBitmap();
-	data->backBuffer->Create(&bi);*/
 	data->buffer = frontBuffer;
 
-	//std::unique_ptr<SuspendAll> uberSuspend = std::unique_ptr<SuspendAll>(new SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
 	BroadcastNotification(NOTIFY_PRE_RENDERFRAME, &parameters.renderGlobalContext);
 
 	parameters.frameRendParams = frp;
@@ -1140,8 +1097,6 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->renderThread->Start();
 
 	data->bRenderCancelled = false;
-	data->bCanLunchNewThread = true;
-	data->bBitmapCopyDone = false;
 	data->bRenderThreadDone = false;
 	data->bQuitHelperThread = false;
 	
@@ -1269,7 +1224,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		data->bRenderThreadDone |= bmDone.Wait(0);
 
 		// Render thread finished, but wait till all frameData got blitted
-		if (data->bRenderThreadDone /*&& bBlitDone*/)
+		if (data->bRenderThreadDone)
 		{
 			data->bQuitHelperThread = true;
 			break;
