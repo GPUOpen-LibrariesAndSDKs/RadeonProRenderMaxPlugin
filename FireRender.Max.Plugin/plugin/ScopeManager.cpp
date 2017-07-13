@@ -347,6 +347,7 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 			"Tahoe64.dll",
 			false,
 			devicesUsed,
+			NULL,
 			&devicesCompatibleOut,
 #ifdef OSMac_
 			RPRTOS_MACOS
