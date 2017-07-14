@@ -2,6 +2,6 @@
 bin/
 dist/
 x64/
-.db
-.opendb
+*.VC.db
+*.VC.opendb
 .vs
