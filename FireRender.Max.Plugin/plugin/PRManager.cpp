@@ -84,6 +84,8 @@ public:
 	frw::FrameBuffer frameBufferShadowCatcher;
 	frw::FrameBuffer frameBufferShadowCatcherResolve;
 
+	std::future<void> copyResult; // for async
+
 private:
 	frw::Scope scope;
 
@@ -169,7 +171,6 @@ void RPRCopyFrameData(ProductionRenderCore *render)
 		FASSERT(res == RPR_SUCCESS);
 	}
 
-
 	// - Save additional frame data
 	tmpFrameData->timePassed = render->timePassed;
 	tmpFrameData->passesDone = render->passesDone;
@@ -186,6 +187,7 @@ void RPRCopyFrameData(ProductionRenderCore *render)
 void ProductionRenderCore::SaveFrameData()
 {
 	rprBuffersLock.lock();
+
 	// - Resolve & save Color buffer
 	frameBufferColor.Resolve(frameBufferColorResolve);
 
@@ -194,9 +196,10 @@ void ProductionRenderCore::SaveFrameData()
 	{
 		frameBufferAlpha.Resolve(frameBufferAlphaResolve);
 	}
+
 	rprBuffersLock.unlock();
 
-	std::async(std::launch::async, RPRCopyFrameData, this);
+	copyResult = std::async(std::launch::async, RPRCopyFrameData, this);
 }
 
 void CopyFrameDataToBitmap(::Bitmap* bitmap, ProductionRenderCore* renderThread)
