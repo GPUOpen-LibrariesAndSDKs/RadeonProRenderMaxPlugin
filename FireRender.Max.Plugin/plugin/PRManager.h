@@ -112,19 +112,20 @@ private:
 		std::atomic<bool> bRenderCancelled;
 		bool bRenderThreadDone;
 		std::atomic<bool> bQuitHelperThread;
+		std::atomic<bool> bitmapUpdated;
 
 		Data()
-		{
-			scopeId = -1;
-			renderThread = 0;
-			toneMappingExposure = 1.f;
-			buffer = nullptr;
-			helperThread = nullptr;
-			isToneOperatorPreviewRender = false;
-			bRenderCancelled = false;
-			isNormals = false;
-			shouldToneMap = false;
-		}
+			: scopeId(-1)
+			, toneMappingExposure(1.0f)
+			, renderThread(nullptr)
+			, buffer(nullptr)
+			, helperThread(nullptr)
+			, isToneOperatorPreviewRender(false)
+			, bRenderCancelled(false)
+			, isNormals(false)
+			, shouldToneMap(false)
+			, bitmapUpdated(false)
+		{}
 	};
 
 	std::map<FireRenderer *, Data *> mInstances;

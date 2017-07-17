@@ -163,12 +163,14 @@ void RPRCopyFrameData(ProductionRenderCore *render)
 	rpr_int res;
 	res = GetDataFromBuffer(tmpFrameData->colorData, render->frameBufferColorResolve.Handle());
 	FASSERT(res == RPR_SUCCESS);
+	render->frameBufferColorResolve.Clear();
 
 	// get alpha
 	if (render->frameBufferAlpha)
 	{
 		res = GetDataFromBuffer(tmpFrameData->alphaData, render->frameBufferAlphaResolve.Handle());
 		FASSERT(res == RPR_SUCCESS);
+		render->frameBufferAlphaResolve.Clear();
 	}
 
 	// - Save additional frame data
@@ -202,14 +204,14 @@ void ProductionRenderCore::SaveFrameData()
 	copyResult = std::async(std::launch::async, RPRCopyFrameData, this);
 }
 
-void CopyFrameDataToBitmap(::Bitmap* bitmap, ProductionRenderCore* renderThread)
+bool CopyFrameDataToBitmap(::Bitmap* bitmap, ProductionRenderCore* renderThread)
 {
 	frameDataBuffersLock.lock();
 	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> pFrameData = std::move(renderThread->pLastFrameData);
 	frameDataBuffersLock.unlock();
 
 	if (pFrameData.get() == nullptr)
-		return;
+		return false;
 
 	float exposure = IsReal((float)renderThread->exposure) ? (float)renderThread->exposure : 1.f;
 	CompositeFrameBuffersToBitmap(pFrameData->colorData, pFrameData->alphaData, bitmap, exposure, renderThread->isNormals, renderThread->isToneOperatorPreviewRender);
@@ -218,6 +220,8 @@ void CopyFrameDataToBitmap(::Bitmap* bitmap, ProductionRenderCore* renderThread)
 		UpdateBitmapWithToneOperator(bitmap);
 
 	renderThread->RenderStamp(bitmap, pFrameData);
+
+	return true;
 }
 
 ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name)
@@ -309,12 +313,12 @@ void ProductionRenderCore::Worker()
 		if (clearFramebuffer)
 		{
 			frameBufferColor.Clear();
-			frameBufferColorResolve.Clear();
+			//frameBufferColorResolve.Clear();
 
 			if (frameBufferAlpha)
 			{
 				frameBufferAlpha.Clear();
-				frameBufferAlphaResolve.Clear();
+				//frameBufferAlphaResolve.Clear();
 			}
 
 			frameBufferShadowCatcher.Clear();
@@ -1108,11 +1112,15 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	{
 		while (!data->bQuitHelperThread)
 		{
-			// - do the copy
-			CopyFrameDataToBitmap(data->buffer, data->renderThread);
+			if (!data->bitmapUpdated) // bitmap is not refreshed yet => skip (to prevent tearing)
+			{
+				// - do the copy
+				bool isBitmapUpdated = CopyFrameDataToBitmap(data->buffer, data->renderThread);
 
-			// - Blit frontBuffer to render window
-			data->buffer->RefreshWindow();
+				// - Blit frontBuffer to render window
+				data->bitmapUpdated = isBitmapUpdated; // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
+				//data->buffer->RefreshWindow();
+			}
 
 			Sleep(30);
 		}
@@ -1227,10 +1235,18 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		data->bRenderThreadDone |= bmDone.Wait(0);
 
 		// Render thread finished, but wait till all frameData got blitted
-		if (data->bRenderThreadDone)
+		if (data->bRenderThreadDone && !data->bitmapUpdated)
 		{
 			data->bQuitHelperThread = true;
 			break;
+		}
+
+		// - Blit frontBuffer to render window
+		if (data->bitmapUpdated) // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
+		// if bitmap is not copied yet => skip refresh (don't want to pause interface)
+		{
+			data->buffer->RefreshWindow();
+			data->bitmapUpdated = false;
 		}
 
 		//Don't hog too much with CPU
