@@ -23,7 +23,6 @@ BaseThread::BaseThread(const char* name, int priority) :
 	
 BaseThread::~BaseThread()
 {
-	FASSERT(!mRunning.Wait(0));
 }
 
 void BaseThread::Abort()
@@ -38,7 +37,9 @@ void BaseThread::Abort()
 
 void BaseThread::AbortImmediate()
 {
-	if (mThread) {
+	if (mThread) 
+	{
+		mRunning.Reset();
 		mStop.Fire();
 		mThread = 0;
 	}
