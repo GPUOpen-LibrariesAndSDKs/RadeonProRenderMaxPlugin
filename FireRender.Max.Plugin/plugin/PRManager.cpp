@@ -77,23 +77,32 @@ public:
 	std::atomic<bool> useMaxTonemapper;
 	std::atomic<bool> regionMode;
 	Box2 region;
+
+	std::future<void> copyResult; // for async: If the std::future obtained from std::async is not moved from or bound to a reference, 
+								  // the destructor of the std::future will block at the end of the full expression until the asynchronous operation completes,
+								  // essentially making code synchronous
+
+	std::mutex frameDataBuffersLock;
+
+	std::mutex rprBuffersLock;
+
+private:
+	frw::Scope scope;
 	frw::FrameBuffer frameBufferColor;
 	frw::FrameBuffer frameBufferColorResolve;
 	frw::FrameBuffer frameBufferAlpha;
 	frw::FrameBuffer frameBufferAlphaResolve;
 	frw::FrameBuffer frameBufferShadowCatcher;
 	frw::FrameBuffer frameBufferShadowCatcherResolve;
-
-	std::future<void> copyResult; // for async
-
-private:
-	frw::Scope scope;
-
 	Event eRestart;
 
-	void SaveFrameData();
+	void SaveFrameData (void);
+	rpr_int GetDataFromBuffer (std::vector<float> &data, const fr_framebuffer& frameBuffer);
+	void RPRCopyFrameData (void);
+	
 
 public:
+	bool CopyFrameDataToBitmap(::Bitmap* bitmap);
 	void RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const;
 
 	explicit ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
@@ -125,11 +134,7 @@ public:
 	void Restart();
 };
 
-std::mutex frameDataBuffersLock;
-
-std::mutex rprBuffersLock;
-
-rpr_int GetDataFromBuffer(std::vector<float> &data, const fr_framebuffer& frameBuffer)
+rpr_int ProductionRenderCore::GetDataFromBuffer(std::vector<float> &data, const fr_framebuffer& frameBuffer)
 {
 	size_t dataSize;
 	rpr_int res = rprFrameBufferGetInfo(frameBuffer
@@ -152,7 +157,7 @@ rpr_int GetDataFromBuffer(std::vector<float> &data, const fr_framebuffer& frameB
 	return res;
 }
 
-void RPRCopyFrameData(ProductionRenderCore *render)
+void ProductionRenderCore::RPRCopyFrameData()
 {
 	rprBuffersLock.lock();
 
@@ -161,27 +166,27 @@ void RPRCopyFrameData(ProductionRenderCore *render)
 
 	// get rgb
 	rpr_int res;
-	res = GetDataFromBuffer(tmpFrameData->colorData, render->frameBufferColorResolve.Handle());
+	res = GetDataFromBuffer(tmpFrameData->colorData, frameBufferColorResolve.Handle());
 	FASSERT(res == RPR_SUCCESS);
-	render->frameBufferColorResolve.Clear();
+	frameBufferColorResolve.Clear();
 
 	// get alpha
-	if (render->frameBufferAlpha)
+	if (frameBufferAlpha)
 	{
-		res = GetDataFromBuffer(tmpFrameData->alphaData, render->frameBufferAlphaResolve.Handle());
+		res = GetDataFromBuffer(tmpFrameData->alphaData, frameBufferAlphaResolve.Handle());
 		FASSERT(res == RPR_SUCCESS);
-		render->frameBufferAlphaResolve.Clear();
+		frameBufferAlphaResolve.Clear();
 	}
 
 	// - Save additional frame data
-	tmpFrameData->timePassed = render->timePassed;
-	tmpFrameData->passesDone = render->passesDone;
+	tmpFrameData->timePassed = timePassed;
+	tmpFrameData->passesDone = passesDone;
 
 	rprBuffersLock.unlock();
 
 	// - Swap new frame with the old one in the buffer
 	frameDataBuffersLock.lock();
-	render->pLastFrameData = std::move(tmpFrameData);
+	pLastFrameData = std::move(tmpFrameData);
 	frameDataBuffersLock.unlock();
 }
 
@@ -201,25 +206,25 @@ void ProductionRenderCore::SaveFrameData()
 
 	rprBuffersLock.unlock();
 
-	copyResult = std::async(std::launch::async, RPRCopyFrameData, this);
+	copyResult = std::async(std::launch::async, &ProductionRenderCore::RPRCopyFrameData, this);
 }
 
-bool CopyFrameDataToBitmap(::Bitmap* bitmap, ProductionRenderCore* renderThread)
+bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 {
 	frameDataBuffersLock.lock();
-	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> pFrameData = std::move(renderThread->pLastFrameData);
+	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> pFrameData = std::move(pLastFrameData);
 	frameDataBuffersLock.unlock();
 
 	if (pFrameData.get() == nullptr)
 		return false;
 
-	float exposure = IsReal((float)renderThread->exposure) ? (float)renderThread->exposure : 1.f;
-	CompositeFrameBuffersToBitmap(pFrameData->colorData, pFrameData->alphaData, bitmap, exposure, renderThread->isNormals, renderThread->isToneOperatorPreviewRender);
+	float _exposure = IsReal((float)exposure) ? (float)exposure : 1.f;
+	CompositeFrameBuffersToBitmap(pFrameData->colorData, pFrameData->alphaData, bitmap, _exposure, isNormals, isToneOperatorPreviewRender);
 
-	if (renderThread->useMaxTonemapper)
+	if (useMaxTonemapper)
 		UpdateBitmapWithToneOperator(bitmap);
 
-	renderThread->RenderStamp(bitmap, pFrameData);
+	RenderStamp(bitmap, pFrameData);
 
 	return true;
 }
@@ -313,12 +318,10 @@ void ProductionRenderCore::Worker()
 		if (clearFramebuffer)
 		{
 			frameBufferColor.Clear();
-			//frameBufferColorResolve.Clear();
 
 			if (frameBufferAlpha)
 			{
 				frameBufferAlpha.Clear();
-				//frameBufferAlphaResolve.Clear();
 			}
 
 			frameBufferShadowCatcher.Clear();
@@ -864,8 +867,6 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	int renderWidth = frontBuffer->Width();
 	int renderHeight = frontBuffer->Height();
 
-	data->buffer = frontBuffer;
-
 	BroadcastNotification(NOTIFY_PRE_RENDERFRAME, &parameters.renderGlobalContext);
 
 	parameters.frameRendParams = frp;
@@ -1108,18 +1109,17 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->bQuitHelperThread = false;
 	
 
-	data->helperThread = new std::thread([data]()
+	data->helperThread = new std::thread([data, frontBuffer]()
 	{
 		while (!data->bQuitHelperThread)
 		{
 			if (!data->bitmapUpdated) // bitmap is not refreshed yet => skip (to prevent tearing)
 			{
 				// - do the copy
-				bool isBitmapUpdated = CopyFrameDataToBitmap(data->buffer, data->renderThread);
+				bool isBitmapUpdated = data->renderThread->CopyFrameDataToBitmap(frontBuffer);
 
 				// - Blit frontBuffer to render window
 				data->bitmapUpdated = isBitmapUpdated; // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
-				//data->buffer->RefreshWindow();
 			}
 
 			Sleep(30);
@@ -1242,10 +1242,9 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		}
 
 		// - Blit frontBuffer to render window
-		if (data->bitmapUpdated) // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
-		// if bitmap is not copied yet => skip refresh (don't want to pause interface)
+		if (data->bitmapUpdated) // if bitmap is not copied yet => skip refresh (don't want to pause interface)
 		{
-			data->buffer->RefreshWindow();
+			frontBuffer->RefreshWindow(); // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
 			data->bitmapUpdated = false;
 		}
 

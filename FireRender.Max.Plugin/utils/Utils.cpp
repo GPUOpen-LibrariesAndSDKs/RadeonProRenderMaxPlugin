@@ -231,6 +231,8 @@ void CopyDataToBitmap(std::vector<float>& fbData, const std::vector<float>& alph
 
 	if (hasAlpha)
 	{
+		// fbData values are r g b alpha quadruplets; alpha is 1 by default
+		// If we have input alpha values, we should replace alpha elementa in dbData array (each 4-th element) with valus from alphaData array
 		FASSERT(fbData.size() == 4 * alphaData.size());
 		for (size_t idx = 0; idx < alphaData.size(); ++idx)
 		{

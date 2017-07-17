@@ -108,7 +108,6 @@ private:
 		
 		class ProductionRenderCore* renderThread;
 		std::thread* helperThread;
-		::Bitmap* buffer; // <= Bitmap copying can not work correctly in Max2016
 		std::atomic<bool> bRenderCancelled;
 		bool bRenderThreadDone;
 		std::atomic<bool> bQuitHelperThread;
@@ -118,7 +117,6 @@ private:
 			: scopeId(-1)
 			, toneMappingExposure(1.0f)
 			, renderThread(nullptr)
-			, buffer(nullptr)
 			, helperThread(nullptr)
 			, isToneOperatorPreviewRender(false)
 			, bRenderCancelled(false)
