@@ -1335,54 +1335,64 @@ void Synchronizer::UpdateMAXEnvironment()
 		mBridge->GetProgressCB()->SetTitle(_T("Synchronizing: Environment"));
 
 	RemoveEnvironment();
+	UpdateEnvironmentImage();
 
+	if (mBridge->GetProgressCB())
+		mBridge->GetProgressCB()->SetTitle(_T(""));
+}
+
+void Synchronizer::UpdateEnvironmentImage()
+{
 	frw::Image enviroImage;
 
 	if (mMAXEnvironmentUse && mMAXEnvironment)
 		enviroImage = mtlParser.createImageFromMap(mMAXEnvironment, MAP_FLAG_WANTSHDR);
 	else
 		enviroImage = CreateColorEnvironment(mEnvironmentColor);
-		
-	if (enviroImage)
-	{
-		mBgIBLImage.push_back(enviroImage);
-		auto enviroLight = mScope.GetContext().CreateEnvironmentLight();
-		mBgLight.push_back(enviroLight);
 
-		float scale = 1.f;
+	if (!enviroImage)
+	{
+		return;
+	}
+
+	mBgIBLImage.push_back(enviroImage);
+	auto enviroLight = mScope.GetContext().CreateEnvironmentLight();
+	mBgLight.push_back(enviroLight);
+
+	float scale = 1.f;
+
+	if (mMAXEnvironment)
+	{
 		if (auto map = dynamic_cast<BitmapTex*>(mMAXEnvironment->GetInterface(BITMAPTEX_INTERFACE)))
 		{
 			if (auto output = map->GetTexout())
 				scale *= output->GetOutputLevel(map->GetStartTime()); // this is in reality the RGB level
 		}
-		enviroLight.SetLightIntensityScale(scale);
-			
-		enviroLight.SetImage(enviroImage);
-		mScope.GetScene().Attach(enviroLight);
-
-		Matrix3 tx;
-		tx.IdentityMatrix();
-		float angle = 0;
-		// flip yz
-		tx.PreRotateX(M_PI_2);
-		tx.PreRotateY(M_PI);
-		if (angle != 0)
-			tx.PreRotateY(angle);
-		enviroLight.SetTransform(tx);
-
-		// PORTAL LIGHTS
-		// Do not remove the comments below
-		// std::vector<frw::Shape> &portals = parsed.frEnvironment.portals;
-		// if (parsed.frEnvironment.enabled && !portals.empty())
-		// {
-		// 	for (auto shape = portals.begin(); shape != portals.end(); shape++) {
-		// 		enviroLight.AttachPortal(*shape);
-		// 	}
-		// }
 	}
 
-	if (mBridge->GetProgressCB())
-		mBridge->GetProgressCB()->SetTitle(_T(""));
+	enviroLight.SetLightIntensityScale(scale);
+	enviroLight.SetImage(enviroImage);
+	mScope.GetScene().Attach(enviroLight);
+
+	Matrix3 tx;
+	tx.IdentityMatrix();
+	float angle = 0;
+	// flip yz
+	tx.PreRotateX(M_PI_2);
+	tx.PreRotateY(M_PI);
+	if (angle != 0)
+		tx.PreRotateY(angle);
+	enviroLight.SetTransform(tx);
+
+	// PORTAL LIGHTS
+	// Do not remove the comments below
+	// std::vector<frw::Shape> &portals = parsed.frEnvironment.portals;
+	// if (parsed.frEnvironment.enabled && !portals.empty())
+	// {
+	// 	for (auto shape = portals.begin(); shape != portals.end(); shape++) {
+	// 		enviroLight.AttachPortal(*shape);
+	// 	}
+	// }
 }
 
 void Synchronizer::AddRPREnvironment()
