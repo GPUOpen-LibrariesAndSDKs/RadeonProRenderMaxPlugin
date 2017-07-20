@@ -327,6 +327,7 @@
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Plugin.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\FrScope.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\frWrap.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\Main.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\parser\MaterialLoader.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\parser\MaterialParser.cpp" />
@@ -398,6 +399,9 @@
     <ProjectReference Include="ThirdParty\Expat 2.1.0\Source\lib\expatw_static.vcxproj">
       <Project>{ef133aa3-21e3-465c-89ca-3c346591b55c}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="about.rtf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

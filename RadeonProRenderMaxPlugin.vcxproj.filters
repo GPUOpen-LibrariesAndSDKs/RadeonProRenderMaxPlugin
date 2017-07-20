@@ -439,6 +439,7 @@
     <ClCompile Include="FireRender.Components\cpp\src\PluginContext.cpp">
       <Filter>FireRender.Components\source</Filter>
     </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\frWrap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp">
