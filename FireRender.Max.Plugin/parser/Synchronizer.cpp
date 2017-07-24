@@ -704,6 +704,8 @@ void Synchronizer::Start()
 
 void Synchronizer::Stop()
 {
+	callbacks.afterParsing(); // this should be done only on the end of rendering! (according to Max SDK)
+
 	if (mRunning)
 	{
 		if (mUITimerId)
@@ -789,8 +791,10 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 
 	AutoTimerReset TimerReset(synch);
 
-	SceneCallbacks callbacks;
-	callbacks.beforeParsing(synch->mBridge->t());
+	if (synch->mFirstRun)
+	{
+		synch->callbacks.beforeParsing(synch->mBridge->t());
+	}
 				
 	synch->mMasterScale = float(GetMasterScale(UNITS_METERS));
 
@@ -926,9 +930,9 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 			{
 				for (auto jj : ii.second)
 				{
-					callbacks.addItem(jj);
+					synch->callbacks.addItem(jj);
 					if (jj->GetMtl())
-						traverseMaterialCallback(callbacks, jj->GetMtl());
+						traverseMaterialCallback(synch->callbacks, jj->GetMtl());
 				}
 				wsprintf(tempStr, L"Synchronizing: Rebuilding Object %d of %d (%s)", i++, numInstances, (*ii.second.begin())->GetName());
 				if (synch->mBridge->GetProgressCB())
@@ -1168,8 +1172,6 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 	RenderThreadLock.Unlock();
 
 	synch->CustomCPUSideSynch();
-
-	callbacks.afterParsing();
 
 	synch->mBridge->GetProgressCB()->SetTitle(_T(""));
 }
