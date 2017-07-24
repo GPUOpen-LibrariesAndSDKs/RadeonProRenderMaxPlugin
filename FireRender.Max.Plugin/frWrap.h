@@ -1941,7 +1941,6 @@ namespace frw
 	class Shader : public Node
 	{
 		DECLARE_OBJECT(Shader, Node);
-
 		class Data : public Node::Data
 		{
 			DECLARE_OBJECT_DATA
@@ -1958,12 +1957,8 @@ namespace frw
 
 			virtual bool IsValid() const
 			{
-				if (Handle() != nullptr)
-					return true;
-
-				if (material != nullptr)
-					return true;
-
+				if (Handle() != nullptr) return true;
+				if (material != nullptr) return true;
 				return false;
 			}
 
@@ -1975,23 +1970,148 @@ namespace frw
 		};
 
 	public:
-		Shader(DataPtr p);
-		explicit Shader(const MaterialSystem& ms, ShaderType type, bool destroyOnDelete = true);
-		Shader(rpr_material_node h, const MaterialSystem& ms, bool destroyOnDelete = true);
-		explicit Shader(Context& context, rprx_context xContext, rprx_material_type type);
+		Shader(DataPtr p)
+		{ m = p; }
+		explicit Shader(const MaterialSystem& ms, ShaderType type, bool destroyOnDelete = true)
+		: Node(ms, type, destroyOnDelete, new Data())
+		{
+			data().shaderType = type;
+		}
 
-		ShaderType GetShaderType() const;
-		bool IsRprxMaterial() const;
-		void SetDirty();
-		bool IsDirty() const;
-		void AttachToShape(Shape::Data& shape);
-		void DetachFromShape(Shape::Data& shape);
-		void AttachToMaterialInput(rpr_material_node node, const char* inputName) const;
+		Shader(rpr_material_node h, const MaterialSystem& ms, bool destroyOnDelete = true) // this constructor is used only once
+		: Node(h, ms, destroyOnDelete, new Data())
+		{}
 
-		void xSetParameterN(rprx_parameter parameter, const frw::Node& node);
-		void xSetParameterU(rprx_parameter parameter, rpr_uint value) const;
-		void xSetParameterF(rprx_parameter parameter, rpr_float x, rpr_float y, rpr_float z, rpr_float w) const;
-		bool xSetValue(rprx_parameter parameter, const Value& v);
+		explicit Shader(Context& context, rprx_context xContext, rprx_material_type type)
+		: Node(context, new Data())
+		{
+			Data& d = data();
+			d.context = xContext;
+			auto status = rprxCreateMaterial(xContext, type, &d.material);
+			FASSERT(RPR_SUCCESS == status);
+			d.shaderType = ShaderTypeRprx;
+			DebugPrint(L"\tCreated RPRX material %08X\n", d.material);
+		}
+
+		ShaderType GetShaderType() const
+		{
+			if (!IsValid())
+				return ShaderTypeInvalid;
+			return data().shaderType;
+		}
+
+		bool IsRprxMaterial() const
+		{
+			return data().material != nullptr;
+		}
+
+		void SetDirty()
+		{
+			data().bDirty = true;
+		}
+
+		bool IsDirty() const
+		{
+			return data().bDirty;
+ 		}
+
+		void AttachToShape(Shape::Data& shape)
+		{
+			Data& d = data();
+			d.numAttachedShapes++;
+			rpr_int res;
+			if (d.material)
+			{
+				DebugPrint(L"\tShape.AttachMaterial: shape=%08X x_material=%08X\n", shape.Handle(), d.material);
+				res = rprxShapeAttachMaterial(d.context, shape.Handle(), d.material);
+				FASSERT(RPR_SUCCESS == res);
+				res = rprxMaterialCommit(d.context, d.material);
+				FASSERT(RPR_SUCCESS == res);
+			}
+			else
+			{
+				DebugPrint(L"\tShape.AttachMaterial: shape=%08X material=%08X\n", shape.Handle(), d.Handle());
+				res = rprShapeSetMaterial(shape.Handle(), d.Handle());
+				FASSERT(RPR_SUCCESS == res);
+			}
+		}
+		void DetachFromShape(Shape::Data& shape)
+		{
+			Data& d = data();
+			d.numAttachedShapes--;
+			DebugPrint(L"\tShape.DetachMaterial: shape=%08X\n", shape.Handle());
+			if (d.material)
+			{
+				rpr_int res = rprxShapeDetachMaterial(d.context, shape.Handle(), d.material);
+				FASSERT(RPR_SUCCESS == res);
+			}
+
+			{
+				auto res = rprShapeSetMaterial(shape.Handle(), nullptr);
+				FASSERT(RPR_SUCCESS == res);
+			}
+		}
+		void AttachToMaterialInput(rpr_material_node node, const char* inputName) const
+		{
+			const Data& d = data();
+			rpr_int res;
+			if (d.material)
+			{
+				// attach rprx shader output to some material's input
+				// note: there's no call to rprxShapeDetachMaterial
+				res = rprxMaterialAttachMaterial(d.context, node, inputName, d.material);
+				FASSERT(RPR_SUCCESS == res);
+
+				res = rprxMaterialCommit(d.context, d.material);
+				FASSERT(RPR_SUCCESS == res);
+			}
+			else
+			{
+				res = rprMaterialNodeSetInputN(node, inputName, d.Handle());
+				FASSERT(RPR_SUCCESS == res);
+			}
+		}
+		void xSetParameterN(rprx_parameter parameter, frw::Node node)
+		{
+			AddReference(node);
+
+			const Data& d = data();
+			auto res = rprxMaterialSetParameterN(d.context, d.material, parameter, node.Handle());
+			FASSERT(RPR_SUCCESS == res);
+		}
+		void xSetParameterU(rprx_parameter parameter, rpr_uint value)
+		{
+			const Data& d = data();
+			auto res = rprxMaterialSetParameterU(d.context, d.material, parameter, value);
+			FASSERT(RPR_SUCCESS == res);
+		}
+		void xSetParameterF(rprx_parameter parameter, rpr_float x, rpr_float y, rpr_float z, rpr_float w)
+		{
+			const Data& d = data();
+			auto res = rprxMaterialSetParameterF(d.context, d.material, parameter, x, y, z, w);
+			FASSERT(RPR_SUCCESS == res);
+		}
+
+		bool xSetValue(rprx_parameter parameter, const Value& v)
+		{
+			switch (v.type)
+			{
+				case Value::FLOAT:
+					xSetParameterF(parameter, v.x, v.y, v.z, v.w);
+					return true;
+
+				case Value::NODE:
+				{
+					if (!v.node)	// in theory we should now allow this, as setting a NULL input is legal (as of FRSDK 1.87)
+						return false;
+					
+					xSetParameterN(parameter, v.node);	// should be ok to set null here now
+					return true;
+				}
+			}
+			assert(!"bad type");
+			return false;
+		}
 	};
 
 	class DiffuseShader : public Shader
