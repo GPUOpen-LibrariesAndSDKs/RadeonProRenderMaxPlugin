@@ -793,6 +793,8 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 
 	if (synch->mFirstRun)
 	{
+		// Prepares the object for adding items. It has to be called before any call to addItem()
+		// Is called only once (during first run)
 		synch->callbacks.beforeParsing(synch->mBridge->t());
 	}
 				
@@ -930,9 +932,9 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 			{
 				for (auto jj : ii.second)
 				{
-					synch->callbacks.addItem(jj);
+					synch->callbacks.addItem(jj); // traverses the node tree, adds nodes to callbacks and calls update on materials
 					if (jj->GetMtl())
-						traverseMaterialCallback(synch->callbacks, jj->GetMtl());
+						traverseMaterialCallback(synch->callbacks, jj->GetMtl()); // traverses the tree a little bit differently (but calls addItem() still)
 				}
 				wsprintf(tempStr, L"Synchronizing: Rebuilding Object %d of %d (%s)", i++, numInstances, (*ii.second.begin())->GetName());
 				if (synch->mBridge->GetProgressCB())
