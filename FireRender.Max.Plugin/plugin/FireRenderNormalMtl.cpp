@@ -397,7 +397,21 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Te
 			bool deleteNormalBitmapAfterwards = false; // if true, the bitmap was baked, so we need to destroy it when done
 			Bitmap *pNormalBitmap = 0;
 			// fetch or bake the normal map (in case it's procedural or comes through a procedural node)
-			pNormalBitmap = createImageFromMap(t, bumpMap, mtlParser, deleteNormalBitmapAfterwards);
+			pNormalBitmap = createImageFromMap(t, bumpMap, mtlParser, deleteNormalBitmapAfterwards); 
+
+			if (pNormalBitmap && IsGrayScale(pNormalBitmap)) // If normal bitmap is grayscale then it's a bump map and must be converted to normal map
+			{
+				Bitmap *temp = BumpToNormalRPR(pNormalBitmap);
+
+				if (deleteNormalBitmapAfterwards) 
+				{
+					pNormalBitmap->DeleteThis();
+				}
+
+				pNormalBitmap = temp;
+				deleteNormalBitmapAfterwards = true;
+			}
+
 			rpr_image_desc imgDesc = {};
 			if (pNormalBitmap)
 				normalImage = bitmap2image(pNormalBitmap, mtlParser);
@@ -819,6 +833,9 @@ Bitmap *FRMTLCLASSNAME(NormalMtl)::createImageFromMap(const TimeValue t, Texmap*
 	const float iw = 1.f / float(width);
 	const float ih = 1.f / float(height);
 
+	__m128 vzero = _mm_set1_ps(0.f);
+	__m128 vone = _mm_set1_ps(1.f);
+
 #pragma omp parallel for private(shadeContext)
 	for (int y = 0; y < height; y++)
 	{
@@ -827,15 +844,12 @@ Bitmap *FRMTLCLASSNAME(NormalMtl)::createImageFromMap(const TimeValue t, Texmap*
 		{
 			Point3 uvw(float(x) * iw, 1.f - float(y) * ih, 0.f);
 			shadeContext.setup(uvw, t, width, height);
-			auto &color = input->EvalColor(shadeContext);
+			__declspec(align(16)) auto color = input->EvalColor(shadeContext);
 			// if (clamp) - always need to clamp these ones
-			if (color.r > 1.f) color.r = 1.f;
-			if (color.g > 1.f) color.g = 1.f;
-			if (color.b > 1.f) color.b = 1.f;
-			if (color.r < 0.f) color.r = 0.f;
-			if (color.g < 0.f) color.g = 0.f;
-			if (color.b < 0.f) color.b = 0.f;
-			raster[x] = color;
+			__m128 v = _mm_load_ps(color);
+			v = _mm_max_ps(v, vzero);
+			v = _mm_min_ps(v, vone);
+			_mm_store_ps(raster[x], v);
 		}
 		bitmap->PutPixels(0, y, width, &raster[0]);
 	}
