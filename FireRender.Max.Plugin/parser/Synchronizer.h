@@ -652,6 +652,7 @@ protected:
 	void RemoveRPREnvironment();
 	bool MAXEnvironmentNeedsUpdate(); // utility
 	void UpdateMAXEnvironment();
+	void UpdateEnvironmentImage();
 	frw::Image CreateColorEnvironment(const Point3 &color); // utility
 	void UpdateEnvXForm(INode *pNode);
 	void UpdateToneMapper();

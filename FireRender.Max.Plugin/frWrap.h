@@ -1858,7 +1858,47 @@ namespace frw
 
 	class PostEffect : public Object
 	{
-		DECLARE_OBJECT_NO_DATA(PostEffect, Object);
+		DECLARE_OBJECT(PostEffect, Object)
+
+		class Data : public Object::Data
+		{
+			DECLARE_OBJECT_DATA
+
+			bool m_attached;
+
+		public:
+			Data() :
+				m_attached(false)
+			{}
+
+			// Detach post effect before delete it
+			~Data() override
+			{
+				if (!m_attached)
+				{
+					return;
+				}
+
+				DebugPrint(L"PostEfect::Data::~Data()\n");
+
+				void* _context = context ? context->Handle() : nullptr;
+				void* _posteffect = Handle();
+
+				if (_context == nullptr || _posteffect == nullptr)
+				{
+					return;
+				}
+
+				auto res = rprContextDetachPostEffect(_context, _posteffect);
+				FASSERT(RPR_SUCCESS == res);
+			}
+
+			void SetAttached(bool value)
+			{
+				m_attached = value;
+			}
+		};
+
 	public:
 		PostEffect(rpr_post_effect h, const Context& context, bool destroyOndelete = true) : Object(h, context, destroyOndelete, new Data()) {}
 
@@ -1881,6 +1921,12 @@ namespace frw
 		{
 			auto res = rprPostEffectSetParameter1f(Handle(), name, value);
 			FASSERT(res == RPR_SUCCESS);
+		}
+
+		void SetAttached(bool value)
+		{
+			FASSERT(m != nullptr);
+			data().SetAttached(value);
 		}
 	};
 
@@ -2521,11 +2567,13 @@ namespace frw
     inline void Context::Attach(PostEffect post_effect){
         auto res = rprContextAttachPostEffect(Handle(), post_effect.Handle());
         FASSERT(RPR_SUCCESS == res);
+		post_effect.SetAttached(true);
     }
 
     inline void Context::Detach(PostEffect post_effect){
         auto res = rprContextDetachPostEffect(Handle(), post_effect.Handle());
 		FASSERT(RPR_SUCCESS == res);
+		post_effect.SetAttached(false);
     }
 
 	inline Shape Context::CreateMesh(const rpr_float* vertices, size_t num_vertices, rpr_int vertex_stride,
