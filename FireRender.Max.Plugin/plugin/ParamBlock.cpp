@@ -221,6 +221,9 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	OBSOLETE_PARAM_MOTION_BLUR_SCALE, _T("motionblurScale"), TYPE_FLOAT, P_ANIMATABLE, IDS_STRING236,
 	p_default, 100.0, p_range, 0.0, 10e20f, PB_END,
 
+	PARAM_GPU_SELECTED_BY_USER, _T("gpuUserSelection"), TYPE_BOOL, 0, 0,
+	p_default, FALSE, PB_END,
+
 	PARAM_WARNING_DONTSHOW, _T("warning_DoNotShow"), TYPE_BOOL, 0, 0,
 	p_default, false, PB_END,
 

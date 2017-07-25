@@ -519,6 +519,9 @@ INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, 
 						{
 							BOOL res = pb->SetValue(PARAM_RENDER_DEVICE, 0, renderDevice);
 							FASSERT(res);
+
+							res = pb->SetValue(PARAM_GPU_SELECTED_BY_USER, 0, TRUE);
+							FASSERT(res);
 						}
 
 						if ( (renderDevice == RPR_RENDERDEVICE_CPUGPU || renderDevice == RPR_RENDERDEVICE_GPUONLY))
@@ -620,9 +623,9 @@ void FireRenderParamDlg::CHardwareSettings::InitDialog()
 	if (!bUncertifiedDevicesNotification)
 		bUncertifiedDevicesNotification = !FRSettingsFileHandler::getAttributeSettingsFor("Uncertified Device Notification").empty();
 
-	bool bOldDriver = ScopeManagerMax::TheManager.getGpuNamesThatHaveOldDriver().size() != 0;
+	bool bUserSelection = pb->GetInt(PARAM_GPU_SELECTED_BY_USER);
 	
-	if(!gpuIsCompatible || bUncertifiedDevicesNotification)
+	if(!gpuIsCompatible || (bUncertifiedDevicesNotification && !bUserSelection))
 	{
 		//no compatible GPU, reset device selection to CPU
 		if (renderDeviceValue != RPR_RENDERDEVICE_CPUONLY)
