@@ -699,6 +699,11 @@ void Synchronizer::Start()
 	FASSERT(mRunning == false);
 	mRunning = true;
 	mFirstRun = true;
+
+	// Prepares the object for adding items. It has to be called before any call to addItem()
+	// Is called only once (during first run)
+	callbacks.beforeParsing(mBridge->t());
+
 	mUITimerId = SetTimer(GetCOREInterface()->GetMAXHWnd(), UINT_PTR(this), CUI_TIMER_PERIOD, UITimerProc);
 }
 
@@ -790,13 +795,6 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 		return; // stop
 
 	AutoTimerReset TimerReset(synch);
-
-	if (synch->mFirstRun)
-	{
-		// Prepares the object for adding items. It has to be called before any call to addItem()
-		// Is called only once (during first run)
-		synch->callbacks.beforeParsing(synch->mBridge->t());
-	}
 				
 	synch->mMasterScale = float(GetMasterScale(UNITS_METERS));
 
