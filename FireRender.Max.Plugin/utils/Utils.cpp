@@ -201,81 +201,52 @@ void CopyDataToPreviewBitmap(const std::vector<float>& fbData, Bitmap* output, c
 }
 
 
-void CopyDataToBitmap(const std::vector<float>& fbData, const std::vector<float>& alphaData, Bitmap* output, const float exposure, const bool isNormals)
+void CopyDataToBitmap(std::vector<float>& fbData, const std::vector<float>& alphaData, Bitmap* output, const float exposure, const bool isNormals)
 {
-	static Bitmap *cust_bmap = 0;
-
-	if (!output)
+	// back-off
+	if (fbData.size() == 0)
 		return;
 
 	FASSERT(output && IsReal(exposure));
+	if (!output)
+		return;
 
-	bool resize_needed = false;
-	if (fbData.size() != 4 * output->Width() * output->Height())
-		resize_needed = true;
+	bool resize_needed = fbData.size() != 4 * output->Width() * output->Height();
+	FASSERT(!resize_needed);
+	if (resize_needed)
+		return;
 
+	// convert normals from RPR representation to Max's
+	if (isNormals)
+	{
+		std::for_each(fbData.begin(), fbData.end(), [](float& element)
+		{
+			element *= 0.5f;
+			element += 0.5f;
+		});
+	}
+
+	// add alpha
+	bool hasAlpha = !alphaData.empty();
+
+	if (hasAlpha)
+	{
+		// fbData values are r g b alpha quadruplets; alpha is 1 by default
+		// If we have input alpha values, we should replace alpha elementa in dbData array (each 4-th element) with valus from alphaData array
+		FASSERT(fbData.size() == 4 * alphaData.size());
+		for (size_t idx = 0; idx < alphaData.size(); ++idx)
+		{
+			fbData[idx * 4 + 3] = alphaData[idx];
+		}
+	}
+
+	// write data to output
 	int height = output->Height();
 	int width = output->Width();
 
-	Bitmap *orgbitmap = output;
-
-	if (resize_needed)
+	for (int y = 0; y < height; ++y) // max sdk can recieve picture data only by lines, thus loop is needed
 	{
-		if (!cust_bmap)
-		{
-			BitmapInfo bi;
-			bi.SetType(BMM_FLOAT_RGBA_32);
-			bi.SetFlags(MAP_HAS_ALPHA);
-			bi.SetWidth(512);
-			bi.SetHeight(512);
-			bi.SetCustomFlag(0);
-			cust_bmap = TheManager->Create(&bi);
-		}
-		output = cust_bmap;
-		height = 512;
-		width = 512;
-	}
-
-	bool hasAlpha = !alphaData.empty();
-
-#pragma omp parallel
-	for (int y = 0; y < height; ++y)
-	{
-		std::vector<BMM_Color_fl> row(width);
-		const int basey = (y << 2) * width; // y / 4 * width
-		for (int x = 0; x < width; ++x)
-		{
-			const int base = (x << 2) + basey; // x / 4 + baseY
-
-			float alpha = (hasAlpha) ? alphaData[base] : 1.f;
-			
-			BMM_Color_fl color (fbData[base], fbData[base + 1], fbData[base + 2], alpha);
-			
-			if (isNormals)
-			{
-				/// We were requested to map the -1..1 RPR normals to 0..1 3ds Max normals
-				color.r *= 0.5f;
-				color.g *= 0.5f;
-				color.b *= 0.5f;
-				color.r += 0.5f;
-				color.g += 0.5f;
-				color.b += 0.5f;
-			}
-#ifdef FIREMAX_DEBUG
-			const float tmp = color.r + color.g + color.b;
-			if (isnan(tmp) || abs(tmp) > FLT_MAX) { // display invalid colors red when in debug mode
-				color = BMM_Color_fl(1.f, 0.f, 0.f, 1.f);
-			}
-#endif
-			row[x] = color;
-		}
-		output->PutPixels(0, y, width, row.data());
-	}
-
-	if (resize_needed)
-	{
-		orgbitmap->CopyImage(output, COPY_IMAGE_RESIZE_HI_QUALITY, 0);
-		output->DeleteThis();
+		output->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(fbData.data() + y*(width * 4))); // don't want to do unnecessary copy here
 	}
 }
 

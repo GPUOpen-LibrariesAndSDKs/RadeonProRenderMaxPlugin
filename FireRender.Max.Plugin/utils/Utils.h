@@ -141,7 +141,7 @@ inline void CreateFrMatrix(Matrix3 in, float out[16]) {
 void CompositeFrameBuffersToBitmap(std::vector<float>& fbData, std::vector<float>& fbAlphaData, Bitmap* output, const float exposure, const bool isNormals, bool toneOperatorPreviewExecuting);
 
 void CopyDataToPreviewBitmap(const std::vector<float>& fbData, Bitmap* output, const bool isNormals);
-void CopyDataToBitmap(const std::vector<float>& data, const std::vector<float>& alphaData, Bitmap* output, const float exposure, const bool isNormals);
+void CopyDataToBitmap(std::vector<float>& data, const std::vector<float>& alphaData, Bitmap* output, const float exposure, const bool isNormals);
 
 
 /// Calculates an average (gray) value of a color

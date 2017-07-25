@@ -98,7 +98,6 @@ private:
 	public:
 		ScopeID scopeId;
 
-		//RenderParameters parameters;
 		TerminationCriteria termCriteria;
 		unsigned int passLimit;
 		__time64_t timeLimit;
@@ -108,28 +107,23 @@ private:
 		bool isToneOperatorPreviewRender;
 		
 		class ProductionRenderCore* renderThread;
-	std::thread* helperThread;
-		::Bitmap* backBuffer;
+		std::thread* helperThread;
 		std::atomic<bool> bRenderCancelled;
 		bool bRenderThreadDone;
-	std::atomic<bool> bQuitHelperThread;
-	bool bCanLunchNewThread;
-	std::atomic<bool> bBitmapCopyDone;
+		std::atomic<bool> bQuitHelperThread;
+		std::atomic<bool> bitmapUpdated;
 
 		Data()
-		{
-			scopeId = -1;
-			renderThread = 0;
-			toneMappingExposure = 1.f;
-			backBuffer = nullptr;
-			helperThread = nullptr;
-			isToneOperatorPreviewRender = false;
-			bRenderCancelled = false;
-			isNormals = false;
-			shouldToneMap = false;
-			bCanLunchNewThread = true;
-			bBitmapCopyDone = false;
-		}
+			: scopeId(-1)
+			, toneMappingExposure(1.0f)
+			, renderThread(nullptr)
+			, helperThread(nullptr)
+			, isToneOperatorPreviewRender(false)
+			, bRenderCancelled(false)
+			, isNormals(false)
+			, shouldToneMap(false)
+			, bitmapUpdated(false)
+		{}
 	};
 
 	std::map<FireRenderer *, Data *> mInstances;

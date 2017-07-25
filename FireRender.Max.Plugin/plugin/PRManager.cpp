@@ -26,6 +26,7 @@
 #include <shlobj.h>
 #include <gamma.h> // gamma export for FRS files
 #include <mutex>
+#include <future>
 extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN;
@@ -44,7 +45,7 @@ public:
 		Result_Catastrophic
 	} TerminationResult;
 
-	struct FrameData
+	struct FrameDataBuffer
 	{
 		std::vector<float> colorData;
 		std::vector<float> alphaData;
@@ -63,7 +64,8 @@ public:
 	rpr_int errorCode = RPR_SUCCESS;
 	TerminationResult result;
 
-	FrameData lastFrameData;
+	std::unique_ptr<FrameDataBuffer> pLastFrameData;
+
 	std::atomic<int> lastFrameDataWritedCount;
 
 	std::atomic<bool> isNormals;
@@ -76,6 +78,14 @@ public:
 	std::atomic<bool> regionMode;
 	Box2 region;
 
+	std::future<void> copyResult; // for async: If the std::future obtained from std::async is not moved from or bound to a reference, 
+								  // the destructor of the std::future will block at the end of the full expression until the asynchronous operation completes,
+								  // essentially making code synchronous
+
+	std::mutex frameDataBuffersLock;
+
+	std::mutex rprBuffersLock;
+
 private:
 	frw::Scope scope;
 	frw::FrameBuffer frameBufferColor;
@@ -84,26 +94,16 @@ private:
 	frw::FrameBuffer frameBufferAlphaResolve;
 	frw::FrameBuffer frameBufferShadowCatcher;
 	frw::FrameBuffer frameBufferShadowCatcherResolve;
-
-	CriticalSection bufSec;
 	Event eRestart;
 
-	void SaveFrameData();
+	void SaveFrameData (void);
+	rpr_int GetDataFromBuffer (std::vector<float> &data, const fr_framebuffer& frameBuffer);
+	void RPRCopyFrameData (void);
+	
 
 public:
-	void CopyLastFrameToBitmap(::Bitmap* bitmap);
-	
-	inline void StartBlit()
-	{
-		bufSec.Lock();
-	}
-
-	inline void EndBlit()
-	{
-		bufSec.Unlock();
-	}
-
-	void RenderStamp(Bitmap* DstBuffer, FrameData& frameData);
+	bool CopyFrameDataToBitmap(::Bitmap* bitmap);
+	void RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const;
 
 	explicit ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
 	
@@ -134,55 +134,100 @@ public:
 	void Restart();
 };
 
-std::mutex frameDataBuffersLock;
+rpr_int ProductionRenderCore::GetDataFromBuffer(std::vector<float> &data, const fr_framebuffer& frameBuffer)
+{
+	size_t dataSize;
+	rpr_int res = rprFrameBufferGetInfo(frameBuffer
+		, RPR_FRAMEBUFFER_DATA
+		, 0
+		, NULL
+		, &dataSize
+	);
+	FASSERT(res == RPR_SUCCESS);
+
+	data.resize(dataSize / sizeof(float));
+	res = rprFrameBufferGetInfo(frameBuffer
+		, RPR_FRAMEBUFFER_DATA
+		, data.size() * sizeof(float)
+		, data.data()
+		, NULL
+	);
+	FASSERT(res == RPR_SUCCESS);
+
+	return res;
+}
+
+void ProductionRenderCore::RPRCopyFrameData()
+{
+	rprBuffersLock.lock();
+
+	// get data from RPR and put it to back buffer
+	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> tmpFrameData = std::make_unique<ProductionRenderCore::FrameDataBuffer>();
+
+	// get rgb
+	rpr_int res;
+	res = GetDataFromBuffer(tmpFrameData->colorData, frameBufferColorResolve.Handle());
+	FASSERT(res == RPR_SUCCESS);
+	frameBufferColorResolve.Clear();
+
+	// get alpha
+	if (frameBufferAlpha)
+	{
+		res = GetDataFromBuffer(tmpFrameData->alphaData, frameBufferAlphaResolve.Handle());
+		FASSERT(res == RPR_SUCCESS);
+		frameBufferAlphaResolve.Clear();
+	}
+
+	// - Save additional frame data
+	tmpFrameData->timePassed = timePassed;
+	tmpFrameData->passesDone = passesDone;
+
+	rprBuffersLock.unlock();
+
+	// - Swap new frame with the old one in the buffer
+	frameDataBuffersLock.lock();
+	pLastFrameData = std::move(tmpFrameData);
+	frameDataBuffersLock.unlock();
+}
+
 
 void ProductionRenderCore::SaveFrameData()
 {
-	FrameData data;
+	rprBuffersLock.lock();
 
-	// Resolve & save Color buffer
+	// - Resolve & save Color buffer
 	frameBufferColor.Resolve(frameBufferColorResolve);
-	data.colorData = std::move(frameBufferColorResolve.GetPixelData());
 
-	// Resolve shadow catcher
-	//frameBufferShadowCatcher.Resolve(frameBufferShadowCatcherResolve);
-
-	// Resolve & save Alpha buffer
+	// - Resolve & save Alpha buffer
 	if (frameBufferAlpha)
 	{
 		frameBufferAlpha.Resolve(frameBufferAlphaResolve);
-		data.alphaData = std::move(frameBufferAlphaResolve.GetPixelData());
 	}
 
-	// Save additional frame data
-	data.timePassed = timePassed;
-	data.passesDone = passesDone;
+	rprBuffersLock.unlock();
 
-	// SaveFrameData() called on renderThread, main(UI) thread wants safe read access to the following datas
-	frameDataBuffersLock.lock();
-		lastFrameData = std::move(data);
-	++lastFrameDataWritedCount;
-	frameDataBuffersLock.unlock();
+	copyResult = std::async(std::launch::async, &ProductionRenderCore::RPRCopyFrameData, this);
 }
 
-void ProductionRenderCore::CopyLastFrameToBitmap(::Bitmap* bitmap)
+bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 {
-	// CopyLastFrameToBitmap(..) called on main(UI) thread, renderThread wants safe write access
 	frameDataBuffersLock.lock();
-	FrameData data = std::move(lastFrameData);
-	lastFrameDataWritedCount = 0;
+	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> pFrameData = std::move(pLastFrameData);
 	frameDataBuffersLock.unlock();
 
-	float exposure = IsReal((float)this->exposure) ? (float)this->exposure : 1.f;
-	CompositeFrameBuffersToBitmap(data.colorData, data.alphaData, bitmap, exposure, isNormals, isToneOperatorPreviewRender);
+	if (pFrameData.get() == nullptr)
+		return false;
 
-	if (this->useMaxTonemapper)
+	float _exposure = IsReal((float)exposure) ? (float)exposure : 1.f;
+	CompositeFrameBuffersToBitmap(pFrameData->colorData, pFrameData->alphaData, bitmap, _exposure, isNormals, isToneOperatorPreviewRender);
+
+	if (useMaxTonemapper)
 		UpdateBitmapWithToneOperator(bitmap);
 
-	RenderStamp(bitmap, data);
+	RenderStamp(bitmap, pFrameData);
+
+	return true;
 }
-
-
 
 ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name)
 : BaseThread(name, priority), scope(rscope), eRestart(true), bImmediateAbort(false)
@@ -273,12 +318,10 @@ void ProductionRenderCore::Worker()
 		if (clearFramebuffer)
 		{
 			frameBufferColor.Clear();
-			frameBufferColorResolve.Clear();
 
 			if (frameBufferAlpha)
 			{
 				frameBufferAlpha.Clear();
-				frameBufferAlphaResolve.Clear();
 			}
 
 			frameBufferShadowCatcher.Clear();
@@ -350,7 +393,7 @@ void ProductionRenderCore::Restart()
 		Start();
 }
 
-void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, FrameData& frameData)
+void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const
 {
 	if (!doRenderStamp)
 		return;
@@ -394,7 +437,7 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, FrameData& frameData)
 			case 't': // %pt - total elapsed time
 			{
 				wchar_t buffer[32];
-				unsigned int secs = (int)frameData.timePassed;
+				unsigned int secs = (int)frameData->timePassed;
 				int hrs = secs / (60 * 60);
 				secs = secs % (60 * 60);
 				int mins = secs / 60;
@@ -404,7 +447,7 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, FrameData& frameData)
 			}
 			break;
 			case 'p': // %pp - passes
-				numericValue = frameData.passesDone;
+				numericValue = frameData->passesDone;
 				break;
 			}
 		}
@@ -563,7 +606,7 @@ void PRManagerMax::NotifyProc(void *param, NotifyInfo *info)
 	}
 	else if (info->intcode == NOTIFY_POST_RENDERER_CHANGE)
 	{
-		int id = reinterpret_cast<int>(info->callParam);
+		size_t id = reinterpret_cast<size_t>(info->callParam);
 		if (id == 0)
 		{
 			bool keep = false;
@@ -615,12 +658,6 @@ void PRManagerMax::CleanUpRender(FireRenderer *pRenderer)
 			delete data->renderThread;
 			data->renderThread = nullptr;
 		}
-
-		if (data->backBuffer)
-		{
-			data->backBuffer->DeleteThis();
-			data->backBuffer = nullptr;
-		}
 	}
 }
 
@@ -652,8 +689,6 @@ void PRManagerMax::DeleteThis()
 
 int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback* pProg)
 {
-	//std::unique_ptr<SuspendAll> uberSuspend = std::unique_ptr<SuspendAll>(new SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
-
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
 	FASSERT(dd == mInstances.end());
 
@@ -721,8 +756,6 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 
 void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallback* prog)
 {
-	//std::unique_ptr<SuspendAll> uberSuspend = std::unique_ptr<SuspendAll>(new SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
-	
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
 	FASSERT(dd != mInstances.end());
 
@@ -834,17 +867,6 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	int renderWidth = frontBuffer->Width();
 	int renderHeight = frontBuffer->Height();
 
-	// Crete backbuffer (used to prevent tearing when immediate render cancel occur)
-	BitmapInfo bi;
-	bi.SetType(BMM_TRUE_32);
-	bi.SetFlags(MAP_HAS_ALPHA);
-	bi.SetWidth((WORD)renderWidth);
-	bi.SetHeight((WORD)renderHeight);
-	bi.SetCustomFlag(0);
-	data->backBuffer = ::TheManager->NewBitmap();
-	data->backBuffer->Create(&bi);
-
-	//std::unique_ptr<SuspendAll> uberSuspend = std::unique_ptr<SuspendAll>(new SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE));
 	BroadcastNotification(NOTIFY_PRE_RENDERFRAME, &parameters.renderGlobalContext);
 
 	parameters.frameRendParams = frp;
@@ -1083,26 +1105,23 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->renderThread->Start();
 
 	data->bRenderCancelled = false;
-	data->bCanLunchNewThread = true;
-	data->bBitmapCopyDone = false;
 	data->bRenderThreadDone = false;
 	data->bQuitHelperThread = false;
 	
 
-	data->helperThread = new std::thread([data]()
+	data->helperThread = new std::thread([data, frontBuffer]()
 	{
 		while (!data->bQuitHelperThread)
 		{
-			// Launch a new thread that will copy the last frame from renderThread, to improve UI responsiveness
-			if (data->renderThread->lastFrameDataWritedCount > 0 && data->bCanLunchNewThread)
+			if (!data->bitmapUpdated) // bitmap is not refreshed yet => skip (to prevent tearing)
 			{
-				data->bCanLunchNewThread = false;
-				data->bBitmapCopyDone = false;
+				// - do the copy
+				bool isBitmapUpdated = data->renderThread->CopyFrameDataToBitmap(frontBuffer);
 
-				// Copy last rendered frame to bitmap
-				data->renderThread->CopyLastFrameToBitmap(data->backBuffer);
-				data->bBitmapCopyDone = true;
+				// - Blit frontBuffer to render window
+				data->bitmapUpdated = isBitmapUpdated; // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
 			}
+
 			Sleep(30);
 		}
 	});
@@ -1215,26 +1234,18 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		// Render thread finished
 		data->bRenderThreadDone |= bmDone.Wait(0);
 
-		bool bBlitDone = false;
-
-		if (data->bBitmapCopyDone)
-		{
-			// Copy backBuffer to frontBuffer
-			frontBuffer->CopyImage(data->backBuffer, COPY_IMAGE_CROP, 0);
-
-			// Blit frontBuffer to render window
-			frontBuffer->RefreshWindow();
-
-			// bitmap readed, we can prepare next bitmap on new thread
-			bBlitDone = true;
-			data->bCanLunchNewThread = true;
-		}
-
 		// Render thread finished, but wait till all frameData got blitted
-		if (data->bRenderThreadDone && bBlitDone)
+		if (data->bRenderThreadDone && !data->bitmapUpdated)
 		{
 			data->bQuitHelperThread = true;
 			break;
+		}
+
+		// - Blit frontBuffer to render window
+		if (data->bitmapUpdated) // if bitmap is not copied yet => skip refresh (don't want to pause interface)
+		{
+			frontBuffer->RefreshWindow(); // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
+			data->bitmapUpdated = false;
 		}
 
 		//Don't hog too much with CPU
