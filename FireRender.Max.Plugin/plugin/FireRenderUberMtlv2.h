@@ -4,7 +4,8 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-enum FRUberMtlV2_TexmapId {
+enum FRUberMtlV2_TexmapId
+{
 // Diffuse
 	FRUBERMTLV2_MAP_DIFFUSE_COLOR = 0,
 	FRUBERMTLV2_MAP_DIFFUSE_WEIGHT,
@@ -54,7 +55,8 @@ enum FRUberMtlV2_TexmapId {
 	FRUBERMTLV2_MAP_MAT_BUMP,
 };
 
-enum FRUberMtlV2_ParamID : ParamID {
+enum FRUberMtlV2_ParamID : ParamID
+{
 // Diffuse
 	FRUBERMTLV2_DIFFUSE_COLOR_MUL = 100,
 	FRUBERMTLV2_DIFFUSE_COLOR,
@@ -220,7 +222,6 @@ enum FRUberMtlV2_ParamID : ParamID {
 	FRUBERMTLV2_MAT_OPACITY_USEMAP,
 
 	FRUBERMTLV2_MAT_NORMAL_MUL,
-	FRUBERMTLV2_MAT_NORMAL,
 	FRUBERMTLV2_MAT_NORMAL_MAP,
 	FRUBERMTLV2_MAT_NORMAL_USEMAP,
 
@@ -237,12 +238,29 @@ BEGIN_DECLARE_FRMTLCLASSDESC(UberMtlv2, L"RPR Uber Material V2", FIRERENDER_UBER
 END_DECLARE_FRMTLCLASSDESC()
 
 BEGIN_DECLARE_FRMTL(UberMtlv2)
+
 public:
 	virtual Color GetDiffuse(int mtlNum, BOOL backFace) override
 	{
 		return GetFromPb<Color>(pblock, FRUBERMTLV2_DIFFUSE_COLOR);
 	}
+
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+
+private:
+	std::tuple<bool, Texmap*, Color, float> GetParameters(FRUberMtlV2_ParamID, FRUberMtlV2_ParamID, FRUberMtlV2_ParamID, FRUberMtlV2_ParamID);
+	std::tuple<bool, Texmap*, Color, float> GetParametersNoColor(FRUberMtlV2_ParamID, FRUberMtlV2_ParamID, FRUberMtlV2_ParamID);
+
+	frw::Value SetupShaderOrdinary(MaterialParser& mtlParser, std::tuple<bool, Texmap*, Color, float> parameters, int mapFlags);
+
+	void SetupDiffuse(MaterialParser& mtlParser, frw::Shader& shader);
+	void SetupReflection(MaterialParser& mtlParser, frw::Shader& shader);
+	void SetupRefraction(MaterialParser& mtlParser, frw::Shader& shader);
+	void SetupCoating(MaterialParser& mtlParser, frw::Shader& shader);
+	void SetupSSS(MaterialParser& mtlParser, frw::Shader& shader);
+	void SetupEmissive(MaterialParser& mtlParser, frw::Shader& shader);
+	void SetupMaterial(MaterialParser& mtlParser, frw::Shader& shader);
+
 END_DECLARE_FRMTL(UberMtlv2)
 
 FIRERENDER_NAMESPACE_END;

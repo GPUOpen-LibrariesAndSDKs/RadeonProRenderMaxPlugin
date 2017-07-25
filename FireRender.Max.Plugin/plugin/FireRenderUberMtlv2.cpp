@@ -10,6 +10,7 @@
 #include "parser\MaterialParser.h"
 #include "maxscript\mxsplugin\mxsPlugin.h"
 #include <RprSupport.h>
+#include <functional>
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -435,7 +436,7 @@ static ParamBlockDesc2 pbDesc(
 
 	// Material Opacity
 	FRUBERMTLV2_MAT_OPACITY_MUL, _T("MaterialOpacityMul"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 1.f, p_range, 0.f, FLT_MAX, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_MAT_OPACITY_MUL, IDC_UBER_MAT_OPACITY_MUL_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 1.f, p_range, 0.f, 1.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_MAT_OPACITY_MUL, IDC_UBER_MAT_OPACITY_MUL_S, SPIN_AUTOSCALE, PB_END,
 
 	FRUBERMTLV2_MAT_OPACITY_MAP, _T("MaterialOpacityTexmap"), TYPE_TEXMAP, 0, 0,
 	p_subtexno, FRUBERMTLV2_MAP_MAT_OPACITY, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_MAT_OPACITY_T, PB_END,
@@ -446,9 +447,6 @@ static ParamBlockDesc2 pbDesc(
 	// Material Normal
 	FRUBERMTLV2_MAT_NORMAL_MUL, _T("MaterialNormalMul"), TYPE_FLOAT, P_ANIMATABLE, 0,
 	p_default, 1.f, p_range, 0.f, FLT_MAX, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_MAT_NORMAL_MUL, IDC_UBER_MAT_NORMAL_MUL_S, SPIN_AUTOSCALE, PB_END,
-
-	FRUBERMTLV2_MAT_NORMAL, _T("MaterialNormal"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_UBER_MAT_NORMAL, PB_END,
 
 	FRUBERMTLV2_MAT_NORMAL_MAP, _T("MaterialNormalTexmap"), TYPE_TEXMAP, 0, 0,
 	p_subtexno, FRUBERMTLV2_MAP_MAT_NORMAL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_MAT_NORMAL_T, PB_END,
@@ -535,654 +533,391 @@ frw::Shader FRMTLCLASSNAME(UberMtlv2)::getShader(const TimeValue t, MaterialPars
 
 	frw::Shader shader(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);
 
-
-
-	// DIFFUSE
-	float mul = 0.0f;
-	Color color = Color(0, 0, 0);
-	Texmap* map = nullptr;
-
-	if (GetFromPb<float>(pblock, FRUBERMTLV2_DIFFUSE_WEIGHT_MUL) != 0.f)
-	{
-		// Color
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_DIFFUSE_COLOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_DIFFUSE_COLOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_DIFFUSE_COLOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_DIFFUSE_COLOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Weight
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_DIFFUSE_WEIGHT_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_DIFFUSE_WEIGHT);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_DIFFUSE_WEIGHT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_DIFFUSE_WEIGHT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, val.r, val.g, val.b, 1.0);
-		}
-
-		// Roughness
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_DIFFUSE_ROUGHNESS_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_DIFFUSE_ROUGHNESS);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_DIFFUSE_ROUGHNESS_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_DIFFUSE_ROUGHNESS_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, val.r, val.g, val.b, 1.0);
-		}
-	}
-	else // Disable Diffuse
-	{
-		shader.xSetParameterF(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, 0.f, 0.f, 0.f, 0.f);
-	}
-
-
-
-
-	// REFLECTION
-	if (GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_WEIGHT_MUL) != 0.f)
-	{
-		// Color
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_COLOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFLECTION_COLOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFLECTION_COLOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFLECTION_COLOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFLECTION_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Weight
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_WEIGHT_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFLECTION_WEIGHT);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFLECTION_WEIGHT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFLECTION_WEIGHT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, val.r, val.g, val.b, 1.0);
-		}
-
-		// Roughness
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_ROUGHNESS_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFLECTION_ROUGHNESS);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFLECTION_ROUGHNESS_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFLECTION_ROUGHNESS_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, val.r, val.g, val.b, 1.0);
-		}
-
-		// Anisotropy
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_ANISO_MUL);
-		color = Color(1.f, 1.f, 1.f);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFLECTION_ANISO_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFLECTION_ANISO_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY, val.r, val.g, val.b, 1.0);
-		}
-
-		// Anisotropy Rotation
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_ANISO_ROT_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFLECTION_ANISO_ROT);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFLECTION_ANISO_ROT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFLECTION_ANISO_ROT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION, val.r, val.g, val.b, 1.0);
-		}
-
-		// Reflection mode
-		int reflectionMode = GetFromPb<int>(pblock, FRUBERMTLV2_REFLECTION_MODE);
-
-		shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, reflectionMode);
-		if (reflectionMode == RPRX_UBER_MATERIAL_REFLECTION_MODE_PBR)
-		{
-			// IOR
-			mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_IOR_MUL);
-			color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFLECTION_IOR);
-			map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFLECTION_IOR_MAP);
-
-			if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFLECTION_IOR_USEMAP))
-			{
-				frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-				val = ms.ValueMul(val, mul * color);
-				shader.xSetParameterN(RPRX_UBER_MATERIAL_REFLECTION_IOR, val.GetNode());
-			}
-			else
-			{
-				Color val = color * mul;
-				shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_IOR, val.r, val.g, val.b, 1.0);
-			}
-		}
-		else if (reflectionMode == RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS)
-		{
-			// Metalness
-			mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFLECTION_METALNESS_MUL);
-			color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFLECTION_METALNESS);
-			map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFLECTION_METALNESS_MAP);
-
-			if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFLECTION_METALNESS_USEMAP))
-			{
-				frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-				val = ms.ValueMul(val, mul * color);
-				shader.xSetParameterN(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, val.GetNode());
-			}
-			else
-			{
-				Color val = color * mul;
-				shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, val.r, val.g, val.b, 1.0);
-			}
-		}
-	}
-	else // Disable Reflection
-	{
-		shader.xSetParameterF(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, 0.f, 0.f, 0.f, 0.f);
-	}
-
-
-
-
-	// REFRACTION
-	if (GetFromPb<float>(pblock, FRUBERMTLV2_REFRACTION_WEIGHT_MUL) != 0.f)
-	{
-		// Color
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFRACTION_COLOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFRACTION_COLOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFRACTION_COLOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFRACTION_COLOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFRACTION_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFRACTION_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Weight
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFRACTION_WEIGHT_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFRACTION_WEIGHT);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFRACTION_WEIGHT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFRACTION_WEIGHT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT, val.r, val.g, val.b, 1.0);
-		}
-
-		// Roughness
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFRACTION_ROUGHNESS_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFRACTION_ROUGHNESS);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFRACTION_ROUGHNESS_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFRACTION_ROUGHNESS_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, val.r, val.g, val.b, 1.0);
-		}
-
-		// IOR
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_REFRACTION_IOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_REFRACTION_IOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_REFRACTION_IOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_REFRACTION_IOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_REFRACTION_IOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_REFRACTION_IOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Thin Surface
-		BOOL bThinSuraface = GetFromPb<BOOL>(pblock, FRUBERMTLV2_REFRACTION_THIN_SURFACE);
-		shader.xSetParameterU(RPRX_UBER_MATERIAL_REFRACTION_THIN_SURFACE, bThinSuraface);
-
-		// IOR Mode
-		BOOL bLinked = GetFromPb<BOOL>(pblock, FRUBERMTLV2_REFRACTION_LINK_TO_REFLECTION);
-		shader.xSetParameterU(RPRX_UBER_MATERIAL_REFRACTION_IOR_MODE, bLinked == 1 ? RPRX_UBER_MATERIAL_REFRACTION_MODE_LINKED : RPRX_UBER_MATERIAL_REFRACTION_MODE_SEPARATE);
-	}
-	else // Disable Refraction
-	{
-		shader.xSetParameterF(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT, 0.f, 0.f, 0.f, 0.f);
-	}
-
-
-
-
-	// COAT
-	if (GetFromPb<float>(pblock, FRUBERMTLV2_COAT_WEIGHT_MUL) != 0.f)
-	{
-		// Color
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_COAT_COLOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_COAT_COLOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_COAT_COLOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_COAT_COLOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_COATING_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_COATING_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Weight
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_COAT_WEIGHT_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_COAT_WEIGHT);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_COAT_WEIGHT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_COAT_WEIGHT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_COATING_WEIGHT, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_COATING_WEIGHT, val.r, val.g, val.b, 1.0);
-		}
-
-		// Roughness
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_COAT_ROUGHNESS_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_COAT_ROUGHNESS);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_COAT_ROUGHNESS_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_COAT_ROUGHNESS_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_COATING_ROUGHNESS, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_COATING_ROUGHNESS, val.r, val.g, val.b, 1.0);
-		}
-
-		// Reflection mode
-		int coatMode = GetFromPb<int>(pblock, FRUBERMTLV2_COAT_MODE);
-		shader.xSetParameterU(RPRX_UBER_MATERIAL_COATING_MODE, coatMode);
-
-		if (coatMode == RPRX_UBER_MATERIAL_COATING_MODE_PBR)
-		{
-			// IOR
-			mul = GetFromPb<float>(pblock, FRUBERMTLV2_COAT_IOR_MUL);
-			color = GetFromPb<Color>(pblock, FRUBERMTLV2_COAT_IOR);
-			map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_COAT_IOR_MAP);
-
-			if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_COAT_IOR_USEMAP))
-			{
-				frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-				val = ms.ValueMul(val, mul * color);
-				shader.xSetParameterN(RPRX_UBER_MATERIAL_COATING_IOR, val.GetNode());
-			}
-			else
-			{
-				Color val = color * mul;
-				shader.xSetParameterF(RPRX_UBER_MATERIAL_COATING_IOR, val.r, val.g, val.b, 1.0);
-			}
-		}
-		else if (coatMode == RPRX_UBER_MATERIAL_COATING_MODE_METALNESS)
-		{
-			// Metalness
-			mul = GetFromPb<float>(pblock, FRUBERMTLV2_COAT_METALNESS_MUL);
-			color = GetFromPb<Color>(pblock, FRUBERMTLV2_COAT_METALNESS);
-			map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_COAT_METALNESS_MAP);
-
-			if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_COAT_METALNESS_USEMAP))
-			{
-				frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-				val = ms.ValueMul(val, mul * color);
-				shader.xSetParameterN(RPRX_UBER_MATERIAL_COATING_METALNESS, val.GetNode());
-			}
-			else
-			{
-				Color val = color * mul;
-				shader.xSetParameterF(RPRX_UBER_MATERIAL_COATING_METALNESS, val.r, val.g, val.b, 1.0);
-			}
-		}
-	}
-	else // Disable Refraction
-	{
-		shader.xSetParameterF(RPRX_UBER_MATERIAL_COATING_WEIGHT, 0.f, 0.f, 0.f, 0.f);
-	}
-
-
-
-	// SSS
-	if (GetFromPb<float>(pblock, FRUBERMTLV2_SSS_WEIGHT_MUL) != 0.f)
-	{
-		// Sub-Surface Color
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_SSS_SUBSURFACE_COLOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_SSS_SUBSURFACE_COLOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_SSS_SUBSURFACE_COLOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_SSS_SUBSURFACE_COLOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_SSS_SUBSURFACE_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_SUBSURFACE_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Weight
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_SSS_WEIGHT_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_SSS_WEIGHT);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_SSS_WEIGHT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_SSS_WEIGHT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_SSS_WEIGHT, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_WEIGHT, val.r, val.g, val.b, 1.0);
-		}
-
-		// Scatter Color
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_SSS_SCATTER_COLOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_SSS_SCATTER_COLOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_SSS_SCATTER_COLOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_SSS_SCATTER_COLOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Scatter Amount
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_SSS_SCATTER_AMOUNT_MUL);
-		color = Color(1.f, 1.f, 1.f);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_SSS_SCATTER_AMOUNT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_SSS_SCATTER_AMOUNT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, val.r, val.g, val.b, 1.0);
-		}
-
-
-		// Direction
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_SSS_DIRECTION_MUL);
-		color = Color(1.f, 1.f, 1.f);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_SSS_DIRECTION_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_SSS_DIRECTION_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_SCATTER_DIRECTION, val.r, val.g, val.b, 1.0);
-		}
-
-
-		// SingleScattering
-		BOOL bSingleScattering = GetFromPb<BOOL>(pblock, FRUBERMTLV2_SSS_SINGLESCATTERING);
-		shader.xSetParameterU(RPRX_UBER_MATERIAL_SSS_MULTISCATTER, bSingleScattering ? 0 : 1);
-
-
-		// Absorption
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_SSS_ABSORPTION_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_SSS_ABSORPTION);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_SSS_ABSORPTION_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_SSS_ABSORPTION_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_SSS_ABSORPTION_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_ABSORPTION_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Absorption Distance
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_SSS_ABSORPTION_DIST_MUL);
-		color = Color(1.f, 1.f, 1.f);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_SSS_DIRECTION_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_SSS_DIRECTION_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_ABSORPTION_DISTANCE, val.r, val.g, val.b, 1.0);
-		}
-	}
-	else // Disable SSS
-	{
-		shader.xSetParameterF(RPRX_UBER_MATERIAL_SSS_WEIGHT, 0.f, 0.f, 0.f, 0.f);
-	}
-
-
-
-
-	// EMISSIVE
-	if (GetFromPb<float>(pblock, FRUBERMTLV2_EMISSIVE_WEIGHT_MUL) != 0.f)
-	{
-		// Color
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_EMISSIVE_COLOR_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_EMISSIVE_COLOR);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_EMISSIVE_COLOR_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_EMISSIVE_COLOR_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_EMISSION_COLOR, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_EMISSION_COLOR, val.r, val.g, val.b, 1.0);
-		}
-
-		// Weight
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_EMISSIVE_WEIGHT_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_EMISSIVE_WEIGHT);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_EMISSIVE_WEIGHT_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_EMISSIVE_WEIGHT_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul;
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, val.r, val.g, val.b, 1.0);
-		}
-
-		// Thin Surface
-		BOOL bDoubleSided = GetFromPb<BOOL>(pblock, FRUBERMTLV2_EMISSIVE_DOUBLESIDED);
-		shader.xSetParameterU(RPRX_UBER_MATERIAL_EMISSION_MODE, bDoubleSided ? RPRX_UBER_MATERIAL_EMISSION_MODE_DOUBLESIDED : RPRX_UBER_MATERIAL_EMISSION_MODE_SINGLESIDED);
-	}
-	else // Disable Emissive
-	{
-		shader.xSetParameterF(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, 0.f, 0.f, 0.f, 0.f);
-	}
-
-
-
-
-	// Material
-	{
-		//  Opacity
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_MAT_OPACITY_MUL);
-		color = Color(1.f, 1.f, 1.f);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_MAT_OPACITY_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_MAT_OPACITY_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-
-			val = ms.ValueMul(val, mul); // multiplier
-			val = ms.ValueMin(val, frw::Value(1)); // clamp to 1
-			val = ms.ValueSub(frw::Value(1), val); // Conver opacity to transparency
-
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_TRANSPARENCY, val.GetNode());
-		}
-		else
-		{
-			Color val = color * mul; // multiplier
-			val.ClampMinMax(); // clamp to [0, 1]
-			val = Color(1, 1, 1) - val; // Convert opacity to transparency
-
-			shader.xSetParameterF(RPRX_UBER_MATERIAL_TRANSPARENCY, val.r, val.g, val.b, 1.0);
-		}
-
-		// Normal
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_MAT_NORMAL_MUL);
-		color = GetFromPb<Color>(pblock, FRUBERMTLV2_MAT_NORMAL);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_MAT_NORMAL_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_MAT_NORMAL_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_NORMAL, val.GetNode());
-		}
-
-		// Displace
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_MAT_DISPLACE_MUL);
-		color = Color(1.f, 1.f, 1.f);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_MAT_DISPLACE_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_MAT_DISPLACE_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_DISPLACEMENT, val.GetNode());
-		}
-
-		// Bump
-		mul = GetFromPb<float>(pblock, FRUBERMTLV2_MAT_BUMP_MUL);
-		color = Color(1.f, 1.f, 1.f);
-		map = GetFromPb<Texmap*>(pblock, FRUBERMTLV2_MAT_BUMP_MAP);
-
-		if (map && GetFromPb<bool>(pblock, FRUBERMTLV2_MAT_BUMP_USEMAP))
-		{
-			frw::Value val = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-			val = ms.ValueMul(val, mul * color);
-			shader.xSetParameterN(RPRX_UBER_MATERIAL_BUMP, val.GetNode());
-		}
-	}
+	SetupDiffuse(mtlParser, shader);
+	SetupReflection(mtlParser, shader);
+	SetupRefraction(mtlParser, shader);
+	SetupCoating(mtlParser, shader);
+	SetupSSS(mtlParser, shader);
+	SetupEmissive(mtlParser, shader);
+	SetupMaterial(mtlParser, shader);
 
 	return shader;
+}
+
+std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(UberMtlv2)::GetParameters(FRUberMtlV2_ParamID useMapId,
+	FRUberMtlV2_ParamID mapId, FRUberMtlV2_ParamID colorId, FRUberMtlV2_ParamID mulId)
+{
+	bool useMap = GetFromPb<bool>(pblock, useMapId);
+	Texmap* map = GetFromPb<Texmap*>(pblock, mapId);
+	Color color = GetFromPb<Color>(pblock, colorId);
+	float mul = GetFromPb<float>(pblock, mulId);
+
+	return std::make_tuple(useMap, map, color, mul);
+}
+
+std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(UberMtlv2)::GetParametersNoColor(FRUberMtlV2_ParamID useMapId,
+	FRUberMtlV2_ParamID mapId, FRUberMtlV2_ParamID mulId)
+{
+	bool useMap = GetFromPb<bool>(pblock, useMapId);
+	Texmap* map = GetFromPb<Texmap*>(pblock, mapId);
+	Color color(1.0f, 1.0f, 1.0f);
+	float mul = GetFromPb<float>(pblock, mulId);
+
+	return std::make_tuple(useMap, map, color, mul);
+}
+
+frw::Value FRMTLCLASSNAME(UberMtlv2)::SetupShaderOrdinary(MaterialParser& mtlParser,
+	std::tuple<bool, Texmap*, Color, float> parameters, int mapFlags)
+{
+	bool useMap = std::get<0>(parameters);
+	Texmap* map = std::get<1>(parameters);
+	Color color = std::get<2>(parameters);
+	float mul = std::get<3>(parameters);
+
+	frw::Value value = frw::Value(color);
+
+	if (useMap && map != nullptr)
+	{
+		value = mtlParser.createMap(map, mapFlags);
+	}
+
+	value = mtlParser.materialSystem.ValueMul(value, mul);
+
+	return std::move(value);
+}
+
+void FRMTLCLASSNAME(UberMtlv2)::SetupDiffuse(MaterialParser& mtlParser, frw::Shader& shader)
+{
+	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
+	frw::Value value;
+
+	// DIFFUSE COLOR
+	parameters = GetParameters(FRUBERMTLV2_DIFFUSE_COLOR_USEMAP,
+		FRUBERMTLV2_DIFFUSE_COLOR_MAP, FRUBERMTLV2_DIFFUSE_COLOR, FRUBERMTLV2_DIFFUSE_COLOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, value);
+
+	// DIFFUSE WEIGHT
+	parameters = GetParameters(FRUBERMTLV2_DIFFUSE_WEIGHT_USEMAP,
+		FRUBERMTLV2_DIFFUSE_WEIGHT_MAP, FRUBERMTLV2_DIFFUSE_WEIGHT, FRUBERMTLV2_DIFFUSE_WEIGHT_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, value);
+
+	// DIFFUSE ROUGHNESS
+	parameters = GetParameters(FRUBERMTLV2_DIFFUSE_ROUGHNESS_USEMAP,
+		FRUBERMTLV2_DIFFUSE_ROUGHNESS_MAP, FRUBERMTLV2_DIFFUSE_ROUGHNESS, FRUBERMTLV2_DIFFUSE_ROUGHNESS_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, value);
+}
+
+void FRMTLCLASSNAME(UberMtlv2)::SetupReflection(MaterialParser& mtlParser, frw::Shader& shader)
+{
+	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
+	frw::Value value;
+
+	// REFLECTION COLOR
+	parameters = GetParameters(FRUBERMTLV2_REFLECTION_COLOR_USEMAP,
+		FRUBERMTLV2_REFLECTION_COLOR_MAP, FRUBERMTLV2_REFLECTION_COLOR, FRUBERMTLV2_REFLECTION_COLOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, value);
+
+	// REFLECTION WEIGHT
+	parameters = GetParameters(FRUBERMTLV2_REFLECTION_WEIGHT_USEMAP,
+		FRUBERMTLV2_REFLECTION_WEIGHT_MAP, FRUBERMTLV2_REFLECTION_WEIGHT, FRUBERMTLV2_REFLECTION_WEIGHT_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, value);
+
+	// REFLECTION ROUGHNESS
+	parameters = GetParameters(FRUBERMTLV2_REFLECTION_ROUGHNESS_USEMAP,
+		FRUBERMTLV2_REFLECTION_ROUGHNESS_MAP, FRUBERMTLV2_REFLECTION_ROUGHNESS, FRUBERMTLV2_REFLECTION_ROUGHNESS_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, value);
+
+	// REFLECTION ANISOTROPY
+	parameters = GetParametersNoColor(FRUBERMTLV2_REFLECTION_ANISO_USEMAP,
+		FRUBERMTLV2_REFLECTION_ANISO_MAP, FRUBERMTLV2_REFLECTION_ANISO_MUL);
+
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY, value);
+
+	// REFLECTION ANISOTROPY ROTATION
+	parameters = GetParameters(FRUBERMTLV2_REFLECTION_ANISO_ROT_USEMAP,
+		FRUBERMTLV2_REFLECTION_ANISO_ROT_MAP, FRUBERMTLV2_REFLECTION_ANISO_ROT, FRUBERMTLV2_REFLECTION_ANISO_ROT_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION, value);
+
+	// REFLECTION MODE
+	rprx_parameter rprxParameter = 0;
+
+	int reflectionMode = GetFromPb<int>(pblock, FRUBERMTLV2_REFLECTION_MODE);
+
+	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, reflectionMode);
+
+	if (RPRX_UBER_MATERIAL_REFLECTION_MODE_PBR == reflectionMode)
+	{
+		parameters = GetParameters(FRUBERMTLV2_REFLECTION_IOR_USEMAP,
+			FRUBERMTLV2_REFLECTION_IOR_MAP, FRUBERMTLV2_REFLECTION_IOR, FRUBERMTLV2_REFLECTION_IOR_MUL);
+		rprxParameter = RPRX_UBER_MATERIAL_REFLECTION_IOR;
+	}
+	else if (RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS == reflectionMode)
+	{
+		parameters = GetParameters(FRUBERMTLV2_REFLECTION_METALNESS_USEMAP,
+			FRUBERMTLV2_REFLECTION_METALNESS_MAP, FRUBERMTLV2_REFLECTION_METALNESS, FRUBERMTLV2_REFLECTION_METALNESS_MUL);
+		rprxParameter = RPRX_UBER_MATERIAL_REFLECTION_METALNESS;
+	}
+	else
+	{
+		// UI is not aligned with the code
+		return;
+	}
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(rprxParameter, value);
+}
+
+void FRMTLCLASSNAME(UberMtlv2)::SetupRefraction(MaterialParser& mtlParser, frw::Shader& shader)
+{
+	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
+	frw::Value value;
+
+	// REFRACTION COLOR
+	parameters = GetParameters(FRUBERMTLV2_REFRACTION_COLOR_USEMAP,
+		FRUBERMTLV2_REFRACTION_COLOR_MAP, FRUBERMTLV2_REFRACTION_COLOR, FRUBERMTLV2_REFRACTION_COLOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_COLOR, value);
+
+	// REFRACTION WEIGHT
+	parameters = GetParameters(FRUBERMTLV2_REFRACTION_WEIGHT_USEMAP,
+		FRUBERMTLV2_REFRACTION_WEIGHT_MAP, FRUBERMTLV2_REFRACTION_WEIGHT, FRUBERMTLV2_REFRACTION_WEIGHT_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT, value);
+
+	// REFRACTION ROUGHNESS
+	parameters = GetParameters(FRUBERMTLV2_REFRACTION_ROUGHNESS_USEMAP,
+		FRUBERMTLV2_REFRACTION_ROUGHNESS_MAP, FRUBERMTLV2_REFRACTION_ROUGHNESS, FRUBERMTLV2_REFRACTION_ROUGHNESS_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, value);
+
+	// REFRACTION IOR
+	parameters = GetParameters(FRUBERMTLV2_REFRACTION_IOR_USEMAP,
+		FRUBERMTLV2_REFRACTION_IOR_MAP, FRUBERMTLV2_REFRACTION_IOR, FRUBERMTLV2_REFRACTION_IOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_IOR, value);
+
+	// REFRACTION THIN SURFACE
+	BOOL bThinSuraface = GetFromPb<BOOL>(pblock, FRUBERMTLV2_REFRACTION_THIN_SURFACE);
+	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFRACTION_THIN_SURFACE, bThinSuraface);
+
+	// REFRACTION IOR MODE
+	BOOL linked = GetFromPb<BOOL>(pblock, FRUBERMTLV2_REFRACTION_LINK_TO_REFLECTION);
+	rpr_uint paramValue = linked ? RPRX_UBER_MATERIAL_REFRACTION_MODE_LINKED : RPRX_UBER_MATERIAL_REFRACTION_MODE_SEPARATE;
+
+	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFRACTION_IOR_MODE, paramValue);
+}
+
+void FRMTLCLASSNAME(UberMtlv2)::SetupCoating(MaterialParser& mtlParser, frw::Shader& shader)
+{
+	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
+	frw::Value value;
+
+	// COATING COLOR
+	parameters = GetParameters(FRUBERMTLV2_COAT_COLOR_USEMAP,
+		FRUBERMTLV2_COAT_COLOR_MAP, FRUBERMTLV2_COAT_COLOR, FRUBERMTLV2_COAT_COLOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_COATING_COLOR, value);
+
+	// COATING WEIGHT
+	parameters = GetParameters(FRUBERMTLV2_COAT_WEIGHT_USEMAP,
+		FRUBERMTLV2_COAT_WEIGHT_MAP, FRUBERMTLV2_COAT_WEIGHT, FRUBERMTLV2_COAT_WEIGHT_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_COATING_WEIGHT, value);
+
+	// COATING ROUGHNESS
+	parameters = GetParameters(FRUBERMTLV2_COAT_ROUGHNESS_USEMAP,
+		FRUBERMTLV2_COAT_ROUGHNESS_MAP, FRUBERMTLV2_COAT_ROUGHNESS, FRUBERMTLV2_COAT_ROUGHNESS_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_COATING_ROUGHNESS, value);
+
+	// COATING REFLECTION MODE
+	rprx_parameter rprxParameter = 0;
+
+	int coatingMode = GetFromPb<int>(pblock, FRUBERMTLV2_COAT_MODE);
+	shader.xSetParameterU(RPRX_UBER_MATERIAL_COATING_MODE, coatingMode);
+
+	if (coatingMode == RPRX_UBER_MATERIAL_COATING_MODE_PBR)
+	{
+		// IOR
+		parameters = GetParameters(FRUBERMTLV2_COAT_IOR_USEMAP,
+			FRUBERMTLV2_COAT_IOR_MAP, FRUBERMTLV2_COAT_IOR, FRUBERMTLV2_COAT_IOR_MUL);
+		rprxParameter = RPRX_UBER_MATERIAL_COATING_IOR;
+	}
+	else if (coatingMode == RPRX_UBER_MATERIAL_COATING_MODE_METALNESS)
+	{
+		// METALNESS
+		parameters = GetParameters(FRUBERMTLV2_COAT_METALNESS_USEMAP,
+			FRUBERMTLV2_COAT_METALNESS_MAP, FRUBERMTLV2_COAT_METALNESS, FRUBERMTLV2_COAT_METALNESS_MUL);
+		rprxParameter = RPRX_UBER_MATERIAL_COATING_METALNESS;
+	}
+	else
+	{
+		// UI is not aligned with the code
+		return;
+	}
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(rprxParameter, value);
+}
+
+void FRMTLCLASSNAME(UberMtlv2)::SetupSSS(MaterialParser& mtlParser, frw::Shader& shader)
+{
+	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
+	frw::Value value;
+
+	// SSS COLOR
+	parameters = GetParameters(FRUBERMTLV2_SSS_SUBSURFACE_COLOR_USEMAP,
+		FRUBERMTLV2_SSS_SUBSURFACE_COLOR_MAP, FRUBERMTLV2_SSS_SUBSURFACE_COLOR, FRUBERMTLV2_SSS_SUBSURFACE_COLOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SUBSURFACE_COLOR, value);
+
+	// SSS WEIGHT
+	parameters = GetParameters(FRUBERMTLV2_SSS_WEIGHT_USEMAP,
+		FRUBERMTLV2_SSS_WEIGHT_MAP, FRUBERMTLV2_SSS_WEIGHT, FRUBERMTLV2_SSS_WEIGHT_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_WEIGHT, value);
+
+	// SSS SCATTER COLOR
+	parameters = GetParameters(FRUBERMTLV2_SSS_SCATTER_COLOR_USEMAP,
+		FRUBERMTLV2_SSS_SCATTER_COLOR_MAP, FRUBERMTLV2_SSS_SCATTER_COLOR, FRUBERMTLV2_SSS_SCATTER_COLOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR, value);
+	
+	// SSS SCATTER AMOUNT
+	parameters = GetParametersNoColor(FRUBERMTLV2_SSS_SCATTER_AMOUNT_USEMAP,
+		FRUBERMTLV2_SSS_SCATTER_AMOUNT_MAP, FRUBERMTLV2_SSS_SCATTER_AMOUNT_MUL);
+	
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
+	
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, value);
+
+	// SSS DIRECTION
+	parameters = GetParametersNoColor(FRUBERMTLV2_SSS_DIRECTION_USEMAP,
+		FRUBERMTLV2_SSS_DIRECTION_MAP, FRUBERMTLV2_SSS_DIRECTION_MUL);
+
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_DIRECTION, value);
+
+	// SSS SINGLESCATTERING
+	BOOL bSingleScattering = GetFromPb<BOOL>(pblock, FRUBERMTLV2_SSS_SINGLESCATTERING);
+	shader.xSetParameterU(RPRX_UBER_MATERIAL_SSS_MULTISCATTER, bSingleScattering ? 0 : 1);
+
+	// SSS ABSORPTION
+	parameters = GetParameters(FRUBERMTLV2_SSS_ABSORPTION_USEMAP,
+		FRUBERMTLV2_SSS_ABSORPTION_MAP, FRUBERMTLV2_SSS_ABSORPTION, FRUBERMTLV2_SSS_ABSORPTION_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_ABSORPTION_COLOR, value);
+	
+	// SSS ABSORPTION DISTANCE
+	parameters = GetParametersNoColor(FRUBERMTLV2_SSS_ABSORPTION_DIST_USEMAP,
+		FRUBERMTLV2_SSS_ABSORPTION_DIST_MAP, FRUBERMTLV2_SSS_ABSORPTION_DIST_MUL);
+
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_ABSORPTION_DISTANCE, value);
+}
+
+void FRMTLCLASSNAME(UberMtlv2)::SetupEmissive(MaterialParser& mtlParser, frw::Shader& shader)
+{
+	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
+	frw::Value value;
+
+	// EMISSIVE COLOR
+	parameters = GetParameters(FRUBERMTLV2_EMISSIVE_COLOR_USEMAP,
+		FRUBERMTLV2_EMISSIVE_COLOR_MAP, FRUBERMTLV2_EMISSIVE_COLOR, FRUBERMTLV2_EMISSIVE_COLOR_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_COLOR, value);
+
+	// EMISSIVE WEIGHT
+	parameters = GetParameters(FRUBERMTLV2_EMISSIVE_WEIGHT_USEMAP,
+		FRUBERMTLV2_EMISSIVE_WEIGHT_MAP, FRUBERMTLV2_EMISSIVE_WEIGHT, FRUBERMTLV2_EMISSIVE_WEIGHT_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, value);
+
+	// EMISSIVE THIN SURFACE
+	BOOL bDoubleSided = GetFromPb<BOOL>(pblock, FRUBERMTLV2_EMISSIVE_DOUBLESIDED);
+	rpr_uint paramValue = bDoubleSided ? RPRX_UBER_MATERIAL_EMISSION_MODE_DOUBLESIDED : RPRX_UBER_MATERIAL_EMISSION_MODE_SINGLESIDED;
+	shader.xSetParameterU(RPRX_UBER_MATERIAL_EMISSION_MODE, paramValue);
+}
+
+void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Shader& shader)
+{
+	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
+	frw::Value value;
+
+	// MATERIAL OPACITY
+	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_OPACITY_USEMAP,
+		FRUBERMTLV2_MAT_OPACITY_MAP, FRUBERMTLV2_MAT_OPACITY_MUL);
+
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+
+	value = mtlParser.materialSystem.ValueMin(value, frw::Value(1)); // clamp to 1
+	value = mtlParser.materialSystem.ValueSub(frw::Value(1), value); // Conver opacity to transparency
+
+	shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, value);
+
+	// MATERIAL NORMAL
+	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_NORMAL_USEMAP,
+		FRUBERMTLV2_MAT_NORMAL_MAP, FRUBERMTLV2_MAT_NORMAL_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+
+	if ( value.IsNode() ) // a map must be connected
+		shader.xSetValue(RPRX_UBER_MATERIAL_NORMAL, value);
+	
+	// MATERIAL DISPLACE
+	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_DISPLACE_USEMAP,
+		FRUBERMTLV2_MAT_DISPLACE_MAP, FRUBERMTLV2_MAT_DISPLACE_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	
+	if ( value.IsNode() ) // a map must be connected
+		shader.xSetValue(RPRX_UBER_MATERIAL_DISPLACEMENT, value);
+
+	// MATERIAL BUMP
+	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_BUMP_USEMAP,
+		FRUBERMTLV2_MAT_BUMP_MAP, FRUBERMTLV2_MAT_BUMP_MUL);
+
+	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
+	
+	if (value.IsNode()) // a map must be connected
+		shader.xSetValue(RPRX_UBER_MATERIAL_BUMP, value);
 }
 
 FIRERENDER_NAMESPACE_END;

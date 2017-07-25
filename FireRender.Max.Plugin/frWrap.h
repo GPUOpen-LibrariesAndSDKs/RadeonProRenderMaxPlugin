@@ -2060,12 +2060,16 @@ namespace frw
 				// attach rprx shader output to some material's input
 				// note: there's no call to rprxShapeDetachMaterial
 				res = rprxMaterialAttachMaterial(d.context, node, inputName, d.material);
+				FASSERT(RPR_SUCCESS == res);
+
+				res = rprxMaterialCommit(d.context, d.material);
+				FASSERT(RPR_SUCCESS == res);
 			}
 			else
 			{
 				res = rprMaterialNodeSetInputN(node, inputName, d.Handle());
+				FASSERT(RPR_SUCCESS == res);
 			}
-			FASSERT(RPR_SUCCESS == res);
 		}
 		void xSetParameterN(rprx_parameter parameter, frw::Node node)
 		{
@@ -2095,11 +2099,12 @@ namespace frw
 				case Value::FLOAT:
 					xSetParameterF(parameter, v.x, v.y, v.z, v.w);
 					return true;
+
 				case Value::NODE:
 				{
 					if (!v.node)	// in theory we should now allow this, as setting a NULL input is legal (as of FRSDK 1.87)
 						return false;
-					AddReference(v.node);
+					
 					xSetParameterN(parameter, v.node);	// should be ok to set null here now
 					return true;
 				}
