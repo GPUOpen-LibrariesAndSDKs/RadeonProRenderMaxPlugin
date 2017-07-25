@@ -38,7 +38,9 @@ void BaseThread::Abort()
 
 void BaseThread::AbortImmediate()
 {
-	if (mThread) {
+	if (mThread) 
+	{
+		mRunning.Reset();
 		mStop.Fire();
 		mThread = 0;
 	}
