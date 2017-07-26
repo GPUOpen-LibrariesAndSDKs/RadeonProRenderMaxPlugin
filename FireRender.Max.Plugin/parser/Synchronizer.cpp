@@ -709,17 +709,17 @@ void Synchronizer::Start()
 
 void Synchronizer::Stop()
 {
-	callbacks.afterParsing(); // this should be done only on the end of rendering! (according to Max SDK)
-
 	if (mRunning)
 	{
 		if (mUITimerId)
 		{
-	KillTimer(GetCOREInterface()->GetMAXHWnd(), mUITimerId);
+			KillTimer(GetCOREInterface()->GetMAXHWnd(), mUITimerId);
 			mUITimerId = 0;
 		}
 		mRunning = false;
 	}
+
+	callbacks.afterParsing(); // this should be done only on the end of rendering! (according to Max SDK)
 }
 
 namespace
