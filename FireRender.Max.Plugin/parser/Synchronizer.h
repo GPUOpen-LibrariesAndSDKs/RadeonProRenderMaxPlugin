@@ -21,6 +21,7 @@
 #include <queue>
 #include <memory>
 #include <FrScope.h>
+#include "SceneCallbacks.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -559,6 +560,7 @@ protected:
 
 	// change queues (commands)
 	SQueue mQueue;
+	SceneCallbacks callbacks;
 
 	// changes execution
 	PartID mNotifyLastPartID; // to disambiguate xform in NotifyRefChanged

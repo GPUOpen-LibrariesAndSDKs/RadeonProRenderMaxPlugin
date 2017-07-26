@@ -699,6 +699,11 @@ void Synchronizer::Start()
 	FASSERT(mRunning == false);
 	mRunning = true;
 	mFirstRun = true;
+
+	// Prepares the object for adding items. It has to be called before any call to addItem()
+	// Is called only once (during first run)
+	callbacks.beforeParsing(mBridge->t());
+
 	mUITimerId = SetTimer(GetCOREInterface()->GetMAXHWnd(), UINT_PTR(this), CUI_TIMER_PERIOD, UITimerProc);
 }
 
@@ -708,11 +713,13 @@ void Synchronizer::Stop()
 	{
 		if (mUITimerId)
 		{
-	KillTimer(GetCOREInterface()->GetMAXHWnd(), mUITimerId);
+			KillTimer(GetCOREInterface()->GetMAXHWnd(), mUITimerId);
 			mUITimerId = 0;
 		}
 		mRunning = false;
 	}
+
+	callbacks.afterParsing(); // this should be done only on the end of rendering! (according to Max SDK)
 }
 
 namespace
@@ -788,9 +795,6 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 		return; // stop
 
 	AutoTimerReset TimerReset(synch);
-
-	SceneCallbacks callbacks;
-	callbacks.beforeParsing(synch->mBridge->t());
 				
 	synch->mMasterScale = float(GetMasterScale(UNITS_METERS));
 
@@ -926,9 +930,9 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 			{
 				for (auto jj : ii.second)
 				{
-					callbacks.addItem(jj);
+					synch->callbacks.addItem(jj); // traverses the node tree, adds nodes to callbacks and calls update on materials
 					if (jj->GetMtl())
-						traverseMaterialCallback(callbacks, jj->GetMtl());
+						traverseMaterialCallback(synch->callbacks, jj->GetMtl()); // traverses the tree a little bit differently (but calls addItem() still)
 				}
 				wsprintf(tempStr, L"Synchronizing: Rebuilding Object %d of %d (%s)", i++, numInstances, (*ii.second.begin())->GetName());
 				if (synch->mBridge->GetProgressCB())
@@ -1168,8 +1172,6 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 	RenderThreadLock.Unlock();
 
 	synch->CustomCPUSideSynch();
-
-	callbacks.afterParsing();
 
 	synch->mBridge->GetProgressCB()->SetTitle(_T(""));
 }
