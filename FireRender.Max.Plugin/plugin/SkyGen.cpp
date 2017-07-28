@@ -1553,6 +1553,12 @@ void SkyGen::GenerateSkyHosek(int w, int h, SkyRgbFloat32 *buffer)
 				buffer[idx].g = rgb[1];
 				buffer[idx].b = rgb[0];
 				AdjustColor(buffer[idx], mSaturation, mFilterColor);
+
+				constexpr float maxChannelValue = 1.f;
+				constexpr float minChannelValue = 0.f;
+				buffer[idx].r = Clamp(buffer[idx].r, minChannelValue, maxChannelValue);
+				buffer[idx].g = Clamp(buffer[idx].g, minChannelValue, maxChannelValue);
+				buffer[idx].b = Clamp(buffer[idx].b, minChannelValue, maxChannelValue);
 			}
 		}
 	}
