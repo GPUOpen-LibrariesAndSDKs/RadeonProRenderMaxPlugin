@@ -1474,7 +1474,7 @@ SampledSpectrum SampledSpectrum::FromRGB(const float rgb[3])
 // Three wavelengths around red, three around green, and three around blue.
 static const double lambda[nSpectralSamples] = { 630.0, 680.0, 710.0, 500.0, 530.0, 560.0, 460.0, 480.0, 490.0 };
 
-void SkyGen::GenerateSkyHosek(int w, int h, SkyRgbFloat32 *buffer)
+void SkyGen::GenerateSkyHosek(int w, int h, SkyRgbFloat32 *buffer, float maxIntensity)
 {
 	ArHosekSkyModelState *skymodel_state[nSpectralSamples];
 
@@ -1554,11 +1554,9 @@ void SkyGen::GenerateSkyHosek(int w, int h, SkyRgbFloat32 *buffer)
 				buffer[idx].b = rgb[0];
 				AdjustColor(buffer[idx], mSaturation, mFilterColor);
 
-				constexpr float maxChannelValue = 1.f;
-				constexpr float minChannelValue = 0.f;
-				buffer[idx].r = Clamp(buffer[idx].r, minChannelValue, maxChannelValue);
-				buffer[idx].g = Clamp(buffer[idx].g, minChannelValue, maxChannelValue);
-				buffer[idx].b = Clamp(buffer[idx].b, minChannelValue, maxChannelValue);
+				buffer[idx].r = std::min(buffer[idx].r, maxIntensity);
+				buffer[idx].g = std::min(buffer[idx].g, maxIntensity);
+				buffer[idx].b = std::min(buffer[idx].b, maxIntensity);
 			}
 		}
 	}

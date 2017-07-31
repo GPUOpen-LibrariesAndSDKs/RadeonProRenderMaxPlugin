@@ -262,7 +262,7 @@ private:
 public:
 	// Compute sun angular position, in degrees
 	void GetSunPosition(IParamBlock2 *pb, const TimeValue &t, float& outAzimuth, float& outAltitude);
-	frw::Image GenerateSky(frw::Scope &scope, IParamBlock2 *pb, const TimeValue &t);
+	frw::Image GenerateSky(frw::Scope &scope, IParamBlock2 *pb, const TimeValue &t, float maxSunIntensity);
 
 	// location picker custom static control
 	static void CustomLocationPickerRegister();

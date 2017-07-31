@@ -1506,7 +1506,8 @@ void Synchronizer::UpdateRPREnvironment()
 	// use sun-sky
 	if (sky)
 	{
-		enviroImage = BgManagerMax::TheManager.GenerateSky(mScope, pblock, t);
+		float maxSunIntensity = 1.f / bgIntensity;
+		enviroImage = BgManagerMax::TheManager.GenerateSky(mScope, pblock, t, maxSunIntensity);
 	}
 	else // use IBL
 	{
