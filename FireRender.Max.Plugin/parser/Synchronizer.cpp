@@ -18,6 +18,7 @@
 #include "plugin/BgManager.h"
 #include "plugin/CamManager.h"
 #include "plugin/ScopeManager.h"
+#include "chrono"
 
 #include "SceneCallbacks.h"
 
@@ -922,6 +923,7 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 		}
 
 		// object rebuilding: progress report
+		std::chrono::steady_clock::time_point tstart = std::chrono::steady_clock::now();
 		{
 			int numInstances = instances.size();
 			wchar_t tempStr[1024];
@@ -937,9 +939,12 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 				wsprintf(tempStr, L"Synchronizing: Rebuilding Object %d of %d (%s)", i++, numInstances, (*ii.second.begin())->GetName());
 				if (synch->mBridge->GetProgressCB())
 					synch->mBridge->GetProgressCB()->SetTitle(tempStr);
-				synch->RebuildGeometry(ii.second);
 			}
+
+			synch->RebuildGeometry(instances);
 		}
+		std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
+		std::chrono::duration<double> time_in_rebuilding = std::chrono::duration_cast<std::chrono::duration<double>>(t11 - tstart);
 
 		// process remaining commands
 		for (auto ii = synch->mQueue.begin(); ii != synch->mQueue.end(); ii++)

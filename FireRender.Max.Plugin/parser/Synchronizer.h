@@ -495,6 +495,7 @@ class Synchronizer : public ReferenceMaker
 friend class TMPropertyCallback;
 friend class BgPropertyCallback;
 friend class ParamsTracker;
+friend struct RebuildJobParams;
 protected:
 	// general
 	frw::Scope mScope;
@@ -633,8 +634,10 @@ protected:
 
 	bool CreateMesh(std::vector<frw::Shape>& result, bool& directlyVisible, frw::Context& context, float masterScale, TimeValue timeValue, View& view, INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces);
 	std::vector<frw::Shape> parseMesh(INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces);
+	bool parseMesh(std::vector<frw::Shape>& shapes, INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces);
 	void DeleteGeometry(INode *instance);
 	void RebuildGeometry(const std::list<INode *> &instances);
+	void RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& instances);
 	void RebuildLight(INode *light, Object *obj);
 	void AddDefaultLights();
 	void RemoveDefaultLights();
