@@ -345,7 +345,7 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 		rpr_creation_flags devicesCompatibleOut = 0;
 		rprAreDevicesCompatible(
 			"Tahoe64.dll",
-			NULL,
+			//NULL,
 			false,
 			devicesUsed,
 			&devicesCompatibleOut,

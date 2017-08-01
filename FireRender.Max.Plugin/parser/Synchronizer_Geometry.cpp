@@ -420,28 +420,29 @@ struct RebuildJobParams
 	{
 		auto firstNode = *nodes.begin();
 
-		std::vector<frw::Shape>& shapes = *(pShapes.get());
-
+		std::vector<frw::Shape>& originalShapes = *(pShapes.get());
 		// iterate over all instances inside the group
+
 		for (auto& parsedNode : nodes)
 		{
-			std::vector<frw::Shape> newShapes;
+			std::vector<frw::Shape> shapes;
+
 			// For the first instance we directly reuse the parsed shapes, for subsequent ones we use instances
 			if (parsedNode != firstNode)
 			{
 				for (int i = 0; i < numMtls; ++i)
 				{
-					if (shapes[i])
+					if (originalShapes[i])
 					{
-						auto shape = shapes[i].CreateInstance(sync->mScope);
-						newShapes.push_back(shape);
+						auto shape = originalShapes[i].CreateInstance(sync->mScope);
+						shapes.push_back(shape);
 					}
 					else
-						newShapes.push_back(frw::Shape());
+						shapes.push_back(frw::Shape());
 				}
 			}
 			else
-				newShapes = shapes;
+				shapes = originalShapes;
 
 			// associate this node to the RPR shapes
 			auto mm = sync->mShapes.find(parsedNode);
@@ -669,7 +670,7 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 	std::vector<RebuildJobParams> arr_jobs;
 
 	// rebuild conveyor
-	for (auto& instance : instances)
+	for (auto& instance : instances) // init rebuild job data
 	{
 		const std::list<INode *> &nodes = instance.second;
 		auto t = mBridge->t();
@@ -687,10 +688,10 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 		// launch jobs processing threads
 		for_each(arr_jobs.begin(), arr_jobs.end(), [&](RebuildJobParams& params) // parallel for each
 		{
-			std::unique_lock<std::mutex> lock(jobDone_mutex); // limit amount of threads used for job processing (to avoid creating too many threads)
+			std::unique_lock<std::mutex> lock(jobDone_mutex); // limit amount of threads used for job processing (to avoid creating too many threads and corresponding overhead)
 			if (jobs_available == 0)
 			{
-				jobDone.wait(lock);
+				jobDone.wait(lock); // wait until there is free thread available
 				jobs_available++;
 			}
 			jobs_available--;
@@ -705,7 +706,7 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 				jobDone.notify_one();
 
 				return result;
-			}, std::ref(params)));
+			}, std::ref(params))); // <= can not pass just a refernece to std::async because it applies decay copy (copies object passed by reference)
 		});
 	}
 
