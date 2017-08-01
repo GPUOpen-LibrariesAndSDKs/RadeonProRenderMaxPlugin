@@ -896,8 +896,8 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 	shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, value);
 
 	// MATERIAL NORMAL
-	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_NORMAL_USEMAP,
-		FRUBERMTLV2_MAT_NORMAL_MAP, FRUBERMTLV2_MAT_NORMAL_MUL);
+	parameters = GetParameters(FRUBERMTLV2_MAT_NORMAL_USEMAP,
+		FRUBERMTLV2_MAT_NORMAL_MAP, FRUBERMTLV2_MAT_NORMAL, FRUBERMTLV2_MAT_NORMAL_MUL);
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 
@@ -908,6 +908,8 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_DISPLACE_USEMAP,
 		FRUBERMTLV2_MAT_DISPLACE_MAP, FRUBERMTLV2_MAT_DISPLACE_MUL);
 
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
+
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 	
 	if ( value.IsNode() ) // a map must be connected
@@ -916,6 +918,8 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 	// MATERIAL BUMP
 	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_BUMP_USEMAP,
 		FRUBERMTLV2_MAT_BUMP_MAP, FRUBERMTLV2_MAT_BUMP_MUL);
+
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 	
