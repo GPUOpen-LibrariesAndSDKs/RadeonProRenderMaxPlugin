@@ -445,6 +445,8 @@ DWORD BgManagerMax::Start()
 
 void BgManagerMax::Stop()
 {
+	mSkyImage = nullptr;
+
 	DeleteAllRefsFromMe();
 
 	CustomLocationPickerUnregister();
