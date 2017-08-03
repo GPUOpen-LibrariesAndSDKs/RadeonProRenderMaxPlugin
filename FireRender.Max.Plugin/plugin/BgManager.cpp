@@ -445,6 +445,8 @@ DWORD BgManagerMax::Start()
 
 void BgManagerMax::Stop()
 {
+	// The reference to rpr image keeps the whole context alive
+	// Need to remove this reference when application is about to close
 	mSkyImage = nullptr;
 
 	DeleteAllRefsFromMe();
