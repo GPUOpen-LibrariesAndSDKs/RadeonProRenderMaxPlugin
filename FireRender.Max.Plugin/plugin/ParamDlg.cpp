@@ -74,13 +74,15 @@ namespace
 	template<>
 	struct SpinnerTypeHelper<float>
 	{
-		static constexpr SpinnerType VALUE = SpinnerType::FLOAT;
+		static constexpr SpinnerType Value = SpinnerType::FLOAT;
+		static constexpr EditSpinnerType EditType = EditSpinnerType::EDITTYPE_FLOAT;
 	};
 
 	template<>
 	struct SpinnerTypeHelper<int>
 	{
-		static constexpr SpinnerType VALUE = SpinnerType::INT;
+		static constexpr SpinnerType Value = SpinnerType::INT;
+		static constexpr EditSpinnerType EditType = EditSpinnerType::EDITTYPE_INT;
 	};
 	
 	MSTR GetIBLRootDirectory()
@@ -182,6 +184,96 @@ namespace
 			}
 		}
 	}
+
+	struct ReinhardBurn
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_REINHARD_BURN;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_BURN;
+		static constexpr int16_t SpinControlId = IDC_BURN_S;
+	};
+
+	struct ReinhardPrescale
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_REINHARD_PRESCALE;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_PRESCALE;
+		static constexpr int16_t SpinControlId = IDC_PRESCALE_S;
+	};
+
+	struct ReinhardPostscale
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_REINHARD_POSTSCALE;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_POSTSCALE;
+		static constexpr int16_t SpinControlId = IDC_POSTSCALE_S;
+	};
+
+	struct PhotolinearISO
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_PHOTOLINEAR_ISO;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_ISO;
+		static constexpr int16_t SpinControlId = IDC_ISO_S;
+	};
+
+	struct PhotolinearFStop
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_PHOTOLINEAR_FSTOP;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_FSTOP;
+		static constexpr int16_t SpinControlId = IDC_FSTOP_S;
+	};
+
+	struct PhotolinearShutterSpeed
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_PHOTOLINEAR_SHUTTERSPEED;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_SHUTTERSPEED;
+		static constexpr int16_t SpinControlId = IDC_SHUTTERSPEED_S;
+	};
+
+	struct SimplifiedExposure
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_SIMPLIFIED_EXPOSURE;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_EXPOSURE;
+		static constexpr int16_t SpinControlId = IDC_EXPOSURE_S;
+	};
+
+	struct SimplifiedContrast
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_SIMPLIFIED_CONTRAST;
+		static constexpr float Min = 0.f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr int16_t EditControlId = IDC_CONTRAST;
+		static constexpr int16_t SpinControlId = IDC_CONTRAST_S;
+	};
+
+	struct SimplifiedWhitebalance
+	{
+		using Manager = TmManagerMax;
+		static constexpr ParamID Param = PARAM_TM_SIMPLIFIED_WHITEBALANCE;
+		static constexpr int Min = 1000;
+		static constexpr int Max = 12000;
+		static constexpr int16_t EditControlId = IDC_WHITEBALANCE;
+		static constexpr int16_t SpinControlId = IDC_WHITEBALANCE_S;
+	};
 }
 
 class CRollout::Impl
@@ -192,7 +284,7 @@ public:
 	{
 		if (mSpinnerMap.find(control) == mSpinnerMap.end())
 		{
-			mSpinnerMap[control] = SpinnerData(SpinnerTypeHelper<T>::VALUE, id, spinner);
+			mSpinnerMap[control] = SpinnerData(SpinnerTypeHelper<T>::Value, id, spinner);
 		}
 	}
 
@@ -243,6 +335,15 @@ public:
 		return spinner;
 	}
 
+	template<typename TDescriptor>
+	ISpinnerControl* SetupSpinnerControl()
+	{
+		return SetupSpinnerControl<TDescriptor::Manager>(
+			TDescriptor::Param,
+			TDescriptor::EditControlId, TDescriptor::SpinControlId,
+			TDescriptor::Min, TDescriptor::Max);
+	}
+
 	template<typename TManager, typename T>
 	ISpinnerControl* SetupSpinnerControl(ParamID paramId, int16_t controlIdEdit, int16_t controlIdSpin, T min, T max)
 	{
@@ -251,12 +352,12 @@ public:
 		FASSERT(textControl && spinControl && textControl != spinControl);
 
 		ISpinnerControl* spinner = GetISpinner(spinControl);
-		spinner->LinkToEdit(textControl, EDITTYPE_FLOAT);
+		spinner->LinkToEdit(textControl, SpinnerTypeHelper<T>::EditType);
 		spinner->SetResetValue(0.f);
 		spinner->SetLimits(min, max);
 		spinner->SetAutoScale(TRUE);
 
-		float value;
+		T value;
 		BOOL res = TManager::TheManager.GetProperty(paramId, value);
 		FASSERT(res);
 
@@ -1207,18 +1308,6 @@ INT_PTR FireRenderParamDlg::CTonemapSettings::DlgProc(UINT msg, WPARAM wParam, L
 	return TRUE;
 }
 
-template<TmParameter param>
-struct TmParameterSettings;
-
-template<>
-struct TmParameterSettings<TmParameter::PARAM_TM_REINHARD_BURN>
-{
-	static constexpr float Min = 0.f;
-	static constexpr float Max = FLT_MAX;
-	static constexpr int16_t EditControlId = IDC_BURN;
-	static constexpr int16_t SpinControlId = IDC_BURN_S;
-};
-
 void FireRenderParamDlg::CTonemapSettings::InitDialog()
 {
 	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
@@ -1227,18 +1316,18 @@ void FireRenderParamDlg::CTonemapSettings::InitDialog()
 	TmManagerMax::TheManager.RegisterPropertyChangeCallback(this);
 
 	SetupCheckbox(TmManagerMax::TheManager, PARAM_TM_OVERRIDE_MAX_TONEMAPPERS, IDC_OVERRIDE);
-	
-	controls.burn = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_BURN, IDC_BURN, IDC_BURN_S, 0.f, FLT_MAX);
-	controls.preScale = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_PRESCALE, IDC_PRESCALE, IDC_PRESCALE_S, 0.f, FLT_MAX);
-	controls.postScale = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_POSTSCALE, IDC_POSTSCALE, IDC_POSTSCALE_S, 0.f, FLT_MAX);
 
-	controls.iso = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_ISO, IDC_ISO, IDC_ISO_S, 0.f, FLT_MAX);
-	controls.fstop = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_FSTOP, IDC_FSTOP, IDC_FSTOP_S, 0.f, FLT_MAX);
-	controls.shutterspeed = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, IDC_SHUTTERSPEED, IDC_SHUTTERSPEED_S, 0.f, FLT_MAX);
+	controls.burn = m_d->SetupSpinnerControl<ReinhardBurn>();
+	controls.preScale = m_d->SetupSpinnerControl<ReinhardPrescale>();
+	controls.postScale = m_d->SetupSpinnerControl<ReinhardPostscale>();
 
-	controls.exposure = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_EXPOSURE, IDC_EXPOSURE, IDC_EXPOSURE_S, 0.f, FLT_MAX);
-	controls.contrast = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_CONTRAST, IDC_CONTRAST, IDC_CONTRAST_S, 0.f, FLT_MAX);
-	controls.whitebalance = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_WHITEBALANCE, IDC_WHITEBALANCE, IDC_WHITEBALANCE_S, 1000, 12000);
+	controls.iso = m_d->SetupSpinnerControl<PhotolinearISO>();
+	controls.fstop = m_d->SetupSpinnerControl<PhotolinearFStop>();
+	controls.shutterspeed = m_d->SetupSpinnerControl<PhotolinearShutterSpeed>();
+
+	controls.exposure = m_d->SetupSpinnerControl<SimplifiedExposure>();
+	controls.contrast = m_d->SetupSpinnerControl<SimplifiedContrast>();
+	controls.whitebalance = m_d->SetupSpinnerControl<SimplifiedWhitebalance>();
 
 	{
 		Color col;
@@ -3062,15 +3151,15 @@ void FireRenderParamDlg::DeleteThis()
 // CROLLOUT CLASS
 //
 
-CRollout::CRollout()
+CRollout::CRollout() :
+	m_d(std::make_unique<Impl>())
 {
 	m_d->mIsReady = false;
 	m_d->mTabId = NULL;
 }
 
-CRollout::~CRollout()
-{
-}
+CRollout::CRollout(CRollout&&) = default;
+CRollout::~CRollout() = default;
 
 void CRollout::DeleteRollout()
 {
@@ -3167,6 +3256,7 @@ void CRollout::SetControlTooltip(int controlId, const MCHAR* tooltip)
 	if (wnd) GetToolTipExtender().SetToolTip(wnd, tooltip);
 }
 
+CRollout& CRollout::operator=(CRollout&&) = default;
 
 //-----------------------------------------------------------------------------
 // UI controls

@@ -30,6 +30,8 @@ class CRollout
 {
 public:
 	CRollout();
+	CRollout(CRollout&&);
+	CRollout(const CRollout&) = delete;
 	virtual ~CRollout();
 
 	void DeleteRollout();
@@ -47,32 +49,35 @@ public:
 
 	void SetControlTooltip(int controlId, const MCHAR* tooltip);
 
+	CRollout& operator=(const CRollout&) = delete;
+	CRollout& operator=(CRollout&&);
+
 	class CTexmapButton
+	{
+	public:
+		HWND mWnd;
+		ICustButton *mButton;
+		IParamBlock2* mPb;
+		ParamID mParamId;
+		int16_t mControlIdEdit;
+		CRollout *mOwner;
+
+		CTexmapButton(CRollout* owner, HWND wnd, IParamBlock2* pb,  const ParamID paramId, const int16_t controlIdEdit);
+		~CTexmapButton();
+
+		// This function fully performs assignment - stores value to mValue, to ParamBlock, and updates UI
+		void SetValue(Texmap* value);
+
+		inline Texmap* GetValue() const
 		{
-		public:
-			HWND mWnd;
-			ICustButton *mButton;
-			IParamBlock2* mPb;
-			ParamID mParamId;
-			int16_t mControlIdEdit;
-			CRollout *mOwner;
+			return mValue;
+		}
 
-			CTexmapButton(CRollout* owner, HWND wnd, IParamBlock2* pb,  const ParamID paramId, const int16_t controlIdEdit);
-			~CTexmapButton();
+		void UpdateUI();
 
-			// This function fully performs assignment - stores value to mValue, to ParamBlock, and updates UI
-			void SetValue(Texmap* value);
-
-			inline Texmap* GetValue() const
-			{
-				return mValue;
-			}
-
-			void UpdateUI();
-
-		private:
-			Texmap* mValue;
-		};
+	private:
+		Texmap* mValue;
+	};
 
 protected:
 	class Impl;
