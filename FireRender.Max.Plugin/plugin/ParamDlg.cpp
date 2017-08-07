@@ -82,45 +82,7 @@ namespace
 	{
 		static constexpr SpinnerType VALUE = SpinnerType::INT;
 	};
-
-	template<typename T>
-	void AssociateSpinner(
-		std::map<int16_t, SpinnerData>& idToSpinner,
-		ISpinnerControl* spinner, ParamID id, int16_t control)
-	{
-		if (idToSpinner.find(control) == idToSpinner.end())
-		{
-			idToSpinner[control] = SpinnerData(SpinnerTypeHelper<T>::VALUE, id, spinner);
-		}
-	}
-
-	template<typename T>
-	ISpinnerControl* SetupSpinnerControl(
-		std::map<int16_t, SpinnerData>& idToSpinner,
-		HWND hWnd, ManagerMaxBase &man, ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin, T min, T max)
-	{
-		auto textControl = GetDlgItem(hWnd, controlIdEdit);
-		auto spinControl = GetDlgItem(hWnd, controlIdSpin);
-		FASSERT(textControl && spinControl && textControl != spinControl);
-
-		ISpinnerControl* spinner = GetISpinner(spinControl);
-		spinner->LinkToEdit(textControl, EDITTYPE_FLOAT);
-		spinner->SetResetValue(0.f);
-		spinner->SetLimits(min, max);
-		spinner->SetAutoScale(TRUE);
-
-		float value;
-		BOOL res = man.GetProperty(paramId, value);
-		FASSERT(res);
-
-		spinner->SetResetValue(value);
-		spinner->SetValue(value, FALSE);
-
-		AssociateSpinner<T>(idToSpinner, spinner, paramId, controlIdSpin);
-
-		return spinner;
-	}
-
+	
 	MSTR GetIBLRootDirectory()
 	{
 		// Reference: installer/nsiexec2/nsiexec2/main.cpp
@@ -225,6 +187,15 @@ namespace
 class CRollout::Impl
 {
 public:
+	template<typename T>
+	void AssociateSpinner(ISpinnerControl* spinner, ParamID id, int16_t control)
+	{
+		if (mSpinnerMap.find(control) == mSpinnerMap.end())
+		{
+			mSpinnerMap[control] = SpinnerData(SpinnerTypeHelper<T>::VALUE, id, spinner);
+		}
+	}
+
 	ISpinnerControl* SetupSpinner(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin)
 	{
 		const ParamDef& def = FIRE_MAX_PBDESC.GetParamDef(paramId);
@@ -246,7 +217,7 @@ public:
 				BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
 				FASSERT(res);
 				spinner->SetValue(value, FALSE);
-				AssociateSpinner<int>(mSpinnerMap, spinner, paramId, controlIdSpin);
+				AssociateSpinner<int>(spinner, paramId, controlIdSpin);
 			}
 			break;
 			//case TYPE_COLOR_CHANNEL:
@@ -263,12 +234,37 @@ public:
 				BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
 				FASSERT(res);
 				spinner->SetValue(value, FALSE);
-				AssociateSpinner<float>(mSpinnerMap, spinner, paramId, controlIdSpin);
+				AssociateSpinner<float>(spinner, paramId, controlIdSpin);
 			}
 			break;
 		default:
 			STOP;
 		}
+		return spinner;
+	}
+
+	template<typename TManager, typename T>
+	ISpinnerControl* SetupSpinnerControl(ParamID paramId, int16_t controlIdEdit, int16_t controlIdSpin, T min, T max)
+	{
+		auto textControl = GetDlgItem(mHwnd, controlIdEdit);
+		auto spinControl = GetDlgItem(mHwnd, controlIdSpin);
+		FASSERT(textControl && spinControl && textControl != spinControl);
+
+		ISpinnerControl* spinner = GetISpinner(spinControl);
+		spinner->LinkToEdit(textControl, EDITTYPE_FLOAT);
+		spinner->SetResetValue(0.f);
+		spinner->SetLimits(min, max);
+		spinner->SetAutoScale(TRUE);
+
+		float value;
+		BOOL res = TManager::TheManager.GetProperty(paramId, value);
+		FASSERT(res);
+
+		spinner->SetResetValue(value);
+		spinner->SetValue(value, FALSE);
+
+		AssociateSpinner<T>(spinner, paramId, controlIdSpin);
+
 		return spinner;
 	}
 
@@ -283,12 +279,6 @@ public:
 		}
 		return res;
 	}
-
-	template<typename TManager, typename T>
-	ISpinnerControl* SetUpSpinnerControl(ParamID param, int16_t editControlId, int16_t spinControlId, T min, T max)
-	{
-		return SetupSpinnerControl(mSpinnerMap, mHwnd, TManager::TheManager, param, editControlId, spinControlId, min, max);
-	};
 
 	/// True if the dialog is constructed and ready to be used. False if it is currently being constructed/destroyed, and 
 	/// for example any value changes should not be saved in IParamBlock2
@@ -1052,20 +1042,20 @@ void FireRenderParamDlg::CCameraSettings::InitDialog()
 	SetVisibleDOFSettings(useDof);
 
 	SetupCheckbox(CamManagerMax::TheManager, PARAM_CAM_USE_MOTION_BLUR, IDC_USE_MOTION_BLUR);
-	controls.motionBlurScale = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE_S, 0.f, 10e20f);
+	controls.motionBlurScale = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE_S, 0.f, 10e20f);
 
 	constexpr float minCameraExposure = -10e20f;
 	constexpr float maxCameraExposure =  10e20f;
 
-	controls.cameraPerspectiveFocalDist = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_FOCUS_DIST, IDC_FOCUS_DIST, IDC_FOCUS_DIST_S, 1e-6f, 10e20f);
+	controls.cameraPerspectiveFocalDist = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_FOCUS_DIST, IDC_FOCUS_DIST, IDC_FOCUS_DIST_S, 1e-6f, 10e20f);
 	//stored in meters we want to show it in cm
 	controls.cameraPerspectiveFocalDist->SetValue(this->controls.cameraPerspectiveFocalDist->GetFVal()*100.f, false);
-	controls.cameraBlades = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_BLADES, IDC_APERTURE_BLADES, IDC_APERTURE_BLADES_S, 3, 64);
-	controls.cameraFStop = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_F_STOP, IDC_FSTOP, IDC_FSTOP_S, 0.01f, 999.f);
-	controls.cameraSensorSize = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_SENSOR_WIDTH, IDC_SENSOR_SIZE, IDC_SENSOR_SIZE_S, 0.001f, 9999.f);
-	controls.cameraExposure = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_EXPOSURE, IDC_CAMERA_EXPOSURE, IDC_CAMERA_EXPOSURE_S, minCameraExposure, maxCameraExposure);
-	controls.cameraFocalLength = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_FOCAL_LENGTH, IDC_FOCAL_LENGTH, IDC_FOCAL_LENGTH_S, 1e-6f, 10e20f);
-	controls.cameraFOV = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_FOV, IDC_FOV, IDC_FOV_S, -360.f, 360.f);
+	controls.cameraBlades = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_BLADES, IDC_APERTURE_BLADES, IDC_APERTURE_BLADES_S, 3, 64);
+	controls.cameraFStop = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_F_STOP, IDC_FSTOP, IDC_FSTOP_S, 0.01f, 999.f);
+	controls.cameraSensorSize = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_SENSOR_WIDTH, IDC_SENSOR_SIZE, IDC_SENSOR_SIZE_S, 0.001f, 9999.f);
+	controls.cameraExposure = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_EXPOSURE, IDC_CAMERA_EXPOSURE, IDC_CAMERA_EXPOSURE_S, minCameraExposure, maxCameraExposure);
+	controls.cameraFocalLength = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_FOCAL_LENGTH, IDC_FOCAL_LENGTH, IDC_FOCAL_LENGTH_S, 1e-6f, 10e20f);
+	controls.cameraFOV = m_d->SetupSpinnerControl<CamManagerMax>(PARAM_CAM_FOV, IDC_FOV, IDC_FOV_S, -360.f, 360.f);
 	//stored in radian, we want to show it in degrees
 	float val = this->controls.cameraFOV->GetFVal() / PI * 180.f;
 	controls.cameraFOV->SetValue(val, false);
@@ -1238,17 +1228,17 @@ void FireRenderParamDlg::CTonemapSettings::InitDialog()
 
 	SetupCheckbox(TmManagerMax::TheManager, PARAM_TM_OVERRIDE_MAX_TONEMAPPERS, IDC_OVERRIDE);
 	
-	controls.burn = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_BURN, IDC_BURN, IDC_BURN_S, 0.f, FLT_MAX);
-	controls.preScale = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_PRESCALE, IDC_PRESCALE, IDC_PRESCALE_S, 0.f, FLT_MAX);
-	controls.postScale = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_POSTSCALE, IDC_POSTSCALE, IDC_POSTSCALE_S, 0.f, FLT_MAX);
+	controls.burn = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_BURN, IDC_BURN, IDC_BURN_S, 0.f, FLT_MAX);
+	controls.preScale = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_PRESCALE, IDC_PRESCALE, IDC_PRESCALE_S, 0.f, FLT_MAX);
+	controls.postScale = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_POSTSCALE, IDC_POSTSCALE, IDC_POSTSCALE_S, 0.f, FLT_MAX);
 
-	controls.iso = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_ISO, IDC_ISO, IDC_ISO_S, 0.f, FLT_MAX);
-	controls.fstop = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_FSTOP, IDC_FSTOP, IDC_FSTOP_S, 0.f, FLT_MAX);
-	controls.shutterspeed = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, IDC_SHUTTERSPEED, IDC_SHUTTERSPEED_S, 0.f, FLT_MAX);
+	controls.iso = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_ISO, IDC_ISO, IDC_ISO_S, 0.f, FLT_MAX);
+	controls.fstop = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_FSTOP, IDC_FSTOP, IDC_FSTOP_S, 0.f, FLT_MAX);
+	controls.shutterspeed = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, IDC_SHUTTERSPEED, IDC_SHUTTERSPEED_S, 0.f, FLT_MAX);
 
-	controls.exposure = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_EXPOSURE, IDC_EXPOSURE, IDC_EXPOSURE_S, 0.f, FLT_MAX);
-	controls.contrast = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_CONTRAST, IDC_CONTRAST, IDC_CONTRAST_S, 0.f, FLT_MAX);
-	controls.whitebalance = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_WHITEBALANCE, IDC_WHITEBALANCE, IDC_WHITEBALANCE_S, 1000, 12000);
+	controls.exposure = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_EXPOSURE, IDC_EXPOSURE, IDC_EXPOSURE_S, 0.f, FLT_MAX);
+	controls.contrast = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_CONTRAST, IDC_CONTRAST, IDC_CONTRAST_S, 0.f, FLT_MAX);
+	controls.whitebalance = m_d->SetupSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_WHITEBALANCE, IDC_WHITEBALANCE, IDC_WHITEBALANCE_S, 1000, 12000);
 
 	{
 		Color col;
@@ -2653,10 +2643,10 @@ void FireRenderParamDlg::CGroundSettings::InitDialog()
 	SetupCheckbox(BgManagerMax::TheManager, PARAM_GROUND_REFLECTIONS, IDC_GROUND_REFLECTIONS);
 
 	controls.reflColor = SetupSwatch(PARAM_GROUND_REFLECTIONS_COLOR, IDC_GROUND_REFL_COLOR);
-	controls.radius = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_RADIUS, IDC_GROUND_RADIUS, IDC_GROUND_RADIUS_S, 0.f, FLT_MAX);
-	controls.heigth = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_GROUND_HEIGHT, IDC_GROUND_HEIGHT, IDC_GROUND_HEIGHT_S, -FLT_MAX, FLT_MAX);
-	controls.reflStrength = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_REFLECTIONS_STRENGTH, IDC_GROUND_REFL_STRENGTH, IDC_GROUND_REFL_STRENGTH_S, 0.f, 1.f);
-	controls.reflRoughness = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_REFLECTIONS_ROUGHNESS, IDC_GROUND_REFL_ROUGH, IDC_GROUND_REFL_ROUGH_S, 0.f, 1.f);
+	controls.radius = m_d->SetupSpinnerControl<BgManagerMax>(PARAM_GROUND_RADIUS, IDC_GROUND_RADIUS, IDC_GROUND_RADIUS_S, 0.f, FLT_MAX);
+	controls.heigth = m_d->SetupSpinnerControl<BgManagerMax>(PARAM_GROUND_GROUND_HEIGHT, IDC_GROUND_HEIGHT, IDC_GROUND_HEIGHT_S, -FLT_MAX, FLT_MAX);
+	controls.reflStrength = m_d->SetupSpinnerControl<BgManagerMax>(PARAM_GROUND_REFLECTIONS_STRENGTH, IDC_GROUND_REFL_STRENGTH, IDC_GROUND_REFL_STRENGTH_S, 0.f, 1.f);
+	controls.reflRoughness = m_d->SetupSpinnerControl<BgManagerMax>(PARAM_GROUND_REFLECTIONS_ROUGHNESS, IDC_GROUND_REFL_ROUGH, IDC_GROUND_REFL_ROUGH_S, 0.f, 1.f);
 
 	if (!IsDlgButtonChecked(m_d->mHwnd, IDC_GROUND_USE))
 		EnableGroupboxControls(m_d->mHwnd, 0, false, { IDC_GROUND_USE });
