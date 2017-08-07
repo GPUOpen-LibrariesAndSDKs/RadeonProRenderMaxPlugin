@@ -45,57 +45,262 @@ FIRERENDER_NAMESPACE_BEGIN
 
 #define PROP_SENDER_COLORDIAL 102
 
-static MSTR GetIBLRootDirectory()
+namespace
 {
-	// Reference: installer/nsiexec2/nsiexec2/main.cpp
-	// RPR plugin could have HDRI libraries installed under "Documents" folder.
-	PWSTR path = NULL;
-	HRESULT hr = SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &path);
-	std::wstring directoryOfMyDocumentsRpr;
-	if (!FAILED(hr))
+	enum class SpinnerType
 	{
-		directoryOfMyDocumentsRpr = std::wstring(path) + L"\\Radeon ProRender\\3ds Max";
-	}
-	CoTaskMemFree(path);
-	if (!directoryOfMyDocumentsRpr.empty())
+		INT,
+		FLOAT,
+	};
+
+	// quickly find a parameter associated to a spinner
+	struct SpinnerData
 	{
-		DWORD attributes = GetFileAttributesW(directoryOfMyDocumentsRpr.c_str());
-		if ((attributes != INVALID_FILE_ATTRIBUTES) && (attributes & FILE_ATTRIBUTE_DIRECTORY))
+		SpinnerType type;
+		ParamID paramId;
+		ISpinnerControl* spinner;
+		SpinnerData()
+		{}
+		SpinnerData(SpinnerType t, ParamID p, ISpinnerControl *s) :
+			type(t),
+			paramId(p),
+			spinner(s)
+		{}
+	};
+
+	template<typename T>
+	struct SpinnerTypeHelper;
+
+	template<>
+	struct SpinnerTypeHelper<float>
+	{
+		static constexpr SpinnerType VALUE = SpinnerType::FLOAT;
+	};
+
+	template<>
+	struct SpinnerTypeHelper<int>
+	{
+		static constexpr SpinnerType VALUE = SpinnerType::INT;
+	};
+
+	template<typename T>
+	void AssociateSpinner(
+		std::map<int16_t, SpinnerData>& idToSpinner,
+		ISpinnerControl* spinner, ParamID id, int16_t control)
+	{
+		if (idToSpinner.find(control) == idToSpinner.end())
 		{
-			static const wchar_t* knownHdriLibs[] =
-			{
-				L"HDRIHaven2",
-				L"SunnyRoad2"
-			};
-			for (int i = 0; i < sizeof(knownHdriLibs) / sizeof(knownHdriLibs[0]); i++)
-			{
-				std::wstring hdriLibPath = directoryOfMyDocumentsRpr + L"\\" + knownHdriLibs[i];
-				attributes = GetFileAttributesW(hdriLibPath.c_str());
-				if ((attributes != INVALID_FILE_ATTRIBUTES) && (attributes & FILE_ATTRIBUTE_DIRECTORY))
-				{
-					return directoryOfMyDocumentsRpr.c_str();
-				}
-			}
+			idToSpinner[control] = SpinnerData(SpinnerTypeHelper<T>::VALUE, id, spinner);
 		}
 	}
 
-	// Failed to find known installed HDRI library, use something else
-	IPathConfigMgr* path_mgr = IPathConfigMgr::GetPathConfigMgr();
-	MaxSDK::Util::Path folder = path_mgr->GetDir(APP_IMAGE_DIR); // maxroot
-	return folder.GetString();
+	template<typename T>
+	ISpinnerControl* SetupSpinnerControl(
+		std::map<int16_t, SpinnerData>& idToSpinner,
+		HWND hWnd, ManagerMaxBase &man, ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin, T min, T max)
+	{
+		auto textControl = GetDlgItem(hWnd, controlIdEdit);
+		auto spinControl = GetDlgItem(hWnd, controlIdSpin);
+		FASSERT(textControl && spinControl && textControl != spinControl);
+
+		ISpinnerControl* spinner = GetISpinner(spinControl);
+		spinner->LinkToEdit(textControl, EDITTYPE_FLOAT);
+		spinner->SetResetValue(0.f);
+		spinner->SetLimits(min, max);
+		spinner->SetAutoScale(TRUE);
+
+		float value;
+		BOOL res = man.GetProperty(paramId, value);
+		FASSERT(res);
+
+		spinner->SetResetValue(value);
+		spinner->SetValue(value, FALSE);
+
+		AssociateSpinner<T>(idToSpinner, spinner, paramId, controlIdSpin);
+
+		return spinner;
+	}
+
+	MSTR GetIBLRootDirectory()
+	{
+		// Reference: installer/nsiexec2/nsiexec2/main.cpp
+		// RPR plugin could have HDRI libraries installed under "Documents" folder.
+		PWSTR path = NULL;
+		HRESULT hr = SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &path);
+		std::wstring directoryOfMyDocumentsRpr;
+		if (!FAILED(hr))
+		{
+			directoryOfMyDocumentsRpr = std::wstring(path) + L"\\Radeon ProRender\\3ds Max";
+		}
+		CoTaskMemFree(path);
+		if (!directoryOfMyDocumentsRpr.empty())
+		{
+			DWORD attributes = GetFileAttributesW(directoryOfMyDocumentsRpr.c_str());
+			if ((attributes != INVALID_FILE_ATTRIBUTES) && (attributes & FILE_ATTRIBUTE_DIRECTORY))
+			{
+				static const wchar_t* knownHdriLibs[] =
+				{
+					L"HDRIHaven2",
+					L"SunnyRoad2"
+				};
+				for (int i = 0; i < sizeof(knownHdriLibs) / sizeof(knownHdriLibs[0]); i++)
+				{
+					std::wstring hdriLibPath = directoryOfMyDocumentsRpr + L"\\" + knownHdriLibs[i];
+					attributes = GetFileAttributesW(hdriLibPath.c_str());
+					if ((attributes != INVALID_FILE_ATTRIBUTES) && (attributes & FILE_ATTRIBUTE_DIRECTORY))
+					{
+						return directoryOfMyDocumentsRpr.c_str();
+					}
+				}
+			}
+		}
+
+		// Failed to find known installed HDRI library, use something else
+		IPathConfigMgr* path_mgr = IPathConfigMgr::GetPathConfigMgr();
+		MaxSDK::Util::Path folder = path_mgr->GetDir(APP_IMAGE_DIR); // maxroot
+		return folder.GetString();
+	}
+
+	ToolTipExtender& GetToolTipExtender()
+	{
+		static ToolTipExtender tipExtender;
+		return tipExtender;
+	}
+
+	void SetSpinnerScale(ISpinnerControl* spin, float scale)
+	{
+		spin->SetAutoScale(FALSE);
+		spin->SetScale(scale);
+	}
+
+	struct CameraTypeDesc
+	{
+		LPTSTR name;
+		FRCameraType type;
+		bool stereoSupport;
+	};
+
+	static constexpr CameraTypeDesc cameraTypeDescs[] = {
+		{ _T("Default"), FRCameraType::FRCameraType_Default, false },
+		//{ _T("Perspective"), FRCameraType::FRCameraType_Perspective, false },
+		//{ _T("Orthographic"), FRCameraType::FRCameraType_Orthographic, false },
+		{ _T("SphericalPanorama"), FRCameraType::FRCameraType_LatitudeLongitude_360, false },
+		{ _T("SphericalPanoramaStereo"), FRCameraType::FRCameraType_LatitudeLongitude_Stereo, true },
+		{ _T("CubeMap"), FRCameraType::FRCameraType_Cubemap, false },
+		{ _T("CubeMapStereo"), FRCameraType::FRCameraType_Cubemap_Stereo, true },
+		//{ _T("Cubemap"), FRCameraType::Cubemap, true }
+	};
+
+	const CameraTypeDesc & GetCameraTypeDesc(FRCameraType type)
+	{
+		FASSERT(sizeof(cameraTypeDescs) / sizeof(CameraTypeDesc) == FRCameraType::FRCameraType_Count);
+		return cameraTypeDescs[type];
+	}
+
+	/// Utility value that select an item in combobox with given value (ITEMDATA)
+	void setListboxValue(HWND listbox, const int toSet)
+	{
+		for (int i = 0;; ++i)
+		{
+			const int value = int(SendMessage(listbox, CB_GETITEMDATA, WPARAM(i), 0));
+
+			if (value == toSet)
+			{
+				SendMessage(listbox, CB_SETCURSEL, WPARAM(i), 0L);
+				break;
+			}
+
+			if (i > 9999)
+			{
+				// item with this value does not exist - probably save/load problem of render settings. 
+				// Select first item and show error to user.
+				SendMessage(listbox, CB_SETCURSEL, WPARAM(0), 0L);
+				MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Error in listbox"), _T("Radeon ProRender exception"), MB_OK);
+				break;
+			}
+		}
+	}
 }
 
-ToolTipExtender& GetToolTipExtender()
+class CRollout::Impl
 {
-	static ToolTipExtender tipExtender;
-	return tipExtender;
-}
+public:
+	ISpinnerControl* SetupSpinner(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin)
+	{
+		const ParamDef& def = FIRE_MAX_PBDESC.GetParamDef(paramId);
 
-inline void SetSpinnerScale(ISpinnerControl* spin, float scale)
-{
-	spin->SetAutoScale(FALSE);
-	spin->SetScale(scale);
-}
+		HWND textControl = GetDlgItem(mHwnd, controlIdEdit);
+		HWND spinControl = GetDlgItem(mHwnd, controlIdSpin);
+		FASSERT(textControl && spinControl && textControl != spinControl);
+		ISpinnerControl* spinner = GetISpinner(spinControl);
+		switch (int(def.type)) { // int and float spinners are set up differently
+		case TYPE_RADIOBTN_INDEX:
+			//case TYPE_TIMEVALUE:
+		case TYPE_INT:
+			spinner->LinkToEdit(textControl, EDITTYPE_INT);
+			spinner->SetResetValue(def.def.i);
+			spinner->SetLimits(def.range_low.i, def.range_high.i);
+			spinner->SetAutoScale(TRUE);
+			{
+				int value;
+				BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
+				FASSERT(res);
+				spinner->SetValue(value, FALSE);
+				AssociateSpinner<int>(mSpinnerMap, spinner, paramId, controlIdSpin);
+			}
+			break;
+			//case TYPE_COLOR_CHANNEL:
+			//case TYPE_PCNT_FRAC:
+			//case TYPE_ANGLE:
+		case TYPE_FLOAT:
+		case TYPE_WORLD:
+			spinner->LinkToEdit(textControl, (def.type == TYPE_FLOAT) ? EDITTYPE_FLOAT : EDITTYPE_UNIVERSE);
+			spinner->SetResetValue(def.def.f);
+			spinner->SetLimits(def.range_low.f, def.range_high.f);
+			spinner->SetAutoScale(TRUE);
+			{
+				float value;
+				BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
+				FASSERT(res);
+				spinner->SetValue(value, FALSE);
+				AssociateSpinner<float>(mSpinnerMap, spinner, paramId, controlIdSpin);
+			}
+			break;
+		default:
+			STOP;
+		}
+		return spinner;
+	}
+
+	bool GetSpinnerParam(int16_t control, SpinnerData &out)
+	{
+		bool res = false;
+		auto ii = mSpinnerMap.find(control);
+		if (ii != mSpinnerMap.end())
+		{
+			out = ii->second;
+			res = true;
+		}
+		return res;
+	}
+
+	template<typename TManager, typename T>
+	ISpinnerControl* SetUpSpinnerControl(ParamID param, int16_t editControlId, int16_t spinControlId, T min, T max)
+	{
+		return SetupSpinnerControl(mSpinnerMap, mHwnd, TManager::TheManager, param, editControlId, spinControlId, min, max);
+	};
+
+	/// True if the dialog is constructed and ready to be used. False if it is currently being constructed/destroyed, and 
+	/// for example any value changes should not be saved in IParamBlock2
+	bool mIsReady;
+
+	std::wstring mName;
+	HWND mHwnd;
+	FireRenderParamDlg *mOwner;
+	IRendParams *mRenderParms;
+	const Class_ID *mTabId;
+	std::map<int16_t, SpinnerData> mSpinnerMap;
+};
 
 FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRenderer* renderer)
 {
@@ -152,48 +357,6 @@ FireRenderParamDlg::~FireRenderParamDlg()
 	mQualitySettings.DeleteRollout();
 	mHardwareSetting.DeleteRollout();
 	mGeneralSettings.DeleteRollout();
-}
-
-struct CameraTypeDesc
-{
-	LPTSTR name;
-	FRCameraType type;
-	bool stereoSupport;
-};
-
-CameraTypeDesc cameraTypeDescs[] = {
-	{ _T("Default"), FRCameraType::FRCameraType_Default, false },
-	//{ _T("Perspective"), FRCameraType::FRCameraType_Perspective, false },
-	//{ _T("Orthographic"), FRCameraType::FRCameraType_Orthographic, false },
-	{ _T("SphericalPanorama"), FRCameraType::FRCameraType_LatitudeLongitude_360, false },
-	{ _T("SphericalPanoramaStereo"), FRCameraType::FRCameraType_LatitudeLongitude_Stereo, true },
-	{ _T("CubeMap"), FRCameraType::FRCameraType_Cubemap, false },
-	{ _T("CubeMapStereo"), FRCameraType::FRCameraType_Cubemap_Stereo, true },
-	//{ _T("Cubemap"), FRCameraType::Cubemap, true }
-};
-
-const CameraTypeDesc & GetCameraTypeDesc(FRCameraType type)
-{
-	FASSERT(sizeof(cameraTypeDescs) / sizeof(CameraTypeDesc) == FRCameraType::FRCameraType_Count);
-	return cameraTypeDescs[type];
-}
-
-/// Utility value that select an item in combobox with given value (ITEMDATA)
-void setListboxValue(HWND listbox, const int toSet) {
-    for (int i = 0;; ++i) {
-        const int value = int(SendMessage(listbox, CB_GETITEMDATA, WPARAM(i), 0));
-        if (value == toSet) {
-            SendMessage(listbox, CB_SETCURSEL, WPARAM(i), 0L);
-            break;
-        }
-        if (i > 9999) { 
-            // item with this value does not exist - probably save/load problem of render settings. 
-            // Select first item and show error to user.
-            SendMessage(listbox, CB_SETCURSEL, WPARAM(0), 0L);
-            MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Error in listbox"), _T("Radeon ProRender exception"), MB_OK);
-            break;
-        }
-    }
 }
 
 void FireRenderParamDlg::setWarningSuppress(bool value)
@@ -288,7 +451,7 @@ void FireRenderParamDlg::AcceptParams()
 
 INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
 		case WM_COMMAND:
@@ -297,16 +460,16 @@ INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, L
 			{
 			case EN_CHANGE:
 			{
-				if (mIsReady)
+				if (m_d->mIsReady)
 				{
 					int idText = (int)LOWORD(wParam);
 
 					if (idText == IDC_STAMP_TEXT)
 					{
-						int len = SendDlgItemMessage(mHwnd, IDC_STAMP_TEXT, WM_GETTEXTLENGTH, 0, 0);
+						int len = SendDlgItemMessage(m_d->mHwnd, IDC_STAMP_TEXT, WM_GETTEXTLENGTH, 0, 0);
 						TSTR temp;
 						temp.Resize(len + 1);
-						SendDlgItemMessage(mHwnd, IDC_STAMP_TEXT, WM_GETTEXT, len + 1, (LPARAM)temp.data());
+						SendDlgItemMessage(m_d->mHwnd, IDC_STAMP_TEXT, WM_GETTEXT, len + 1, (LPARAM)temp.data());
 						BOOL res = pb->SetValue(PARAM_STAMP_TEXT, 0, temp); FASSERT(res);
 					}
 				}
@@ -338,13 +501,13 @@ INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, L
 					break;
 					case IDC_ENABLE_STAMP:
 					{
-						BOOL res = pb->SetValue(PARAM_STAMP_ENABLED, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_ENABLE_STAMP))); FASSERT(res);
+						BOOL res = pb->SetValue(PARAM_STAMP_ENABLED, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_ENABLE_STAMP))); FASSERT(res);
 					}
 					break;
 					case IDC_STAMP_RESET:
 						if (MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Would you like to reset Render Stamp text to default value?"), _T("Warning"), MB_YESNO) == IDYES)
 						{
-							HWND stampEdit = GetDlgItem(mHwnd, IDC_STAMP_TEXT);
+							HWND stampEdit = GetDlgItem(m_d->mHwnd, IDC_STAMP_TEXT);
 							FASSERT(stampEdit);
 							SetWindowText(stampEdit, DEFAULT_RENDER_STAMP);
 						}
@@ -368,7 +531,7 @@ INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, L
 
 		case CC_SPINNER_CHANGE:
 		{
-			if (mIsReady && !mOwner->isReadOnly)
+			if (m_d->mIsReady && !m_d->mOwner->isReadOnly)
 			{
 				int idSpinner = (int)LOWORD(wParam);
 				if (idSpinner == IDC_TIME_H_S || idSpinner == IDC_TIME_M_S || idSpinner == IDC_TIME_S_S)
@@ -402,7 +565,7 @@ INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, L
 
 void FireRenderParamDlg::CGeneralSettings::InitDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	LRESULT n;
 
 	controls.passLimit = SetupSpinner(pb, PARAM_PASS_LIMIT, IDC_PASSES, IDC_PASSES_S);
@@ -440,22 +603,22 @@ void FireRenderParamDlg::CGeneralSettings::InitDialog()
 
 	const TCHAR* stampText = NULL;
 	pb->GetValue(PARAM_STAMP_TEXT, 0, stampText, Interval());
-	HWND stampEdit = GetDlgItem(mHwnd, IDC_STAMP_TEXT);
+	HWND stampEdit = GetDlgItem(m_d->mHwnd, IDC_STAMP_TEXT);
 	FASSERT(stampEdit);
 	SetWindowText(stampEdit, stampText);
 	
 	// setup some tooltips
-	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_STAMP_RESET), _T("Reset RenderStamp to default value"));
-	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_STAMP_HELP), _T("Display tokens which could be used in RenderStamp"));
+	GetToolTipExtender().SetToolTip(GetDlgItem(m_d->mHwnd, IDC_STAMP_RESET), _T("Reset RenderStamp to default value"));
+	GetToolTipExtender().SetToolTip(GetDlgItem(m_d->mHwnd, IDC_STAMP_HELP), _T("Display tokens which could be used in RenderStamp"));
 	
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CGeneralSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 		ReleaseISpinner(controls.timeLimitS);
 		ReleaseISpinner(controls.timeLimitM);
@@ -485,7 +648,7 @@ void FireRenderParamDlg::CGeneralSettings::EnableRenderLimitControls(BOOL enable
 
 INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
 		case WM_COMMAND:
@@ -494,7 +657,7 @@ INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, 
 			{
 			case CBN_SELCHANGE:
 			{
-				if (mIsReady)
+				if (m_d->mIsReady)
 				{
 					int idComboBox = (int)LOWORD(wParam);
 					if (idComboBox == IDC_RENDER_DEVICE)
@@ -526,27 +689,27 @@ INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, 
 
 						if ( (renderDevice == RPR_RENDERDEVICE_CPUGPU || renderDevice == RPR_RENDERDEVICE_GPUONLY))
 						{
-							if (mOwner->uncertifiedGpuNames != "")
+							if (m_d->mOwner->uncertifiedGpuNames != "")
 							{
 								const std::string attrName = "Uncertified Device Select Notification";
 								std::string val = FRSettingsFileHandler::getAttributeSettingsFor(attrName);
 
 								if (val.length() == 0 || std::stoi(val) == 0)
 								{
-									std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + mOwner->uncertifiedGpuNames + " }\r\n\r\n" + std::string("have not been certified for use with Radeon ProRender so you may encounter rendering or stability issues.");
+									std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + m_d->mOwner->uncertifiedGpuNames + " }\r\n\r\n" + std::string("have not been certified for use with Radeon ProRender so you may encounter rendering or stability issues.");
 									MessageBoxA(GetCOREInterface()->GetMAXHWnd(), warningText.c_str(), "Warning", MB_OK);
 									FRSettingsFileHandler::setAttributeSettingsFor(attrName, "1");
 								}
 							}
 
-							if (mOwner->outDatedDriverGpuNames != "")
+							if (m_d->mOwner->outDatedDriverGpuNames != "")
 							{
 								const std::string attrName = "Device Old Driver Select Notification";
 								std::string val = FRSettingsFileHandler::getAttributeSettingsFor(attrName);
 
 								if (val.length() == 0 || std::stoi(val) == 0)
 								{
-									std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + mOwner->outDatedDriverGpuNames + " }\r\n\r\n" + std::string("have outdated drivers for use with Radeon ProRender so you may encounter rendering or stability issues. Please update your drivers.");
+									std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + m_d->mOwner->outDatedDriverGpuNames + " }\r\n\r\n" + std::string("have outdated drivers for use with Radeon ProRender so you may encounter rendering or stability issues. Please update your drivers.");
 									MessageBoxA(GetCOREInterface()->GetMAXHWnd(), warningText.c_str(), "Warning", MB_OK);
 									FRSettingsFileHandler::setAttributeSettingsFor(attrName, "1");
 								}
@@ -596,11 +759,11 @@ INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, 
 
 void FireRenderParamDlg::CHardwareSettings::InitDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	LRESULT n;
 		
 	//Render device
-	HWND renderDevice = GetDlgItem(mHwnd, IDC_RENDER_DEVICE);
+	HWND renderDevice = GetDlgItem(m_d->mHwnd, IDC_RENDER_DEVICE);
 	FASSERT(renderDevice);
 	SendMessage(renderDevice, CB_RESETCONTENT, 0L, 0L);
 
@@ -656,21 +819,21 @@ void FireRenderParamDlg::CHardwareSettings::InitDialog()
 
 	InitGPUCompatibleList();
 	
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CHardwareSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 	}
 }
 
 void FireRenderParamDlg::CHardwareSettings::InitGPUCompatibleList()
 {
-	HWND hListView = GetDlgItem(mHwnd, IDC_LIST1);
+	HWND hListView = GetDlgItem(m_d->mHwnd, IDC_LIST1);
 	ListView_SetExtendedListViewStyle(hListView, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 
 	for (int i = 0; i < ScopeManagerMax::TheManager.gpuInfoArray.size(); i++)
@@ -700,10 +863,10 @@ void FireRenderParamDlg::CHardwareSettings::InitGPUCompatibleList()
 
 void FireRenderParamDlg::CHardwareSettings::UpdateGPUSelected(int gpuIndex)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	FASSERT(pb);
 
-	HWND hListView = GetDlgItem(mHwnd, IDC_LIST1);
+	HWND hListView = GetDlgItem(m_d->mHwnd, IDC_LIST1);
 
 	if (ListView_GetItemCount(hListView) == 0)
 		return;
@@ -714,12 +877,12 @@ void FireRenderParamDlg::CHardwareSettings::UpdateGPUSelected(int gpuIndex)
 
 void FireRenderParamDlg::CHardwareSettings::UpdateUI()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	int renderDevice = GetFromPb<int>(pb, PARAM_RENDER_DEVICE);
 
 	// Gpu list user interface is only enabled when we are using gpus for rendering
 	bool gpuEnable = (renderDevice == RPR_RENDERDEVICE_GPUONLY) || (renderDevice == RPR_RENDERDEVICE_CPUGPU);
-	HWND hListView = GetDlgItem(mHwnd, IDC_LIST1);
+	HWND hListView = GetDlgItem(m_d->mHwnd, IDC_LIST1);
 	EnableWindow(hListView, gpuEnable);
 }
 
@@ -761,7 +924,7 @@ float FireRenderParamDlg::CCameraSettings::CalcFocalLength(float sensorWidth, fl
 
 INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
 		case WM_COMMAND:
@@ -784,18 +947,18 @@ INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LP
 			}
 			else if (submsg == 0) 
 			{
-				if(mIsReady)
+				if(m_d->mIsReady)
 					switch (controlId)
 					{
 					case IDC_OVERWRITE_DOF_SETTINGS:
 					{
-						BOOL res = CamManagerMax::TheManager.SetProperty(PARAM_CAM_OVERWRITE_DOF_SETTINGS, BOOL(IsDlgButtonChecked(mHwnd, IDC_OVERWRITE_DOF_SETTINGS))); FASSERT(res);
+						BOOL res = CamManagerMax::TheManager.SetProperty(PARAM_CAM_OVERWRITE_DOF_SETTINGS, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_OVERWRITE_DOF_SETTINGS))); FASSERT(res);
 					}
 					break;
 
 					case IDC_USE_DOF:
 					{
-						BOOL useDOF = BOOL(IsDlgButtonChecked(mHwnd, IDC_USE_DOF));
+						BOOL useDOF = BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_USE_DOF));
 						BOOL res = CamManagerMax::TheManager.SetProperty(PARAM_CAM_USE_DOF, useDOF); FASSERT(res);
 						SetVisibleDOFSettings(useDOF);
 					}
@@ -803,13 +966,13 @@ INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LP
 
 					case IDC_USE_FOV:
 					{
-						ApplyFOV(IsDlgButtonChecked(mHwnd, IDC_USE_FOV));
+						ApplyFOV(IsDlgButtonChecked(m_d->mHwnd, IDC_USE_FOV));
 					}
 					break;
 
 					case IDC_USE_MOTION_BLUR:
 					{
-						BOOL res = CamManagerMax::TheManager.SetProperty(PARAM_CAM_USE_MOTION_BLUR, BOOL(IsDlgButtonChecked(mHwnd, IDC_USE_MOTION_BLUR))); FASSERT(res);
+						BOOL res = CamManagerMax::TheManager.SetProperty(PARAM_CAM_USE_MOTION_BLUR, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_USE_MOTION_BLUR))); FASSERT(res);
 					}
 					break;
 					}
@@ -819,7 +982,7 @@ INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LP
 
 		case CC_SPINNER_CHANGE:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int controlId = LOWORD(wParam);
 				if (controlId == IDC_FOCUS_DIST_S)
@@ -878,49 +1041,49 @@ INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LP
 
 void FireRenderParamDlg::CCameraSettings::InitDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	LRESULT n;
 	
 	SetupCheckbox(CamManagerMax::TheManager, PARAM_CAM_USE_FOV, IDC_USE_FOV);
 	SetupCheckbox(CamManagerMax::TheManager, PARAM_CAM_USE_DOF, IDC_USE_DOF);
 	SetupCheckbox(CamManagerMax::TheManager, PARAM_CAM_OVERWRITE_DOF_SETTINGS, IDC_OVERWRITE_DOF_SETTINGS);
 
-	bool useDof = IsDlgButtonChecked(mHwnd, IDC_USE_DOF) == 1;
+	bool useDof = IsDlgButtonChecked(m_d->mHwnd, IDC_USE_DOF) == 1;
 	SetVisibleDOFSettings(useDof);
 
 	SetupCheckbox(CamManagerMax::TheManager, PARAM_CAM_USE_MOTION_BLUR, IDC_USE_MOTION_BLUR);
-	controls.motionBlurScale = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE_S, 0.f, 10e20f);
+	controls.motionBlurScale = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE, IDC_MOTION_BLUR_SCALE_S, 0.f, 10e20f);
 
 	constexpr float minCameraExposure = -10e20f;
 	constexpr float maxCameraExposure =  10e20f;
 
-	controls.cameraPerspectiveFocalDist = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_FOCUS_DIST, IDC_FOCUS_DIST, IDC_FOCUS_DIST_S, 1e-6f, 10e20f);
+	controls.cameraPerspectiveFocalDist = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_FOCUS_DIST, IDC_FOCUS_DIST, IDC_FOCUS_DIST_S, 1e-6f, 10e20f);
 	//stored in meters we want to show it in cm
 	controls.cameraPerspectiveFocalDist->SetValue(this->controls.cameraPerspectiveFocalDist->GetFVal()*100.f, false);
-	controls.cameraBlades = SetupSpinnerInt(CamManagerMax::TheManager, PARAM_CAM_BLADES, IDC_APERTURE_BLADES, IDC_APERTURE_BLADES_S, 3, 64);
-	controls.cameraFStop = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_F_STOP, IDC_FSTOP, IDC_FSTOP_S, 0.01f, 999.f);
-	controls.cameraSensorSize = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_SENSOR_WIDTH, IDC_SENSOR_SIZE, IDC_SENSOR_SIZE_S, 0.001f, 9999.f);
-	controls.cameraExposure = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_EXPOSURE, IDC_CAMERA_EXPOSURE, IDC_CAMERA_EXPOSURE_S, minCameraExposure, maxCameraExposure);
-	controls.cameraFocalLength = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_FOCAL_LENGTH, IDC_FOCAL_LENGTH, IDC_FOCAL_LENGTH_S, 1e-6f, 10e20f);
-	controls.cameraFOV = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_FOV, IDC_FOV, IDC_FOV_S, -360.f, 360.f);
+	controls.cameraBlades = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_BLADES, IDC_APERTURE_BLADES, IDC_APERTURE_BLADES_S, 3, 64);
+	controls.cameraFStop = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_F_STOP, IDC_FSTOP, IDC_FSTOP_S, 0.01f, 999.f);
+	controls.cameraSensorSize = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_SENSOR_WIDTH, IDC_SENSOR_SIZE, IDC_SENSOR_SIZE_S, 0.001f, 9999.f);
+	controls.cameraExposure = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_EXPOSURE, IDC_CAMERA_EXPOSURE, IDC_CAMERA_EXPOSURE_S, minCameraExposure, maxCameraExposure);
+	controls.cameraFocalLength = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_FOCAL_LENGTH, IDC_FOCAL_LENGTH, IDC_FOCAL_LENGTH_S, 1e-6f, 10e20f);
+	controls.cameraFOV = m_d->SetUpSpinnerControl<CamManagerMax>(PARAM_CAM_FOV, IDC_FOV, IDC_FOV_S, -360.f, 360.f);
 	//stored in radian, we want to show it in degrees
 	float val = this->controls.cameraFOV->GetFVal() / PI * 180.f;
 	controls.cameraFOV->SetValue(val, false);
 
-	bool useFov = IsDlgButtonChecked(mHwnd, IDC_USE_FOV) == 1;
+	bool useFov = IsDlgButtonChecked(m_d->mHwnd, IDC_USE_FOV) == 1;
 	controls.cameraFocalLength->Enable(useDof && !useFov);
 	controls.cameraFOV->Enable(useDof && useFov);
 
 	InitCameraTypesDialog();
 
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CCameraSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 		ReleaseISpinner(controls.cameraBlades);
 		ReleaseISpinner(controls.motionBlurScale);
@@ -935,13 +1098,13 @@ void FireRenderParamDlg::CCameraSettings::DestroyDialog()
 
 void FireRenderParamDlg::CCameraSettings::InitCameraTypesDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 
 	int cameraType = 0;
 	BOOL res = CamManagerMax::TheManager.GetProperty(PARAM_CAM_TYPE, cameraType);
 	FASSERT(res);
 
-	HWND cameraTypesHwnd = GetDlgItem(mHwnd, IDC_CAMERA_TYPES);
+	HWND cameraTypesHwnd = GetDlgItem(m_d->mHwnd, IDC_CAMERA_TYPES);
 	FASSERT(cameraTypesHwnd);
 	SendMessage(cameraTypesHwnd, CB_RESETCONTENT, 0L, 0L);
 
@@ -994,13 +1157,13 @@ void FireRenderParamDlg::CCameraSettings::SetVisibleDOFSettings(bool visible)
 
 INT_PTR FireRenderParamDlg::CTonemapSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 
 	switch (msg)
 	{
 		case WM_COMMAND:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int controlId = LOWORD(wParam);
 				int submsg = HIWORD(wParam);
@@ -1008,7 +1171,7 @@ INT_PTR FireRenderParamDlg::CTonemapSettings::DlgProc(UINT msg, WPARAM wParam, L
 				if (submsg == 0)
 					switch (controlId)
 					{
-					case IDC_OVERRIDE: res = TmManagerMax::TheManager.SetProperty(PARAM_TM_OVERRIDE_MAX_TONEMAPPERS, BOOL(IsDlgButtonChecked(mHwnd, IDC_OVERRIDE))); FASSERT(res); break;
+					case IDC_OVERRIDE: res = TmManagerMax::TheManager.SetProperty(PARAM_TM_OVERRIDE_MAX_TONEMAPPERS, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_OVERRIDE))); FASSERT(res); break;
 					case IDR_NONE: res = TmManagerMax::TheManager.SetProperty(PARAM_TM_OPERATOR, frw::ToneMappingTypeNone); FASSERT(res); break;
 					case IDR_NONLINEAR: res = TmManagerMax::TheManager.SetProperty(PARAM_TM_OPERATOR, frw::ToneMappingTypeNonLinear); FASSERT(res); break;
 					case IDR_LINEAR: res = TmManagerMax::TheManager.SetProperty(PARAM_TM_OPERATOR, frw::ToneMappingTypeLinear); FASSERT(res); break;
@@ -1020,7 +1183,7 @@ INT_PTR FireRenderParamDlg::CTonemapSettings::DlgProc(UINT msg, WPARAM wParam, L
 
 		case CC_SPINNER_CHANGE:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int controlId = LOWORD(wParam);
 				CommitSpinnerToParam(TmManagerMax::TheManager, controlId);
@@ -1030,7 +1193,7 @@ INT_PTR FireRenderParamDlg::CTonemapSettings::DlgProc(UINT msg, WPARAM wParam, L
 
 		case CC_COLOR_CHANGE:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int controlId = LOWORD(wParam);
 				switch (controlId)
@@ -1054,34 +1217,45 @@ INT_PTR FireRenderParamDlg::CTonemapSettings::DlgProc(UINT msg, WPARAM wParam, L
 	return TRUE;
 }
 
+template<TmParameter param>
+struct TmParameterSettings;
+
+template<>
+struct TmParameterSettings<TmParameter::PARAM_TM_REINHARD_BURN>
+{
+	static constexpr float Min = 0.f;
+	static constexpr float Max = FLT_MAX;
+	static constexpr int16_t EditControlId = IDC_BURN;
+	static constexpr int16_t SpinControlId = IDC_BURN_S;
+};
+
 void FireRenderParamDlg::CTonemapSettings::InitDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	LRESULT n;
-
 
 	TmManagerMax::TheManager.RegisterPropertyChangeCallback(this);
 
 	SetupCheckbox(TmManagerMax::TheManager, PARAM_TM_OVERRIDE_MAX_TONEMAPPERS, IDC_OVERRIDE);
 	
-	controls.burn = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_REINHARD_BURN, IDC_BURN, IDC_BURN_S, 0.f, FLT_MAX);
-	controls.preScale = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_REINHARD_PRESCALE, IDC_PRESCALE, IDC_PRESCALE_S, 0.f, FLT_MAX);
-	controls.postScale = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_REINHARD_POSTSCALE, IDC_POSTSCALE, IDC_POSTSCALE_S, 0.f, FLT_MAX);
+	controls.burn = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_BURN, IDC_BURN, IDC_BURN_S, 0.f, FLT_MAX);
+	controls.preScale = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_PRESCALE, IDC_PRESCALE, IDC_PRESCALE_S, 0.f, FLT_MAX);
+	controls.postScale = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_REINHARD_POSTSCALE, IDC_POSTSCALE, IDC_POSTSCALE_S, 0.f, FLT_MAX);
 
-	controls.iso = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_PHOTOLINEAR_ISO, IDC_ISO, IDC_ISO_S, 0.f, FLT_MAX);
-	controls.fstop = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_PHOTOLINEAR_FSTOP, IDC_FSTOP, IDC_FSTOP_S, 0.f, FLT_MAX);
-	controls.shutterspeed = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, IDC_SHUTTERSPEED, IDC_SHUTTERSPEED_S, 0.f, FLT_MAX);
+	controls.iso = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_ISO, IDC_ISO, IDC_ISO_S, 0.f, FLT_MAX);
+	controls.fstop = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_FSTOP, IDC_FSTOP, IDC_FSTOP_S, 0.f, FLT_MAX);
+	controls.shutterspeed = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, IDC_SHUTTERSPEED, IDC_SHUTTERSPEED_S, 0.f, FLT_MAX);
 
-	controls.exposure = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_SIMPLIFIED_EXPOSURE, IDC_EXPOSURE, IDC_EXPOSURE_S, 0.f, FLT_MAX);
-	controls.contrast = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_SIMPLIFIED_CONTRAST, IDC_CONTRAST, IDC_CONTRAST_S, 0.f, FLT_MAX);
-	controls.whitebalance = SetupSpinnerInt(TmManagerMax::TheManager, PARAM_TM_SIMPLIFIED_WHITEBALANCE, IDC_WHITEBALANCE, IDC_WHITEBALANCE_S, 1000, 12000);
+	controls.exposure = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_EXPOSURE, IDC_EXPOSURE, IDC_EXPOSURE_S, 0.f, FLT_MAX);
+	controls.contrast = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_CONTRAST, IDC_CONTRAST, IDC_CONTRAST_S, 0.f, FLT_MAX);
+	controls.whitebalance = m_d->SetUpSpinnerControl<TmManagerMax>(PARAM_TM_SIMPLIFIED_WHITEBALANCE, IDC_WHITEBALANCE, IDC_WHITEBALANCE_S, 1000, 12000);
 
 	{
 		Color col;
 		BOOL res = TmManagerMax::TheManager.GetProperty(PARAM_TM_SIMPLIFIED_TINTCOLOR, col);
 		FASSERT(res);
 
-		HWND swatchControl = GetDlgItem(mHwnd, IDC_TINT);
+		HWND swatchControl = GetDlgItem(m_d->mHwnd, IDC_TINT);
 		FASSERT(swatchControl);
 
 		IColorSwatch* swatch = GetIColorSwatch(swatchControl);
@@ -1119,16 +1293,16 @@ void FireRenderParamDlg::CTonemapSettings::InitDialog()
 		break;
 	}
 
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CTonemapSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
 		TmManagerMax::TheManager.UnregisterPropertyChangeCallback(this);
 
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 
 		ReleaseISpinner(controls.burn);
@@ -1283,7 +1457,7 @@ namespace
 
 INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
 		case WM_COMMAND:
@@ -1303,7 +1477,7 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 					}
 					else if (idButton == IDC_EXPORTMODEL_CHECK)
 					{
-						BOOL isChecked = IsDlgButtonChecked(mHwnd, IDC_EXPORTMODEL_CHECK);
+						BOOL isChecked = IsDlgButtonChecked(m_d->mHwnd, IDC_EXPORTMODEL_CHECK);
 						EnableExportModelControls(isChecked);
 						if (isChecked)
 							GetCOREInterface()->ReplacePrompt(L"FRS file will be exported after rendering.");
@@ -1313,50 +1487,50 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 					{
 						if (GetExportFileName())
 						{
-							SetDlgItemText(mHwnd, IDC_EXPORT_FILENAME, exportFRSceneFileName.c_str());
-							mOwner->renderer->SetFireRenderExportSceneFilename(exportFRSceneFileName);
+							SetDlgItemText(m_d->mHwnd, IDC_EXPORT_FILENAME, exportFRSceneFileName.c_str());
+							m_d->mOwner->renderer->SetFireRenderExportSceneFilename(exportFRSceneFileName);
 						}
 					}
 					else if (idButton == IDC_CLAMP_IRRADIANCE)
 					{
-						BOOL isChecked = Button_GetCheck(GetDlgItem(mHwnd, IDC_CLAMP_IRRADIANCE));
+						BOOL isChecked = Button_GetCheck(GetDlgItem(m_d->mHwnd, IDC_CLAMP_IRRADIANCE));
 						EnableIrradianceClampControls(isChecked);
 						BOOL res = pb->SetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, isChecked); FASSERT(res);
 					}
 					else if (idButton == IDC_WARNINGS_SUPPRESS_GLOBAL)
 					{
-						BOOL on = BOOL(IsDlgButtonChecked(mHwnd, idButton));
+						BOOL on = BOOL(IsDlgButtonChecked(m_d->mHwnd, idButton));
 						FRSettingsFileHandler::setAttributeSettingsFor(FRSettingsFileHandler::GlobalDontShowNotification, std::to_string(on));
 					}
 					else if (idButton == IDC_OPEN_TRACE_DIR)
 					{
-						std::wstring path = ScopeManagerMax::TheManager.GetRPRTraceDirectory(mOwner->renderer->GetParamBlock(0));
+						std::wstring path = ScopeManagerMax::TheManager.GetRPRTraceDirectory(m_d->mOwner->renderer->GetParamBlock(0));
 						CreateDirectory(path.c_str(), NULL); // Ensure directory exists
 						ShellExecute(NULL, L"open", path.c_str(), NULL, NULL, SW_SHOW);
 					}
 					else if (idButton == IDC_OVERRIDE_MAX_PREVIEW_SHAPES)
 					{
-						BOOL on = BOOL(IsDlgButtonChecked(mHwnd, idButton));
+						BOOL on = BOOL(IsDlgButtonChecked(m_d->mHwnd, idButton));
 						pb->SetValue(PARAM_OVERRIDE_MAX_PREVIEW_SHAPES, 0, on);
 					}
 					else if (idButton == IDC_TRACEDUMP_CHECK)
 					{
-						BOOL res = pb->SetValue(PARAM_TRACEDUMP_BOOL, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_TRACEDUMP_CHECK))); FASSERT(res);
+						BOOL res = pb->SetValue(PARAM_TRACEDUMP_BOOL, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_TRACEDUMP_CHECK))); FASSERT(res);
 					}
 					else if (idButton == IDC_TEXTURE_COMPRESSION_CHECK)
 					{
-						BOOL res = pb->SetValue(PARAM_USE_TEXTURE_COMPRESSION, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_TEXTURE_COMPRESSION_CHECK))); FASSERT(res);
+						BOOL res = pb->SetValue(PARAM_USE_TEXTURE_COMPRESSION, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_TEXTURE_COMPRESSION_CHECK))); FASSERT(res);
 					}
 					else if (idButton == IDC_WARNINGS_SUPPRESS)
 					{
-						BOOL res = pb->SetValue(PARAM_WARNING_DONTSHOW, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_WARNINGS_SUPPRESS))); FASSERT(res);
+						BOOL res = pb->SetValue(PARAM_WARNING_DONTSHOW, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_WARNINGS_SUPPRESS))); FASSERT(res);
 					}
 				}
 				break;
 
 				case CBN_SELCHANGE:
 				{
-					if (mIsReady)
+					if (m_d->mIsReady)
 					{
 						int idCombo = (int)LOWORD(wParam);
 						if (idCombo == IDC_RENDER_MODE)
@@ -1435,11 +1609,11 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 
 		case CC_SPINNER_CHANGE:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int controlId = LOWORD(wParam);
 				CommitSpinnerToParam(pb, controlId);
-				mOwner->mQualitySettings.setupUIFromData();
+				m_d->mOwner->mQualitySettings.setupUIFromData();
 			}
 		}
 		break;
@@ -1453,10 +1627,10 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 void FireRenderParamDlg::CAdvancedSettings::InitDialog()
 {
 	LRESULT n;
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 
 	// Render mode dialog
-	HWND renderMode = GetDlgItem(mHwnd, IDC_RENDER_MODE);
+	HWND renderMode = GetDlgItem(m_d->mHwnd, IDC_RENDER_MODE);
 	FASSERT(renderMode);
 	SendMessage(renderMode, CB_RESETCONTENT, 0L, 0L);
 
@@ -1510,14 +1684,14 @@ void FireRenderParamDlg::CAdvancedSettings::InitDialog()
 	controls.irradianceClamp = SetupSpinner(pb, PARAM_IRRADIANCE_CLAMP, IDC_CLAMP_IRRADIANCE_VAL, IDC_CLAMP_IRRADIANCE_VAL_S);
 	controls.maxRayDepth = SetupSpinner(pb, PARAM_MAX_RAY_DEPTH, IDC_MAX_RAY_DEPTH, IDC_MAX_RAY_DEPTH_S);
 
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CAdvancedSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 		ReleaseISpinner(controls.irradianceClamp);
 		ReleaseISpinner(controls.meditQuality);
@@ -1529,30 +1703,30 @@ void FireRenderParamDlg::CAdvancedSettings::DestroyDialog()
 void FireRenderParamDlg::CAdvancedSettings::EnableLimitLightBounceControls(BOOL enableMaxLimit)
 {
 	HWND ctrl;
-	ctrl = GetDlgItem(mHwnd, IDC_MAX_LIGHT_BOUNCES);
+	ctrl = GetDlgItem(m_d->mHwnd, IDC_MAX_LIGHT_BOUNCES);
 	FASSERT(ctrl);
 	EnableWindow(ctrl, enableMaxLimit);
-	ctrl = GetDlgItem(mHwnd, IDC_MAX_LIGHT_BOUNCES_S);
+	ctrl = GetDlgItem(m_d->mHwnd, IDC_MAX_LIGHT_BOUNCES_S);
 	FASSERT(ctrl);
 	EnableWindow(ctrl, enableMaxLimit);
 }
 
 void FireRenderParamDlg::CAdvancedSettings::EnableIrradianceClampControls(BOOL enable)
 {
-	HWND ctrl = GetDlgItem(mHwnd, IDC_CLAMP_IRRADIANCE_VAL);
+	HWND ctrl = GetDlgItem(m_d->mHwnd, IDC_CLAMP_IRRADIANCE_VAL);
 	FASSERT(ctrl);
 	EnableWindow(ctrl, enable);
-	ctrl = GetDlgItem(mHwnd, IDC_CLAMP_IRRADIANCE_VAL_S);
+	ctrl = GetDlgItem(m_d->mHwnd, IDC_CLAMP_IRRADIANCE_VAL_S);
 	FASSERT(ctrl);
 	EnableWindow(ctrl, enable);
 }
 
 void FireRenderParamDlg::CAdvancedSettings::EnableExportModelControls(BOOL enableExport)
 {
-	HWND ctrl = GetDlgItem(mHwnd, IDC_EXPORT_FILENAME);
+	HWND ctrl = GetDlgItem(m_d->mHwnd, IDC_EXPORT_FILENAME);
 	FASSERT(ctrl);
 	EnableWindow(ctrl, enableExport);
-	ctrl = GetDlgItem(mHwnd, IDC_BROWSE_EXPORT_FILE);
+	ctrl = GetDlgItem(m_d->mHwnd, IDC_BROWSE_EXPORT_FILE);
 	FASSERT(ctrl);
 	EnableWindow(ctrl, enableExport);
 }
@@ -1561,7 +1735,7 @@ BOOL FireRenderParamDlg::CAdvancedSettings::GetExportFileName()
 {
 	int tried = 0;
 	FilterList filterList;
-	HWND hWnd = mHwnd;
+	HWND hWnd = m_d->mHwnd;
 	static int filterIndex = 1;
 	OPENFILENAME  ofn;
 	std::wstring initialDir;
@@ -1667,7 +1841,7 @@ INT_PTR FireRenderParamDlg::CScripts::DlgProc(UINT msg, WPARAM wParam, LPARAM lP
 	
 				case CBN_SELCHANGE:
 				{
-					if (mIsReady)
+					if (m_d->mIsReady)
 					{
 						int idCombo = (int)LOWORD(wParam);
 						if (idCombo == IDC_RENDER_SCRIPTS)
@@ -1696,17 +1870,17 @@ void FireRenderParamDlg::CScripts::InitDialog()
 {
 	//Render device
 	LRESULT n;
-	HWND renderScript = GetDlgItem(mHwnd, IDC_RENDER_SCRIPTS);
+	HWND renderScript = GetDlgItem(m_d->mHwnd, IDC_RENDER_SCRIPTS);
 	FASSERT(renderScript);
 	SendMessage(renderScript, CB_RESETCONTENT, 0L, 0L);
 	n = SendMessage(renderScript, CB_ADDSTRING, 0L, (LPARAM)_T("Convert Vray materials to ProRender materials"));
 	SendMessage(renderScript, CB_SETITEMDATA, n, RPR_CONVERT_MATERIALS_FROM_VRAY_TO_PRORENDER);
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CScripts::DestroyDialog()
 {
-	mIsReady = false;
+	m_d->mIsReady = false;
 }
 
 
@@ -1854,36 +2028,36 @@ namespace
 
 void FireRenderParamDlg::CBackgroundSettings::UpdateGroupEnables()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	TimeValue t = GetCOREInterface()->GetTime();
 
 	int bgUse = 0;
 	pb->GetValue(TRPARAM_BG_USE, t, bgUse, FOREVER);
 	if (!bgUse)
 	{
-		EnableGroupboxControls(mHwnd, 0, false, { IDC_BG_USE, IDC_BG_ENABLEALPHA });
+		EnableGroupboxControls(m_d->mHwnd, 0, false, { IDC_BG_USE, IDC_BG_ENABLEALPHA });
 		return;
 	}
 
 	// Disable window redrawing as we're changing enabled state of some controls
 	// multiple times, this causes flicker.
-	LockWindowUpdate(mHwnd);
+	LockWindowUpdate(m_d->mHwnd);
 
-	EnableGroupboxControls(mHwnd, 0, true, { IDC_BG_USE });
+	EnableGroupboxControls(m_d->mHwnd, 0, true, { IDC_BG_USE });
 
 	int bgType = 0;
 	pb->GetValue(TRPARAM_BG_TYPE, t, bgType, FOREVER);
 	bool bUseIBL = (bgType == FRBackgroundType_IBL);
-	EnableGroupboxControls(mHwnd, IDC_BG_USEIBL_GROUP, bUseIBL, { IDC_BG_USEIBL });
-	EnableGroupboxControls(mHwnd, IDC_BG_USESKY_GROUP, !bUseIBL, { IDC_BG_USESKY });
+	EnableGroupboxControls(m_d->mHwnd, IDC_BG_USEIBL_GROUP, bUseIBL, { IDC_BG_USEIBL });
+	EnableGroupboxControls(m_d->mHwnd, IDC_BG_USESKY_GROUP, !bUseIBL, { IDC_BG_USESKY });
 
 	if (bgType != FRBackgroundType_IBL)
 	{
 		int bgSkyType = 0;
 		pb->GetValue(TRPARAM_BG_SKY_TYPE, 0, bgSkyType, FOREVER);
 		bool bUseAnalytical = (bgSkyType == FRBackgroundSkyType_Analytical);
-		EnableGroupboxControls(mHwnd, IDC_BG_SKYANALYTICAL_GROUP, bUseAnalytical, { IDC_BG_SKYANALYTICAL });
-		EnableGroupboxControls(mHwnd, IDC_BG_SKYDATETIMELOC_GROUP, !bUseAnalytical, { IDC_BG_SKYDATETIMELOC });
+		EnableGroupboxControls(m_d->mHwnd, IDC_BG_SKYANALYTICAL_GROUP, bUseAnalytical, { IDC_BG_SKYANALYTICAL });
+		EnableGroupboxControls(m_d->mHwnd, IDC_BG_SKYDATETIMELOC_GROUP, !bUseAnalytical, { IDC_BG_SKYDATETIMELOC });
 	}
 
 	LockWindowUpdate(NULL);
@@ -1891,7 +2065,7 @@ void FireRenderParamDlg::CBackgroundSettings::UpdateGroupEnables()
 
 INT_PTR FireRenderParamDlg::CBackgroundSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 
 	switch (msg)
 	{
@@ -1958,18 +2132,18 @@ INT_PTR FireRenderParamDlg::CBackgroundSettings::DlgProc(UINT msg, WPARAM wParam
 		
 			case IDC_BG_USE:
 			{
-				BOOL res = pb->SetValue(TRPARAM_BG_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_USE))); FASSERT(res);
+				BOOL res = pb->SetValue(TRPARAM_BG_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_USE))); FASSERT(res);
 				UpdateGroupEnables();
 				FASSERT(res);
 			}
 			break;
 
-			case IDC_BG_ENABLEALPHA: { BOOL res = pb->SetValue(TRPARAM_BG_ENABLEALPHA, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_ENABLEALPHA))); FASSERT(res); } break;
+			case IDC_BG_ENABLEALPHA: { BOOL res = pb->SetValue(TRPARAM_BG_ENABLEALPHA, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_ENABLEALPHA))); FASSERT(res); } break;
 
 			case IDC_BG_USEIBL:
 			case IDC_BG_USESKY:
 			{
-				bool bUseIBL = IsDlgButtonChecked(mHwnd, IDC_BG_USEIBL) != 0;
+				bool bUseIBL = IsDlgButtonChecked(m_d->mHwnd, IDC_BG_USEIBL) != 0;
 				BOOL res = pb->SetValue(TRPARAM_BG_TYPE, 0, bUseIBL ? FRBackgroundType_IBL : FRBackgroundType_SunSky);
 				UpdateGroupEnables();
 			}
@@ -1985,14 +2159,14 @@ INT_PTR FireRenderParamDlg::CBackgroundSettings::DlgProc(UINT msg, WPARAM wParam
 			}
 			break;
 
-			case IDC_BG_IBLUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_MAP_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_IBLUSE))); FASSERT(res); } break;
-			case IDC_BG_IBLBACKPLATEUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_BACKPLATE_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_IBLBACKPLATEUSE))); FASSERT(res); } break;
-			case IDC_BG_IBLREFLECTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_REFLECTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_IBLREFLECTIONUSE))); FASSERT(res); } break;
-			case IDC_BG_IBLREFRACTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_REFRACTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_IBLREFRACTIONUSE))); FASSERT(res); } break;
-			case IDC_BG_SKYBACKPLATEUSE: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_BACKPLATE_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_SKYBACKPLATEUSE))); FASSERT(res); } break;
-			case IDC_BG_SKYREFLECTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_REFLECTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_SKYREFLECTIONUSE))); FASSERT(res); } break;
-			case IDC_BG_SKYREFRACTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_REFRACTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_SKYREFRACTIONUSE))); FASSERT(res); } break;
-			case IDC_BG_SKYDAYLIGHTSAVING: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_DAYLIGHTSAVING, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_BG_SKYDAYLIGHTSAVING))); FASSERT(res); } break;
+			case IDC_BG_IBLUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_MAP_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_IBLUSE))); FASSERT(res); } break;
+			case IDC_BG_IBLBACKPLATEUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_BACKPLATE_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_IBLBACKPLATEUSE))); FASSERT(res); } break;
+			case IDC_BG_IBLREFLECTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_REFLECTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_IBLREFLECTIONUSE))); FASSERT(res); } break;
+			case IDC_BG_IBLREFRACTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_IBL_REFRACTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_IBLREFRACTIONUSE))); FASSERT(res); } break;
+			case IDC_BG_SKYBACKPLATEUSE: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_BACKPLATE_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_SKYBACKPLATEUSE))); FASSERT(res); } break;
+			case IDC_BG_SKYREFLECTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_REFLECTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_SKYREFLECTIONUSE))); FASSERT(res); } break;
+			case IDC_BG_SKYREFRACTIONUSE: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_REFRACTIONMAP_USE, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_SKYREFRACTIONUSE))); FASSERT(res); } break;
+			case IDC_BG_SKYDAYLIGHTSAVING: { BOOL res = pb->SetValue(TRPARAM_BG_SKY_DAYLIGHTSAVING, 0, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_BG_SKYDAYLIGHTSAVING))); FASSERT(res); } break;
 
 			case IDC_BG_SKYGETLOCATION:
 			{
@@ -2153,7 +2327,7 @@ INT_PTR FireRenderParamDlg::CBackgroundSettings::DlgProc(UINT msg, WPARAM wParam
 
 	case CC_COLOR_CHANGE:
 	{
-		if (mIsReady)
+		if (m_d->mIsReady)
 		{
 			int controlId = LOWORD(wParam);
 			switch (controlId)
@@ -2192,7 +2366,7 @@ INT_PTR FireRenderParamDlg::CBackgroundSettings::DlgProc(UINT msg, WPARAM wParam
 
 	case CC_SPINNER_CHANGE:
 	{
-		if (mIsReady)
+		if (m_d->mIsReady)
 		{
 			int controlId = LOWORD(wParam);
 			return CommitSpinnerToParam(pb, controlId);
@@ -2209,7 +2383,7 @@ INT_PTR FireRenderParamDlg::CBackgroundSettings::DlgProc(UINT msg, WPARAM wParam
 
 void FireRenderParamDlg::CBackgroundSettings::InitDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	TimeValue t = GetCOREInterface()->GetTime();
 	LRESULT n;
 
@@ -2255,8 +2429,8 @@ void FireRenderParamDlg::CBackgroundSettings::InitDialog()
 	
 	pb->GetValue(TRPARAM_BG_IBL_MAP_USE, t, useBgMap, FOREVER);
 	pb->GetValue(TRPARAM_BG_IBL_BACKPLATE_USE, t, useBgBackMap, FOREVER);
-	CheckDlgButton(mHwnd, IDC_BG_IBLUSE, useBgMap ? BST_CHECKED : BST_UNCHECKED);
-	CheckDlgButton(mHwnd, IDC_BG_IBLBACKPLATEUSE, useBgBackMap ? BST_CHECKED : BST_UNCHECKED);
+	CheckDlgButton(m_d->mHwnd, IDC_BG_IBLUSE, useBgMap ? BST_CHECKED : BST_UNCHECKED);
+	CheckDlgButton(m_d->mHwnd, IDC_BG_IBLBACKPLATEUSE, useBgBackMap ? BST_CHECKED : BST_UNCHECKED);
 	
 	SetupCheckbox(pb, TRPARAM_BG_IBL_REFLECTIONMAP_USE, IDC_BG_IBLREFLECTIONUSE);
 	SetupCheckbox(pb, TRPARAM_BG_IBL_REFRACTIONMAP_USE, IDC_BG_IBLREFRACTIONUSE);
@@ -2337,16 +2511,16 @@ void FireRenderParamDlg::CBackgroundSettings::InitDialog()
 	controls.skyReflOverride = SetupTexmapButton(pb, TRPARAM_BG_SKY_REFLECTIONMAP, IDC_BG_SKYREFLECTIONMAP);
 	controls.skyRefrOverride = SetupTexmapButton(pb, TRPARAM_BG_SKY_REFRACTIONMAP, IDC_BG_SKYREFRACTIONMAP);
 
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CBackgroundSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
 		BgManagerMax::TheManager.UnregisterPropertyChangeCallback(this);
 
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 
 		ReleaseISpinner(controls.iblIntensity);
@@ -2381,12 +2555,12 @@ void FireRenderParamDlg::CBackgroundSettings::DestroyDialog()
 
 void FireRenderParamDlg::CBackgroundSettings::propChangedCallback(class ManagerMaxBase *owner, int paramId, int sender)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	auto ip = GetCOREInterface();
 	if (sender == PROP_SENDER_SUNWIDGET)
 	{
-		bool wasReady = mIsReady;
-		mIsReady = false;
+		bool wasReady = m_d->mIsReady;
+		m_d->mIsReady = false;
 		if (paramId == PARAM_BG_SKY_AZIMUTH)
 		{
 			float az = 0.f;
@@ -2399,7 +2573,7 @@ void FireRenderParamDlg::CBackgroundSettings::propChangedCallback(class ManagerM
 			pb->GetValue(TRPARAM_BG_SKY_ALTITUDE, ip->GetTime(), el, FOREVER);
 			controls.skyAltitude->SetValue(el, TRUE);
 		}
-		mIsReady = wasReady;
+		m_d->mIsReady = wasReady;
 	}
 }
 
@@ -2409,7 +2583,7 @@ void FireRenderParamDlg::CBackgroundSettings::propChangedCallback(class ManagerM
 
 INT_PTR FireRenderParamDlg::CGroundSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
 		case WM_COMMAND:
@@ -2422,14 +2596,14 @@ INT_PTR FireRenderParamDlg::CGroundSettings::DlgProc(UINT msg, WPARAM wParam, LP
 				{
 					case IDC_GROUND_USE:
 					{
-						BOOL bUseGround = BOOL(IsDlgButtonChecked(mHwnd, IDC_GROUND_USE));
+						BOOL bUseGround = BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_GROUND_USE));
 						BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_ACTIVE, bUseGround);
 						FASSERT(res);
-						EnableGroupboxControls(mHwnd, 0, bUseGround, { IDC_GROUND_USE });
+						EnableGroupboxControls(m_d->mHwnd, 0, bUseGround, { IDC_GROUND_USE });
 					}
 					break;
-					case IDC_GROUND_SHADOWS: { BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_SHADOWS, BOOL(IsDlgButtonChecked(mHwnd, IDC_GROUND_SHADOWS))); FASSERT(res); } break;
-					case IDC_GROUND_REFLECTIONS: { BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_REFLECTIONS, BOOL(IsDlgButtonChecked(mHwnd, IDC_GROUND_REFLECTIONS))); FASSERT(res); } break;
+					case IDC_GROUND_SHADOWS: { BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_SHADOWS, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_GROUND_SHADOWS))); FASSERT(res); } break;
+					case IDC_GROUND_REFLECTIONS: { BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_REFLECTIONS, BOOL(IsDlgButtonChecked(m_d->mHwnd, IDC_GROUND_REFLECTIONS))); FASSERT(res); } break;
 				}
 			}
 		}
@@ -2437,7 +2611,7 @@ INT_PTR FireRenderParamDlg::CGroundSettings::DlgProc(UINT msg, WPARAM wParam, LP
 
 		case CC_SPINNER_CHANGE:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int controlId = LOWORD(wParam);
 				CommitSpinnerToParam(BgManagerMax::TheManager, controlId);
@@ -2447,7 +2621,7 @@ INT_PTR FireRenderParamDlg::CGroundSettings::DlgProc(UINT msg, WPARAM wParam, LP
 
 		case CC_COLOR_CHANGE:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int controlId = LOWORD(wParam);
 				switch (controlId)
@@ -2479,23 +2653,22 @@ void FireRenderParamDlg::CGroundSettings::InitDialog()
 	SetupCheckbox(BgManagerMax::TheManager, PARAM_GROUND_REFLECTIONS, IDC_GROUND_REFLECTIONS);
 
 	controls.reflColor = SetupSwatch(PARAM_GROUND_REFLECTIONS_COLOR, IDC_GROUND_REFL_COLOR);
+	controls.radius = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_RADIUS, IDC_GROUND_RADIUS, IDC_GROUND_RADIUS_S, 0.f, FLT_MAX);
+	controls.heigth = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_GROUND_HEIGHT, IDC_GROUND_HEIGHT, IDC_GROUND_HEIGHT_S, -FLT_MAX, FLT_MAX);
+	controls.reflStrength = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_REFLECTIONS_STRENGTH, IDC_GROUND_REFL_STRENGTH, IDC_GROUND_REFL_STRENGTH_S, 0.f, 1.f);
+	controls.reflRoughness = m_d->SetUpSpinnerControl<BgManagerMax>(PARAM_GROUND_REFLECTIONS_ROUGHNESS, IDC_GROUND_REFL_ROUGH, IDC_GROUND_REFL_ROUGH_S, 0.f, 1.f);
 
-	controls.radius = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_RADIUS, IDC_GROUND_RADIUS, IDC_GROUND_RADIUS_S, 0.f, FLT_MAX);
-	controls.heigth = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_GROUND_HEIGHT, IDC_GROUND_HEIGHT, IDC_GROUND_HEIGHT_S, -FLT_MAX, FLT_MAX);
-	controls.reflStrength = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_REFLECTIONS_STRENGTH, IDC_GROUND_REFL_STRENGTH, IDC_GROUND_REFL_STRENGTH_S, 0.f, 1.f);
-	controls.reflRoughness = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_REFLECTIONS_ROUGHNESS, IDC_GROUND_REFL_ROUGH, IDC_GROUND_REFL_ROUGH_S, 0.f, 1.f);
+	if (!IsDlgButtonChecked(m_d->mHwnd, IDC_GROUND_USE))
+		EnableGroupboxControls(m_d->mHwnd, 0, false, { IDC_GROUND_USE });
 
-	if (!IsDlgButtonChecked(mHwnd, IDC_GROUND_USE))
-		EnableGroupboxControls(mHwnd, 0, false, { IDC_GROUND_USE });
-
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CGroundSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 		ReleaseISpinner(controls.heigth);
 		ReleaseISpinner(controls.radius);
@@ -2647,17 +2820,17 @@ static const PresetData aa_presetTable[] =
 
 INT_PTR FireRenderParamDlg::CAntialiasSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
 		case CC_SPINNER_CHANGE:
 		{
-			if (mIsReady)
+			if (m_d->mIsReady)
 			{
 				int idSpinner = (int)LOWORD(wParam);
 				CommitSpinnerToParam(pb, idSpinner);
 
-				mOwner->mQualitySettings.setupUIFromData();
+				m_d->mOwner->mQualitySettings.setupUIFromData();
 			}
 		}
 		break;
@@ -2668,7 +2841,7 @@ INT_PTR FireRenderParamDlg::CAntialiasSettings::DlgProc(UINT msg, WPARAM wParam,
 			{
 				case CBN_SELCHANGE:
 				{
-					if (mIsReady)
+					if (m_d->mIsReady)
 					{
 						int idComboBox = (int)LOWORD(wParam);
 						if (idComboBox == IDC_IMAGE_FILTER)
@@ -2681,7 +2854,7 @@ INT_PTR FireRenderParamDlg::CAntialiasSettings::DlgProc(UINT msg, WPARAM wParam,
 							BOOL res = pb->SetValue(PARAM_IMAGE_FILTER, 0, imageFilter); FASSERT(res);
 						}
 
-						mOwner->mQualitySettings.setupUIFromData();
+						m_d->mOwner->mQualitySettings.setupUIFromData();
 					}
 				}
 				break;
@@ -2698,11 +2871,11 @@ INT_PTR FireRenderParamDlg::CAntialiasSettings::DlgProc(UINT msg, WPARAM wParam,
 
 void FireRenderParamDlg::CAntialiasSettings::InitDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	LRESULT n;
 
 	// Image reconstruction filter
-	HWND imgFilter = GetDlgItem(mHwnd, IDC_IMAGE_FILTER);
+	HWND imgFilter = GetDlgItem(m_d->mHwnd, IDC_IMAGE_FILTER);
 	FASSERT(imgFilter);
 	SendMessage(imgFilter, CB_RESETCONTENT, 0L, 0L);
 	n = SendMessage(imgFilter, CB_ADDSTRING, 0L, (LPARAM)_T("Box"));
@@ -2723,14 +2896,14 @@ void FireRenderParamDlg::CAntialiasSettings::InitDialog()
 	controls.aaGridSize = SetupSpinner(pb, PARAM_AA_GRID_SIZE, IDC_AA_GRID_SIZE, IDC_AA_GRID_SIZE_S);
 	controls.aaSampleCount = SetupSpinner(pb, PARAM_AA_SAMPLE_COUNT, IDC_AA_SAMPLE_COUNT, IDC_AA_SAMPLE_COUNT_S);
 
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CAntialiasSettings::DestroyDialog()
 {
-	if (mIsReady)
+	if (m_d->mIsReady)
 	{
-		mIsReady = false;
+		m_d->mIsReady = false;
 		RemoveAllSpinnerAssociations();
 		ReleaseISpinner(controls.aaFilterWidth);
 		ReleaseISpinner(controls.aaGridSize);
@@ -2740,7 +2913,7 @@ void FireRenderParamDlg::CAntialiasSettings::DestroyDialog()
 
 void FireRenderParamDlg::CAntialiasSettings::SetQualityPresets(int qualityLevel)
 {
-	ApplyPreset(aa_presetTable, mHwnd, qualityLevel);
+	ApplyPreset(aa_presetTable, m_d->mHwnd, qualityLevel);
 	GetCOREInterface()->DisplayTempPrompt(L"Max Ray Depth, AA Samples, and AA Grid have now been updated", 5000);
 }
 
@@ -2778,7 +2951,7 @@ static const PresetData global_presetTable[] =
 
 INT_PTR FireRenderParamDlg::CQualitySettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
 		case WM_COMMAND:
@@ -2787,7 +2960,7 @@ INT_PTR FireRenderParamDlg::CQualitySettings::DlgProc(UINT msg, WPARAM wParam, L
 			{
 				case CBN_SELCHANGE:
 				{
-					if (mIsReady)
+					if (m_d->mIsReady)
 					{
 						int idComboBox = (int)LOWORD(wParam);
 						if (idComboBox == IDC_GLOBAL_QUALITY_PRESETS)
@@ -2814,11 +2987,11 @@ INT_PTR FireRenderParamDlg::CQualitySettings::DlgProc(UINT msg, WPARAM wParam, L
 void FireRenderParamDlg::CQualitySettings::setupUIFromData()
 {
 	// Important
-	if(!mOwner->mAntialiasSettings.Hwnd() || !mOwner->mAdvancedSettings.Hwnd())
+	if(!m_d->mOwner->mAntialiasSettings.Hwnd() || !m_d->mOwner->mAdvancedSettings.Hwnd())
 		return;
 
-	int aa_activePreset = FindActivePreset(aa_presetTable, mOwner->mAntialiasSettings.Hwnd());
-	int global_activePreset = FindActivePreset(global_presetTable, mOwner->mAdvancedSettings.Hwnd());
+	int aa_activePreset = FindActivePreset(aa_presetTable, m_d->mOwner->mAntialiasSettings.Hwnd());
+	int global_activePreset = FindActivePreset(global_presetTable, m_d->mOwner->mAdvancedSettings.Hwnd());
 
 	int numPresets = sizeof(global_presetTable) / sizeof(global_presetTable[0]) - 1; // -1 last element doesn't count
 
@@ -2832,7 +3005,7 @@ void FireRenderParamDlg::CQualitySettings::setupUIFromData()
 		newPreset = global_activePreset;
 	}
 	
-	HWND hwndQualityPresets = GetDlgItem(mHwnd, IDC_GLOBAL_QUALITY_PRESETS);
+	HWND hwndQualityPresets = GetDlgItem(m_d->mHwnd, IDC_GLOBAL_QUALITY_PRESETS);
 	int oldPreset = int(SendMessage(hwndQualityPresets, CB_GETCURSEL, 0, 0));
 	
 	// Only update the UI when value changed, because it's flickering on update
@@ -2844,27 +3017,27 @@ void FireRenderParamDlg::CQualitySettings::setupUIFromData()
 
 void FireRenderParamDlg::CQualitySettings::InitDialog()
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	IParamBlock2* pb = m_d->mOwner->renderer->GetParamBlock(0);
 	LRESULT n;
 	
-	HWND qualityPreset = GetDlgItem(mHwnd, IDC_GLOBAL_QUALITY_PRESETS);
+	HWND qualityPreset = GetDlgItem(m_d->mHwnd, IDC_GLOBAL_QUALITY_PRESETS);
 	FASSERT(qualityPreset);
 	SendMessage(qualityPreset, CB_RESETCONTENT, 0L, 0L);
 	
 	int numPresets = InitPresetComboBox(global_presetTable, qualityPreset, true);
 
-	mIsReady = true;
+	m_d->mIsReady = true;
 }
 
 void FireRenderParamDlg::CQualitySettings::DestroyDialog()
 {
-	mIsReady = false;
+	m_d->mIsReady = false;
 }
 
 void FireRenderParamDlg::CQualitySettings::SetQualityPresets(int qualityLevel)
 {
-	mOwner->mAntialiasSettings.SetQualityPresets(qualityLevel);
-	ApplyPreset(global_presetTable, mOwner->mAdvancedSettings.Hwnd(), qualityLevel);
+	m_d->mOwner->mAntialiasSettings.SetQualityPresets(qualityLevel);
+	ApplyPreset(global_presetTable, m_d->mOwner->mAdvancedSettings.Hwnd(), qualityLevel);
 }
 
 void FireRenderParamDlg::DeleteThis()
@@ -2901,8 +3074,8 @@ void FireRenderParamDlg::DeleteThis()
 
 CRollout::CRollout()
 {
-	mIsReady = false;
-	mTabId = NULL;
+	m_d->mIsReady = false;
+	m_d->mTabId = NULL;
 }
 
 CRollout::~CRollout()
@@ -2911,23 +3084,23 @@ CRollout::~CRollout()
 
 void CRollout::DeleteRollout()
 {
-	if (mHwnd)
+	if (m_d->mHwnd)
 	{
-		mRenderParms->DeleteRollupPage(mHwnd);
+		m_d->mRenderParms->DeleteRollupPage(m_d->mHwnd);
 
-		DLSetWindowLongPtr<CRollout*>(mHwnd, 0);
-		mHwnd = 0;
-		mIsReady = false;
+		DLSetWindowLongPtr<CRollout*>(m_d->mHwnd, 0);
+		m_d->mHwnd = 0;
+		m_d->mIsReady = false;
 	}
 }
 
 void CRollout::Init(IRendParams* ir, int tmpl, const MCHAR *title, FireRenderParamDlg *owner, bool closed, const Class_ID* tabId)
 {
-	mName = title;
+	m_d->mName = title;
 
-	mOwner = owner;
-	mRenderParms = ir;
-	mTabId = tabId;
+	m_d->mOwner = owner;
+	m_d->mRenderParms = ir;
+	m_d->mTabId = tabId;
 
 	if (owner->isReadOnly)
 		closed = true;
@@ -2939,7 +3112,7 @@ void CRollout::Init(IRendParams* ir, int tmpl, const MCHAR *title, FireRenderPar
 	else
 		tmp = ir->AddRollupPage(fireRenderHInstance, MAKEINTRESOURCE(tmpl), &CRollout::HandleMessage, title, (LPARAM)this, closed ? APPENDROLL_CLOSED : 0);
 
-	FASSERT(mHwnd == tmp);
+	FASSERT(m_d->mHwnd == tmp);
 
 	if (owner->isReadOnly)
 		DisableAllControls();
@@ -2951,7 +3124,7 @@ void CRollout::InitDialog()
 
 void CRollout::DestroyDialog()
 {
-	mIsReady = false;
+	m_d->mIsReady = false;
 }
 
 INT_PTR CALLBACK CRollout::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -2967,7 +3140,7 @@ INT_PTR CALLBACK CRollout::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPA
 
 		DLSetWindowLongPtr<CRollout*>(hWnd, roll);
 
-		roll->mHwnd = hWnd;
+		roll->m_d->mHwnd = hWnd;
 
 		roll->InitDialog();
 	}
@@ -2978,7 +3151,7 @@ INT_PTR CALLBACK CRollout::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	{
 		if (roll)
 		{
-			roll->mHwnd = 0;
+			roll->m_d->mHwnd = 0;
 			DLSetWindowLongPtr<CRollout*>(hWnd, 0);
 		}
 	}
@@ -2986,7 +3159,7 @@ INT_PTR CALLBACK CRollout::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	
 	default:
 	{
-		if (roll && roll->mHwnd)
+		if (roll && roll->m_d->mHwnd)
 			roll->DlgProc(msg, wParam, lParam);
 	}
 	break;
@@ -2995,9 +3168,12 @@ INT_PTR CALLBACK CRollout::HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPA
 	return FALSE;
 }
 
+HWND CRollout::Hwnd() const { return m_d->mHwnd; }
+bool CRollout::Ready() const { return m_d->mIsReady; }
+
 void CRollout::SetControlTooltip(int controlId, const MCHAR* tooltip)
 {
-	HWND wnd = GetDlgItem(mHwnd, controlId);
+	HWND wnd = GetDlgItem(m_d->mHwnd, controlId);
 	if (wnd) GetToolTipExtender().SetToolTip(wnd, tooltip);
 }
 
@@ -3084,9 +3260,68 @@ private:
 
 static CTexmapDADMgr TexmapDADMgr;
 
+void CRollout::RemoveAllSpinnerAssociations()
+{
+	m_d->mSpinnerMap.clear();
+}
+
+BOOL CRollout::CommitSpinnerToParam(ManagerMaxBase &man, int16_t control)
+{
+	BOOL res = FALSE;
+	SpinnerData data;
+	if (m_d->GetSpinnerParam(control, data))
+	{
+		if (data.type == SpinnerType::FLOAT)
+			res = man.SetProperty(data.paramId, data.spinner->GetFVal());
+		else
+			res = man.SetProperty(data.paramId, data.spinner->GetIVal());
+	}
+	return res;
+}
+
+BOOL CRollout::CommitSpinnerToParam(IParamBlock2* pb, int16_t control)
+{
+	BOOL res = FALSE;
+	SpinnerData data;
+	if (m_d->GetSpinnerParam(control, data))
+	{
+		if (data.type == SpinnerType::FLOAT)
+			res = pb->SetValue(data.paramId, GetCOREInterface()->GetTime(), data.spinner->GetFVal());
+		else
+			res = pb->SetValue(data.paramId, GetCOREInterface()->GetTime(), data.spinner->GetIVal());
+		FASSERT(res);
+	}
+
+	return res;
+}
+
+void CRollout::SaveCheckbox(IParamBlock2* pb, const ParamID paramId, const int16_t controlId)
+{
+	FASSERT(GetDlgItem(m_d->mHwnd, controlId));
+	const BOOL value = IsDlgButtonChecked(m_d->mHwnd, controlId);
+	BOOL res = pb->SetValue(paramId, 0, value);
+	FASSERT(res);
+	res = res;
+}
+
+void CRollout::SaveRadioButton(IParamBlock2* pb, const ParamID paramId, const int16_t controlId)
+{
+	FASSERT(GetDlgItem(m_d->mHwnd, controlId));
+	const BOOL value = IsDlgButtonChecked(m_d->mHwnd, controlId);
+	BOOL res = pb->SetValue(paramId, 0, value);
+	FASSERT(res);
+	res = res;
+}
+
+bool CRollout::GetRadioButtonValue(const int16_t controlId) const
+{
+	FASSERT(GetDlgItem(m_d->mHwnd, controlId));
+	return IsDlgButtonChecked(m_d->mHwnd, controlId);
+}
+
 CRollout::CTexmapButton* CRollout::SetupTexmapButton(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit)
 {
-	HWND buttonWnd = GetDlgItem(mHwnd, controlIdEdit);
+	HWND buttonWnd = GetDlgItem(m_d->mHwnd, controlIdEdit);
 	FASSERT(buttonWnd);
 	CTexmapButton *button = new CTexmapButton(this, buttonWnd, pb, paramId, controlIdEdit);
 	return button;
@@ -3148,7 +3383,7 @@ IColorSwatch* CRollout::SetupSwatch(IParamBlock2* pb, const ParamID paramId, con
 	BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), col, FOREVER);
 	FASSERT(res);
 	
-	HWND swatchControl = GetDlgItem(mHwnd, controlIdEdit);
+	HWND swatchControl = GetDlgItem(m_d->mHwnd, controlIdEdit);
 	FASSERT(swatchControl);
 	
 	IColorSwatch* swatch = GetIColorSwatch(swatchControl);
@@ -3163,7 +3398,7 @@ IColorSwatch* CRollout::SetupSwatch(const ParamID paramId, const int16_t control
 	BOOL res = BgManagerMax::TheManager.GetProperty(paramId, col);
 	FASSERT(res);
 
-	HWND swatchControl = GetDlgItem(mHwnd, controlIdEdit);
+	HWND swatchControl = GetDlgItem(m_d->mHwnd, controlIdEdit);
 	FASSERT(swatchControl);
 
 	IColorSwatch* swatch = GetIColorSwatch(swatchControl);
@@ -3174,91 +3409,79 @@ IColorSwatch* CRollout::SetupSwatch(const ParamID paramId, const int16_t control
 
 ISpinnerControl* CRollout::SetupSpinner(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin)
 {
-	const ParamDef& def = FIRE_MAX_PBDESC.GetParamDef(paramId);
-
-	HWND textControl = GetDlgItem(mHwnd, controlIdEdit);
-	HWND spinControl = GetDlgItem(mHwnd, controlIdSpin);
-	FASSERT(textControl && spinControl && textControl != spinControl);
-	ISpinnerControl* spinner = GetISpinner(spinControl);
-	switch (int(def.type)) { // int and float spinners are set up differently
-	case TYPE_RADIOBTN_INDEX:
-	//case TYPE_TIMEVALUE:
-	case TYPE_INT:
-		spinner->LinkToEdit(textControl, EDITTYPE_INT);
-		spinner->SetResetValue(def.def.i);
-		spinner->SetLimits(def.range_low.i, def.range_high.i);
-		spinner->SetAutoScale(TRUE);
-		{
-			int value;
-			BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
-			FASSERT(res);
-			spinner->SetValue(value, FALSE);
-			AssociateSpinnerInt(spinner, paramId, controlIdSpin);
-		}
-		break;
-	//case TYPE_COLOR_CHANNEL:
-	//case TYPE_PCNT_FRAC:
-	//case TYPE_ANGLE:
-	case TYPE_FLOAT:
-	case TYPE_WORLD:
-		spinner->LinkToEdit(textControl, (def.type == TYPE_FLOAT) ? EDITTYPE_FLOAT : EDITTYPE_UNIVERSE);
-		spinner->SetResetValue(def.def.f);
-		spinner->SetLimits(def.range_low.f, def.range_high.f);
-		spinner->SetAutoScale(TRUE);
-		{
-			float value;
-			BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
-			FASSERT(res);
-			spinner->SetValue(value, FALSE);
-			AssociateSpinnerFloat(spinner, paramId, controlIdSpin);
-		}
-		break;
-	default:
-		STOP;
-	}
-	return spinner;
+	return m_d->SetupSpinner(pb, paramId, controlIdEdit, controlIdSpin);
 }
 
-ISpinnerControl* CRollout::SetupSpinnerFloat(ManagerMaxBase &man, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin, const float &minVal, const float &maxVal)
+void CRollout::CheckRadioButton(const int16_t controlId)
 {
-	HWND textControl = GetDlgItem(mHwnd, controlIdEdit);
-	HWND spinControl = GetDlgItem(mHwnd, controlIdSpin);
-	FASSERT(textControl && spinControl && textControl != spinControl);
-	ISpinnerControl* spinner = GetISpinner(spinControl);
-	spinner->LinkToEdit(textControl, EDITTYPE_FLOAT);
-	spinner->SetResetValue(0.f);
-	spinner->SetLimits(minVal, maxVal);
-	spinner->SetAutoScale(TRUE);
-	float value;
-	BOOL res = man.GetProperty(paramId, value);
-	FASSERT(res);
-	spinner->SetResetValue(value);
-	spinner->SetValue(value, FALSE);
-	AssociateSpinnerFloat(spinner, paramId, controlIdSpin);
-	return spinner;
+	FASSERT(GetDlgItem(m_d->mHwnd, controlId));
+	CheckDlgButton(m_d->mHwnd, controlId, BST_CHECKED);
 }
 
-ISpinnerControl* CRollout::SetupSpinnerInt(ManagerMaxBase &man, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin, int minVal, int maxVal)
+void CRollout::UnCheckRadioButton(const int16_t controlId)
 {
-	HWND textControl = GetDlgItem(mHwnd, controlIdEdit);
-	HWND spinControl = GetDlgItem(mHwnd, controlIdSpin);
-	FASSERT(textControl && spinControl && textControl != spinControl);
-	ISpinnerControl* spinner = GetISpinner(spinControl);
-	spinner->LinkToEdit(textControl, EDITTYPE_INT);
-	spinner->SetLimits(minVal, maxVal);
-	spinner->SetAutoScale(TRUE);
-	int value;
+	FASSERT(GetDlgItem(m_d->mHwnd, controlId));
+	CheckDlgButton(m_d->mHwnd, controlId, BST_UNCHECKED);
+}
+
+void CRollout::SetupCheckbox(IParamBlock2* pb, const ParamID paramId, const int16_t controlId)
+{
+	BOOL value;
+	BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
+	FASSERT(res);
+	res = res;
+	SetCheckboxValue(value, controlId);
+}
+
+void CRollout::SetupCheckbox(ManagerMaxBase &man, const ParamID paramId, const int16_t controlId) // background manager version
+{
+	BOOL value;
 	BOOL res = man.GetProperty(paramId, value);
 	FASSERT(res);
-	spinner->SetValue(value, FALSE);
-	spinner->SetResetValue(value);
-	AssociateSpinnerInt(spinner, paramId, controlIdSpin);
-	return spinner;
+	res = res;
+	SetCheckboxValue(value, controlId);
+}
+
+int CRollout::GetComboBoxValue(const int16_t controlId)
+{
+	HWND ctrl = GetDlgItem(m_d->mHwnd, controlId);
+	FASSERT(ctrl);
+	int dummy = int(SendMessage(ctrl, CB_GETCURSEL, 0, 0));
+	FASSERT(dummy != CB_ERR);
+	const int ctrlValue = int(SendMessage(ctrl, CB_GETITEMDATA, WPARAM(dummy), 0));
+	FASSERT(ctrlValue != CB_ERR);
+	return ctrlValue;
+}
+
+void CRollout::SetCheckboxValue(bool value, const int16_t controlId)
+{
+	FASSERT(GetDlgItem(m_d->mHwnd, controlId));
+	CheckDlgButton(m_d->mHwnd, controlId, value ? BST_CHECKED : BST_UNCHECKED);
+}
+
+BOOL CALLBACK CRollout::DisableWindowsProc(HWND hWnd, LPARAM lParam)
+{
+	if (hWnd)
+		EnableWindow(hWnd, (BOOL)lParam);
+	return TRUE;
+}
+
+void CRollout::DisableAllControls()
+{
+	if (m_d->mHwnd)
+		EnumChildWindows(m_d->mHwnd, DisableWindowsProc, FALSE);
+}
+
+void CRollout::EnableControl(int idCtrl, BOOL enable)
+{
+	HWND ctrl = GetDlgItem(m_d->mHwnd, idCtrl);
+	FASSERT(ctrl);
+	EnableWindow(ctrl, enable);
 }
 
 void CRollout::SetVisibleDlg(bool visible, const int16_t dlgID)
 {
-	HWND temp = GetDlgItem(mHwnd, dlgID);
+	HWND temp = GetDlgItem(m_d->mHwnd, dlgID);
 	FASSERT(temp);
 	EnableWindow(temp, visible);
 }

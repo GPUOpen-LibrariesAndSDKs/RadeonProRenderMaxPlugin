@@ -26,41 +26,28 @@ static Class_ID kSettingsTabID(0x2b765571, 0x8cd2fbe1);
 static Class_ID kAdvSettingsTabID(0x178a87bc, 0x7a5cdf72);
 static Class_ID kScriptsTabID(0x1cae4307, 0x18c26f6b);
 
-	class CRollout
-	{
-	private:
-		std::wstring mName;
+class CRollout
+{
+public:
+	CRollout();
+	virtual ~CRollout();
 
-	public:
-		CRollout();
-		virtual ~CRollout();
+	void DeleteRollout();
 
-		void DeleteRollout();
+	virtual void Init(IRendParams* ir, int tmpl, const MCHAR *title, FireRenderParamDlg *owner, bool closed = false, const Class_ID* tabId = NULL);
+	virtual void InitDialog();
+	virtual void DestroyDialog();
+	virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) = 0;
+	virtual void AcceptParams(IParamBlock2* pb);
+	
+	static INT_PTR CALLBACK HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-		virtual void Init(IRendParams* ir, int tmpl, const MCHAR *title, FireRenderParamDlg *owner, bool closed = false, const Class_ID* tabId = NULL);
-		
-		virtual void InitDialog();
-		virtual void DestroyDialog();
+	HWND Hwnd() const;
+	bool Ready() const;
 
-		virtual INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) = 0;
+	void SetControlTooltip(int controlId, const MCHAR* tooltip);
 
-		virtual void AcceptParams(IParamBlock2* pb);
-		
-		static INT_PTR CALLBACK HandleMessage(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-		inline HWND Hwnd() const
-		{
-			return mHwnd;
-		}
-
-		inline bool Ready() const
-		{
-			return mIsReady;
-		}
-
-		void SetControlTooltip(int controlId, const MCHAR* tooltip);
-
-		class CTexmapButton
+	class CTexmapButton
 		{
 		public:
 			HWND mWnd;
@@ -87,224 +74,60 @@ static Class_ID kScriptsTabID(0x1cae4307, 0x18c26f6b);
 			Texmap* mValue;
 		};
 
-	protected:
-		HWND mHwnd;
-		FireRenderParamDlg *mOwner;
-		IRendParams *mRenderParms;
-		const Class_ID *mTabId;
+protected:
+	class Impl;
+	std::unique_ptr<Impl> m_d;
 
-		// quickly find a parameter associated to a spinner
-		typedef struct SSpinnerData
-		{
-			int type;
-			ParamID paramId;
-			ISpinnerControl *spinner;
-			SSpinnerData()
-			{
-			}
-			SSpinnerData(int t, ParamID p, ISpinnerControl *s)
-			{
-				type = t;
-				paramId = p;
-				spinner = s;
-			}
-		} SpinnerData;
+	void RemoveAllSpinnerAssociations();
+	BOOL CommitSpinnerToParam(ManagerMaxBase &man, int16_t control);
+	BOOL CommitSpinnerToParam(IParamBlock2* pb, int16_t control);
 
-		std::map<int16_t, SpinnerData> mSpinnerMap;
+protected:
+	/// Convenience function that reads value from a checkbox and writes it to given IParamBlock2
+	/// \param paramId ID of the parameter in the paramblock
+	/// \param controlId ID of the win32 control in the dialog
+	void SaveCheckbox(IParamBlock2* pb, const ParamID paramId, const int16_t controlId);
 
-		enum
-		{
-			SPINNER_TYPE_INT,
-			SPINNER_TYPE_FLOAT,
-		};
+	/// Convenience function that reads value from a checkbox and writes it to given IParamBlock2
+	/// \param paramId ID of the parameter in the paramblock
+	/// \param controlId ID of the win32 control in the dialog
+	void SaveRadioButton(IParamBlock2* pb, const ParamID paramId, const int16_t controlId);
 
-		void AssociateSpinnerFloat(ISpinnerControl* spinner, ParamID id, int16_t control)
-		{
-			auto ii = mSpinnerMap.find(control);
-			if (ii == mSpinnerMap.end())
-				mSpinnerMap.insert(std::make_pair(control, SpinnerData(SPINNER_TYPE_FLOAT , id, spinner)));
-		}
-		void AssociateSpinnerInt(ISpinnerControl* spinner, ParamID id, int16_t control)
-		{
-			auto ii = mSpinnerMap.find(control);
-			if (ii == mSpinnerMap.end())
-				mSpinnerMap.insert(std::make_pair(control, SpinnerData(SPINNER_TYPE_INT, id, spinner)));
-		}
-		bool GetSpinnerParam(int16_t control, SpinnerData &out)
-		{
-			bool res = false;
-			auto ii = mSpinnerMap.find(control);
-			if (ii != mSpinnerMap.end())
-			{
-				out = ii->second;
-				res = true;
-			}
-			return res;
-		}
-		void RemoveAllSpinnerAssociations()
-		{
-			mSpinnerMap.clear();
-		}
-		BOOL CommitSpinnerToParam_p(ManagerMaxBase &man, int16_t control)
-		{
-			BOOL res = FALSE;
-			SpinnerData data;
-			if (GetSpinnerParam(control, data))
-			{
-				if (data.type == SPINNER_TYPE_FLOAT)
-					res = man.SetProperty(data.paramId, data.spinner->GetFVal());
-				else
-					res = man.SetProperty(data.paramId, data.spinner->GetIVal());
-			}
-			return res;
-		}
-		BOOL CommitSpinnerToParam_p(IParamBlock2* pb, int16_t control)
-		{
-			BOOL res = FALSE;
-			SpinnerData data;
-			if (GetSpinnerParam(control, data))
-			{
-				if (data.type == SPINNER_TYPE_FLOAT)
-					res = pb->SetValue(data.paramId, GetCOREInterface()->GetTime(), data.spinner->GetFVal());
-				else
-					res = pb->SetValue(data.paramId, GetCOREInterface()->GetTime(), data.spinner->GetIVal());
-				FASSERT(res);
-			}
+	bool GetRadioButtonValue(const int16_t controlId) const;
 
-			return res;
-		}
-	public:
-		BOOL CommitSpinnerToParam(ManagerMaxBase &man, int16_t control) // background manager version
-		{
-			return CommitSpinnerToParam_p(man, control);
-		}
-		BOOL CommitSpinnerToParam(IParamBlock2* pb, int16_t control)
-		{
-			return CommitSpinnerToParam_p(pb, control);
-		}
+	CTexmapButton* SetupTexmapButton(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit);  // background manager version
+	
+	IColorSwatch* SetupSwatch(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit);
+	IColorSwatch* SetupSwatch(const ParamID paramId, const int16_t controlIdEdit); // background manager version
 
-	protected:
-		/// True if the dialog is constructed and ready to be used. False if it is currently being constructed/destroyed, and 
-		/// for example any value changes should not be saved in IParamBlock2
-		bool mIsReady;
+	/// Convenience function that sets up a 3ds Max-style spinner in the win32 dialog. It also sets its value to match the value
+	/// stored in the param block. Spinners in 3ds Max are created from 2 linked win32 windows - text input and up/down arrows 
+	/// control. The up/down control is considered the "main" window of the control by 3ds Max
+	/// \param paramId ID of the parameter in the paramblock
+	/// \param controlIDEdit win32 window ID of the text edit part of the control
+	/// \param controlIdSpin win32 window ID of the up/down spinner part of the control
+	ISpinnerControl* SetupSpinner(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin);
 
-		/// Convenience function that reads value from a checkbox and writes it to given IParamBlock2
-		/// \param paramId ID of the parameter in the paramblock
-		/// \param controlId ID of the win32 control in the dialog
-		void SaveCheckbox(IParamBlock2* pb, const ParamID paramId, const int16_t controlId) {
-			FASSERT(GetDlgItem(mHwnd, controlId));
-			const BOOL value = IsDlgButtonChecked(mHwnd, controlId);
-			BOOL res = pb->SetValue(paramId, 0, value);
-			FASSERT(res);
-			res = res;
-		}
+	/// Convenience function that sets up a radio button in the win32 dialog (by setting its initial value to match the value of 
+	/// the corresponding parameter in IParamBlock2)
+	/// \param paramId ID of the parameter in the paramblock
+	/// \param controlId ID of the win32 control in the dialog
+	void CheckRadioButton(const int16_t controlId);
+	void UnCheckRadioButton(const int16_t controlId);
 
-		/// Convenience function that reads value from a checkbox and writes it to given IParamBlock2
-		/// \param paramId ID of the parameter in the paramblock
-		/// \param controlId ID of the win32 control in the dialog
-		void SaveRadioButton(IParamBlock2* pb, const ParamID paramId, const int16_t controlId) {
-			FASSERT(GetDlgItem(mHwnd, controlId));
-			const BOOL value = IsDlgButtonChecked(mHwnd, controlId);
-			BOOL res = pb->SetValue(paramId, 0, value);
-			FASSERT(res);
-			res = res;
-		}
-
-		bool GetRadioButtonValue(const int16_t controlId)
-		{
-			FASSERT(GetDlgItem(mHwnd, controlId));
-			return IsDlgButtonChecked(mHwnd, controlId);
-		}
-
-		CTexmapButton* SetupTexmapButton(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit);  // background manager version
-		
-		IColorSwatch* SetupSwatch(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit);
-		IColorSwatch* SetupSwatch(const ParamID paramId, const int16_t controlIdEdit); // background manager version
-
-		/// Convenience function that sets up a 3ds Max-style spinner in the win32 dialog. It also sets its value to match the value
-		/// stored in the param block. Spinners in 3ds Max are created from 2 linked win32 windows - text input and up/down arrows 
-		/// control. The up/down control is considered the "main" window of the control by 3ds Max
-		/// \param paramId ID of the parameter in the paramblock
-		/// \param controlIDEdit win32 window ID of the text edit part of the control
-		/// \param controlIdSpin win32 window ID of the up/down spinner part of the control
-		ISpinnerControl* SetupSpinner(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin);
-		ISpinnerControl* SetupSpinnerFloat(ManagerMaxBase &man, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin, const float &minVal, const float &maxVal); // background manager version
-		ISpinnerControl* SetupSpinnerInt(ManagerMaxBase &man, const ParamID paramId, const int16_t controlIdEdit, const int16_t controlIdSpin, int minVal, int maxVal); // background manager version
-
-		/// Convenience function that sets up a radio button in the win32 dialog (by setting its initial value to match the value of 
-		/// the corresponding parameter in IParamBlock2)
-		/// \param paramId ID of the parameter in the paramblock
-		/// \param controlId ID of the win32 control in the dialog
-		void CheckRadioButton(const int16_t controlId) {
-			FASSERT(GetDlgItem(mHwnd, controlId));
-			CheckDlgButton(mHwnd, controlId, BST_CHECKED);
-		}
-		void UnCheckRadioButton(const int16_t controlId) {
-			FASSERT(GetDlgItem(mHwnd, controlId));
-			CheckDlgButton(mHwnd, controlId, BST_UNCHECKED);
-		}
-
-		/// Convenience function that sets up a checkbox in the win32 dialog (by setting its initial value to match the value of 
-		/// the corresponding parameter in IParamBlock2)
-		/// \param paramId ID of the parameter in the paramblock
-		/// \param controlId ID of the win32 control in the dialog
-		void SetupCheckbox(IParamBlock2* pb, const ParamID paramId, const int16_t controlId)
-		{
-			BOOL value;
-			BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
-			FASSERT(res);
-			res = res;
-			SetCheckboxValue(value, controlId);
-		}
-
-		void SetupCheckbox(ManagerMaxBase &man, const ParamID paramId, const int16_t controlId) // background manager version
-		{ 
-			BOOL value;
-			BOOL res = man.GetProperty(paramId, value);
-			FASSERT(res);
-			res = res;
-			SetCheckboxValue(value, controlId);
-		}
-
-		int GetComboBoxValue(const int16_t controlId)
-		{
-			HWND ctrl = GetDlgItem(mHwnd, controlId);
-			FASSERT(ctrl);
-			int dummy = int(SendMessage(ctrl, CB_GETCURSEL, 0, 0));
-			FASSERT(dummy != CB_ERR);
-			const int ctrlValue = int(SendMessage(ctrl, CB_GETITEMDATA, WPARAM(dummy), 0));
-			FASSERT(ctrlValue != CB_ERR);
-			return ctrlValue;
-		}
-
-		void SetCheckboxValue(bool value, const int16_t controlId)
-		{
-			FASSERT(GetDlgItem(mHwnd, controlId));
-			CheckDlgButton(mHwnd, controlId, value ? BST_CHECKED : BST_UNCHECKED);
-		}
-
-		static BOOL CALLBACK DisableWindowsProc(HWND hWnd, LPARAM lParam)
-		{
-			if (hWnd)
-				EnableWindow(hWnd, (BOOL)lParam);
-			return TRUE;
-		}
-
-		void DisableAllControls()
-		{
-			if (mHwnd)
-				EnumChildWindows(mHwnd, DisableWindowsProc, FALSE);
-		}
-
-		void EnableControl(int idCtrl, BOOL enable)
-		{
-			HWND ctrl = GetDlgItem(mHwnd, idCtrl);
-			FASSERT(ctrl);
-			EnableWindow(ctrl, enable);
-		}
-
-		void SetVisibleDlg(bool visible, const int16_t dlgID);
-	};
+	/// Convenience function that sets up a checkbox in the win32 dialog (by setting its initial value to match the value of 
+	/// the corresponding parameter in IParamBlock2)
+	/// \param paramId ID of the parameter in the paramblock
+	/// \param controlId ID of the win32 control in the dialog
+	void SetupCheckbox(IParamBlock2* pb, const ParamID paramId, const int16_t controlId);
+	void SetupCheckbox(ManagerMaxBase &man, const ParamID paramId, const int16_t controlId);// background manager version
+	int GetComboBoxValue(const int16_t controlId);
+	void SetCheckboxValue(bool value, const int16_t controlId);
+	static BOOL CALLBACK DisableWindowsProc(HWND hWnd, LPARAM lParam);
+	void DisableAllControls();
+	void EnableControl(int idCtrl, BOOL enable);
+	void SetVisibleDlg(bool visible, const int16_t dlgID);
+};
 
 
 /// Class that constructs the render settings UI dialog, and which saves the changes user makes into a IParamBlock2
