@@ -897,7 +897,7 @@ void FireRenderParamDlg::CCameraSettings::InitDialog()
 	controls.cameraBlades = SetupSpinnerInt(CamManagerMax::TheManager, PARAM_CAM_BLADES, IDC_APERTURE_BLADES, IDC_APERTURE_BLADES_S, 3, 64);
 	controls.cameraFStop = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_F_STOP, IDC_FSTOP, IDC_FSTOP_S, 0.01f, 999.f);
 	controls.cameraSensorSize = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_SENSOR_WIDTH, IDC_SENSOR_SIZE, IDC_SENSOR_SIZE_S, 0.001f, 9999.f);
-	controls.cameraExposure = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_EXPOSURE, IDC_CAMERA_EXPOSURE, IDC_CAMERA_EXPOSURE_S, 0.f, 10e20f);
+	controls.cameraExposure = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_EXPOSURE, IDC_CAMERA_EXPOSURE, IDC_CAMERA_EXPOSURE_S, -10e20f, 10e20f);
 	controls.cameraFocalLength = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_FOCAL_LENGTH, IDC_FOCAL_LENGTH, IDC_FOCAL_LENGTH_S, 1e-6f, 10e20f);
 	controls.cameraFOV = SetupSpinnerFloat(CamManagerMax::TheManager, PARAM_CAM_FOV, IDC_FOV, IDC_FOV_S, -360.f, 360.f);
 	//stored in radian, we want to show it in degrees
