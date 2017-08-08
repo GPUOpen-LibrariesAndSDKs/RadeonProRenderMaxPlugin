@@ -400,31 +400,27 @@ FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRende
 	this->iRendParams = ir;
 	this->renderer = renderer;
 	this->isReadOnly = readOnly;
-	std::wstring strProductName, strProductVersion;
 
-	mGeneralSettings.Init(ir, IDD_RENDER_GENERALSETTINGS, (const MCHAR*)_T("General"), this, false, &kSettingsTabID);
-		
-	mHardwareSetting.Init(ir, IDD_RENDER_HWSETTINGS, (const MCHAR*)_T("Hardware"), this, true, &kSettingsTabID);
-		
-	mQualitySettings.Init(ir, IDD_RENDER_QUALITYSETTINGS, (const MCHAR*)_T("Quality"), this, true, &kSettingsTabID);
+	auto initRollout = [&](CRollout& rollout, int tmpl, const MCHAR* name, bool closed, const Class_ID& tabId)
+	{
+		rollout.Init(ir, tmpl, name, this, closed, &tabId);
+	};
 
-	mCameraSetting.Init(ir, IDD_RENDER_CAMERASETTINGS, (const MCHAR*)_T("Camera"), this, true, &kSettingsTabID);
-
-	mTonemapSetting.Init(ir, IDD_RENDER_TONEMAPPING, (const MCHAR*)_T("Tonemap"), this, true, &kSettingsTabID);
-
-	mBackgroundSettings.Init(ir, IDD_RENDER_BG, (const MCHAR*)_T("Environment and Scene"), this, true, &kSettingsTabID);
-
-	mGroundSettings.Init(ir, IDD_RENDER_GROUND, (const MCHAR*)_T("Ground"), this, true, &kSettingsTabID);
-
-	mAntialiasSettings.Init(ir, IDD_RENDER_AASETTINGS, (const MCHAR*)_T("Anti Aliasing"), this, true, &kSettingsTabID);
-
-	mAdvancedSettings.Init(ir, IDD_RENDER_ADVANCEDSETTINGS, (const MCHAR*)_T("Advanced"), this, false, &kAdvSettingsTabID);
-
-	mScripts.Init(ir, IDD_RENDER_SCRIPTS, (const MCHAR*)_T("Scripts"), this, false, &kScriptsTabID);
+	initRollout(mGeneralSettings, IDD_RENDER_GENERALSETTINGS, (const MCHAR*)_T("General"), false, kSettingsTabID);
+	initRollout(mHardwareSetting, IDD_RENDER_HWSETTINGS, (const MCHAR*)_T("Hardware"), true, kSettingsTabID);
+	initRollout(mQualitySettings, IDD_RENDER_QUALITYSETTINGS, (const MCHAR*)_T("Quality"), true, kSettingsTabID);
+	initRollout(mCameraSetting, IDD_RENDER_CAMERASETTINGS, (const MCHAR*)_T("Camera"), true, kSettingsTabID);
+	initRollout(mTonemapSetting, IDD_RENDER_TONEMAPPING, (const MCHAR*)_T("Tonemap"), true, kSettingsTabID);
+	initRollout(mBackgroundSettings, IDD_RENDER_BG, (const MCHAR*)_T("Environment and Scene"), true, kSettingsTabID);
+	initRollout(mGroundSettings, IDD_RENDER_GROUND, (const MCHAR*)_T("Ground"), true, kSettingsTabID);
+	initRollout(mAntialiasSettings, IDD_RENDER_AASETTINGS, (const MCHAR*)_T("Anti Aliasing"), true, kSettingsTabID);
+	initRollout(mAdvancedSettings, IDD_RENDER_ADVANCEDSETTINGS, (const MCHAR*)_T("Advanced"), false, kAdvSettingsTabID);
+	initRollout(mScripts, IDD_RENDER_SCRIPTS, (const MCHAR*)_T("Scripts"), false, kScriptsTabID);
 
 	mQualitySettings.setupUIFromData();
 
-	std::wstring strVersion;
+	std::wstring strVersion, strProductName, strProductVersion;
+
 	if (GetProductAndVersion(strProductName, strProductVersion))
 	{
 		strVersion = strProductName + L" " + strProductVersion;
@@ -3176,7 +3172,6 @@ void CRollout::DeleteRollout()
 void CRollout::Init(IRendParams* ir, int tmpl, const MCHAR *title, FireRenderParamDlg *owner, bool closed, const Class_ID* tabId)
 {
 	m_d->mName = title;
-
 	m_d->mOwner = owner;
 	m_d->mRenderParms = ir;
 	m_d->mTabId = tabId;
