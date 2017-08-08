@@ -55,6 +55,8 @@ protected:
 public:
 	frw::MaterialSystem materialSystem;
 
+	void* img_holder;
+
 	struct
 	{
 		INode* mNode = nullptr;
@@ -146,8 +148,8 @@ protected:
 	
 	// Helper methods that create RPR shaders out of  MAX materials
 
-	frw::Shader parseStdMat2(StdMat2* mtl);
-	frw::Shader parsePhysicalMaterial(Mtl* mtl);
+	frw::Shader parseStdMat2(StdMat2* mtl, void* img_holder = nullptr);
+	frw::Shader parsePhysicalMaterial(Mtl* mtl, void* img_holder = nullptr);
 	frw::Shader parseBlendMtl(Mtl* mtl);
 	frw::Shader parseCoronaRaySwitchMtl(Mtl* mtl);
 	frw::Shader parseCoronaMtl(Mtl* mtl);
@@ -206,7 +208,15 @@ public:
 	// Creates a RPR shader from given MAX material, eventually considering the node it is assigned to
 	// mtl - MAX material to convert. Can be NULL
 	// node - A node to which the material is assigned. Must not be NULL.
-	frw::Shader createShader(Mtl* mtl, INode* node = nullptr, bool bReloadMaterial = false);
+	frw::Shader createShader(Mtl* mtl, INode* node = nullptr, bool bReloadMaterial = false, void* img_holder = nullptr);
+
+	// Creates Bitmap or Image or nothing and returns pointer to it
+	// Is used for shader creation optimization (createShader function can not run in parallel)
+	// mtl - MAX material to convert. Can be NULL
+	// node - A node to which the material is assigned. Must not be NULL.
+	void CreatePreCalculatedData(Mtl* material, void* img_holder, INode* node /*= nullptr*/, bool bReloadMaterial /*= false*/);
+	void getBitmapOrImage(StdMat2* mtl, void* img_holder);
+	void getBitmapFromPhysicalMaterial(Mtl* mtl, void* img_holder);
 
 	static Color Kelvin2Color(float kelvin);
 

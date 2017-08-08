@@ -580,6 +580,13 @@ public:
 		return (mQueue.begin() == mQueue.end());
 	}
 
+	struct imgHolder
+	{
+		Bitmap* pBmp;
+		frw::Image* pImg;
+		imgHolder() : pBmp(nullptr), pImg(nullptr) {}
+	};
+
 protected:
 	
 	// general
@@ -632,11 +639,14 @@ protected:
 	{
 	}
 
+	typedef std::map<Mtl*, std::pair<INode*, imgHolder> > tMaterialCache;
+
 	bool CreateMesh(std::vector<frw::Shape>& result, bool& directlyVisible, frw::Context& context, float masterScale, TimeValue timeValue, View& view, INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces);
 	std::vector<frw::Shape> parseMesh(INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces);
 	bool parseMesh(std::vector<frw::Shape>& shapes, INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces);
 	void DeleteGeometry(INode *instance);
 	void RebuildGeometry(const std::list<INode *> &instances);
+	void BuildShadersCache(tMaterialCache& material_cache);
 	void RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& instances);
 	void RebuildLight(INode *light, Object *obj);
 	void AddDefaultLights();
@@ -646,7 +656,8 @@ protected:
 	bool Show(INode *node); // returns false if the node needs rebuilding
 	void Hide(INode *node);
 	void RebuildUsersOfMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild); // utility
-	frw::Shader CreateShader(Mtl *pMat, INode *node, bool force = false); // utility
+	frw::Shader CreateShader(Mtl *pMat, INode *node, bool force = false, imgHolder* img_holder = nullptr); // utility
+	void Synchronizer::CreatePreCalculatedData(Mtl *pMat, INode *node, bool force, imgHolder& img_holder); // utility
 	void UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild);
 	void RebuildCoronaSun(INode *node, Object* evaluatedObject);
 	void RebuildFRPortal(INode* node, Object* evaluatedObject);

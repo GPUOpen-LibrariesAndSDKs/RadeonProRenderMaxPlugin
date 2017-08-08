@@ -11,6 +11,7 @@
 #include "maxscript\mxsplugin\mxsPlugin.h"
 #include "ParamBlock.h"
 #include "PluginContext.h"
+#include "parser\Synchronizer.h"
 
 #include <emmintrin.h>
 #include <functional>
@@ -368,12 +369,66 @@ Bitmap *FRMTLCLASSNAME(NormalMtl)::ProcessBitmap(Bitmap *bumpBitmap, BOOL swapRG
 	return bitmap;
 }
 
-frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Texmap *bumpMap, const float& strength, MaterialParser& mtlParser)
+void FRMTLCLASSNAME(NormalMtl)::getBitmapOrImageGeneric(const TimeValue t, Texmap *bumpMap, const float& strength, MaterialParser& mtlParser, void* img_holder /*= nullptr*/)
+{
+	if (bumpMap == nullptr)
+		return;
+
+	if (img_holder == nullptr)
+		return;
+
+	// COMPUTE HASH
+	BOOL isBump = FALSE;
+	BOOL swapRG = FALSE;
+	BOOL invertR = FALSE;
+	BOOL invertG = FALSE;
+	HashValue hash;
+	hash << bumpMap;
+	hash << mtlParser.getMaterialHash(bumpMap);
+	hash << swapRG;
+	hash << invertR;
+	hash << invertG;
+
+	auto normalImage = mtlParser.getScope().GetImage(hash);
+
+	if (!normalImage)
+	{
+		// get the main normal map
+		bool deleteNormalBitmapAfterwards = false; // if true, the bitmap was baked, so we need to destroy it when done
+		Bitmap *pNormalBitmap = 0;
+		pNormalBitmap = createImageFromMap(t, bumpMap, mtlParser, deleteNormalBitmapAfterwards);
+
+		if (pNormalBitmap && IsGrayScale(pNormalBitmap)) // If normal bitmap is grayscale then it's a bump map and must be converted to normal map
+		{
+			Bitmap *temp = BumpToNormalRPR(pNormalBitmap);
+
+			if (deleteNormalBitmapAfterwards)
+			{
+				pNormalBitmap->DeleteThis();
+			}
+
+			pNormalBitmap = temp;
+			deleteNormalBitmapAfterwards = true;
+		}
+
+		static_cast<Synchronizer::imgHolder*> (img_holder)->pBmp = pNormalBitmap;
+
+		rpr_image_desc imgDesc = {};
+		if (pNormalBitmap)
+		{
+			frw::Image* img = new frw::Image (bitmap2image(pNormalBitmap, mtlParser));
+			static_cast<Synchronizer::imgHolder*> (img_holder)->pImg = img;
+		}
+	}
+}
+
+frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Texmap *bumpMap, const float& strength, MaterialParser& mtlParser, void* img_holder /*= nullptr*/)
 {
 	if (bumpMap)
 	{
 		if (bumpMap->ClassID() == FIRERENDER_NORMALMTL_CID)
 		{
+			mtlParser.img_holder = img_holder;
 			return dynamic_cast<FRMTLCLASSNAME(NormalMtl)*>(bumpMap)->getShader(t, mtlParser);
 		}
 
@@ -397,7 +452,14 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Te
 			bool deleteNormalBitmapAfterwards = false; // if true, the bitmap was baked, so we need to destroy it when done
 			Bitmap *pNormalBitmap = 0;
 			// fetch or bake the normal map (in case it's procedural or comes through a procedural node)
-			pNormalBitmap = createImageFromMap(t, bumpMap, mtlParser, deleteNormalBitmapAfterwards); 
+			if (!img_holder || !static_cast<Synchronizer::imgHolder*> (img_holder)->pBmp)
+			{
+				pNormalBitmap = createImageFromMap(t, bumpMap, mtlParser, deleteNormalBitmapAfterwards);
+			}
+			else
+			{
+				pNormalBitmap = static_cast<Synchronizer::imgHolder*> (img_holder)->pBmp;
+			}
 
 			if (pNormalBitmap && IsGrayScale(pNormalBitmap)) // If normal bitmap is grayscale then it's a bump map and must be converted to normal map
 			{
@@ -414,7 +476,16 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Te
 
 			rpr_image_desc imgDesc = {};
 			if (pNormalBitmap)
-				normalImage = bitmap2image(pNormalBitmap, mtlParser);
+			{
+				if (!img_holder || !static_cast<Synchronizer::imgHolder*> (img_holder)->pImg)
+				{
+					normalImage = bitmap2image(pNormalBitmap, mtlParser);
+				}
+				else
+				{
+					normalImage = *static_cast<Synchronizer::imgHolder*> (img_holder)->pImg;
+				}
+			}
 			// cleanup
 			if (deleteNormalBitmapAfterwards)
 				pNormalBitmap->DeleteThis();
@@ -519,9 +590,79 @@ frw::Image FRMTLCLASSNAME(NormalMtl)::bitmap2image(Bitmap *bmp, MaterialParser& 
 	return img;
 }
 
+void FRMTLCLASSNAME(NormalMtl)::getBitmapOrImage(const TimeValue t, MaterialParser& mtlParser, void* img_holder)
+{
+	auto ms = mtlParser.materialSystem;
+
+	auto texmap = GetFromPb<Texmap*>(pblock, FRNormalMtl_COLOR_TEXMAP);
+
+	// is there an additional bump?
+	auto bumpTexmap = GetFromPb<Texmap*>(pblock, FRNormalMtl_ADDITIONALBUMP);
+
+	if (texmap || bumpTexmap)
+	{
+		float weight = GetFromPb<float>(pblock, FRNormalMtl_STRENGTH); // overall bump weight
+		float bumpStrength = GetFromPb<float>(pblock, FRNormalMtl_BUMPSTRENGTH); // strength of additional bump
+
+																				 // is isBump is true, we are hinted that the inoput map is not a normal map.
+																				 // this is useful when a pseudo bump map has colors but should be treates as a poor man's bump
+		BOOL isBump = GetFromPb<BOOL>(pblock, FRNormalMtl_ISBUMP);
+		BOOL swapRG = GetFromPb<BOOL>(pblock, FRNormalMtl_SWAPRG);
+		BOOL invertR = GetFromPb<BOOL>(pblock, FRNormalMtl_INVERTR);
+		BOOL invertG = GetFromPb<BOOL>(pblock, FRNormalMtl_INVERTG);
+
+		// COMPUTE HASH
+		HashValue hash;
+		hash << texmap;
+		hash << mtlParser.getMaterialHash(texmap);
+		hash << swapRG;
+		hash << invertR;
+		hash << invertG;
+		if (bumpTexmap)
+		{
+			hash << bumpTexmap;
+			hash << mtlParser.getMaterialHash(bumpTexmap);
+			hash << bumpStrength;
+		}
+
+		// check: do we have this bump map in cache (reflecting the current settings?)
+		auto normalImage = mtlParser.getScope().GetImage(hash);
+
+		bool requireGrayScaleBump = false;
+
+		// if not, rebuild it
+		if (!normalImage)
+		{
+			// get the main normal map
+			Bitmap *pNormalBitmap = 0;
+			bool deleteNormalBitmapAfterwards = false; // if true, the bitmap was baked, so we need to destroy it when done
+			Bitmap *pBumpBitmap = 0;
+			bool deleteBumpBitmapAfterwards = false;
+
+			// fetch or bake the normal map (in case it's procedural or comes through a procedural node)
+			if (texmap)
+			{
+				pNormalBitmap = createImageFromMap(t, texmap, mtlParser, deleteNormalBitmapAfterwards);
+				static_cast<Synchronizer::imgHolder*> (img_holder)->pBmp = pNormalBitmap;
+			}
+
+			// fast lane cases : only one normal or bump is being used
+			if (pNormalBitmap && !bumpTexmap && !swapRG && !invertR && !invertG)
+			{
+				frw::Image* img = new frw::Image(bitmap2image(pNormalBitmap, mtlParser));
+				static_cast<Synchronizer::imgHolder*> (img_holder)->pImg = img;
+				//normalImage = bitmap2image(pNormalBitmap, mtlParser);
+				//if (isBump || IsGrayScale(pNormalBitmap))
+					//requireGrayScaleBump = true;
+			}
+		}
+	}
+}
+
 frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	auto ms = mtlParser.materialSystem;
+	void* img_holder = mtlParser.img_holder;
 
 	auto texmap = GetFromPb<Texmap*>(pblock, FRNormalMtl_COLOR_TEXMAP);
 
@@ -569,13 +710,27 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParse
 			bool deleteBumpBitmapAfterwards = false;
 			
 			// fetch or bake the normal map (in case it's procedural or comes through a procedural node)
-			if (texmap)
-				pNormalBitmap = createImageFromMap(t, texmap, mtlParser, deleteNormalBitmapAfterwards);
+			if (texmap) //*********************************************************
+				if (!img_holder || !static_cast<Synchronizer::imgHolder*> (img_holder)->pBmp)
+				{
+					pNormalBitmap = createImageFromMap(t, texmap, mtlParser, deleteNormalBitmapAfterwards);
+				}
+				else
+				{
+					pNormalBitmap = static_cast<Synchronizer::imgHolder*> (img_holder)->pBmp;
+				}
 
 			// fast lane cases : only one normal or bump is being used
 			if (pNormalBitmap && !bumpTexmap && !swapRG && !invertR && !invertG)
-			{
-				normalImage = bitmap2image(pNormalBitmap, mtlParser);
+			{ //**********************************************************************
+				if (!img_holder || !static_cast<Synchronizer::imgHolder*> (img_holder)->pImg)
+				{
+					normalImage = bitmap2image(pNormalBitmap, mtlParser);
+				}
+				else
+				{
+					normalImage = *static_cast<Synchronizer::imgHolder*> (img_holder)->pImg;
+				}
 				if (isBump || IsGrayScale(pNormalBitmap))
 					requireGrayScaleBump = true;
 			}

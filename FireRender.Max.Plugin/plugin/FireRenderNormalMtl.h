@@ -33,9 +33,12 @@ BEGIN_DECLARE_FRTEX(NormalMtl)
 		return AColor(color.r, color.g, color.b);
 	}
 
-	static frw::Value translateGenericBump(const TimeValue t, Texmap *bump, const float& strength, MaterialParser& mtlParser);
+	static frw::Value translateGenericBump(const TimeValue t, Texmap *bump, const float& strength, MaterialParser& mtlParser, void* img_holder = nullptr);
 	
 	static frw::Image bitmap2image(Bitmap *bmp, MaterialParser& mtlParser);
+
+	void getBitmapOrImage(const TimeValue t, MaterialParser& mtlParser, void* img_holder);
+	static void getBitmapOrImageGeneric(const TimeValue t, Texmap *bumpMap, const float& strength, MaterialParser& mtlParser, void* img_holder = nullptr);
 	
 	static Bitmap *createImageFromMap(const TimeValue t, Texmap* input, MaterialParser& mtlParser, bool &deleteAfterwards);
 	
@@ -49,7 +52,11 @@ BEGIN_DECLARE_FRTEX(NormalMtl)
 
 	static Bitmap *findBitmap(const TimeValue t, MtlBase *mat);
 
+	//static frw::Value getShader(const TimeValue t, MaterialParser& mtlParser, void* img_holder = nullptr);
+
 END_DECLARE_FRTEX(NormalMtl)
+
+//frw::Value FireRenderNormalMtl::getShader(const TimeValue t, MaterialParser& mtlParser, void* img_holder = nullptr);
 
 
 FIRERENDER_NAMESPACE_END;

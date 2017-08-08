@@ -931,7 +931,26 @@ frw::Shader MaterialParser::createVolumeShader(Mtl* material, INode* node)
 	return shader;
 }
 
-frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*/, bool bReloadMaterial /*= false*/)
+void MaterialParser::CreatePreCalculatedData(Mtl* material, void* img_holder, INode* node /*= nullptr*/, bool bReloadMaterial /*= false*/)
+{
+	StdMat2* pMat = dynamic_cast<StdMat2*>(material);
+	if (pMat == nullptr)
+	{
+		const Class_ID cid = material->ClassID();
+		if (cid == PHYSICALMATERIAL_CID)
+		{
+			getBitmapFromPhysicalMaterial(material, img_holder);
+		}
+		else
+			return;		
+	}
+	else
+	{
+		getBitmapOrImage(pMat, img_holder);
+	}
+}
+
+frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*/, bool bReloadMaterial /*= false*/, void* img_holder /*= nullptr*/)
 {
 	if (node)	// first level
 	{
@@ -987,10 +1006,10 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 				frmtl->SetCurrentTime(mT);
 			}	
 			if (auto stdMat2 = dynamic_cast<StdMat2*>(material)) {
-				shader = parseStdMat2(stdMat2);
+				shader = parseStdMat2(stdMat2, img_holder);
 			}
 			else if (cid == PHYSICALMATERIAL_CID) {
-				shader = parsePhysicalMaterial(material);
+				shader = parsePhysicalMaterial(material, img_holder);
 			}
 			else if (cid == FIRERENDER_DIFFUSEMTL_CID) {
 				shader = dynamic_cast<FRMTLCLASSNAME(DiffuseMtl)*>(material)->getShader(mT, *this, node);
@@ -1148,7 +1167,41 @@ namespace {
 	
 };
 
-frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl) 
+
+void MaterialParser::getBitmapOrImage(StdMat2* mtl, void* img_holder)
+{
+	if (mtl == nullptr)
+		return;
+
+	// EMISSION
+	auto emissiveColor = getValue(getMap(mtl, ID_SI), mtl->GetSelfIllumColor(this->mT));
+	if (emissiveColor.NonZeroXYZ())
+	{
+		return;
+	}
+
+	Shader *maxShader = mtl->GetShader();
+	if (!maxShader)
+		return;
+
+	MSTR shaderClassName;
+	maxShader->GetClassName(shaderClassName);
+
+	// DIFFUSE
+	long mapChannel = mtl->StdIDToChannel(ID_BU); // This method returns submap index using a list of predefined map types
+	Texmap* bumpMap = mtl->SubTexmapOn(mapChannel) ? mtl->GetSubTexmap(mapChannel) : NULL;
+
+	// NORMAL
+	frw::Value normal;
+	if (bumpMap && bumpMap->ClassID() == FIRERENDER_NORMALMTL_CID)
+	{
+		// bitmap and/or image is created here!
+		dynamic_cast<FRMTLCLASSNAME(NormalMtl)*>(bumpMap)->getBitmapOrImage(mT, *this, img_holder);
+	}
+}
+
+
+frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl, void* img_holder /*= nullptr*/)
 {
 
 	// EMISSION
@@ -1199,7 +1252,7 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	if (bumpMap)
 	{
 		float strength = mtl->GetTexmapAmt(ID_BU, mT);
-		normal = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bumpMap, strength, *this);
+		normal = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bumpMap, strength, *this, img_holder);
 				result.SetValue("normal", normal);
 			}
 	
@@ -1393,7 +1446,32 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	return result;
 }
 
-frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
+void MaterialParser::getBitmapFromPhysicalMaterial(Mtl* mtl, void* img_holder)
+{	
+	if (mtl == nullptr)
+		return;
+
+	IParamBlock2* pb = mtl->GetParamBlock(0);
+	float bump_map_amt;
+	Texmap* bump_map = 0;
+	BOOL bump_map_on;
+	auto mT = GetCOREInterface()->GetTime();
+
+	pb->GetValue(phm_bump_map, mT, bump_map, FOREVER);
+	pb->GetValue(phm_bump_map_on, mT, bump_map_on, FOREVER);
+	pb->GetValue(phm_bump_map_amt, mT, bump_map_amt, FOREVER);
+
+	// NORMAL
+	if (bump_map_on && bump_map)
+	{
+		//BaseBumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bump_map, bump_map_amt, *this);
+
+		// bitmap and/or image is created here!
+		FRMTLCLASSNAME(NormalMtl)::getBitmapOrImageGeneric(mT, bump_map, bump_map_amt, *this, img_holder);
+	}
+}
+
+frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl, void* img_holder /*= nullptr*/)
 {
 	IParamBlock2* pb = mtl->GetParamBlock(0);
 	int material_mode, aniso_mode, aniso_channel;
@@ -1535,8 +1613,8 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	// NORMAL
 	frw::Value BaseBumpMap;
 	if (bump_map_on && bump_map)
-	{
-		BaseBumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bump_map, bump_map_amt, *this);
+	{  //***********************************************************************************************************************************
+		BaseBumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bump_map, bump_map_amt, *this, img_holder);
 	}
 	
 	// compute roughness

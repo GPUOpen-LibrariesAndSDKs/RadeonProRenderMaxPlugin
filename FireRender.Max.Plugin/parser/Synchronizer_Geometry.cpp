@@ -364,6 +364,12 @@ bool Synchronizer::parseMesh(std::vector<frw::Shape>& shapes, INode* inode, Obje
 	return true;
 }
 
+static std::vector<std::chrono::duration<double>> times;
+static std::vector<std::chrono::duration<double>> times2;
+std::mutex time_mutex;
+
+std::mutex job_mutex;
+
 // struct that handles data for rebuild request for an instance
 struct RebuildJobParams
 {
@@ -376,6 +382,7 @@ struct RebuildJobParams
 	const std::list<INode *> &nodes;
 	FireRender::Synchronizer* const sync;
 
+public:
 
 	RebuildJobParams(FireRender::Synchronizer* _sync, TimeValue& _t, const std::list<INode *>& _nodes)
 		: sync(_sync)
@@ -418,6 +425,8 @@ struct RebuildJobParams
 
 	bool ProcessNodes() // modifies scene
 	{
+		std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
+
 		auto firstNode = *nodes.begin();
 
 		std::vector<frw::Shape>& originalShapes = *(pShapes.get());
@@ -425,6 +434,9 @@ struct RebuildJobParams
 
 		for (auto& parsedNode : nodes)
 		{
+			//***********************************************************************************************
+			// Initial shapes manipulations
+
 			std::vector<frw::Shape> shapes;
 
 			// For the first instance we directly reuse the parsed shapes, for subsequent ones we use instances
@@ -445,12 +457,14 @@ struct RebuildJobParams
 				shapes = originalShapes;
 
 			// associate this node to the RPR shapes
-			auto mm = sync->mShapes.find(parsedNode);
-			if (mm != sync->mShapes.end())
 			{
-				for (auto ss : mm->second)
-					sync->mScope.GetScene().Detach(ss->Get());
-				sync->mShapes.erase(mm);
+				auto mm = sync->mShapes.find(parsedNode);
+				if (mm != sync->mShapes.end())
+				{
+					for (auto ss : mm->second)
+						sync->mScope.GetScene().Detach(ss->Get());
+					sync->mShapes.erase(mm);
+				}
 			}
 
 			//motion blur
@@ -539,7 +553,7 @@ struct RebuildJobParams
 						shape.RemoveDisplacement();
 
 					shape.SetShadowFlag(castsShadows);
-					shape.SetShadowCatcherFlag(false);
+					shape.SetShadowCatcherFlag(false); // bug or feature?
 
 					frw::Shader volumeShader;
 					if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
@@ -599,7 +613,7 @@ struct RebuildJobParams
 					{
 						if (!shader)
 						{
-							if (shader = sync->CreateShader(currentMtl, parsedNode, false))
+							if (shader = sync->CreateShader(currentMtl, parsedNode, false))  // Expensive call here!
 							{
 								sync->mShaderCache.insert(std::make_pair(currentMtl, shader));
 							}
@@ -622,12 +636,16 @@ struct RebuildJobParams
 							if (mm != sync->mMaterialUsers.end())
 							{
 								if (mm->second.find(sshape) == mm->second.end())
+								{
+									std::lock_guard<std::mutex> lock(job_mutex);
 									mm->second.insert(sshape);
+								}
 							}
 							else
 							{
 								std::set<SShapePtr> uu;
 								uu.insert(sshape);
+								std::lock_guard<std::mutex> lock(job_mutex);
 								sync->mMaterialUsers.insert(std::make_pair(currentMtl, uu));
 							}
 						}
@@ -649,7 +667,6 @@ struct RebuildJobParams
 					std::wstring name = parsedNode->GetName();
 					std::string name_s(name.begin(), name.end());
 					shape.SetName(name_s.c_str());
-
 					sync->mScope.GetScene().Attach(shape);
 
 					// placeholder code: do not remove
@@ -659,18 +676,95 @@ struct RebuildJobParams
 					//	enviroLight.SetPortal(shape);
 				}
 			}
+
 		}
+
+		std::chrono::steady_clock::time_point tFin = std::chrono::steady_clock::now();
+		std::chrono::duration<double> time_in_processing = std::chrono::duration_cast<std::chrono::duration<double>>(tFin - tStart);
+		//times.push_back(time_in_processing);
 
 		return true;
 	}
 };
 
-void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& instances)
+void Synchronizer::BuildShadersCache(tMaterialCache& material_cache)
+{
+	std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
+
+	times.reserve(material_cache.size());
+
+	for_each(material_cache.begin(), material_cache.end(), [&](std::pair<Mtl* const, std::pair<INode*, imgHolder> >& cache_entry)
+	{
+		CreatePreCalculatedData(cache_entry.first, cache_entry.second.first, false, cache_entry.second.second);
+	});
+
+	// calculate images (normal maps) in preparation to shaders creation
+	/*{
+		std::condition_variable jobDone;
+		std::mutex jobDone_mutex;
+		int jobs_available = 4; // should depend on hardware threads
+		std::vector<std::future<void>> results;
+
+		for_each(material_cache.begin(), material_cache.end(), [&](std::pair<Mtl* const, std::pair<INode*, imgHolder> >& cache_entry) 
+		{
+			std::unique_lock<std::mutex> lock(jobDone_mutex); // limit amount of threads used for job processing (to avoid creating too many threads and corresponding overhead)
+			if (jobs_available == 0)
+			{
+				jobDone.wait(lock); // wait until there is free thread available
+			}
+			jobs_available--;
+			// fill cache_entry.second.second with pointer on Bitmap or Image (that will be used during shader creation)
+			results.emplace_back(std::async(std::launch::async, [&](std::pair<Mtl* const, std::pair<INode*, imgHolder> >& cache_entry) 
+			{
+				std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
+				CreatePreCalculatedData(cache_entry.first, cache_entry.second.first, false, cache_entry.second.second); // Expensive call here!
+
+				//std::chrono::steady_clock::time_point tFin = std::chrono::steady_clock::now();
+				//time_mutex.lock();
+				//std::chrono::duration<double> time_in_processing = std::chrono::duration_cast<std::chrono::duration<double>>(tFin - tStart);
+				//time_mutex.unlock();
+				//times.push_back(time_in_processing);
+
+				jobDone_mutex.lock();
+				jobs_available++;
+				jobDone_mutex.unlock();
+
+				jobDone.notify_one();
+			}, std::ref(cache_entry)));  
+
+			int debugi = 0;
+		});
+	}*/
+
+	std::chrono::steady_clock::time_point t12 = std::chrono::steady_clock::now();
+	std::chrono::duration<double> time_in_preparing = std::chrono::duration_cast<std::chrono::duration<double>>(t12 - t11);
+
+	// create shaders
+	for (std::pair<Mtl* const, std::pair<INode*, imgHolder> >& cache_entry : material_cache)
+	{
+		std::chrono::steady_clock::time_point tStart = std::chrono::steady_clock::now();
+
+		// Can not run code below in parallel directly because calls to RPR from different threads are not supported
+		{
+			frw::Shader shader = CreateShader(cache_entry.first, cache_entry.second.first, false, &cache_entry.second.second);
+			mShaderCache.insert(std::make_pair(cache_entry.first, shader));
+		}
+
+		std::chrono::steady_clock::time_point tFin = std::chrono::steady_clock::now();
+		std::chrono::duration<double> time_in_processing = std::chrono::duration_cast<std::chrono::duration<double>>(tFin - tStart);
+		times2.push_back(time_in_processing);
+	}
+
+	std::chrono::steady_clock::time_point t13 = std::chrono::steady_clock::now();
+	std::chrono::duration<double> time_in_building = std::chrono::duration_cast<std::chrono::duration<double>>(t13 - t12);
+}
+
+void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& instances) // rebuild conveyor
 {
 	std::vector<RebuildJobParams> arr_jobs;
 
-	// rebuild conveyor
-	for (auto& instance : instances) // init rebuild job data
+	// init rebuild jobs data
+	for (auto& instance : instances)
 	{
 		const std::list<INode *> &nodes = instance.second;
 		auto t = mBridge->t();
@@ -679,6 +773,7 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 
 	std::chrono::steady_clock::time_point tstart = std::chrono::steady_clock::now();
 
+	// Parse Mesh
 	{
 		std::condition_variable jobDone;
 		std::mutex jobDone_mutex;
@@ -692,19 +787,22 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 			if (jobs_available == 0)
 			{
 				jobDone.wait(lock); // wait until there is free thread available
-				jobs_available++;
 			}
 			jobs_available--;
 
 			// start data processing job
-			results.emplace_back(std::async(std::launch::async, [&jobDone](RebuildJobParams& params)
+			results.emplace_back(std::async(std::launch::async, [&](RebuildJobParams& params)
 			{
 				// prepare data for parse mesh
 				params.PrepareData();
 				// launch parse mesh
-				bool result = params.LaunchParseMesh();	FASSERT(result);
-				jobDone.notify_one();
+				bool result = params.LaunchParseMesh();
 
+				jobDone_mutex.lock();
+				jobs_available++;
+				jobDone_mutex.unlock();
+
+				jobDone.notify_one();
 				return result;
 			}, std::ref(params))); // <= can not pass just a refernece to std::async because it applies decay copy (copies object passed by reference)
 		});
@@ -713,9 +811,27 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 	std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
 	std::chrono::duration<double> time_in_parsing = std::chrono::duration_cast<std::chrono::duration<double>>(t11 - tstart);
 
+	// Build Shader Cache
+	// - get material map from nodes (run in single thread only)
+	tMaterialCache material_cache;
+	for (auto& tJob : arr_jobs)
+	{
+		for (auto& parsedNode : tJob.nodes)
+		{
+			const std::vector<Mtl*> nodeMtls = GetAllMaterials(parsedNode, tJob.t);
+			for (auto& currentMtl : nodeMtls)
+				material_cache.insert(std::make_pair(currentMtl, std::make_pair(parsedNode, imgHolder())));
+		}
+	}
+	// - create shaders from materials (launch this in parallel)
+	std::chrono::steady_clock::time_point t21 = std::chrono::steady_clock::now();
+	BuildShadersCache(material_cache);
+	std::chrono::steady_clock::time_point t22 = std::chrono::steady_clock::now();
+	std::chrono::duration<double> time_in_building_cache = std::chrono::duration_cast<std::chrono::duration<double>>(t22 - t21);
+
+	// Process Nodes (add shapes to the scene)
 	for_each(arr_jobs.begin(), arr_jobs.end(), [](RebuildJobParams& params)
 	{
-		//  - process data produced by parse mesh
 		params.ProcessNodes();
 	});
 

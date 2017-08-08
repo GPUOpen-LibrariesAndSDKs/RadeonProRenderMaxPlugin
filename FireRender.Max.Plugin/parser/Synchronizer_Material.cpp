@@ -29,15 +29,20 @@ void Synchronizer::RebuildUsersOfMaterial(Mtl *pMat, std::vector<INode*> &nodesT
 	}
 }
 
-frw::Shader Synchronizer::CreateShader(Mtl *pMat, INode *node, bool force)
+frw::Shader Synchronizer::CreateShader(Mtl *pMat, INode *node, bool force, imgHolder* img_holder /*= nullptr*/)
 {
-	auto res = mtlParser.createShader(pMat, node, true);
+	auto res = mtlParser.createShader(pMat, node, true, img_holder);
 	if (mtlParser.shaderData.mNumEmissive > 0)
 	{
 		if (mEmissives.find(pMat) == mEmissives.end())
 			mEmissives.insert(pMat);
 	}
 	return res;
+}
+
+void Synchronizer::CreatePreCalculatedData(Mtl *pMat, INode *node, bool force, imgHolder& img_holder)
+{
+	mtlParser.CreatePreCalculatedData(pMat, &img_holder, node, true);
 }
 
 void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild)
