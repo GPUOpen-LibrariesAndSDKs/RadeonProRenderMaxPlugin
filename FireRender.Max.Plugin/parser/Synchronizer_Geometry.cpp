@@ -677,7 +677,9 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 		arr_jobs.emplace_back(this, t, nodes);
 	}
 
+	#ifdef _DEBUG
 	std::chrono::steady_clock::time_point tstart = std::chrono::steady_clock::now();
+	#endif
 
 	{
 		std::condition_variable jobDone;
@@ -692,26 +694,31 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 			if (jobs_available == 0)
 			{
 				jobDone.wait(lock); // wait until there is free thread available
-				jobs_available++;
 			}
 			jobs_available--;
 
 			// start data processing job
-			results.emplace_back(std::async(std::launch::async, [&jobDone](RebuildJobParams& params)
+			results.emplace_back(std::async(std::launch::async, [&](RebuildJobParams& params)
 			{
 				// prepare data for parse mesh
 				params.PrepareData();
 				// launch parse mesh
-				bool result = params.LaunchParseMesh();	FASSERT(result);
-				jobDone.notify_one();
+				bool result = params.LaunchParseMesh();
 
+				jobDone_mutex.lock();
+				jobs_available++;
+				jobDone_mutex.unlock();
+
+				jobDone.notify_one();
 				return result;
 			}, std::ref(params))); // <= can not pass just a refernece to std::async because it applies decay copy (copies object passed by reference)
 		});
 	}
 
+	#ifdef _DEBUG
 	std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
 	std::chrono::duration<double> time_in_parsing = std::chrono::duration_cast<std::chrono::duration<double>>(t11 - tstart);
+	#endif
 
 	for_each(arr_jobs.begin(), arr_jobs.end(), [](RebuildJobParams& params)
 	{
@@ -719,10 +726,10 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 		params.ProcessNodes();
 	});
 
+	#ifdef _DEBUG
 	std::chrono::steady_clock::time_point t12 = std::chrono::steady_clock::now();
-	std::chrono::duration<double> time_in_proxessing = std::chrono::duration_cast<std::chrono::duration<double>>(t12 - t11);
-
-	int debugi = 1;
+	std::chrono::duration<double> time_in_processing = std::chrono::duration_cast<std::chrono::duration<double>>(t12 - t11);
+	#endif
 }
 
 void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
