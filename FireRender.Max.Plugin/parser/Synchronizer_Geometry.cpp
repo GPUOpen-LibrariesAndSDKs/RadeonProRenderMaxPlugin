@@ -15,7 +15,7 @@
 #include "plugin/ScopeManager.h"
 #include <list>
 #include <future>
-#include <chrono>
+#include "PluginContext.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -52,6 +52,7 @@ namespace
 	}
 };
 
+std::mutex rprAccessMutex; // this is used to ensure that there are no calls to RPR from different threads at the same time
 
 bool Synchronizer::CreateMesh(std::vector<frw::Shape>& result, bool& directlyVisible,
 	frw::Context& context,
@@ -258,16 +259,20 @@ bool Synchronizer::CreateMesh(std::vector<frw::Shape>& result, bool& directlyVis
 				}
 			}
 
-			auto shape = context.CreateMeshEx(
-				v[0], v.size(), sizeof(v[0]),
-				n[0], n.size(), sizeof(n[0]),
-				nullptr, 0, 0,
-				numChannels, texcoords, texcoordsNum, texcoordStride,
-				&vi[i][0], sizeof(vi[i][0]),
-				&ni[i][0], sizeof(ni[i][0]),
-				texcoordIndices, texcoordIdxStride,
-				&vertNums[0],
-				currMeshFaces);
+			frw::Shape shape;
+			{
+				std::lock_guard<std::mutex> rprAccessLock(rprAccessMutex);
+				shape = context.CreateMeshEx(
+					v[0], v.size(), sizeof(v[0]),
+					n[0], n.size(), sizeof(n[0]),
+					nullptr, 0, 0,
+					numChannels, texcoords, texcoordsNum, texcoordStride,
+					&vi[i][0], sizeof(vi[i][0]),
+					&ni[i][0], sizeof(ni[i][0]),
+					texcoordIndices, texcoordIdxStride,
+					&vertNums[0],
+					currMeshFaces);
+			}
 
 			result.push_back(shape);
 		}
@@ -281,7 +286,7 @@ bool Synchronizer::CreateMesh(std::vector<frw::Shape>& result, bool& directlyVis
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// Parses a single mesh object. Outputs a list of shapes because the mesh can
+// Parses a single mesh object (creates RPR mesh from Max node). Outputs a list of shapes because the mesh can
 // have multiple material IDs, which RPR cannot handle in single shape.
 // parameters:
 // inode - Scene node where the mesh was encountered
@@ -289,44 +294,7 @@ bool Synchronizer::CreateMesh(std::vector<frw::Shape>& result, bool& directlyVis
 // numSubmtls - Number of submaterials that the node material holds. If it is
 //              more than 1 (it uses multi-material) and the mesh has multiple
 //              material IDs, we will have to create multiple shapes.
-//
-
-std::vector<frw::Shape> Synchronizer::parseMesh(INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces)
-{
-	meshFaces = 0;
-	std::vector<frw::Shape> result;
-	if (!evaluatedObject)
-		return result;
-
-	auto context = mScope.GetContext();
-	FASSERT(evaluatedObject != NULL && inode != NULL);
-
-	auto t = mBridge->t();
-		
-	// hopefully we can get this info
-	int numFaces = 0, numVerts = 0;
-	if (evaluatedObject->PolygonCount(t, numFaces, numVerts))
-		meshFaces = numFaces;
-	else
-		DebugPrint(L"no face count\n");
-
-	FireRenderView view;
-	
-	bool directlyVisible;
-	if (!CreateMesh(result, directlyVisible,
-	context, mMasterScale,
-	t, view, inode, evaluatedObject, numSubmtls, meshFaces, flipFaces))
-		return std::vector<frw::Shape>();
-
-	for (auto& shape : result)
-	{
-		if (!directlyVisible)
-			shape.SetVisibility(false);
-	}
-
-	return result;
-}
-
+// returns - true if successfull, false otherwise
 bool Synchronizer::parseMesh(std::vector<frw::Shape>& shapes, INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces)
 {
 	shapes.clear();
@@ -341,7 +309,8 @@ bool Synchronizer::parseMesh(std::vector<frw::Shape>& shapes, INode* inode, Obje
 	auto t = mBridge->t();
 
 	// hopefully we can get this info
-	int numFaces = 0, numVerts = 0;
+	int numFaces = 0;
+	int numVerts = 0;
 	if (evaluatedObject->PolygonCount(t, numFaces, numVerts))
 		meshFaces = numFaces;
 	else
@@ -349,15 +318,15 @@ bool Synchronizer::parseMesh(std::vector<frw::Shape>& shapes, INode* inode, Obje
 
 	FireRenderView view;
 
-	bool directlyVisible;
-	if (!CreateMesh(shapes, directlyVisible,
+	bool isDirectlyVisible;
+	if (!CreateMesh(shapes, isDirectlyVisible,
 		context, mMasterScale,
 		t, view, inode, evaluatedObject, numSubmtls, meshFaces, flipFaces))
 		return false;
 
 	for (auto& shape : shapes)
 	{
-		if (!directlyVisible)
+		if (!isDirectlyVisible)
 			shape.SetVisibility(false);
 	}
 
@@ -367,10 +336,10 @@ bool Synchronizer::parseMesh(std::vector<frw::Shape>& shapes, INode* inode, Obje
 // struct that handles data for rebuild request for an instance
 struct RebuildJobParams
 {
-	std::shared_ptr<std::vector<frw::Shape> > pShapes;
+	std::vector<frw::Shape> arrShapes;
 	size_t numMtls;
 	size_t currMeshFaces;
-	BOOL parity;
+	bool parity;
 	TimeValue t;
 
 	const std::list<INode *> &nodes;
@@ -381,7 +350,7 @@ struct RebuildJobParams
 		: sync(_sync)
 		, nodes(_nodes)
 		, t(_t)
-		, pShapes()
+		, arrShapes()
 		, numMtls(0)
 		, currMeshFaces(0)
 		, parity(false)
@@ -396,7 +365,7 @@ struct RebuildJobParams
 		}
 
 		// Evaluate the mesh of first node in the group
-		auto firstNode = *nodes.begin();
+		auto firstNode = *(nodes.begin());
 		const ObjectState& state = firstNode->EvalWorldState(t);
 		size_t currMeshFaces = 0;
 
@@ -409,18 +378,17 @@ struct RebuildJobParams
 
 	bool LaunchParseMesh()
 	{
-		INode* firstNode = *nodes.begin();
+		INode* firstNode = *(nodes.begin());
 		const ObjectState& state = firstNode->EvalWorldState(t);
-		pShapes = std::make_shared< std::vector<frw::Shape> >();
-		bool parseOk = sync->parseMesh(*(pShapes.get()), firstNode, state.obj, numMtls, currMeshFaces, !!parity);
-		return (parseOk && pShapes->size() > 0); // evaluating the object yielded no faces - e.g. the object was empty
+		bool parseOk = sync->parseMesh(arrShapes, firstNode, state.obj, numMtls, currMeshFaces, parity);
+		return (parseOk && (arrShapes.size() > 0)); // evaluating the object yielded no faces - e.g. the object was empty
 	}
 
 	bool ProcessNodes() // modifies scene
 	{
-		auto firstNode = *nodes.begin();
+		auto firstNode = *(nodes.begin());
 
-		std::vector<frw::Shape>& originalShapes = *(pShapes.get());
+		std::vector<frw::Shape>& originalShapes = arrShapes;
 		// iterate over all instances inside the group
 
 		for (auto& parsedNode : nodes)
@@ -452,10 +420,6 @@ struct RebuildJobParams
 					sync->mScope.GetScene().Detach(ss->Get());
 				sync->mShapes.erase(mm);
 			}
-
-			//motion blur
-			// wip: do not remove.
-			//Motion motion = getMotion(view, parsedNode);
 
 			const auto& nodeMtls = GetAllMaterials(parsedNode, t);
 			int res;
@@ -490,7 +454,7 @@ struct RebuildJobParams
 					{
 						// intentionally void
 					}
-					else if (currentMtl && currentMtl->ClassID() == Corona::MTL_CID)
+					else if (currentMtl && (currentMtl->ClassID() == Corona::MTL_CID))
 					{
 						if (ScopeManagerMax::CoronaOK)
 						{
@@ -503,19 +467,19 @@ struct RebuildJobParams
 								castsShadows = false;
 						}
 					}
-					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID)
+					else if (currentMtl && (currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID))
 					{
 						IParamBlock2* pb = currentMtl->GetParamBlock(0);
 						castsShadows = GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t);
 						shadowCatcher = GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t);
 					}
-					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_UBERMTL_CID)
+					else if (currentMtl && (currentMtl->ClassID() == FIRERENDER_UBERMTL_CID))
 					{
 						IParamBlock2* pb = currentMtl->GetParamBlock(0);
 						castsShadows = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t);
 						shadowCatcher = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t);
 					}
-					else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
+					else if (currentMtl && (currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID))
 					{
 						if (ScopeManagerMax::CoronaOK)
 							shadowCatcher = true;
@@ -523,9 +487,10 @@ struct RebuildJobParams
 
 					frw::Value displImageNode;
 					bool notAccurate;
-					if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
+					if (currentMtl && (currentMtl != GEOM_DISABLED_MATERIAL))
 						displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, sync->mtlParser, currentMtl,
 							minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
+
 					if (displImageNode)
 					{
 						if (notAccurate)
@@ -542,7 +507,7 @@ struct RebuildJobParams
 					shape.SetShadowCatcherFlag(false);
 
 					frw::Shader volumeShader;
-					if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
+					if (currentMtl && (currentMtl != GEOM_DISABLED_MATERIAL))
 					{
 						auto ii = sync->mVolumeShaderCache.find(currentMtl);
 						if (ii != sync->mVolumeShaderCache.end())
@@ -552,6 +517,7 @@ struct RebuildJobParams
 							volumeShader = sync->mtlParser.findVolumeMaterial(currentMtl);
 							if (volumeShader)
 								sync->mVolumeShaderCache.insert(std::make_pair(currentMtl, volumeShader));
+
 						}
 						if (volumeShader)
 							shape.SetVolumeShader(volumeShader);
@@ -651,12 +617,6 @@ struct RebuildJobParams
 					shape.SetName(name_s.c_str());
 
 					sync->mScope.GetScene().Attach(shape);
-
-					// placeholder code: do not remove
-					// Set any shape with portal material as RPR portal
-					//if (currentMtl && currentMtl->ClassID() == Corona::PORTAL_MTL_CID && enviroLight)
-					//	if (ScopeManagerMax::CoronaOK)
-					//	enviroLight.SetPortal(shape);
 				}
 			}
 		}
@@ -677,25 +637,26 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 		arr_jobs.emplace_back(this, t, nodes);
 	}
 
-	#ifdef _DEBUG
-	std::chrono::steady_clock::time_point tstart = std::chrono::steady_clock::now();
-	#endif
-
 	{
 		std::condition_variable jobDone;
-		std::mutex jobDone_mutex;
-		int jobs_available = 4; // should depend on hardware threads
+		std::mutex jobDoneMutex;
+		int threadsAvailable = PluginContext::instance().GetNumberOfThreadsAvailableForAsyncCalls();
 		std::vector<std::future<bool>> results;
 
 		// launch jobs processing threads
-		for_each(arr_jobs.begin(), arr_jobs.end(), [&](RebuildJobParams& params) // parallel for each
+		// - launches jobs processing in no more than threadsAvailable threads
+		// - this is done to avoid creating too many threads and corresponding overhead
+		//  loop below first launches as many job processing as there are free threads awailable,
+		//  then launches next job processing only after one job is complete
+		for_each(arr_jobs.begin(), arr_jobs.end(), [&](RebuildJobParams& params)
 		{
-			std::unique_lock<std::mutex> lock(jobDone_mutex); // limit amount of threads used for job processing (to avoid creating too many threads and corresponding overhead)
-			if (jobs_available == 0)
+			std::unique_lock<std::mutex> lock(jobDoneMutex);
+			if (threadsAvailable == 0)
 			{
-				jobDone.wait(lock); // wait until there is free thread available
+				// wait until there is free thread available
+				jobDone.wait(lock); 
 			}
-			jobs_available--;
+			threadsAvailable--;
 
 			// start data processing job
 			results.emplace_back(std::async(std::launch::async, [&](RebuildJobParams& params)
@@ -705,9 +666,9 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 				// launch parse mesh
 				bool result = params.LaunchParseMesh();
 
-				jobDone_mutex.lock();
-				jobs_available++;
-				jobDone_mutex.unlock();
+				jobDoneMutex.lock();
+				threadsAvailable++;
+				jobDoneMutex.unlock();
 
 				jobDone.notify_one();
 				return result;
@@ -715,287 +676,11 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 		});
 	}
 
-	#ifdef _DEBUG
-	std::chrono::steady_clock::time_point t11 = std::chrono::steady_clock::now();
-	std::chrono::duration<double> time_in_parsing = std::chrono::duration_cast<std::chrono::duration<double>>(t11 - tstart);
-	#endif
-
 	for_each(arr_jobs.begin(), arr_jobs.end(), [](RebuildJobParams& params)
 	{
 		//  - process data produced by parse mesh
 		params.ProcessNodes();
 	});
-
-	#ifdef _DEBUG
-	std::chrono::steady_clock::time_point t12 = std::chrono::steady_clock::now();
-	std::chrono::duration<double> time_in_processing = std::chrono::duration_cast<std::chrono::duration<double>>(t12 - t11);
-	#endif
-}
-
-void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
-{
-	size_t numMtls = 0;
-
-	auto t = mBridge->t();
-
-	for (auto& parsedNode : nodes)
-	{
-		RemoveMaterialsFromNode(parsedNode);
-		numMtls = std::max(numMtls, GetAllMaterials(parsedNode, t).size());
-	}
-
-	// Evaluate the mesh of first node in the group
-	auto firstNode = *nodes.begin();
-	const ObjectState& state = firstNode->EvalWorldState(t);
-	size_t currMeshFaces = 0;
-	
-	auto tm = firstNode->GetObjTMAfterWSM(mBridge->t());
-	tm.SetTrans(tm.GetTrans() * mMasterScale);
-	BOOL parity = tm.Parity();
-
-	auto originalShapes = parseMesh(firstNode, state.obj, numMtls, currMeshFaces, !!parity);
-	if (originalShapes.size() == 0)
-		return; // evaluating the object yielded no faces - e.g. the object was empty
-
-	FASSERT(originalShapes.size() == numMtls);
-
-	// iterate over all instances inside the group
-	for (auto& parsedNode : nodes)
-	{
-		std::vector<frw::Shape> shapes;
-		// For the first instance we directly reuse the parsed shapes, for subsequent ones we use instances
-		if (parsedNode != firstNode)
-		{
-			for (int i = 0; i < numMtls; ++i)
-			{
-				if (originalShapes[i])
-				{
-					auto shape = originalShapes[i].CreateInstance(mScope);
-					shapes.push_back(shape);
-				}
-				else
-					shapes.push_back(frw::Shape());
-			}
-		}
-		else
-			shapes = originalShapes;
-
-		// associate this node to the RPR shapes
-		auto mm = mShapes.find(parsedNode);
-		if (mm != mShapes.end())
-		{
-			for (auto ss : mm->second)
-				mScope.GetScene().Detach(ss->Get());
-			mShapes.erase(mm);
-		}
-						
-		//motion blur
-		// wip: do not remove.
-		//Motion motion = getMotion(view, parsedNode);
-
-		const auto& nodeMtls = GetAllMaterials(parsedNode, t);
-		int res;
-		FASSERT(numMtls == shapes.size());
-
-		// now go over all mtl IDs, set transforms and materials for shapes and handle special cases
-		for (size_t i = 0; i < numMtls; ++i)
-		{
-			if (auto shape = shapes[i])
-			{
-				auto tm = parsedNode->GetObjTMAfterWSM(t);
-				tm.SetTrans(tm.GetTrans() * mMasterScale);
-				shape.SetTransform(tm);
-
-				Mtl* currentMtl = nodeMtls[std::min(i, nodeMtls.size() - 1)];
-
-				float minHeight = 0.f;
-				float maxHeight = 0.0f;
-				float subdivision = 0.f;
-				float creaseWeight = 0.f;
-				int boundary = RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_AND_CORNER;
-
-				bool shadowCatcher = false;
-				bool castsShadows = true;
-
-				// Handling of some special flags is necessary here at geometry level
-				if (!currentMtl)
-				{
-					// intentionally void
-				}
-				else if (currentMtl == GEOM_DISABLED_MATERIAL)
-				{
-					// intentionally void
-				}
-				else if (currentMtl && currentMtl->ClassID() == Corona::MTL_CID)
-				{
-					if (ScopeManagerMax::CoronaOK)
-					{
-					IParamBlock2* pb = currentMtl->GetParamBlock(0);
-					const bool useCaustics = GetFromPb<bool>(pb, Corona::MTLP_USE_CAUSTICS, t);
-					const float lRefract = GetFromPb<float>(pb, Corona::MTLP_LEVEL_REFRACT, t);
-					const float lOpacity = GetFromPb<float>(pb, Corona::MTLP_LEVEL_OPACITY, t);
-					
-					if ((lRefract > 0.f || lOpacity < 1.f) && !useCaustics)
-						castsShadows = false;
-				}
-				}
-				else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID)
-				{
-					IParamBlock2* pb = currentMtl->GetParamBlock(0);
-					castsShadows = GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t);
-					shadowCatcher = GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t);
-				}
-				else if (currentMtl && currentMtl->ClassID() == FIRERENDER_UBERMTL_CID)
-				{
-					IParamBlock2* pb = currentMtl->GetParamBlock(0);
-					castsShadows = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t);
-					shadowCatcher = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t);
-				}
-				else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
-				{
-					if (ScopeManagerMax::CoronaOK)
-					shadowCatcher = true;
-				}
-
-				frw::Value displImageNode;
-				bool notAccurate;
-				if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
-					displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, currentMtl,
-						minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
-				if (displImageNode)
-				{
-					if (notAccurate)
-						mFlags.mHasDirectDisplacements = true;
-					shape.SetDisplacement(displImageNode, minHeight, maxHeight);
-					shape.SetSubdivisionFactor(subdivision);
-					shape.SetSubdivisionCreaseWeight(creaseWeight);
-					shape.SetSubdivisionBoundaryInterop(boundary);
-				}
-				else
-					shape.RemoveDisplacement();
-
-				shape.SetShadowFlag(castsShadows);
-				shape.SetShadowCatcherFlag(false);
-
-				frw::Shader volumeShader;
-				if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
-				{
-					auto ii = mVolumeShaderCache.find(currentMtl);
-					if (ii != mVolumeShaderCache.end())
-						volumeShader = ii->second;
-					else
-					{
-					volumeShader = mtlParser.findVolumeMaterial(currentMtl);
-				if (volumeShader)
-							mVolumeShaderCache.insert(std::make_pair(currentMtl, volumeShader));
-					}
-					if (volumeShader)
-					shape.SetVolumeShader(volumeShader);
-					else
-						shape.SetVolumeShader(frw::Shader());
-				}
-
-				SShapePtr sshape(new SShape(shape, parsedNode, currentMtl));
-
-				frw::Shader shader;
-				if (currentMtl)
-				{
-					auto ii = mShaderCache.find(currentMtl);
-					if (ii != mShaderCache.end())
-						shader = ii->second;
-				}
-
-				if (!currentMtl)
-				{
-					if (!shader)
-					{
-						// This geometry is using its wireframe color
-						shader = frw::DiffuseShader(mtlParser.materialSystem);
-						COLORREF color = parsedNode->GetWireColor();
-						// COLORREF format = 0x00BBGGRR
-						float r = float(color & 0x000000ff) * 1.f / 255.f;
-						float g = float((color & 0x0000ff00) >> 8) * 1.f / 255.f;
-						float b = float((color & 0x00ff0000) >> 16) * 1.f / 255.f;
-						shader.SetValue("color", frw::Value(r, g, b));
-					}
-					shape.SetShader(shader);
-				}
-				else if (currentMtl == GEOM_DISABLED_MATERIAL)
-				{
-					if (!shader)
-					{
-						// disabled materials appear black
-						shader = frw::DiffuseShader(mtlParser.materialSystem);
-						shader.SetValue("color", frw::Value(0.f));
-						mShaderCache.insert(std::make_pair(currentMtl, shader));
-					}
-					shape.SetShader(shader);
-				}
-				else
-				{
-					if (!shader)
-					{
-						if (shader = CreateShader(currentMtl, parsedNode, false))
-						{
-							mShaderCache.insert(std::make_pair(currentMtl, shader));
-						}
-					}
-					
-					if (!shader)
-					{
-						shader = frw::DiffuseShader(mtlParser.materialSystem);
-						shader.SetValue("color", frw::Value(0., 0., 0.)); // signal something's wrong
-						mShaderCache.insert(std::make_pair(currentMtl, shader));
-					}
-
-					// assign the shader to the RPR shape
-					shape.SetShader(shader);
-
-					// add to the material users list
-					if (currentMtl)
-					{
-						auto mm = mMaterialUsers.find(currentMtl);
-						if (mm != mMaterialUsers.end())
-						{
-							if (mm->second.find(sshape) == mm->second.end())
-								mm->second.insert(sshape);
-						}
-						else
-						{
-							std::set<SShapePtr> uu;
-							uu.insert(sshape);
-							mMaterialUsers.insert(std::make_pair(currentMtl, uu));
-						}
-					}
-				}
-
-				// associated this shape to the parent node
-				auto nn = mShapes.find(parsedNode);
-				if (nn != mShapes.end())
-				{
-					nn->second.push_back(sshape);
-				}
-				else
-				{
-					std::vector<SShapePtr> vv;
-					vv.push_back(sshape);
-					mShapes.insert(std::make_pair(parsedNode, vv));
-				}
-
-				std::wstring name = parsedNode->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
-				
-				mScope.GetScene().Attach(shape);
-
-				// placeholder code: do not remove
-				// Set any shape with portal material as RPR portal
-				//if (currentMtl && currentMtl->ClassID() == Corona::PORTAL_MTL_CID && enviroLight)
-				//	if (ScopeManagerMax::CoronaOK)
-				//	enviroLight.SetPortal(shape);
-			}
-		}
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1192,9 +877,9 @@ bool Synchronizer::ResetMaterial(INode *node)
 				shader = frw::DiffuseShader(mtlParser.materialSystem);
 				COLORREF color = node->GetWireColor();
 				// COLORREF format = 0x00BBGGRR
-				float r = float(color & 0x000000ff) * 1.f / 255.f;
-				float g = float((color & 0x0000ff00) >> 8) * 1.f / 255.f;
-				float b = float((color & 0x00ff0000) >> 16) * 1.f / 255.f;
+				float r = float(color & 0x000000ff) / 255.f;
+				float g = float((color & 0x0000ff00) >> 8) / 255.f;
+				float b = float((color & 0x00ff0000) >> 16) / 255.f;
 				shader.SetValue("color", frw::Value(r, g, b));
 			}
 			shape->Get().SetShader(shader);

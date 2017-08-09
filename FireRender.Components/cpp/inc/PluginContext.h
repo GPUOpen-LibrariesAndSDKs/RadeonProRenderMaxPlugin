@@ -13,6 +13,8 @@ public:
 
 	bool HasSSE41() const;
 
+	int GetNumberOfThreadsAvailableForAsyncCalls(void) const;
+
 private:
 	bool CheckSSE41();
 

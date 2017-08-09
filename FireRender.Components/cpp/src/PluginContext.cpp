@@ -56,3 +56,10 @@ bool PluginContext::CheckSSE41()
 
 	return hasSSE41;
 }
+
+int PluginContext::GetNumberOfThreadsAvailableForAsyncCalls(void) const
+{
+	// Plugin and 3DMax already create a lot of threads
+	// To avoid overhead of having too many threads, number of threads used for async computations should be limited to some reasonable number
+	return 4;
+}
