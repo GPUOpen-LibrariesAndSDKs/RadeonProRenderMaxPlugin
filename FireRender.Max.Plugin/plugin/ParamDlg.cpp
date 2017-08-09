@@ -2913,7 +2913,10 @@ void CRollout::DeleteRollout()
 {
 	if (mHwnd)
 	{
-		mRenderParms->DeleteRollupPage(mHwnd);
+		if(mTabId)
+			mRenderParms->DeleteTabRollupPage(*mTabId, mHwnd);
+		else
+			mRenderParms->DeleteRollupPage(mHwnd);
 
 		DLSetWindowLongPtr<CRollout*>(mHwnd, 0);
 		mHwnd = 0;
