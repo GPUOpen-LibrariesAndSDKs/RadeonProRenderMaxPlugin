@@ -448,6 +448,9 @@ static ParamBlockDesc2 pbDesc(
 	FRUBERMTLV2_MAT_NORMAL_MUL, _T("MaterialNormalMul"), TYPE_FLOAT, P_ANIMATABLE, 0,
 	p_default, 1.f, p_range, 0.f, FLT_MAX, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_MAT_NORMAL_MUL, IDC_UBER_MAT_NORMAL_MUL_S, SPIN_AUTOSCALE, PB_END,
 
+	FRUBERMTLV2_MAT_NORMAL, _T("MaterialNormal"), TYPE_RGBA, P_ANIMATABLE, 0,
+	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_UBER_MAT_NORMAL, PB_END,
+
 	FRUBERMTLV2_MAT_NORMAL_MAP, _T("MaterialNormalTexmap"), TYPE_TEXMAP, 0, 0,
 	p_subtexno, FRUBERMTLV2_MAP_MAT_NORMAL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_MAT_NORMAL_T, PB_END,
 
@@ -893,8 +896,8 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 	shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, value);
 
 	// MATERIAL NORMAL
-	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_NORMAL_USEMAP,
-		FRUBERMTLV2_MAT_NORMAL_MAP, FRUBERMTLV2_MAT_NORMAL_MUL);
+	parameters = GetParameters(FRUBERMTLV2_MAT_NORMAL_USEMAP,
+		FRUBERMTLV2_MAT_NORMAL_MAP, FRUBERMTLV2_MAT_NORMAL, FRUBERMTLV2_MAT_NORMAL_MUL);
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 
@@ -905,6 +908,8 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_DISPLACE_USEMAP,
 		FRUBERMTLV2_MAT_DISPLACE_MAP, FRUBERMTLV2_MAT_DISPLACE_MUL);
 
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
+
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 	
 	if ( value.IsNode() ) // a map must be connected
@@ -913,6 +918,8 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 	// MATERIAL BUMP
 	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_BUMP_USEMAP,
 		FRUBERMTLV2_MAT_BUMP_MAP, FRUBERMTLV2_MAT_BUMP_MUL);
+
+	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 	
