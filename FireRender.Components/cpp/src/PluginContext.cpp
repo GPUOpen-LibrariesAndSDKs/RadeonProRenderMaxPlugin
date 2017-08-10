@@ -65,13 +65,11 @@ int PluginContext::GetNumberOfCores()
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
 
-	int numCPU = sysinfo.dwNumberOfProcessors;
-	return numCPU;
+	int numCPU = sysinfo.dwNumberOfProcessors; // returns number of threads, 2x number of the CPU
+	return numCPU / 2;
 }
 
 int PluginContext::GetNumberOfThreadsAvailableForAsyncCalls() const
 {
-	// Plugin and 3DMax already create a lot of threads
-	// To avoid overhead of having too many threads, number of threads used for async computations should be limited to some reasonable number
-	return mNumOfCores / 2; //(mNumOfCores > 2) ? (mNumOfCores - 2) : 1;
+	return mNumOfCores;
 }
