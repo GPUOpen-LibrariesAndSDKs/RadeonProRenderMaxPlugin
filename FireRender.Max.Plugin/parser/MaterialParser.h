@@ -30,12 +30,12 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 enum
 {
-	MAP_FLAG_NOFLAGS = 0,
-	MAP_FLAG_NOGAMMA = 1,
-	MAP_FLAG_CLAMP = 2,
-	MAP_FLAG_WANTSHDR = 4,
-	MAP_FLAG_NORMALMAP = 8,
-	MAP_FLAG_BUMPMAP = 16
+	MAP_FLAG_NOFLAGS =		0,
+	MAP_FLAG_NOGAMMA =		(1 << 0),
+	MAP_FLAG_CLAMP =		(1 << 1),
+	MAP_FLAG_WANTSHDR =		(1 << 2),
+	MAP_FLAG_NORMALMAP =	(1 << 3),
+	MAP_FLAG_BUMPMAP =		(1 << 4)
 };
 
 //////////////////////////////////////////////////////////////////////////////
