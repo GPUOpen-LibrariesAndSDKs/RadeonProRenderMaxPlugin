@@ -646,7 +646,7 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 		// launch jobs processing threads
 		// - launches jobs processing in no more than threadsAvailable threads
 		// - this is done to avoid creating too many threads and corresponding overhead
-		//  loop below first launches as many job processing as there are free threads awailable,
+		//  loop below first launches as many job processing as there are free threads available,
 		//  then launches next job processing only after one job is complete
 		for_each(arr_jobs.begin(), arr_jobs.end(), [&](RebuildJobParams& params)
 		{

@@ -17,7 +17,9 @@ public:
 
 private:
 	bool CheckSSE41();
+	int GetNumberOfCores(void);
 
 private:
 	bool mHasSSE41 = false;
+	int mNumOfCores = 0;
 };

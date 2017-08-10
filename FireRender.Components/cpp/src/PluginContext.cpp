@@ -1,6 +1,8 @@
 #include "PluginContext.h"
 
 #include <intrin.h>
+#include <windows.h>
+#include <vector>
 
 PluginContext& PluginContext::instance()
 {
@@ -12,6 +14,7 @@ PluginContext& PluginContext::instance()
 PluginContext::PluginContext()
 {
 	mHasSSE41 = CheckSSE41();
+	mNumOfCores = GetNumberOfCores();
 }
 
 bool PluginContext::HasSSE41() const
@@ -57,9 +60,18 @@ bool PluginContext::CheckSSE41()
 	return hasSSE41;
 }
 
-int PluginContext::GetNumberOfThreadsAvailableForAsyncCalls(void) const
+int PluginContext::GetNumberOfCores()
+{
+	SYSTEM_INFO sysinfo;
+	GetSystemInfo(&sysinfo);
+
+	int numCPU = sysinfo.dwNumberOfProcessors;
+	return numCPU;
+}
+
+int PluginContext::GetNumberOfThreadsAvailableForAsyncCalls() const
 {
 	// Plugin and 3DMax already create a lot of threads
 	// To avoid overhead of having too many threads, number of threads used for async computations should be limited to some reasonable number
-	return 4;
+	return mNumOfCores / 2; //(mNumOfCores > 2) ? (mNumOfCores - 2) : 1;
 }
