@@ -1375,6 +1375,9 @@ void PRManagerMax::SetupCamera(const ParsedView& view, const int imageWidth, con
 		res = rprCameraSetSensorSize(outCamera, view.sensorWidth, view.sensorWidth / float(imageWidth) * float(imageHeight));
 		FASSERT(res == RPR_SUCCESS);
 
+		res = rprCameraSetTiltCorrection(outCamera, -view.tilt.x, -view.tilt.y);
+		FASSERT(res == RPR_SUCCESS);
+
 		if (view.useDof) {
 			res = rprCameraSetFStop(outCamera, view.fSTop);
 			FASSERT(res == RPR_SUCCESS);
