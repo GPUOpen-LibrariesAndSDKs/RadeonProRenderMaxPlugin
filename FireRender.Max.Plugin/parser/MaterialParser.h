@@ -34,7 +34,8 @@ enum
 	MAP_FLAG_NOGAMMA = 1,
 	MAP_FLAG_CLAMP = 2,
 	MAP_FLAG_WANTSHDR = 4,
-	MAP_FLAG_NORMALMAP = 8
+	MAP_FLAG_NORMALMAP = 8,
+	MAP_FLAG_BUMPMAP = 16
 };
 
 //////////////////////////////////////////////////////////////////////////////
