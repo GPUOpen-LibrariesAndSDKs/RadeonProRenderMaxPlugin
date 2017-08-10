@@ -12,6 +12,7 @@
 #include "CoronaDeclarations.h"
 #include "FireRenderMaterialMtl.h"
 #include "FireRenderUberMtl.h"
+#include "FireRenderUberMtlv2.h"
 #include "plugin/ParamBlock.h"
 #include "utils/Utils.h"
 
@@ -104,6 +105,10 @@ Texmap *FRMTLCLASSNAME(DisplacementMtl)::findDisplacementMap(const TimeValue t, 
 	else if (material->ClassID() == FIRERENDER_UBERMTL_CID)
 	{
 		displacementMap = GetFromPb<Texmap*>(pb, FRUBERMTL_DISPLACEMENT, t);
+	}
+	else if (material->ClassID() == FIRERENDER_UBERMTLV2_CID)
+	{
+		displacementMap = GetFromPb<Texmap*>(pb, FRUBERMTLV2_MAT_DISPLACE_MAP, t);
 	}
 	else if (StdMat2 *stdmat = dynamic_cast<StdMat2*>(material))
 	{
