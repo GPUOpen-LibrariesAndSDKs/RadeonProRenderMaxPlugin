@@ -751,25 +751,22 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		{
 			if (flags & MAP_FLAG_NORMALMAP)
 			{
-				if (map.IsGrayScale())
-				{
-					frw::BumpMapNode node(materialSystem);
-					frw::ImageNode imgNode(materialSystem);
+				frw::NormalMapNode node(materialSystem);
+				frw::ImageNode imgNode(materialSystem);
 
-					imgNode.SetMap(map);
-					node.SetMap(imgNode);
+				imgNode.SetMap(map);
+				node.SetMap(imgNode);
+				result = node;
+			}
+			else if (flags & MAP_FLAG_BUMPMAP)
+			{
+				frw::BumpMapNode node(materialSystem);
+				frw::ImageNode imgNode(materialSystem);
 
-					result = node;
-				}
-				else
-				{
-					frw::NormalMapNode node(materialSystem);
-					frw::ImageNode imgNode(materialSystem);
+				imgNode.SetMap(map);
+				node.SetMap(imgNode);
 
-					imgNode.SetMap(map);
-					node.SetMap(imgNode);
-					result = node;
-				}
+				result = node;
 			}
 			else
 			{
