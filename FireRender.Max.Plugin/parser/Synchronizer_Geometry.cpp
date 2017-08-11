@@ -637,10 +637,20 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 		arr_jobs.emplace_back(this, t, nodes);
 	}
 
+	// prepare data for parse mesh
+	// - can't call in async mode because modifes global map (need to change map to lock-free map or has table in the future)
+	for_each(arr_jobs.begin(), arr_jobs.end(), [](RebuildJobParams& params)
+	{
+		params.PrepareData();
+	});
+
 	{
 		std::condition_variable jobDone;
 		std::mutex jobDoneMutex;
-		int threadsAvailable = PluginContext::instance().GetNumberOfThreadsAvailableForAsyncCalls();
+		int threadsAvailable = PluginContext::instance().GetNumberOfLogicalCores() / 2;
+		if (threadsAvailable == 0)
+			threadsAvailable = 1;
+
 		std::vector<std::future<bool>> results;
 
 		// launch jobs processing threads
@@ -661,8 +671,6 @@ void Synchronizer::RebuildGeometry(std::map<AnimHandle, std::list<INode *>>& ins
 			// start data processing job
 			results.emplace_back(std::async(std::launch::async, [&](RebuildJobParams& params)
 			{
-				// prepare data for parse mesh
-				params.PrepareData();
 				// launch parse mesh
 				bool result = params.LaunchParseMesh();
 

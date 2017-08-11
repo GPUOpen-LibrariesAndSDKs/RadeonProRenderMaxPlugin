@@ -65,11 +65,11 @@ int PluginContext::GetNumberOfCores()
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
 
-	int numCPU = sysinfo.dwNumberOfProcessors; // returns number of threads, 2x number of the CPU
-	return numCPU / 2;
+	int numCPU = sysinfo.dwNumberOfProcessors; // returns number of logical cores
+	return numCPU;
 }
 
-int PluginContext::GetNumberOfThreadsAvailableForAsyncCalls() const
+int PluginContext::GetNumberOfLogicalCores() const
 {
 	return mNumOfCores;
 }
