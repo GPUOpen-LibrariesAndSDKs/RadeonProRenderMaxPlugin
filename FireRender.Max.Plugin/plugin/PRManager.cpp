@@ -249,8 +249,6 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 	useMaxTonemapper = true;
 	regionMode = false;
 
-	mSelfDelete = false;
-
 	frw::Context ctx = scope.GetContext();
 
 	// Set color buffer
@@ -655,7 +653,6 @@ void PRManagerMax::CleanUpRender(FireRenderer *pRenderer)
 			if (!data->bRenderThreadDone)
 				bmDone.Wait();
 
-			delete data->renderThread;
 			data->renderThread = nullptr;
 		}
 	}

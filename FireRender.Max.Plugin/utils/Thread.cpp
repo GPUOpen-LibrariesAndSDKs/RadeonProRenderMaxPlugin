@@ -13,7 +13,6 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 BaseThread::BaseThread(const char* name, int priority) :
 	mThread(0),
-	mSelfDelete(false),
 	mPriority(priority),
 	mRunning(false)
 {
@@ -34,6 +33,8 @@ void BaseThread::Abort()
 
 		if (GetCurrentThreadId() != mThreadId) // don't wait when terminating self
 			WaitForSingleObject(mThread, INFINITE);
+
+		mThread = 0;
 	}
 }
 
@@ -43,6 +44,7 @@ void BaseThread::AbortImmediate()
 	{
 		mRunning.Reset();
 		mStop.Fire();
+		mThread = 0;
 	}
 }
 
@@ -80,11 +82,7 @@ unsigned BaseThread::ThreadHandlerProc(void* lParam)
 	bt->Worker();
 	bt->mRunning.Reset();
 
-	if (bt->mSelfDelete)
-		delete bt;
-
-	// _endthreadex is called automatically when the thread returns from the routine passed as a parameter to _beginthreadex.
-	// automatically closes the thread handle.
+	delete bt;
 
 	return 0;
 }

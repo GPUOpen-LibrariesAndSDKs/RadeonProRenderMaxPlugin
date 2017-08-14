@@ -380,7 +380,6 @@ ActiveShadeRenderCore::ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::S
 	, terminationReached(false)
 {
 	mShaderCacheReady.Fire();
-	mSelfDelete = false;
 }
 
 void ActiveShadeRenderCore::SetupCamera(const ParsedView& view, const int imageWidth, const int imageHeight, rpr_camera outCamera)
@@ -869,7 +868,6 @@ void ActiveShader::End()
 	if (mRenderThread)
 	{
 		mRenderThread->Abort();
-		delete mRenderThread;
 		mRenderThread = 0;
 	}
 
@@ -1021,7 +1019,6 @@ void ActiveShader::AbortRender()
 	if (mRenderThread)
 	{
 		mRenderThread->Abort();
-		delete mRenderThread;
 		mRenderThread = 0;
 	}
 }

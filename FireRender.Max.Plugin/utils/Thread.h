@@ -344,7 +344,6 @@ protected:
 	Event mStop;			// running yes/no
 	HANDLE mThread;			// thread handle
 	unsigned int mThreadId;	// thread id
-	bool mSelfDelete;		// self-destruct on exit yes/no
 	int mPriority;			// the thread priority
 	std::string mName;		// optional thread name
 	Event mRunning;			// signalled during runtime
