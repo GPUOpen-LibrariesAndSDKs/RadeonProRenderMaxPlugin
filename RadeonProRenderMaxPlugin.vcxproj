@@ -309,6 +309,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\target.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
@@ -384,6 +385,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\target.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />

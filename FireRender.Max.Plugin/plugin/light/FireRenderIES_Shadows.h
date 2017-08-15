@@ -11,16 +11,11 @@ class IES_Shadows :
 public:
 	static constexpr int DialogId = IDD_FIRERENDER_IES_LIGHT_SHADOWS;
 	static constexpr TCHAR* PanelName = _T("Shadows");
+	using BasePanel::BasePanel;
 
-	static INT_PTR CALLBACK dlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	bool InitDialog()
 	{
-		switch (msg)
-		{
-		case WM_INITDIALOG:
-			return TRUE;
-		}
-
-		return FALSE;
+		return true;
 	}
 };
 

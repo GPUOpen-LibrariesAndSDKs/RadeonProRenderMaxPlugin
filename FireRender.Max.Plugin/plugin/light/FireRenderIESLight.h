@@ -13,20 +13,12 @@
 #include "FireRenderIES_Intensity.h"
 #include "FireRenderIES_Shadows.h"
 #include "FireRenderIES_Volume.h"
+#include "IESLightParameter.h"
 #include "parser/SceneParser.h"
 #include "parser/RenderParameters.h"
 #include "frScope.h"
 
 FIRERENDER_NAMESPACE_BEGIN
-
-enum IESLightParameter : ParamID
-{
-	IES_PARAM_P0 = 101,
-	IES_PARAM_P1 = 102
-};
-
-ClassDesc2* GetFireRenderIESLightDesc();
-const Class_ID FIRERENDER_IESLIGHT_CLASS_ID(0x7ab5467f, 0x1c96049f);
 
 class IFireRenderIESLight
 {
@@ -34,24 +26,15 @@ public:
 	virtual void GetCorners(Point3& p1, Point3& p2, Point3& p3, Point3& p4) = 0;
 };
 
-class LookAtPoint : public ILookatControl
-{
-public:
-	virtual void Copy(Control *from) {}
-	void GetValue(TimeValue t, void *val, Interval &valid, GetSetMethod method = CTRL_ABSOLUTE) {}
-	void SetValue(TimeValue t, void *val, int commit = 1, GetSetMethod method = CTRL_ABSOLUTE) {}
-
-	virtual void SetFlip(BOOL f) {}
-	virtual BOOL GetFlip() { return FALSE; }
-	virtual void SetAxis(int a) {}
-	virtual int GetAxis() { return 3; }
-};
-
 // ?? LightObject
-class FireRenderIESLight : public GenLight, public IFireRenderIESLight
+class FireRenderIESLight :
+	public GenLight,
+	public IFireRenderIESLight
 {
-
 public:
+	static Class_ID GetClassId();
+	static ClassDesc2* GetClassDesc();
+
 	FireRenderIESLight();
 	~FireRenderIESLight();
 
@@ -178,6 +161,8 @@ protected:
 	ExclList m_exclList;
 
 private:
+	static const Class_ID m_classId;
+
 	// Panels
 	IES_General m_general;
 	IES_Intensity m_intensity;

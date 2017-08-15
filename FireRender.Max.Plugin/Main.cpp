@@ -251,9 +251,10 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.push_back(FireRender::IFRMaterialExporter::GetClassDesc());
 
 	gClassInstances.push_back(FireRender::PRManagerMax::GetClassDesc());
-	
+
+#define ENABLE_IES_LIGHTS
 #ifdef ENABLE_IES_LIGHTS
-	gClassInstances.push_back(FireRender::GetFireRenderIESLightDesc());
+	gClassInstances.push_back(FireRender::FireRenderIESLight::GetClassDesc());
 #endif
 
 	for(int i=0;i<GetAOVElementClassDescCount();++i){

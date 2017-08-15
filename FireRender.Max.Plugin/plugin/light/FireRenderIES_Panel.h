@@ -4,12 +4,17 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+class FireRenderIESLight;
+
 template<typename Derived>
 class IES_Panel
 {
 public:
-	IES_Panel() :
-		m_panel(nullptr)
+	using BasePanel = IES_Panel;
+
+	IES_Panel(FireRenderIESLight* parent) :
+		m_panel(nullptr),
+		m_parent(parent)
 	{}
 
 	void BeginEdit(IObjParam* objParam, ULONG flags, Animatable* prev)
@@ -26,15 +31,10 @@ public:
 			(LPARAM)_this);
 
 		objParam->RegisterDlgWnd(m_panel);
-
-		_this->InitParams(objParam, flags, prev);
 	}
 
-	// Default empty implementation
-	void InitParams(IObjParam* objParam, ULONG flags, Animatable* prev)
-	{
-		
-	}
+	// Default empty implementations
+	bool InitDialog() { return true; }
 
 	void EndEdit(IObjParam* objParam, ULONG flags, Animatable* next)
 	{
@@ -45,6 +45,22 @@ public:
 
 protected:
 	HWND m_panel;
+	FireRenderIESLight* m_parent;
+
+private:
+	static INT_PTR CALLBACK dlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
+		bool result = false;
+
+		switch (msg)
+		{
+		case WM_INITDIALOG:
+			result = reinterpret_cast<Derived*>(lParam)->InitDialog();
+			break;
+		}
+
+		return result ? TRUE : FALSE;
+	}
 };
 
 FIRERENDER_NAMESPACE_END

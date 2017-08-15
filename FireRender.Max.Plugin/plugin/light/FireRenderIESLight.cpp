@@ -27,6 +27,7 @@
 #include <iparamm2.h>
 #include <memory>
 #include <fstream>
+#include <type_traits>
 
 #include "target.h"
 
@@ -110,7 +111,7 @@ namespace
 		//used as lable in creation UI and in MaxScript to create objects of this class
 		const TCHAR* ClassName() override { return FIRERENDER_IESLIGHT_CLASS_NAME; }
 
-		Class_ID ClassID() override { return FIRERENDER_IESLIGHT_CLASS_ID; }
+		Class_ID ClassID() override { return FireRenderIESLight::GetClassId(); }
 		SClass_ID SuperClassID() override { return LIGHT_CLASS_ID; }
 		const TCHAR* Category() override { return FIRERENDER_IESLIGHT_CATEGORY; }
 		void* Create(BOOL loading) override { return new FireRenderIESLight(); }
@@ -138,17 +139,28 @@ namespace
 	);
 }
 
-ClassDesc2* GetFireRenderIESLightDesc()
+const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
+
+Class_ID FireRenderIESLight::GetClassId()
 {
-    return &desc; 
+	return m_classId;
+}
+
+ClassDesc2* FireRenderIESLight::GetClassDesc()
+{
+	return &desc;
 }
 
 FireRenderIESLight::FireRenderIESLight() :
+	m_general(this),
+	m_intensity(this),
+	m_shadows(this),
+	m_volume(this),
 	m_iObjParam(nullptr),
 	m_pblock2(nullptr),
 	m_verticesBuilt(false)
 {
-    GetFireRenderIESLightDesc()->MakeAutoParamBlocks(this);
+	GetClassDesc()->MakeAutoParamBlocks(this);
 }
 
 FireRenderIESLight::~FireRenderIESLight()
@@ -266,7 +278,7 @@ void FireRenderIESLight::DeleteThis()
 
 Class_ID FireRenderIESLight::ClassID()
 {
-    return FIRERENDER_IESLIGHT_CLASS_ID;
+    return GetClassId();
 }
 
 //

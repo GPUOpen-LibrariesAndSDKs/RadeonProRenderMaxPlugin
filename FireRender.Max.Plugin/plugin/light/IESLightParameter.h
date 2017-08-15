@@ -1,0 +1,14 @@
+#pragma once
+
+#include "Common.h"
+
+FIRERENDER_NAMESPACE_BEGIN
+
+enum IESLightParameter : ParamID
+{
+	IES_PARAM_P0 = 101,
+	IES_PARAM_P1 = 102,
+	IES_PARAM_ENABLED,
+};
+
+FIRERENDER_NAMESPACE_END
