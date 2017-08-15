@@ -41,6 +41,7 @@
 #include "plugin/FireRenderEnvironment.h"
 #include "plugin/FireRenderAnalyticalSun.h"
 #include "plugin/FireRenderPortalLight.h"
+#include "plugin/light/FireRenderIESLight.h"
 #include "plugin/BgManager.h"
 #include "plugin/TmManager.h"
 #include "plugin/CamManager.h"
@@ -251,6 +252,10 @@ EXPORT_TO_MAX int LibInitialize()
 
 	gClassInstances.push_back(FireRender::PRManagerMax::GetClassDesc());
 	
+#ifdef ENABLE_IES_LIGHTS
+	gClassInstances.push_back(FireRender::GetFireRenderIESLightDesc());
+#endif
+
 	for(int i=0;i<GetAOVElementClassDescCount();++i){
 		gClassInstances.push_back(&GetAOVElementClassDesc(i));
 	}

@@ -303,6 +303,14 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_CIEXYZ.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_RGB.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModelData_Spectral.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\target.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\MPManager.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ParamBlock.h" />
@@ -375,6 +383,9 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\FRExportMaterialXML.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\target.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\MPManager.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ParamBlock.cpp" />
@@ -398,6 +409,9 @@
     <ProjectReference Include="ThirdParty\Expat 2.1.0\Source\lib\expatw_static.vcxproj">
       <Project>{ef133aa3-21e3-465c-89ca-3c346591b55c}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="about.rtf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
