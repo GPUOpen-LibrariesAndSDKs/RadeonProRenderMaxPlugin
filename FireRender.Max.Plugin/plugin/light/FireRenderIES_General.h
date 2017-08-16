@@ -18,6 +18,9 @@ public:
 	bool InitDialog();
 	INT_PTR HandleControlCommand(WORD code, WORD controlId);
 
+	void SaveCurrent();
+	void UpdateEnabledParam();
+
 protected:
 };
 

@@ -50,6 +50,13 @@ public:
 	INT_PTR HandleControlCommand(WORD code, WORD controlId) { return FALSE; }
 
 protected:
+	IParamBlock2* GetParamBlock()
+	{
+		auto pBlock = m_parent->GetParamBlock(0);
+		FASSERT(pBlock != nullptr);
+
+		return pBlock;
+	}
 
 	HWND m_panel;
 	FireRenderIESLight* m_parent;

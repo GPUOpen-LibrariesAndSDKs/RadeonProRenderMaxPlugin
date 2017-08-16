@@ -6,7 +6,7 @@ FIRERENDER_NAMESPACE_BEGIN
 
 namespace
 {
-	bool IsButtonChecked(HWND wnd, int buttonId)
+	bool GetIsButtonChecked(HWND wnd, int buttonId)
 	{
 		auto buttonHandle = GetDlgItem(wnd, buttonId);
 		FASSERT(buttonHandle != nullptr);
@@ -16,39 +16,58 @@ namespace
 
 		return result == BST_CHECKED;
 	}
+
+	void SetIsButtonChecked(HWND wnd, int buttonId, bool checked)
+	{
+		auto ok = CheckDlgButton(wnd, buttonId,
+			checked ? BST_CHECKED : BST_UNCHECKED);
+		FASSERT(ok);
+	}
 }
 
 bool IES_General::InitDialog()
 {
-	auto pBlock = m_parent->GetParamBlock(0);
+	auto pBlock = GetParamBlock();
 
 	BOOL enabled = FALSE;
 	auto ok = pBlock->GetValue(IES_PARAM_ENABLED, 0, enabled, FOREVER);
 	FASSERT(ok);
 
-	ok = CheckDlgButton(
-		m_panel,
-		IDC_FIRERENDER_IES_LIGHT_ENABLED,
-		enabled == FALSE ? BST_UNCHECKED : BST_CHECKED);
-	FASSERT(ok);
+	SetIsButtonChecked(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED, enabled);
 
 	return true;
 }
 
 INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 {
-	if (code == BN_CLICKED && controlId == IDC_FIRERENDER_IES_LIGHT_ENABLED)
+	if (code == BN_CLICKED)
 	{
-		auto pBlock = m_parent->GetParamBlock(0);
-		FASSERT(pBlock != nullptr);
+		switch (controlId)
+		{
+		case IDC_FIRERENDER_IES_LIGHT_ENABLED:
+			UpdateEnabledParam();
+			return TRUE;
 
-		bool enable = IsButtonChecked(m_panel, controlId);
-		pBlock->SetValue(IES_PARAM_ENABLED, 0, enable);
-
-		return TRUE;
+		case IDC_FIRERENDER_IES_LIGHT_SAVE_CURRENT:
+			SaveCurrent();
+			return TRUE;
+		}
 	}
 
 	return FALSE;
+}
+
+void IES_General::SaveCurrent()
+{
+	FASSERT(!"Not implemented");
+}
+
+void IES_General::UpdateEnabledParam()
+{
+	auto pBlock = GetParamBlock();
+	bool enable = GetIsButtonChecked(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED);
+
+	pBlock->SetValue(IES_PARAM_ENABLED, 0, enable);
 }
 
 FIRERENDER_NAMESPACE_END
