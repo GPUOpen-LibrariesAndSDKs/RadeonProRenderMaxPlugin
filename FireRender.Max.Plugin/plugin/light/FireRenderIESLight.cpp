@@ -126,14 +126,24 @@ namespace
 		IDD_FIRERENDER_IES_LIGHT, IDS_FR_ENV, 0, 0, NULL,
 
 		IES_PARAM_P0, _T("p0"), TYPE_POINT3, 0, 0,
-		p_default, Point3(0.f, 0.f, 0.f), PB_END,
+		p_default, Point3(0.f, 0.f, 0.f),
+		PB_END,
 
 		IES_PARAM_P1, _T("p1"), TYPE_POINT3, 0, 0,
-		p_default, Point3(0.f, 0.f, 0.f), PB_END,
+		p_default, Point3(0.f, 0.f, 0.f),
+		PB_END,
 
 		// COLOR
 		IES_LIGHT_COLOR, _T("Color"), TYPE_RGBA, P_ANIMATABLE, 0,
-		p_default, Color(1.f, 1.f, 1.f), p_ui, TYPE_COLORSWATCH, IDC_IES_LIGHT_COLOR, PB_END,
+		p_default, Color(1.f, 1.f, 1.f),
+		p_ui, TYPE_COLORSWATCH, IDC_IES_LIGHT_COLOR,
+		PB_END,
+
+		// Enabled parameter
+		IES_PARAM_ENABLED, _T("Enabled"), TYPE_BOOL, P_ANIMATABLE, 0,
+		p_default, TRUE,
+		p_ui, TYPE_CHECKBUTTON, IDC_FIRERENDER_IES_LIGHT_ENABLED,
+		PB_END,
 
 		p_end
 	);

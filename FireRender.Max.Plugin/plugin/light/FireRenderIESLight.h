@@ -26,7 +26,6 @@ public:
 	virtual void GetCorners(Point3& p1, Point3& p2, Point3& p3, Point3& p4) = 0;
 };
 
-// ?? LightObject
 class FireRenderIESLight :
 	public GenLight,
 	public IFireRenderIESLight

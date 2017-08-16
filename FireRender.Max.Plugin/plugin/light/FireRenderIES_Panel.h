@@ -26,15 +26,17 @@ public:
 		m_panel = objParam->AddRollupPage(
 			fireRenderHInstance,
 			MAKEINTRESOURCE(Derived::DialogId),
-			Derived::dlgProc,
+			Derived::DlgProc,
 			Derived::PanelName,
 			(LPARAM)_this);
 
+		_this->InitDialog();
 		objParam->RegisterDlgWnd(m_panel);
+		
+		auto wndContext = reinterpret_cast<LONG_PTR>(_this);
+		auto prevLong = SetWindowLongPtr(m_panel, GWLP_USERDATA, wndContext);
+		FASSERT(prevLong == 0);
 	}
-
-	// Default empty implementations
-	bool InitDialog() { return true; }
 
 	void EndEdit(IObjParam* objParam, ULONG flags, Animatable* next)
 	{
@@ -43,23 +45,42 @@ public:
 		m_panel = nullptr;
 	}
 
+	// Default empty implementations
+	bool InitDialog() { return true; }
+	INT_PTR HandleControlCommand(WORD code, WORD controlId) { return FALSE; }
+
 protected:
+
 	HWND m_panel;
 	FireRenderIESLight* m_parent;
 
 private:
-	static INT_PTR CALLBACK dlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-	{
-		bool result = false;
 
+	static INT_PTR CALLBACK DlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+	{
 		switch (msg)
 		{
-		case WM_INITDIALOG:
-			result = reinterpret_cast<Derived*>(lParam)->InitDialog();
+			case WM_INITDIALOG:
+				return TRUE;
+				break;
+
+			case WM_COMMAND:
+			{
+				if (lParam != 0)
+				{
+					auto code = HIWORD(wParam);
+					auto controlId = LOWORD(wParam);
+					auto wndUserData = GetWindowLongPtr(hWnd, GWLP_USERDATA);
+					auto _this = reinterpret_cast<Derived*>(wndUserData);
+					FASSERT(_this != nullptr);
+
+					return _this->HandleControlCommand(code, controlId);
+				}
+			}
 			break;
 		}
 
-		return result ? TRUE : FALSE;
+		return FALSE;
 	}
 };
 
