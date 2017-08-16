@@ -28,7 +28,7 @@
 #include <memory>
 #include <fstream>
 
-#include "target.h"
+#include "LookAtTarget.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -164,15 +164,6 @@ CreateMouseCallBack* FireRenderIESLight::GetCreateMouseCallBack()
 	return &createCallback;
 }
 
-void FireRenderIESLight::GetCorners(Point3& p1, Point3& p2, Point3& p3, Point3& p4)
-{
-    BuildVertices();
-    p1 = m_vertices[0];
-    p2 = m_vertices[1];
-    p3 = m_vertices[2];
-    p4 = m_vertices[3];
-}
-    
 GenLight *FireRenderIESLight::NewLight(int type)
 {
     return new FireRenderIESLight();
@@ -743,7 +734,7 @@ void FireRenderIESLight::AddTarget()
 	
 	targtm.PreTranslate(p);
 
-	Object *targObject = new TargetObject;
+	Object *targObject = new LookAtTarget;
 	INode *targNode = iface->CreateObjectNode(targObject);
 	
 	TSTR targName;

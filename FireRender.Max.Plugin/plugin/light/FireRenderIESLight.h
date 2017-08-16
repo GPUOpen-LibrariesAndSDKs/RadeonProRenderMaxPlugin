@@ -28,27 +28,7 @@ enum IESLightParameter : ParamID
 ClassDesc2* GetFireRenderIESLightDesc();
 const Class_ID FIRERENDER_IESLIGHT_CLASS_ID(0x7ab5467f, 0x1c96049f);
 
-class IFireRenderIESLight
-{
-public:
-	virtual void GetCorners(Point3& p1, Point3& p2, Point3& p3, Point3& p4) = 0;
-};
-
-class LookAtPoint : public ILookatControl
-{
-public:
-	virtual void Copy(Control *from) {}
-	void GetValue(TimeValue t, void *val, Interval &valid, GetSetMethod method = CTRL_ABSOLUTE) {}
-	void SetValue(TimeValue t, void *val, int commit = 1, GetSetMethod method = CTRL_ABSOLUTE) {}
-
-	virtual void SetFlip(BOOL f) {}
-	virtual BOOL GetFlip() { return FALSE; }
-	virtual void SetAxis(int a) {}
-	virtual int GetAxis() { return 3; }
-};
-
-// ?? LightObject
-class FireRenderIESLight : public GenLight, public IFireRenderIESLight
+class FireRenderIESLight : public GenLight
 {
 
 public:
@@ -56,7 +36,6 @@ public:
 	~FireRenderIESLight();
 
 	CreateMouseCallBack* GetCreateMouseCallBack() override;
-	void GetCorners(Point3& p1, Point3& p2, Point3& p3, Point3& p4) override;
 	GenLight* NewLight(int type) override;
 	ObjectState Eval(TimeValue time) override;
 	void InitNodeName(TSTR& s) override;
