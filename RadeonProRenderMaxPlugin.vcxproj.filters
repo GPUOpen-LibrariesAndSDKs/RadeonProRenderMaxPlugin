@@ -34,6 +34,9 @@
     <Filter Include="FireRender.Components\source">
       <UniqueIdentifier>{3e57b731-582f-4b1d-afba-a24444350caf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Plugin\light">
+      <UniqueIdentifier>{975d78d1-a624-4fbe-a71a-df1679c58022}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
@@ -240,6 +243,30 @@
     <ClInclude Include="FireRender.Components\cpp\inc\PluginContext.h">
       <Filter>FireRender.Components\include</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -439,6 +466,15 @@
     <ClCompile Include="FireRender.Components\cpp\src\PluginContext.cpp">
       <Filter>FireRender.Components\source</Filter>
     </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp">
+      <Filter>Plugin\light</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp">
+      <Filter>Plugin\light</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp">
+      <Filter>Plugin\light</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp">
@@ -447,5 +483,8 @@
     <Image Include="FireRender.Max.Plugin\resource\worldmap.bmp">
       <Filter>Resource</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="about.rtf" />
   </ItemGroup>
 </Project>

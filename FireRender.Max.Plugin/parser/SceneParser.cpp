@@ -31,6 +31,7 @@
 #include "plugin/FireRenderAnalyticalSun.h"
 #include "plugin/BgManager.h"
 #include "plugin/FireRenderPortalLight.h"
+#include "plugin/light/FireRenderIESLight.h"
 
 #define USE_INSTANCES_ONLY false
 #define DEFAULT_LIGHT_ID 0x100000000
@@ -905,6 +906,14 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 		else if (classId == FIRERENDER_PORTALLIGHT_CLASS_ID)
 		{
 			parseFRPortal(actual, state.obj);
+		}
+		else if (classId == FIRERENDER_IESLIGHT_CLASS_ID)
+		{
+			FireRenderIESLight* light = dynamic_cast<FireRenderIESLight*>(state.obj);
+			if (light && light->GetUseLight())
+			{
+				light->CreateSceneLight(actual, scope, params);
+			}
 		}
 		else if ((sClassId == LIGHT_CLASS_ID) && (classId != Corona::LIGHT_CID) && (classId != FIRERENDER_ENVIRONMENT_CLASS_ID) && (classId != FIRERENDER_ANALYTICALSUN_CLASS_ID) && (classId != FIRERENDER_PORTALLIGHT_CLASS_ID))
 		{
