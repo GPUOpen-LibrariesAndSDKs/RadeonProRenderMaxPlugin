@@ -361,4 +361,33 @@ public:
 	}
 };
 
+// macro for convinient getter/setters declaration and definition
+#define DECLARE_GETTERS(type, getterName)	\
+public:										\
+type getterName(void);						\
+const type getterName(void) const;
+
+#define DECLARE_VAR_AND_GETTERS(type, varName, getterName)	\
+protected:													\
+type varName;												\
+DECLARE_GETTERS(type&, getterName)
+
+#define DEFINE_CONST_GETTER(type, varName, getterName, className)	\
+const type className::getterName() const							\
+{																	\
+	return varName;													\
+}
+
+#define DEFINE_GETTER(type, varName, getterName, className)	\
+type className::getterName()								\
+{															\
+	return const_cast<type>									\
+		(const_cast<const className*>(this)->getterName());	\
+}
+
+#define DEFINE_GETTERS(type, varName, getterName, className)	\
+DEFINE_CONST_GETTER(type, varName, getterName, className)		\
+DEFINE_GETTER(type, varName, getterName, className)
+
+
 FIRERENDER_NAMESPACE_END;
