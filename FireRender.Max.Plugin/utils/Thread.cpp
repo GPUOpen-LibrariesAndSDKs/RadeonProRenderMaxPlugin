@@ -82,8 +82,6 @@ unsigned BaseThread::ThreadHandlerProc(void* lParam)
 	bt->Worker();
 	bt->mRunning.Reset();
 
-	delete bt;
-
 	return 0;
 }
 

@@ -211,11 +211,6 @@ public:
 
 	void Worker() override;
 
-	void Abort() override
-	{
-		BaseThread::Abort();
-	}
-
 	void Restart();
 
 #pragma optimize("", off)
@@ -749,14 +744,14 @@ void ActiveShadeRenderCore::Restart()
 // BRIDGE INTERFACE
 //
 
-ActiveShader::ActiveShader(class IFireRender *ifr)
-	: mIfr(ifr)
-	, mScopeId(-1)
-	, mOutputBitmap(0)
-	, mSceneINode(0)
-	, mShaderCacheDlg(NULL)
+ActiveShader::ActiveShader(class IFireRender *ifr) :
+	mIfr(ifr),
+	mScopeId(-1),
+	mOutputBitmap(0),
+	mSceneINode(0),
+	mShaderCacheDlg(nullptr),
+	mRenderThread(nullptr)
 {
-	mRenderThread = 0;
 	mBridge = new ActiveShadeSynchronizerBridge(this);
 }
 
@@ -868,7 +863,8 @@ void ActiveShader::End()
 	if (mRenderThread)
 	{
 		mRenderThread->Abort();
-		mRenderThread = 0;
+		delete mRenderThread;
+		mRenderThread = nullptr;
 	}
 
 	camera.clear();
@@ -1019,7 +1015,8 @@ void ActiveShader::AbortRender()
 	if (mRenderThread)
 	{
 		mRenderThread->Abort();
-		mRenderThread = 0;
+		delete mRenderThread;
+		mRenderThread = nullptr;
 	}
 }
 
