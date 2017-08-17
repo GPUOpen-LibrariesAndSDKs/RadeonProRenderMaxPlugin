@@ -1832,7 +1832,7 @@ bool SceneParser::parseEnvironment(Texmap* enviroMap)
 		// use sun-sky
 		if (parsed.frEnvironment.sky)
 		{
-			enviroImage = BgManagerMax::TheManager.GenerateSky(scope, params.pblock, params.t);
+			enviroImage = BgManagerMax::TheManager.GenerateSky(scope, params.pblock, params.t, parsed.frEnvironment.intensity);
 		}
 		else // use IBL
 		{

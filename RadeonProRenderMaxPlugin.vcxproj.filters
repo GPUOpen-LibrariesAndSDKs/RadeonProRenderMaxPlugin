@@ -246,9 +246,6 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\target.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
@@ -268,6 +265,9 @@
       <Filter>Plugin\light</Filter>
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
   </ItemGroup>
@@ -472,10 +472,10 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp">
       <Filter>Plugin\light</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\target.cpp">
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp">
       <Filter>Plugin\light</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp">
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp">
       <Filter>Plugin\light</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp">

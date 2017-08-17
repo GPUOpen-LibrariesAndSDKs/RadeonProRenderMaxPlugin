@@ -311,7 +311,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h" />
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\target.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\MPManager.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ParamBlock.h" />
@@ -387,7 +387,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp" />
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\target.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\MPManager.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ParamBlock.cpp" />

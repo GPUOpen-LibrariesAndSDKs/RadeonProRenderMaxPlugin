@@ -976,7 +976,7 @@ static bool ValuesAreSame(float a, float b, float eps = 0.0001f)
 	return fabsf(a - b) < eps;
 }
 
-frw::Image BgManagerMax::GenerateSky(frw::Scope &scope, IParamBlock2 *pb, const TimeValue &t)
+frw::Image BgManagerMax::GenerateSky(frw::Scope &scope, IParamBlock2 *pb, const TimeValue &t, float skyIntensity)
 {
 	float skyHaze;
 	Color skyGroundColor;
@@ -1038,7 +1038,23 @@ frw::Image BgManagerMax::GenerateSky(frw::Scope &scope, IParamBlock2 *pb, const 
 		if (!mSkyBuffer)
 			mSkyBuffer = new SkyRgbFloat32[SKYENV_WIDTH * SKYENV_HEIGHT];
 		memset(mSkyBuffer, 0, sizeof(SkyRgbFloat32) * SKYENV_WIDTH * SKYENV_HEIGHT);
-		sg.GenerateSkyHosek(SKYENV_WIDTH, SKYENV_HEIGHT, mSkyBuffer);
+
+		float maxSunIntensity;
+
+		if (skyIntensity < std::numeric_limits<float>::epsilon())
+		{
+			maxSunIntensity = std::numeric_limits<float>::max();
+		}
+		else if (skyIntensity > 1.f)
+		{
+			maxSunIntensity = skyIntensity;
+		}
+		else
+		{
+			maxSunIntensity = 1.f / skyIntensity;
+		}
+
+		sg.GenerateSkyHosek(SKYENV_WIDTH, SKYENV_HEIGHT, mSkyBuffer, maxSunIntensity);
 		
 		static const Point3 up(0, 0, 1);
 		Point3 xaxis = CrossProd(up, vec);

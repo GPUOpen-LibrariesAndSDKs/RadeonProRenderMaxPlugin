@@ -20,25 +20,15 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-class IFireRenderIESLight
-{
-public:
-	virtual void GetCorners(Point3& p1, Point3& p2, Point3& p3, Point3& p4) = 0;
-};
-
-class FireRenderIESLight :
-	public GenLight,
-	public IFireRenderIESLight
+class FireRenderIESLight : public GenLight
 {
 public:
 	static Class_ID GetClassId();
 	static ClassDesc2* GetClassDesc();
-
 	FireRenderIESLight();
 	~FireRenderIESLight();
 
 	CreateMouseCallBack* GetCreateMouseCallBack() override;
-	void GetCorners(Point3& p1, Point3& p2, Point3& p3, Point3& p4) override;
 	GenLight* NewLight(int type) override;
 	ObjectState Eval(TimeValue time) override;
 	void InitNodeName(TSTR& s) override;
