@@ -13,7 +13,6 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 BaseThread::BaseThread(const char* name, int priority) :
 	mThread(0),
-	mSelfDelete(false),
 	mPriority(priority),
 	mRunning(false)
 {
@@ -28,10 +27,13 @@ BaseThread::~BaseThread()
 
 void BaseThread::Abort()
 {
-	if (mThread) {
+	if (mThread)
+	{
 		mStop.Fire();
+
 		if (GetCurrentThreadId() != mThreadId) // don't wait when terminating self
 			WaitForSingleObject(mThread, INFINITE);
+
 		mThread = 0;
 	}
 }
@@ -49,8 +51,10 @@ void BaseThread::AbortImmediate()
 bool BaseThread::Wait(DWORD timeout)
 {
 	bool ret = false;
+
 	if (WaitForSingleObject(mThread, timeout) == WAIT_OBJECT_0)
 		ret = true;
+
 	return ret;
 }
 
@@ -58,11 +62,13 @@ void BaseThread::Start()
 {
 	if (!mThread)
 	{
-		mThread = (HANDLE)_beginthreadex(NULL, 0, BaseThread::ThreadHandlerProc, this, 0, (unsigned*)&mThreadId);
+		mThread = (HANDLE)_beginthreadex(NULL, 0, BaseThread::ThreadHandlerProc, this, 0, (unsigned*) &mThreadId);
+		
 		if (mThread)
 		{
 			mRunning.Fire();
 			SetThreadPriority(mThread, mPriority);
+
 			if (!mName.empty())
 				SetThreadName();
 		}
@@ -75,11 +81,8 @@ unsigned BaseThread::ThreadHandlerProc(void* lParam)
 
 	bt->Worker();
 	bt->mRunning.Reset();
-	bt->mThread = 0;
-	if (bt->mSelfDelete)
-		delete bt;
-	_endthreadex(0);
-	return 0; // just to avoid compiler error
+
+	return 0;
 }
 
 bool BaseThread::IsRunning()
