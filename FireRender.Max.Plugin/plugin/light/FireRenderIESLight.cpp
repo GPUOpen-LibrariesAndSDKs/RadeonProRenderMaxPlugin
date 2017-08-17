@@ -147,8 +147,56 @@ namespace
 			p_default, 1.0f,
 			PB_END,
 
+		IES_PARAM_TARGETED, _T("Targeted"), TYPE_BOOL, P_ANIMATABLE, 0,
+			p_default, FALSE,
+			PB_END,
+
 		PB_END
 	);
+
+	// For type inference
+	template<IESLightParameter p, typename Enabled = void>
+	struct GetBlockValueHelper;
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_ENABLED ||
+			p == IES_PARAM_TARGETED
+		>>
+	{
+		using T1 = BOOL;
+		using T2 = bool;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_AREA_WIDTH
+		>>
+	{
+		using T1 = FLOAT;
+		using T2 = float;
+	};
+
+	template<typename T>
+	void SetBlockValue(IParamBlock2* pBlock, IESLightParameter parameter, T value)
+	{
+		auto res = pBlock->SetValue(parameter, 0, value);
+		FASSERT(res);
+	}
+
+	template<IESLightParameter parameter>
+	decltype(auto) GetBlockValue(IParamBlock2* pBlock)
+	{
+		using Helper = GetBlockValueHelper<parameter>;
+		typename Helper::T1 result;
+
+		auto ok = pBlock->GetValue(parameter, 0, result, FOREVER);
+		FASSERT(ok);
+
+		return static_cast<typename Helper::T2>(result);
+	}
 }
 
 const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
@@ -776,6 +824,37 @@ void FireRenderIESLight::AddTarget()
 
 	Color lightWireColor(nd->GetWireColor());
 	targNode->SetWireColor(lightWireColor.toRGB());
+}
+
+void FireRenderIESLight::SetEnabled(bool value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_ENABLED, value);
+}
+
+bool FireRenderIESLight::GetEnabled() const
+{
+	return GetBlockValue<IES_PARAM_ENABLED>(m_pblock2);
+}
+
+void FireRenderIESLight::SetTargeted(bool value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_TARGETED, value);
+}
+
+bool FireRenderIESLight::GetTargeted() const
+{
+	return GetBlockValue<IES_PARAM_TARGETED>(m_pblock2);
+}
+
+void FireRenderIESLight::SetAreaWidth(float value)
+{
+
+	SetBlockValue(m_pblock2, IES_PARAM_AREA_WIDTH, value);
+}
+
+float FireRenderIESLight::GetAreaWidth() const
+{
+	return GetBlockValue<IES_PARAM_AREA_WIDTH>(m_pblock2);
 }
 
 FIRERENDER_NAMESPACE_END

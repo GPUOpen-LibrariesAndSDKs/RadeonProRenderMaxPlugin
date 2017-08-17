@@ -306,14 +306,6 @@ public:
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
 
 protected:
-	IParamBlock2* GetParamBlock() const
-	{
-		auto pBlock = m_parent->GetParamBlock(0);
-		FASSERT(pBlock != nullptr);
-
-		return pBlock;
-	}
-
 	HWND m_panel;
 	FireRenderIESLight* m_parent;
 

@@ -146,6 +146,15 @@ public:
 
 	void FireRenderIESLight::AddTarget();
 
+	void SetEnabled(bool value);
+	bool GetEnabled() const;
+
+	void SetTargeted(bool value);
+	bool GetTargeted() const;
+
+	void SetAreaWidth(float value);
+	float GetAreaWidth() const;
+
 protected:
 	ExclList m_exclList;
 

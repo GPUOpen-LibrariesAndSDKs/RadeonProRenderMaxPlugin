@@ -23,13 +23,12 @@ public:
 
 	void SaveCurrent();
 	void UpdateEnabledParam();
+	void UpdateTargetedParam();
 	void UpdateAreaWidthParam();
-
-	bool IsEnabled() const;
-	float GetAreaWidth() const;
 
 protected:
 	WinCheckbox m_enabledControl;
+	WinCheckbox m_targetedControl;
 	MaxEditAndSpinner m_areaWidthControl;
 };
 

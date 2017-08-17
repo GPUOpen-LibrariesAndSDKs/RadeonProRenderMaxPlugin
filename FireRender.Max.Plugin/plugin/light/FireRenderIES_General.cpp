@@ -4,32 +4,15 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-namespace
-{
-	bool GetIsButtonChecked(HWND wnd, int buttonId)
-	{
-		auto buttonHandle = GetDlgItem(wnd, buttonId);
-		FASSERT(buttonHandle != nullptr);
-
-		auto result = Button_GetCheck(buttonHandle);
-		FASSERT(result != BST_INDETERMINATE);
-
-		return result == BST_CHECKED;
-	}
-
-	void SetIsButtonChecked(HWND wnd, int buttonId, bool checked)
-	{
-		auto ok = CheckDlgButton(wnd, buttonId,
-			checked ? BST_CHECKED : BST_UNCHECKED);
-		FASSERT(ok);
-	}
-}
-
 bool IES_General::InitializePage()
 {
 	// Enabled parameter
 	m_enabledControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED);
-	m_enabledControl.SetCheck(IsEnabled());
+	m_enabledControl.SetCheck(m_parent->GetEnabled());
+
+	// Targeted parameter
+	m_targetedControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_TARGETED_CHECKBOX);
+	m_targetedControl.SetCheck(m_parent->GetTargeted());
 
 	// Area width parameter
 	m_areaWidthControl.Capture(m_panel,
@@ -40,7 +23,7 @@ bool IES_General::InitializePage()
 	
 	auto& spinner = m_areaWidthControl.GetSpinner();
 	spinner.SetLimits(0.f, FLT_MAX);
-	spinner.SetValue(GetAreaWidth());
+	spinner.SetValue(m_parent->GetAreaWidth());
 	spinner.SetResetValue(1.0f);
 	spinner.SetScale(0.001f);
 
@@ -50,6 +33,7 @@ bool IES_General::InitializePage()
 void IES_General::UninitializePage()
 {
 	m_enabledControl.Release();
+	m_targetedControl.Release();
 	m_areaWidthControl.Release();
 }
 
@@ -65,6 +49,10 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 
 		case IDC_FIRERENDER_IES_LIGHT_SAVE_CURRENT:
 			SaveCurrent();
+			return TRUE;
+
+		case IDC_FIRERENDER_IES_LIGHT_TARGETED_CHECKBOX:
+			UpdateTargetedParam();
 			return TRUE;
 		}
 	}
@@ -103,32 +91,17 @@ void IES_General::SaveCurrent()
 
 void IES_General::UpdateEnabledParam()
 {
-	GetParamBlock()->SetValue(IES_PARAM_ENABLED, 0, m_enabledControl.IsChecked());
+	m_parent->SetEnabled(m_enabledControl.IsChecked());
+}
+
+void IES_General::UpdateTargetedParam()
+{
+	m_parent->SetTargeted(m_enabledControl.IsChecked());
 }
 
 void IES_General::UpdateAreaWidthParam()
 {
-	auto pBlock = GetParamBlock();
-	auto value = m_areaWidthControl.GetEdit().GetValue<float>();
-	pBlock->SetValue(IES_PARAM_AREA_WIDTH, 0, value);
-}
-
-bool IES_General::IsEnabled() const
-{
-	BOOL enabled = FALSE;
-	auto ok = GetParamBlock()->GetValue(IES_PARAM_ENABLED, 0, enabled, FOREVER);
-	FASSERT(ok);
-
-	return enabled;
-}
-
-float IES_General::GetAreaWidth() const
-{
-	float areaWidth = 1.0f;
-	auto ok = GetParamBlock()->GetValue(IES_PARAM_AREA_WIDTH, 0, areaWidth, FOREVER);
-	FASSERT(ok);
-
-	return areaWidth;
+	m_parent->SetAreaWidth(m_areaWidthControl.GetEdit().GetValue<float>());
 }
 
 FIRERENDER_NAMESPACE_END
