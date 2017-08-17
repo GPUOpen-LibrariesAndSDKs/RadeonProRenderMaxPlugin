@@ -211,11 +211,6 @@ public:
 
 	void Worker() override;
 
-	void Abort() override
-	{
-		BaseThread::Abort();
-	}
-
 	void Restart();
 
 #pragma optimize("", off)
@@ -380,7 +375,6 @@ ActiveShadeRenderCore::ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::S
 	, terminationReached(false)
 {
 	mShaderCacheReady.Fire();
-	mSelfDelete = false;
 }
 
 void ActiveShadeRenderCore::SetupCamera(const ParsedView& view, const int imageWidth, const int imageHeight, rpr_camera outCamera)
@@ -750,14 +744,14 @@ void ActiveShadeRenderCore::Restart()
 // BRIDGE INTERFACE
 //
 
-ActiveShader::ActiveShader(class IFireRender *ifr)
-	: mIfr(ifr)
-	, mScopeId(-1)
-	, mOutputBitmap(0)
-	, mSceneINode(0)
-	, mShaderCacheDlg(NULL)
+ActiveShader::ActiveShader(class IFireRender *ifr) :
+	mIfr(ifr),
+	mScopeId(-1),
+	mOutputBitmap(0),
+	mSceneINode(0),
+	mShaderCacheDlg(nullptr),
+	mRenderThread(nullptr)
 {
-	mRenderThread = 0;
 	mBridge = new ActiveShadeSynchronizerBridge(this);
 }
 
@@ -870,7 +864,7 @@ void ActiveShader::End()
 	{
 		mRenderThread->Abort();
 		delete mRenderThread;
-		mRenderThread = 0;
+		mRenderThread = nullptr;
 	}
 
 	camera.clear();
@@ -1022,7 +1016,7 @@ void ActiveShader::AbortRender()
 	{
 		mRenderThread->Abort();
 		delete mRenderThread;
-		mRenderThread = 0;
+		mRenderThread = nullptr;
 	}
 }
 

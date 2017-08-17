@@ -120,11 +120,6 @@ public:
 			scope.DestroyFrameBuffers();
 	}
 
-	void Abort() override
-	{
-		BaseThread::Abort();
-	}
-
 	void AbortImmediate() override
 	{
 		BaseThread::AbortImmediate();
@@ -229,8 +224,11 @@ bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 	return true;
 }
 
-ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name)
-: BaseThread(name, priority), scope(rscope), eRestart(true), bImmediateAbort(false)
+ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name) :
+	BaseThread(name, priority),
+	scope(rscope),
+	eRestart(true),
+	bImmediateAbort(false)
 {
 	// termination
 	passLimit = 1;
@@ -248,8 +246,6 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 	exposure = 1.f;
 	useMaxTonemapper = true;
 	regionMode = false;
-
-	mSelfDelete = false;
 
 	frw::Context ctx = scope.GetContext();
 
@@ -656,6 +652,7 @@ void PRManagerMax::CleanUpRender(FireRenderer *pRenderer)
 				bmDone.Wait();
 
 			delete data->renderThread;
+
 			data->renderThread = nullptr;
 		}
 	}
