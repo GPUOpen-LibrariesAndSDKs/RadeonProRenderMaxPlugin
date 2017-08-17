@@ -25,7 +25,7 @@ namespace
 	}
 }
 
-bool IES_General::InitDialog()
+bool IES_General::InitializePage()
 {
 	auto pBlock = GetParamBlock();
 
@@ -35,7 +35,24 @@ bool IES_General::InitDialog()
 
 	SetIsButtonChecked(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED, enabled);
 
+	m_areaWidthControl.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH,
+		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S);
+
+	m_areaWidthControl.Bind(EDITTYPE_FLOAT);
+	
+	auto& spinner = m_areaWidthControl.GetSpinner();
+	spinner.SetLimits(0.f, FLT_MAX);
+	spinner.SetValue(1.0f);
+	spinner.SetResetValue(1.0f);
+	spinner.SetScale(0.001f);
+
 	return true;
+}
+
+void IES_General::UninitializePage()
+{
+	m_areaWidthControl.Release();
 }
 
 INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)

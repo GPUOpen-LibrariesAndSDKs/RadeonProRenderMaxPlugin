@@ -15,13 +15,15 @@ public:
 	static constexpr TCHAR* PanelName = _T("General");
 	using BasePanel::BasePanel;
 
-	bool InitDialog();
+	bool InitializePage();
+	void UninitializePage();
 	INT_PTR HandleControlCommand(WORD code, WORD controlId);
 
 	void SaveCurrent();
 	void UpdateEnabledParam();
 
 protected:
+	MaxEditAndSpinner m_areaWidthControl;
 };
 
 FIRERENDER_NAMESPACE_END
