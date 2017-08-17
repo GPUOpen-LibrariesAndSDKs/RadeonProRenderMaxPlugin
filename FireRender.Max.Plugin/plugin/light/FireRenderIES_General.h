@@ -18,11 +18,18 @@ public:
 	bool InitializePage();
 	void UninitializePage();
 	INT_PTR HandleControlCommand(WORD code, WORD controlId);
+	INT_PTR OnEditChange(int editId, HWND editHWND);
+	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
 
 	void SaveCurrent();
 	void UpdateEnabledParam();
+	void UpdateAreaWidthParam();
+
+	bool IsEnabled() const;
+	float GetAreaWidth() const;
 
 protected:
+	WinCheckbox m_enabledControl;
 	MaxEditAndSpinner m_areaWidthControl;
 };
 

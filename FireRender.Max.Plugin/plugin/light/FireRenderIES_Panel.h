@@ -12,6 +12,8 @@ class MaxControl
 	using TControl = typename ControlTraits::TControl;
 
 public:
+	using Traits = ControlTraits;
+
 	MaxControl() :
 		m_ctrl(nullptr)
 	{}
@@ -147,8 +149,76 @@ class MaxEdit :
 public:
 	using ParentClass::ParentClass;
 	using ParentClass::operator=;
+
+	template<typename T>
+	T GetValue() const
+	{
+		FASSERT(m_ctrl != nullptr);
+		return static_cast<T>(GetValueHelper<T>::GetValue(m_ctrl));
+	}
+
+private:
+	template<typename T, typename Enable = void>
+	struct GetValueHelper;
+
+	template<typename T>
+	struct GetValueHelper<T, std::enable_if_t<std::is_integral<T>::value>>
+	{
+		static decltype(auto) GetValue(Traits::TControl* pControl)
+		{
+			return pControl->GetInt();
+		}
+	};
+
+	template<typename T>
+	struct GetValueHelper<T, std::enable_if_t<std::is_floating_point<T>::value>>
+	{
+		static decltype(auto) GetValue(Traits::TControl* pControl)
+		{
+			return pControl->GetFloat();
+		}
+	};
 };
 
+class WinCheckbox
+{
+public:
+	WinCheckbox() :
+		m_hWnd(nullptr)
+	{}
+
+	void Capture(HWND parentWindow, int controlId)
+	{
+		m_hWnd = GetDlgItem(parentWindow, controlId);
+		FASSERT(m_hWnd != nullptr);
+	}
+
+	void Release()
+	{
+		m_hWnd = nullptr;
+	}
+
+	bool IsChecked() const
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto result = Button_GetCheck(m_hWnd);
+		FASSERT(result != BST_INDETERMINATE);
+
+		return result == BST_CHECKED;
+	}
+
+	void SetCheck(bool checked)
+	{
+		FASSERT(m_hWnd != nullptr);
+		Button_SetCheck(m_hWnd, checked ? BST_CHECKED : BST_UNCHECKED);
+	}
+
+private:
+	HWND m_hWnd;
+};
+
+// Combines 3dsMax edit and spinner controls in one object
 class MaxEditAndSpinner
 {
 public:
@@ -228,16 +298,15 @@ public:
 		m_panel = nullptr;
 	}
 
-	// Default empty implementations
+	// Default empty implementations. These methods may be overridden in the derived class
 	bool InitializePage() { return true; }
 	void UninitializePage() {}
 	INT_PTR HandleControlCommand(WORD code, WORD controlId) { return FALSE; }
-	INT_PTR HandleCustomEditEnter(int editId, HWND editHWND) { return FALSE; }
-	INT_PTR HandleSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
-
+	INT_PTR OnEditChange(int editId, HWND editHWND) { return FALSE; }
+	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
 
 protected:
-	IParamBlock2* GetParamBlock()
+	IParamBlock2* GetParamBlock() const
 	{
 		auto pBlock = m_parent->GetParamBlock(0);
 		FASSERT(pBlock != nullptr);
@@ -277,7 +346,7 @@ private:
 				auto customEditHWND = reinterpret_cast<HWND>(lParam);
 				auto _this = GetAttachedThis(hWnd);
 
-				return _this->HandleCustomEditEnter(customEditId, customEditHWND);
+				return _this->OnEditChange(customEditId, customEditHWND);
 			}
 			break;
 
@@ -288,7 +357,7 @@ private:
 				auto isDragging = HIWORD(wParam);
 				auto _this = GetAttachedThis(hWnd);
 
-				return _this->HandleSpinnerChange(spinner, spinnerId, isDragging);
+				return _this->OnSpinnerChange(spinner, spinnerId, isDragging);
 			}
 			break;
 		}

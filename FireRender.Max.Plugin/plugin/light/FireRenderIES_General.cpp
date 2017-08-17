@@ -27,14 +27,11 @@ namespace
 
 bool IES_General::InitializePage()
 {
-	auto pBlock = GetParamBlock();
+	// Enabled parameter
+	m_enabledControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED);
+	m_enabledControl.SetCheck(IsEnabled());
 
-	BOOL enabled = FALSE;
-	auto ok = pBlock->GetValue(IES_PARAM_ENABLED, 0, enabled, FOREVER);
-	FASSERT(ok);
-
-	SetIsButtonChecked(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED, enabled);
-
+	// Area width parameter
 	m_areaWidthControl.Capture(m_panel,
 		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH,
 		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S);
@@ -43,7 +40,7 @@ bool IES_General::InitializePage()
 	
 	auto& spinner = m_areaWidthControl.GetSpinner();
 	spinner.SetLimits(0.f, FLT_MAX);
-	spinner.SetValue(1.0f);
+	spinner.SetValue(GetAreaWidth());
 	spinner.SetResetValue(1.0f);
 	spinner.SetScale(0.001f);
 
@@ -52,6 +49,7 @@ bool IES_General::InitializePage()
 
 void IES_General::UninitializePage()
 {
+	m_enabledControl.Release();
 	m_areaWidthControl.Release();
 }
 
@@ -74,6 +72,30 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 	return FALSE;
 }
 
+INT_PTR IES_General::OnEditChange(int editId, HWND editHWND)
+{
+	switch (editId)
+	{
+	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
+		UpdateAreaWidthParam();
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+INT_PTR IES_General::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging)
+{
+	switch (controlId)
+	{
+	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
+		UpdateAreaWidthParam();
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 void IES_General::SaveCurrent()
 {
 	FASSERT(!"Not implemented");
@@ -81,10 +103,32 @@ void IES_General::SaveCurrent()
 
 void IES_General::UpdateEnabledParam()
 {
-	auto pBlock = GetParamBlock();
-	bool enable = GetIsButtonChecked(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED);
+	GetParamBlock()->SetValue(IES_PARAM_ENABLED, 0, m_enabledControl.IsChecked());
+}
 
-	pBlock->SetValue(IES_PARAM_ENABLED, 0, enable);
+void IES_General::UpdateAreaWidthParam()
+{
+	auto pBlock = GetParamBlock();
+	auto value = m_areaWidthControl.GetEdit().GetValue<float>();
+	pBlock->SetValue(IES_PARAM_AREA_WIDTH, 0, value);
+}
+
+bool IES_General::IsEnabled() const
+{
+	BOOL enabled = FALSE;
+	auto ok = GetParamBlock()->GetValue(IES_PARAM_ENABLED, 0, enabled, FOREVER);
+	FASSERT(ok);
+
+	return enabled;
+}
+
+float IES_General::GetAreaWidth() const
+{
+	float areaWidth = 1.0f;
+	auto ok = GetParamBlock()->GetValue(IES_PARAM_AREA_WIDTH, 0, areaWidth, FOREVER);
+	FASSERT(ok);
+
+	return areaWidth;
 }
 
 FIRERENDER_NAMESPACE_END
