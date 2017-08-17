@@ -4,8 +4,21 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+namespace
+{
+	std::string OpenIESFile()
+	{
+		// TODO:
+		return "";
+	}
+}
+
 bool IES_General::InitializePage()
 {
+	// Import button
+	m_importButton.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_IMPORT);
+	m_importButton.SetType(CustButType::CBT_PUSH);
+
 	// Enabled parameter
 	m_enabledControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED);
 	m_enabledControl.SetCheck(m_parent->GetEnabled());
@@ -32,6 +45,7 @@ bool IES_General::InitializePage()
 
 void IES_General::UninitializePage()
 {
+	m_importButton.Release();
 	m_enabledControl.Release();
 	m_targetedControl.Release();
 	m_areaWidthControl.Release();
@@ -45,10 +59,6 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 		{
 		case IDC_FIRERENDER_IES_LIGHT_ENABLED:
 			UpdateEnabledParam();
-			return TRUE;
-
-		case IDC_FIRERENDER_IES_LIGHT_SAVE_CURRENT:
-			SaveCurrent();
 			return TRUE;
 
 		case IDC_FIRERENDER_IES_LIGHT_TARGETED_CHECKBOX:
@@ -84,6 +94,18 @@ INT_PTR IES_General::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, b
 	return FALSE;
 }
 
+INT_PTR IES_General::OnButtonClick(WORD controlId)
+{
+	switch (controlId)
+	{
+	case IDC_FIRERENDER_IES_LIGHT_IMPORT:
+		ImportFile();
+		break;
+	}
+	
+	return FALSE;
+}
+
 void IES_General::SaveCurrent()
 {
 	FASSERT(!"Not implemented");
@@ -102,6 +124,12 @@ void IES_General::UpdateTargetedParam()
 void IES_General::UpdateAreaWidthParam()
 {
 	m_parent->SetAreaWidth(m_areaWidthControl.GetEdit().GetValue<float>());
+}
+
+void IES_General::ImportFile()
+{
+	auto file = OpenIESFile();
+	m_parent->ImportFile(file.c_str());
 }
 
 FIRERENDER_NAMESPACE_END

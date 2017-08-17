@@ -20,13 +20,16 @@ public:
 	INT_PTR HandleControlCommand(WORD code, WORD controlId);
 	INT_PTR OnEditChange(int editId, HWND editHWND);
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	INT_PTR OnButtonClick(WORD controlId);
 
 	void SaveCurrent();
 	void UpdateEnabledParam();
 	void UpdateTargetedParam();
 	void UpdateAreaWidthParam();
+	void ImportFile();
 
 protected:
+	MaxButton m_importButton;
 	WinCheckbox m_enabledControl;
 	WinCheckbox m_targetedControl;
 	MaxEditAndSpinner m_areaWidthControl;

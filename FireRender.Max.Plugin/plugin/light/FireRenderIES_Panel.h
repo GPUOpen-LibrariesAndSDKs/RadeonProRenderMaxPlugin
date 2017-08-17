@@ -106,6 +106,22 @@ public:
 	}
 };
 
+class MaxButtonTraits
+{
+public:
+	using TControl = ICustButton;
+
+	static TControl* Capture(HWND wnd)
+	{
+		return GetICustButton(wnd);
+	}
+
+	static void Release(TControl* ctrl)
+	{
+		ReleaseICustButton(ctrl);
+	}
+};
+
 class MaxSpinner :
 	public MaxControl<MaxSpinnerTraits>
 {
@@ -178,6 +194,21 @@ private:
 			return pControl->GetFloat();
 		}
 	};
+};
+
+class MaxButton :
+	public MaxControl<MaxButtonTraits>
+{
+	using ParentClass = MaxControl<MaxButtonTraits>;
+public:
+	using ParentClass::ParentClass;
+	using ParentClass::operator=;
+
+	void SetType(CustButType type)
+	{
+		FASSERT(m_ctrl != nullptr);
+		m_ctrl->SetType(type);
+	}
 };
 
 class WinCheckbox
@@ -304,6 +335,7 @@ public:
 	INT_PTR HandleControlCommand(WORD code, WORD controlId) { return FALSE; }
 	INT_PTR OnEditChange(int editId, HWND editHWND) { return FALSE; }
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
+	INT_PTR OnButtonClick(WORD controlId) { return FALSE; }
 
 protected:
 	HWND m_panel;
@@ -350,6 +382,15 @@ private:
 				auto _this = GetAttachedThis(hWnd);
 
 				return _this->OnSpinnerChange(spinner, spinnerId, isDragging);
+			}
+			break;
+
+			case WM_MENUSELECT:
+			{
+				auto controlId = LOWORD(wParam);
+				auto _this = GetAttachedThis(hWnd);
+				
+				return _this->OnButtonClick(controlId);
 			}
 			break;
 		}

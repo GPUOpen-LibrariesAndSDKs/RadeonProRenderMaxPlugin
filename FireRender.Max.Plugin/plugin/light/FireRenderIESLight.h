@@ -155,6 +155,8 @@ public:
 	void SetAreaWidth(float value);
 	float GetAreaWidth() const;
 
+	void ImportFile(const char* filename);
+
 protected:
 	ExclList m_exclList;
 
