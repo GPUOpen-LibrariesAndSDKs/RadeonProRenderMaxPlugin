@@ -371,7 +371,7 @@ struct RebuildJobParams
 
 		auto tm = firstNode->GetObjTMAfterWSM(t);
 		tm.SetTrans(tm.GetTrans() * sync->mMasterScale);
-		BOOL parity = tm.Parity();
+		parity = tm.Parity();
 
 		return true;
 	}
