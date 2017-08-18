@@ -13,32 +13,31 @@
 #include <xref/iXrefMaterial.h>
 #include <shaders.h>
 #include "CoronaDeclarations.h"
-#include "plugin/FireRenderDiffuseMtl.h"
-#include "plugin/FireRenderBlendMtl.h"
-#include "plugin/FireRenderAddMtl.h"
-#include "plugin/FireRenderMicrofacetMtl.h"
-#include "plugin/FireRenderReflectionMtl.h"
-#include "plugin/FireRenderArithmMtl.h"
-#include "plugin/FireRenderInputLUMtl.h"
-#include "plugin/FireRenderBlendValueMtl.h"
-#include "plugin/FireRenderRefractionMtl.h"
-#include "plugin/FireRenderMFRefractionMtl.h"
-#include "plugin/FireRenderTransparentMtl.h"
-#include "plugin/FireRenderWardMtl.h"
-#include "plugin/FireRenderEmissiveMtl.h"
-#include "plugin/FireRenderFresnelMtl.h"
-#include "plugin/FireRenderStandardMtl.h"
-#include "plugin/FireRenderOrenNayarMtl.h"
-#include "plugin/FireRenderNormalMtl.h"
-#include "plugin/FireRenderDiffuseRefractionMtl.h"
-#include "plugin/FireRenderFresnelSchlickMtl.h"
+#include "FireRenderDiffuseMtl.h"
+#include "FireRenderBlendMtl.h"
+#include "FireRenderAddMtl.h"
+#include "FireRenderMicrofacetMtl.h"
+#include "FireRenderReflectionMtl.h"
+#include "FireRenderArithmMtl.h"
+#include "FireRenderInputLUMtl.h"
+#include "FireRenderBlendValueMtl.h"
+#include "FireRenderRefractionMtl.h"
+#include "FireRenderMFRefractionMtl.h"
+#include "FireRenderTransparentMtl.h"
+#include "FireRenderWardMtl.h"
+#include "FireRenderEmissiveMtl.h"
+#include "FireRenderFresnelMtl.h"
+#include "FireRenderStandardMtl.h"
+#include "FireRenderOrenNayarMtl.h"
+#include "FireRenderNormalMtl.h"
+#include "FireRenderDiffuseRefractionMtl.h"
+#include "FireRenderFresnelSchlickMtl.h"
 #include "XMLMaterialParser.h"
 
 
 extern "C" {
 	#include "AxfConverterDll.h"
 }
-//#include "utils\Utils.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
 

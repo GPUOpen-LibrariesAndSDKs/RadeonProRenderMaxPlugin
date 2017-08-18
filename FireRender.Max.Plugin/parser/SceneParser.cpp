@@ -8,9 +8,9 @@
 #pragma once
 #include "parser/SceneParser.h"
 #include "RenderParameters.h"
-#include "plugin/ParamBlock.h"
-#include "plugin/CamManager.h"
-#include "plugin/ScopeManager.h"
+#include "ParamBlock.h"
+#include "CamManager.h"
+#include "ScopeManager.h"
 #include <iparamm2.h>
 #include <lslights.h>
 #include <ICustAttribContainer.h>
@@ -20,18 +20,20 @@
 #include "utils/Utils.h"
 #include "SceneCallbacks.h"
 #include "CoronaDeclarations.h"
+
 #if MAX_PRODUCT_YEAR_NUMBER >= 2016
-#   include <scene/IPhysicalCamera.h>
+	#include <scene/IPhysicalCamera.h>
 #endif
-#include "plugin/FireRenderStandardMtl.h"
-#include "plugin/FireRenderDisplacementMtl.h"
-#include "plugin/FireRenderMaterialMtl.h"
-#include "plugin/FireRenderUberMtl.h"
-#include "plugin/FireRenderEnvironment.h"
-#include "plugin/FireRenderAnalyticalSun.h"
-#include "plugin/BgManager.h"
-#include "plugin/FireRenderPortalLight.h"
-#include "plugin/light/FireRenderIESLight.h"
+
+#include "FireRenderStandardMtl.h"
+#include "FireRenderDisplacementMtl.h"
+#include "FireRenderMaterialMtl.h"
+#include "FireRenderUberMtl.h"
+#include "FireRenderEnvironment.h"
+#include "FireRenderAnalyticalSun.h"
+#include "BgManager.h"
+#include "FireRenderPortalLight.h"
+#include "light/FireRenderIESLight.h"
 
 #define USE_INSTANCES_ONLY false
 #define DEFAULT_LIGHT_ID 0x100000000

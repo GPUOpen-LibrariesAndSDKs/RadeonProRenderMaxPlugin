@@ -13,7 +13,7 @@
 #include "ClassDescs.h"
 #include "utils\Thread.h"
 #include "utils/Utils.h"
-#include "plugin/ParamDlg.h"
+#include "ParamDlg.h"
 #include <ITabDialog.h>
 #include <Notify.h>
 #include <toneop.h>
@@ -39,15 +39,15 @@
 #include <gamma.h> // gamma export for FRS files
 #include <IPathConfigMgr.h>  // for IPathConfigMgr
 
-#include "plugin/FireRenderDisplacementMtl.h"
-#include "plugin/FireRenderMaterialMtl.h"
-#include "plugin/FRSettingsFileHandler.h"
-#include "plugin/MPManager.h"
-#include "plugin/ScopeManager.h"
-#include "plugin/PRManager.h"
-#include "plugin/TMManager.h"
-#include "plugin/CamManager.h"
-#include "plugin/BgManager.h"
+#include "FireRenderDisplacementMtl.h"
+#include "FireRenderMaterialMtl.h"
+#include "FRSettingsFileHandler.h"
+#include "MPManager.h"
+#include "ScopeManager.h"
+#include "PRManager.h"
+#include "TMManager.h"
+#include "CamManager.h"
+#include "BgManager.h"
 
 #include "ActiveShader.h"
 

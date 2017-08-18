@@ -7,18 +7,20 @@
 *********************************************************************************************************************************/
 
 #include <math.h>
+#include <Bitmap.h>
+
 #include "MPManager.h"
 #include "resource.h"
 #include "plugin/ParamBlock.h"
 #include <wingdi.h>
 #include "utils/Thread.h"
+
 #include "AssetManagement\IAssetAccessor.h"
 #include "assetmanagement\AssetType.h"
 #include "Assetmanagement\iassetmanager.h"
-#include <Bitmap.h>
-#include "plugin/FireRenderDisplacementMtl.h"
-#include "plugin/FireRenderMaterialMtl.h"
-#include "plugin/ScopeManager.h"
+#include "FireRenderDisplacementMtl.h"
+#include "FireRenderMaterialMtl.h"
+#include "ScopeManager.h"
 #include <RadeonProRender.h>
 #include <RprLoadStore.h>
 
