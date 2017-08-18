@@ -28,9 +28,12 @@ public:
 
 	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
+	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
+	using ShadowsTransparencySettings = MaxSpinner::DefaultFloatSettings;
 
 	static constexpr bool DefaultEnabled = true;
 	static constexpr bool DefaultTargeted = false;
+	static constexpr bool DefaultShadowsEnabled = true;
 	static constexpr auto DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
 
 	FireRenderIESLight();
@@ -163,6 +166,8 @@ public:
 	void SetAreaWidth(float value);
 	float GetAreaWidth() const;
 
+	void ActivateProfile(const TCHAR* profileName);
+
 	void SetIntensity(float value);
 	float GetIntensity() const;
 
@@ -175,7 +180,14 @@ public:
 	void SetColorMode(IESLightColorMode value);
 	IESLightColorMode GetColorMode() const;
 
-	void ActivateProfile(const TCHAR* profileName);
+	void SetShadowsEnabled(bool value);
+	bool GetShadowsEnabled() const;
+
+	void SetShadowsSoftness(float value);
+	float GetShadowsSoftness() const;
+
+	void SetShadowsTransparency(float value);
+	float GetShadowsTransparency() const;
 
 protected:
 	ExclList m_exclList;

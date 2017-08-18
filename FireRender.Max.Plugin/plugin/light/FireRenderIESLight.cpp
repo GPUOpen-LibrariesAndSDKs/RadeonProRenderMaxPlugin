@@ -165,6 +165,21 @@ namespace
 			p_range, MinKelvin, MaxKelvin,
 			PB_END,
 
+		// Shadows enabled parameter
+		IES_PARAM_SHADOWS_ENABLED, _T("ShadowsEnabled"), TYPE_BOOL, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::DefaultShadowsEnabled,
+			PB_END,
+
+		// Shadows softness parameter
+		IES_PARAM_SHADOWS_SOFTNESS, _T("ShadowsSoftness"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::ShadowsSoftnessSettings::Default,
+			PB_END,
+
+		// Shadows transparency parameter
+		IES_PARAM_SHADOWS_TRANSPARENCY, _T("ShadowsTransparency"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::ShadowsTransparencySettings::Default,
+			PB_END,
+
 		PB_END
 	);
 
@@ -176,7 +191,8 @@ namespace
 	struct GetBlockValueHelper<p,
 		std::enable_if_t<
 			p == IES_PARAM_ENABLED ||
-			p == IES_PARAM_TARGETED
+			p == IES_PARAM_TARGETED ||
+			p == IES_PARAM_SHADOWS_ENABLED
 		>>
 	{
 		using T1 = BOOL;
@@ -198,7 +214,9 @@ namespace
 		std::enable_if_t<
 			p == IES_PARAM_AREA_WIDTH ||
 			p == IES_PARAM_INTENSITY ||
-			p == IES_PARAM_TEMPERATURE
+			p == IES_PARAM_TEMPERATURE ||
+			p == IES_PARAM_SHADOWS_SOFTNESS ||
+			p == IES_PARAM_SHADOWS_TRANSPARENCY
 		>>
 	{
 		using T1 = FLOAT;
@@ -932,6 +950,36 @@ IESLightColorMode FireRenderIESLight::GetColorMode() const
 	return
 		static_cast<IESLightColorMode>(
 			GetBlockValue<IES_PARAM_COLOR_MODE>(m_pblock2));
+}
+
+void FireRenderIESLight::SetShadowsEnabled(bool value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_SHADOWS_ENABLED, value);
+}
+
+bool FireRenderIESLight::GetShadowsEnabled() const
+{
+	return GetBlockValue<IES_PARAM_SHADOWS_ENABLED>(m_pblock2);
+}
+
+void FireRenderIESLight::SetShadowsSoftness(float value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_SHADOWS_SOFTNESS, value);
+}
+
+float FireRenderIESLight::GetShadowsSoftness() const
+{
+	return GetBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(m_pblock2);
+}
+
+void FireRenderIESLight::SetShadowsTransparency(float value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_SHADOWS_TRANSPARENCY, value);
+}
+
+float FireRenderIESLight::GetShadowsTransparency() const
+{
+	return GetBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(m_pblock2);
 }
 
 void FireRenderIESLight::ActivateProfile(const TCHAR* profileName)

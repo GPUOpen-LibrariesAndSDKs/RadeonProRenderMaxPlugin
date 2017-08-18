@@ -490,6 +490,9 @@
     <ClCompile Include="FireRender.Max.Plugin\utils\KelvinToColor.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.cpp">
+      <Filter>Plugin\light</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp">

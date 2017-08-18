@@ -388,6 +388,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />
