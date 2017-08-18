@@ -7,6 +7,8 @@
 *********************************************************************************************************************************/
 
 #include <math.h>
+#include <Bitmap.h>
+
 #include "PRManager.h"
 #include "resource.h"
 #include "plugin/ParamBlock.h"
@@ -15,18 +17,19 @@
 #include "AssetManagement\IAssetAccessor.h"
 #include "assetmanagement\AssetType.h"
 #include "Assetmanagement\iassetmanager.h"
-#include <Bitmap.h>
-#include "plugin/FireRenderDisplacementMtl.h"
-#include "plugin/FireRenderMaterialMtl.h"
-#include "plugin/CamManager.h"
-#include "plugin/TMManager.h"
+#include "FireRenderDisplacementMtl.h"
+#include "FireRenderMaterialMtl.h"
+#include "CamManager.h"
+#include "TMManager.h"
 #include <RadeonProRender.h>
 #include <RprLoadStore.h>
 #include <RprSupport.h>
 #include <shlobj.h>
 #include <gamma.h> // gamma export for FRS files
+
 #include <mutex>
 #include <future>
+
 extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN;

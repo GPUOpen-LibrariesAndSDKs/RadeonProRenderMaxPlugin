@@ -9,10 +9,10 @@
 #include "Synchronizer.h"
 #include "CoronaDeclarations.h"
 #include <MeshNormalSpec.h>
-#include "plugin/FireRenderMaterialMtl.h"
-#include "plugin/FireRenderUberMtl.h"
-#include "plugin/FireRenderDisplacementMtl.h"
-#include "plugin/ScopeManager.h"
+#include "FireRenderMaterialMtl.h"
+#include "FireRenderUberMtl.h"
+#include "FireRenderDisplacementMtl.h"
+#include "ScopeManager.h"
 #include <list>
 
 FIRERENDER_NAMESPACE_BEGIN;
