@@ -139,16 +139,22 @@ namespace
 
 		// Enabled parameter
 		IES_PARAM_ENABLED, _T("Enabled"), TYPE_BOOL, P_ANIMATABLE, 0,
-			p_default, TRUE,
+			p_default, FireRenderIESLight::DefaultEnabled,
 			PB_END,
 
 		// Area width parameter
 		IES_PARAM_AREA_WIDTH, _T("AreaWidth"), TYPE_FLOAT, P_ANIMATABLE, 0,
-			p_default, 1.0f,
+			p_default, FireRenderIESLight::AreaWidthSettings::Default,
 			PB_END,
 
+		// Targeted parameter
 		IES_PARAM_TARGETED, _T("Targeted"), TYPE_BOOL, P_ANIMATABLE, 0,
-			p_default, FALSE,
+			p_default, FireRenderIESLight::DefaultTargeted,
+			PB_END,
+
+		// Light intensity parameter
+		IES_PARAM_INTENSITY, _T("Intensity"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::IntensitySettings::Default,
 			PB_END,
 
 		PB_END
@@ -172,7 +178,8 @@ namespace
 	template<IESLightParameter p>
 	struct GetBlockValueHelper<p,
 		std::enable_if_t<
-			p == IES_PARAM_AREA_WIDTH
+			p == IES_PARAM_AREA_WIDTH ||
+			p == IES_PARAM_INTENSITY
 		>>
 	{
 		using T1 = FLOAT;
@@ -848,13 +855,22 @@ bool FireRenderIESLight::GetTargeted() const
 
 void FireRenderIESLight::SetAreaWidth(float value)
 {
-
 	SetBlockValue(m_pblock2, IES_PARAM_AREA_WIDTH, value);
 }
 
 float FireRenderIESLight::GetAreaWidth() const
 {
 	return GetBlockValue<IES_PARAM_AREA_WIDTH>(m_pblock2);
+}
+
+void FireRenderIESLight::SetIntensity(float value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_INTENSITY, value);
+}
+
+float FireRenderIESLight::GetIntensity() const
+{
+	return GetBlockValue<IES_PARAM_INTENSITY>(m_pblock2);
 }
 
 void FireRenderIESLight::ActivateProfile(const TCHAR* profileName)

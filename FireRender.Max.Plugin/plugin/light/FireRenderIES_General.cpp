@@ -191,10 +191,8 @@ bool IES_General::InitializePage()
 	m_areaWidthControl.Bind(EDITTYPE_FLOAT);
 	
 	auto& spinner = m_areaWidthControl.GetSpinner();
-	spinner.SetLimits(0.f, FLT_MAX);
+	spinner.SetSettings<FireRenderIESLight::AreaWidthSettings>();
 	spinner.SetValue(m_parent->GetAreaWidth());
-	spinner.SetResetValue(1.0f);
-	spinner.SetScale(0.001f);
 
 	return true;
 }

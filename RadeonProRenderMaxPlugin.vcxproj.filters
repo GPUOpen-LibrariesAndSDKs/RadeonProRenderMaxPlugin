@@ -481,6 +481,9 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp">
       <Filter>Plugin\light</Filter>
     </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.cpp">
+      <Filter>Plugin\light</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp">

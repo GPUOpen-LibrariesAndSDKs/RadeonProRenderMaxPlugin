@@ -16,6 +16,17 @@ public:
 
 	// Use base class constructor
 	using BasePanel::BasePanel;
+
+	void UpdateIntensityParam();
+
+	// IES_Panel overrides
+	bool InitializePage();
+	void UninitializePage();
+	INT_PTR OnEditChange(int editId, HWND editHWND);
+	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
+
+private:
+	MaxEditAndSpinner m_intensityControl;
 };
 
 FIRERENDER_NAMESPACE_END

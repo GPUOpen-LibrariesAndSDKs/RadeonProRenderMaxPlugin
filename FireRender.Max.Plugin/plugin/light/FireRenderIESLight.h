@@ -25,6 +25,14 @@ class FireRenderIESLight : public GenLight
 public:
 	static Class_ID GetClassId();
 	static ClassDesc2* GetClassDesc();
+
+	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
+	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
+
+	static constexpr bool DefaultEnabled = true;
+	static constexpr bool DefaultTargeted = false;
+
+
 	FireRenderIESLight();
 	~FireRenderIESLight();
 
@@ -154,6 +162,9 @@ public:
 
 	void SetAreaWidth(float value);
 	float GetAreaWidth() const;
+
+	void SetIntensity(float value);
+	float GetIntensity() const;
 
 	void ActivateProfile(const TCHAR* profileName);
 

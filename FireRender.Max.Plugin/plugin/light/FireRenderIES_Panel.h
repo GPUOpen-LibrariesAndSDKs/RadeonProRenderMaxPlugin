@@ -139,6 +139,22 @@ public:
 		FASSERT(m_ctrl != nullptr);
 		m_ctrl->SetValue(value, TRUE);
 	}
+
+	template<typename Settings>
+	void SetSettings()
+	{
+		SetLimits(Settings::Min, Settings::Max);
+		SetResetValue(Settings::Default);
+		SetScale(Settings::Delta);
+	}
+
+	struct DefaultFloatSettings
+	{
+		static constexpr float Min = 0.0f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr float Default = 1.0f;
+		static constexpr float Delta = 0.001;
+	};
 };
 
 /* This class wraps 3dsMax ICustEdit control */
@@ -457,7 +473,8 @@ private:
 					auto controlId = LOWORD(wParam);
 					auto _this = GetAttachedThis(hWnd);
 
-					return _this->OnButtonClick(controlId);
+					_this->OnButtonClick(controlId);
+					return FALSE;
 				}
 			}
 			break;
