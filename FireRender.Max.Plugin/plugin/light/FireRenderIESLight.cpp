@@ -857,12 +857,6 @@ float FireRenderIESLight::GetAreaWidth() const
 	return GetBlockValue<IES_PARAM_AREA_WIDTH>(m_pblock2);
 }
 
-void FireRenderIESLight::ImportFile(const char* filename)
-{
-	//TODO:
-	FASSERT(!"Not implemented");
-}
-
 void FireRenderIESLight::ActivateProfile(const TCHAR* profileName)
 {
 	//TODO:

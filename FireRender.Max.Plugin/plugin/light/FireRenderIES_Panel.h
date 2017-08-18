@@ -305,12 +305,14 @@ public:
 	{
 		FASSERT(m_hWnd != nullptr);
 
-		auto len = ComboBox_GetLBTextLen(m_hWnd, index);
-		FASSERT(len != CB_ERR && "Index out of range");
+		auto chars = ComboBox_GetLBTextLen(m_hWnd, index);
+		FASSERT(chars != CB_ERR && "Index out of range");
 
 		TString result;
+		auto len = chars + 1;
 		result.resize(len);
-		ComboBox_GetText(m_hWnd, &result[0], len);
+		auto getLBText_result = ComboBox_GetLBText(m_hWnd, index, &result[0]);
+		FASSERT(getLBText_result != CB_ERR && getLBText_result == chars);
 
 		return result;
 	}
@@ -450,10 +452,13 @@ private:
 
 			case WM_MENUSELECT:
 			{
-				auto controlId = LOWORD(wParam);
-				auto _this = GetAttachedThis(hWnd);
-				
-				return _this->OnButtonClick(controlId);
+				if (lParam != 0)
+				{
+					auto controlId = LOWORD(wParam);
+					auto _this = GetAttachedThis(hWnd);
+
+					return _this->OnButtonClick(controlId);
+				}
 			}
 			break;
 		}

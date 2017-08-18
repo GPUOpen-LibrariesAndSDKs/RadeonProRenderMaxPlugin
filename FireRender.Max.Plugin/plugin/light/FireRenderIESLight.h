@@ -155,7 +155,6 @@ public:
 	void SetAreaWidth(float value);
 	float GetAreaWidth() const;
 
-	void ImportFile(const char* filename);
 	void ActivateProfile(const TCHAR* profileName);
 
 protected:

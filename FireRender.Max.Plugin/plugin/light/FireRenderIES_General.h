@@ -33,6 +33,8 @@ public:
 	INT_PTR OnButtonClick(WORD controlId);
 
 protected:
+	void UpdateProfiles();
+
 	MaxButton m_importButton;
 	WinCombobox m_profilesComboBox;
 	WinCheckbox m_enabledControl;
