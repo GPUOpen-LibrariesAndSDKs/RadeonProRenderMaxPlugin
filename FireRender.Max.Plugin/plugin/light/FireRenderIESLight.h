@@ -156,6 +156,7 @@ public:
 	float GetAreaWidth() const;
 
 	void ImportFile(const char* filename);
+	void ActivateProfile(const TCHAR* profileName);
 
 protected:
 	ExclList m_exclList;

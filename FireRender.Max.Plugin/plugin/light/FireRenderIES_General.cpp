@@ -6,6 +6,33 @@ FIRERENDER_NAMESPACE_BEGIN
 
 namespace
 {
+	template<typename F>
+	void ForEachFileInFoler(F&& f)
+	{
+		auto profilesFolder = GetDataStoreFolder() + L"IES Profiles\\*";
+
+		WIN32_FIND_DATA ffd;
+		auto hFind = FindFirstFile(profilesFolder.c_str(), &ffd);
+
+		if (hFind == INVALID_HANDLE_VALUE)
+		{
+			return;
+		}
+
+		do
+		{
+			if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			{
+				// should it be recursive?
+				continue;
+			}
+			else
+			{
+				f(ffd.cFileName);
+			}
+		} while (FindNextFile(hFind, &ffd) != 0);
+	}
+
 	std::string OpenIESFile()
 	{
 		// TODO:
@@ -18,6 +45,14 @@ bool IES_General::InitializePage()
 	// Import button
 	m_importButton.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_IMPORT);
 	m_importButton.SetType(CustButType::CBT_PUSH);
+
+	// Profiles combo box
+	m_profilesComboBox.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_PROFILE);
+
+	ForEachFileInFoler([&](TCHAR* filename)
+	{
+		m_profilesComboBox.AddItem(filename);
+	});
 
 	// Enabled parameter
 	m_enabledControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED);
@@ -46,6 +81,7 @@ bool IES_General::InitializePage()
 void IES_General::UninitializePage()
 {
 	m_importButton.Release();
+	m_profilesComboBox.Release();
 	m_enabledControl.Release();
 	m_targetedControl.Release();
 	m_areaWidthControl.Release();
@@ -65,6 +101,15 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 			UpdateTargetedParam();
 			return TRUE;
 		}
+	}
+
+	if (code == CBN_SELCHANGE && controlId == IDC_FIRERENDER_IES_LIGHT_PROFILE)
+	{
+		auto index = m_profilesComboBox.GetSelectedIndex();
+		auto profile = m_profilesComboBox.GetItemText(index);
+
+		m_parent->ActivateProfile(profile.c_str());
+		return TRUE;
 	}
 
 	return FALSE;

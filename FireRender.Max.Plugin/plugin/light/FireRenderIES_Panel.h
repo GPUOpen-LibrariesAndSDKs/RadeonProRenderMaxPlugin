@@ -6,6 +6,12 @@ FIRERENDER_NAMESPACE_BEGIN
 
 class FireRenderIESLight;
 
+/* This class contains common code for 3dsMax specific controls
+	'ControlTraits' must have:
+		TControl typedef which represents 3dsMax control
+		static TControl* Capture(HWND) method
+		static void Release(TControl*) method
+*/
 template<typename ControlTraits>
 class MaxControl
 {
@@ -78,50 +84,27 @@ class MaxSpinnerTraits
 {
 public:
 	using TControl = ISpinnerControl;
-
-	static TControl* Capture(HWND wnd)
-	{
-		return GetISpinner(wnd);
-	}
-	
-	static void Release(TControl* ctrl)
-	{
-		ReleaseISpinner(ctrl);
-	}
+	static TControl* Capture(HWND wnd) { return GetISpinner(wnd); }
+	static void Release(TControl* ctrl) { ReleaseISpinner(ctrl); }
 };
 
 class MaxEditTraits
 {
 public:
 	using TControl = ICustEdit;
-
-	static TControl* Capture(HWND wnd)
-	{
-		return GetICustEdit(wnd);
-	}
-
-	static void Release(TControl* ctrl)
-	{
-		ReleaseICustEdit(ctrl);
-	}
+	static TControl* Capture(HWND wnd) { return GetICustEdit(wnd); }
+	static void Release(TControl* ctrl) { ReleaseICustEdit(ctrl); }
 };
 
 class MaxButtonTraits
 {
 public:
 	using TControl = ICustButton;
-
-	static TControl* Capture(HWND wnd)
-	{
-		return GetICustButton(wnd);
-	}
-
-	static void Release(TControl* ctrl)
-	{
-		ReleaseICustButton(ctrl);
-	}
+	static TControl* Capture(HWND wnd) { return GetICustButton(wnd); }
+	static void Release(TControl* ctrl) { ReleaseICustButton(ctrl); }
 };
 
+/* This class wraps 3dsMax ISpinnerControl */
 class MaxSpinner :
 	public MaxControl<MaxSpinnerTraits>
 {
@@ -158,6 +141,7 @@ public:
 	}
 };
 
+/* This class wraps 3dsMax ICustEdit control */
 class MaxEdit :
 	public MaxControl<MaxEditTraits>
 {
@@ -177,6 +161,7 @@ private:
 	template<typename T, typename Enable = void>
 	struct GetValueHelper;
 
+	// Specialization for integral types
 	template<typename T>
 	struct GetValueHelper<T, std::enable_if_t<std::is_integral<T>::value>>
 	{
@@ -186,6 +171,7 @@ private:
 		}
 	};
 
+	// Specialization for floating-point types
 	template<typename T>
 	struct GetValueHelper<T, std::enable_if_t<std::is_floating_point<T>::value>>
 	{
@@ -196,6 +182,8 @@ private:
 	};
 };
 
+
+/* This class wraps 3dsMax ICustButton control */
 class MaxButton :
 	public MaxControl<MaxButtonTraits>
 {
@@ -211,10 +199,11 @@ public:
 	}
 };
 
-class WinCheckbox
+/* This class contains common code for Windows controls */
+class WinControl
 {
 public:
-	WinCheckbox() :
+	WinControl() :
 		m_hWnd(nullptr)
 	{}
 
@@ -229,23 +218,7 @@ public:
 		m_hWnd = nullptr;
 	}
 
-	bool IsChecked() const
-	{
-		FASSERT(m_hWnd != nullptr);
-
-		auto result = Button_GetCheck(m_hWnd);
-		FASSERT(result != BST_INDETERMINATE);
-
-		return result == BST_CHECKED;
-	}
-
-	void SetCheck(bool checked)
-	{
-		FASSERT(m_hWnd != nullptr);
-		Button_SetCheck(m_hWnd, checked ? BST_CHECKED : BST_UNCHECKED);
-	}
-
-private:
+protected:
 	HWND m_hWnd;
 };
 
@@ -287,6 +260,97 @@ private:
 	MaxSpinner m_spinner;
 };
 
+/* Wraps Windows check box control */
+class WinCheckbox :
+	public WinControl
+{
+public:
+	bool IsChecked() const
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto result = Button_GetCheck(m_hWnd);
+		FASSERT(result != BST_INDETERMINATE);
+
+		return result == BST_CHECKED;
+	}
+
+	void SetCheck(bool checked)
+	{
+		FASSERT(m_hWnd != nullptr);
+		Button_SetCheck(m_hWnd, checked ? BST_CHECKED : BST_UNCHECKED);
+	}
+};
+
+/* Wraps Windows combo box control */
+class WinCombobox :
+	public WinControl
+{
+	using TString = std::basic_string<TCHAR>;
+
+public:
+	// Returns the index of selected item.
+	// Returns -1 if nothing is selected
+	int GetSelectedIndex() const
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto curSel = ComboBox_GetCurSel(m_hWnd);
+		FASSERT(curSel != CB_ERR);
+
+		return curSel;
+	}
+
+	TString GetItemText(int index) const
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto len = ComboBox_GetLBTextLen(m_hWnd, index);
+		FASSERT(len != CB_ERR && "Index out of range");
+
+		TString result;
+		result.resize(len);
+		ComboBox_GetText(m_hWnd, &result[0], len);
+
+		return result;
+	}
+
+	int AddItem(const TCHAR* name)
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto index = ComboBox_AddString(m_hWnd, name);
+		FASSERT(index != CB_ERR);
+		FASSERT(index != CB_ERRSPACE);
+
+		return index;
+	}
+
+	void SetItemData(int index, size_t data)
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto ret = ComboBox_SetItemData(m_hWnd, index, data);
+		FASSERT(ret != CB_ERR);
+	}
+
+	// -1 to clear selection
+	void SetSelected(int index)
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto ret = ComboBox_SetCurSel(m_hWnd, index);
+
+		// -1 is valid input but ComboBox_SetCurSel returns CB_ERR in this case
+		FASSERT(ret == -1 || ret != CB_ERR);
+	}
+};
+
+/* This class contains common code to manage 3dsMax rollup pages.
+ * Derived class must define:
+ *	static DialogId variable;
+ *	static PanelName variable.
+ */
 template<typename Derived>
 class IES_Panel
 {
@@ -329,7 +393,7 @@ public:
 		m_panel = nullptr;
 	}
 
-	// Default empty implementations. These methods may be overridden in the derived class
+	// These methods are optional to override in the derived class
 	bool InitializePage() { return true; }
 	void UninitializePage() {}
 	INT_PTR HandleControlCommand(WORD code, WORD controlId) { return FALSE; }
@@ -342,7 +406,6 @@ protected:
 	FireRenderIESLight* m_parent;
 
 private:
-
 	static INT_PTR CALLBACK DlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (msg)

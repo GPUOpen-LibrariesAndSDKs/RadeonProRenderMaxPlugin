@@ -863,4 +863,10 @@ void FireRenderIESLight::ImportFile(const char* filename)
 	FASSERT(!"Not implemented");
 }
 
+void FireRenderIESLight::ActivateProfile(const TCHAR* profileName)
+{
+	//TODO:
+	FASSERT(!"Not implemented");
+}
+
 FIRERENDER_NAMESPACE_END
