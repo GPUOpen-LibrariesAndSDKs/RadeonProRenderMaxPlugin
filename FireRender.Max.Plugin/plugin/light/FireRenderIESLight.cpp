@@ -180,6 +180,11 @@ namespace
 			p_default, FireRenderIESLight::ShadowsTransparencySettings::Default,
 			PB_END,
 
+		// Volume scale parameter
+		IES_PARAM_VOLUME_SCALE, _T("VolumeScale"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::VolumeScaleSettings::Default,
+			PB_END,
+
 		PB_END
 	);
 
@@ -216,7 +221,8 @@ namespace
 			p == IES_PARAM_INTENSITY ||
 			p == IES_PARAM_TEMPERATURE ||
 			p == IES_PARAM_SHADOWS_SOFTNESS ||
-			p == IES_PARAM_SHADOWS_TRANSPARENCY
+			p == IES_PARAM_SHADOWS_TRANSPARENCY ||
+			p == IES_PARAM_VOLUME_SCALE
 		>>
 	{
 		using T1 = FLOAT;
@@ -980,6 +986,16 @@ void FireRenderIESLight::SetShadowsTransparency(float value)
 float FireRenderIESLight::GetShadowsTransparency() const
 {
 	return GetBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(m_pblock2);
+}
+
+void FireRenderIESLight::SetVolumeScale(float value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_VOLUME_SCALE, value);
+}
+
+float FireRenderIESLight::GetVolumeScale() const
+{
+	return GetBlockValue<IES_PARAM_VOLUME_SCALE>(m_pblock2);
 }
 
 void FireRenderIESLight::ActivateProfile(const TCHAR* profileName)

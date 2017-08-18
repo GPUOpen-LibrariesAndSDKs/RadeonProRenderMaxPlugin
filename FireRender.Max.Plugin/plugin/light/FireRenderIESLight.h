@@ -30,6 +30,7 @@ public:
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsTransparencySettings = MaxSpinner::DefaultFloatSettings;
+	using VolumeScaleSettings = MaxSpinner::DefaultFloatSettings;
 
 	static constexpr bool DefaultEnabled = true;
 	static constexpr bool DefaultTargeted = false;
@@ -188,6 +189,9 @@ public:
 
 	void SetShadowsTransparency(float value);
 	float GetShadowsTransparency() const;
+
+	void SetVolumeScale(float value);
+	float GetVolumeScale() const;
 
 protected:
 	ExclList m_exclList;
