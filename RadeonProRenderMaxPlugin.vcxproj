@@ -324,6 +324,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\XMLMaterialExporter.h" />
     <ClInclude Include="FireRender.Max.Plugin\Resource.h" />
     <ClInclude Include="FireRender.Max.Plugin\utils\HashValue.h" />
+    <ClInclude Include="FireRender.Max.Plugin\utils\KelvinToColor.h" />
     <ClInclude Include="FireRender.Max.Plugin\utils\Stack.h" />
     <ClInclude Include="FireRender.Max.Plugin\utils\Thread.h" />
     <ClInclude Include="FireRender.Max.Plugin\utils\Utils.h" />
@@ -400,6 +401,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\WarningDlg.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\XMLMaterialExporter.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\utils\HashValue.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\utils\KelvinToColor.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\utils\Thread.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\utils\Utils.cpp" />
     <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp" />

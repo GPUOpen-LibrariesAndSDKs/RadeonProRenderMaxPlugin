@@ -31,7 +31,7 @@ public:
 
 	static constexpr bool DefaultEnabled = true;
 	static constexpr bool DefaultTargeted = false;
-
+	static constexpr auto DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
 
 	FireRenderIESLight();
 	~FireRenderIESLight();
@@ -165,6 +165,15 @@ public:
 
 	void SetIntensity(float value);
 	float GetIntensity() const;
+
+	void SetTemperature(float value);
+	float GetTemperature() const;
+
+	void SetColor(Color value);
+	Color GetColor() const;
+
+	void SetColorMode(IESLightColorMode value);
+	IESLightColorMode GetColorMode() const;
 
 	void ActivateProfile(const TCHAR* profileName);
 

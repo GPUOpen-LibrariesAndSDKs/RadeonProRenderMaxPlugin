@@ -209,8 +209,6 @@ public:
 	// node - A node to which the material is assigned. Must not be NULL.
 	frw::Shader createShader(Mtl* mtl, INode* node = nullptr, bool bReloadMaterial = false);
 
-	static Color Kelvin2Color(float kelvin);
-
 	frw::Scope &getScope()
 	{
 		return mScope;

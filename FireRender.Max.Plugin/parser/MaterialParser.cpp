@@ -40,6 +40,7 @@
 #include "plugin/FireRenderUberMtl.h"
 #include "plugin/FireRenderUberMtlv2.h"
 #include "plugin/FireRenderVolumeMtl.h"
+#include "utils/KelvinToColor.h"
 
 #include <icurvctl.h>
 #include <max.h>
@@ -1753,7 +1754,7 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		float watts = emit_luminance * (1.f / 683.f);
 		frw::Value EmissionLuminance(watts, watts, watts);
 
-		Color kcolor = MaterialParser::Kelvin2Color(emit_kelvin);
+		Color kcolor = KelvinToColor(emit_kelvin);
 		frw::Value EmissionTemperature(kcolor.r, kcolor.g, kcolor.b);
 
 		EmissionColor = materialSystem.ValueMul(EmissionColor, EmissionTemperature);
@@ -3222,63 +3223,6 @@ frw::Value MaterialParser::createCoronaMixMap(Texmap* texmap)
 	return result;
 }
 
-Color MaterialParser::Kelvin2Color(float kelvin)
-{
-	//Temperature must fall between 1000 and 40000 degrees
-	if (kelvin < 1000.f)
-		kelvin = 1000.f;
-	if (kelvin > 40000.f)
-		kelvin = 40000.f;
-	kelvin = kelvin *= 0.01f;
-			
-	float r, g, b;
-	// Red
-	if (kelvin <= 66.f)
-		r = 1.f;
-	else
-	{
-		float tmp = kelvin - 60.f;
-		tmp = 329.698727446f * (pow(tmp, -0.1332047592));
-		r = tmp * 1.f / 255.f;
-		if (r < 0.f) r = 0.f;
-		if (r > 1.f) r = 1.f;
-	}
-
-	// Green
-	if (kelvin <= 66.f)
-	{
-		float tmp = kelvin;
-		tmp = 99.4708025861f * log(tmp) - 161.1195681661f;
-		g = tmp * 1.f / 255.f;
-		if (g < 0.f) g = 0.f;
-		if (g > 1.f) g = 1.f;
-	}
-	else
-	{
-		float tmp = kelvin - 60.f;
-		tmp = 288.1221695283f * (pow(tmp, -0.0755148492f));
-		g = tmp * 1.f / 255.f;
-		if (g < 0.f) g = 0.f;
-		if (g > 1.f) g = 1.f;
-	}
-
-	// Blue
-	if (kelvin >= 66.f)
-		b = 1.f;
-	else if (kelvin <= 19.f)
-		b = 0.f;
-	else
-	{
-		float tmp = kelvin - 10.f;
-		tmp = 138.5177312231f * log(tmp) - 305.0447927307f;
-		b = tmp * 1.f / 255.f;
-		if (b < 0.f) b = 0.f;
-		if (b > 1.f) b = 1.f;
-	}
-	
-	return Color(r, g, b);
-}
-
 frw::Value MaterialParser::createCoronaColorMap(Texmap* texmap)
 {
 	IParamBlock2* pb = texmap->GetParamBlock(0);
@@ -3307,7 +3251,7 @@ frw::Value MaterialParser::createCoronaColorMap(Texmap* texmap)
 		case 2:
 		{
 			float kelvin = GetFromPb<float>(pb, Corona::COLORTEX_TEMPERATURE, this->mT);
-			Color col = Kelvin2Color(kelvin);
+			Color col = KelvinToColor(kelvin);
 			result = frw::Value(col.r, col.g, col.b);
 		} break;
 

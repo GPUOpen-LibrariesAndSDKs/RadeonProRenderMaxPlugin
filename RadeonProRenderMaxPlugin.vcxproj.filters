@@ -270,6 +270,9 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\utils\KelvinToColor.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -483,6 +486,9 @@
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.cpp">
       <Filter>Plugin\light</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\utils\KelvinToColor.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

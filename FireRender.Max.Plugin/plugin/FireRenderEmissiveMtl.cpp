@@ -9,6 +9,7 @@
 #include "Resource.h"
 #include "parser\MaterialParser.h"
 #include "maxscript\mxsplugin\mxsPlugin.h"
+#include "utils/KelvinToColor.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -29,7 +30,7 @@ namespace
 		{
 			IParamBlock2* pb = owner->GetParamBlock(0);
 			float kelvin = GetFromPb<float>(pb, FREmissiveMtl_KELVIN);
-			Color kcolor = MaterialParser::Kelvin2Color(kelvin);
+			Color kcolor = KelvinToColor(kelvin);
 			v.p->x = kcolor.r;
 			v.p->y = kcolor.g;
 			v.p->z = kcolor.b;
@@ -69,7 +70,7 @@ static ParamBlockDesc2 pbDesc(
 	p_subtexno, FREmissiveMtl_TEXMAP_COLOR, p_ui, TYPE_TEXMAPBUTTON, IDC_EMISSIVE_COLOR_TEXMAP, PB_END,
 
 	FREmissiveMtl_KELVIN, _T("Kelvin"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 2700.f, p_range, 1000.f, 40000.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_EMISSIVE_KELVIN, IDC_EMISSIVE_KELVIN_S, SPIN_AUTOSCALE, PB_END,
+	p_default, DefaultKelvin, p_range, MinKelvin, MaxKelvin, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_EMISSIVE_KELVIN, IDC_EMISSIVE_KELVIN_S, SPIN_AUTOSCALE, PB_END,
 
 	FREmissiveMtl_KELVINSWATCH, _T("Color"), TYPE_RGBA, 0, 0,
 	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_EMISSIVE_KELVIN_SWATCH, 
@@ -130,7 +131,7 @@ frw::Shader FRMTLCLASSNAME(EmissiveMtl)::getShader(const TimeValue t, MaterialPa
 		case FREmissiveMtl_ColorMode_Kelvin:
 		{
 			float kelvin = GetFromPb<float>(pblock, FREmissiveMtl_KELVIN);
-			Color kcolor = MaterialParser::Kelvin2Color(kelvin);
+			Color kcolor = KelvinToColor(kelvin);
 			color = frw::Value(kcolor.r, kcolor.g, kcolor.b);
 		}
 		break;

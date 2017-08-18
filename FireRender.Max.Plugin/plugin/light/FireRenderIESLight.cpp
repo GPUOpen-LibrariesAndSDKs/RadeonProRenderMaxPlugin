@@ -36,8 +36,6 @@ FIRERENDER_NAMESPACE_BEGIN
 namespace
 {
 	constexpr int VERSION = 1;
-	constexpr int IES_LIGHT_COLOR = 100;
-	constexpr int IDC_IES_LIGHT_COLOR = 1000;
 	constexpr auto FIRERENDER_IESLIGHT_CATEGORY = _T("Radeon ProRender");
 	constexpr auto FIRERENDER_IESLIGHT_OBJECT_NAME = _T("RPRIESLight");
 	constexpr auto FIRERENDER_IESLIGHT_INTERNAL_NAME = _T("RPRIESLight");
@@ -131,12 +129,6 @@ namespace
 			p_default, Point3(0.f, 0.f, 0.f),
 			PB_END,
 
-		// COLOR
-		IES_LIGHT_COLOR, _T("Color"), TYPE_RGBA, P_ANIMATABLE, 0,
-			p_default, Color(1.f, 1.f, 1.f),
-			p_ui, TYPE_COLORSWATCH, IDC_IES_LIGHT_COLOR,
-			PB_END,
-
 		// Enabled parameter
 		IES_PARAM_ENABLED, _T("Enabled"), TYPE_BOOL, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::DefaultEnabled,
@@ -155,6 +147,22 @@ namespace
 		// Light intensity parameter
 		IES_PARAM_INTENSITY, _T("Intensity"), TYPE_FLOAT, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::IntensitySettings::Default,
+			PB_END,
+
+		// Color mode parameter
+		IES_PARAM_COLOR_MODE, _T("ColorMode"), TYPE_INT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::DefaultColorMode,
+			PB_END,
+
+		// COLOR
+		IES_PARAM_COLOR, _T("Color"), TYPE_RGBA, P_ANIMATABLE, 0,
+			p_default, Color(1.f, 1.f, 1.f),
+			PB_END,
+
+		// Temperature in Kelvin
+		IES_PARAM_TEMPERATURE, _T("Temperature"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, DefaultKelvin,
+			p_range, MinKelvin, MaxKelvin,
 			PB_END,
 
 		PB_END
@@ -178,12 +186,33 @@ namespace
 	template<IESLightParameter p>
 	struct GetBlockValueHelper<p,
 		std::enable_if_t<
+			p == IES_PARAM_COLOR_MODE
+		>>
+	{
+		using T1 = INT;
+		using T2 = int;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
 			p == IES_PARAM_AREA_WIDTH ||
-			p == IES_PARAM_INTENSITY
+			p == IES_PARAM_INTENSITY ||
+			p == IES_PARAM_TEMPERATURE
 		>>
 	{
 		using T1 = FLOAT;
 		using T2 = float;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_COLOR
+		>>
+	{
+		using T1 = Color;
+		using T2 = T1;
 	};
 
 	template<typename T>
@@ -871,6 +900,38 @@ void FireRenderIESLight::SetIntensity(float value)
 float FireRenderIESLight::GetIntensity() const
 {
 	return GetBlockValue<IES_PARAM_INTENSITY>(m_pblock2);
+}
+
+void FireRenderIESLight::SetTemperature(float value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_TEMPERATURE, value);
+}
+
+float FireRenderIESLight::GetTemperature() const
+{
+	return GetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2);
+}
+
+void FireRenderIESLight::SetColor(Color value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_COLOR, value);
+}
+
+Color FireRenderIESLight::GetColor() const
+{
+	return GetBlockValue<IES_PARAM_COLOR>(m_pblock2);
+}
+
+void FireRenderIESLight::SetColorMode(IESLightColorMode value)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_COLOR_MODE, value);
+}
+
+IESLightColorMode FireRenderIESLight::GetColorMode() const
+{
+	return
+		static_cast<IESLightColorMode>(
+			GetBlockValue<IES_PARAM_COLOR_MODE>(m_pblock2));
 }
 
 void FireRenderIESLight::ActivateProfile(const TCHAR* profileName)

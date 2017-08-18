@@ -1,6 +1,7 @@
 #pragma once
 
 #include "frScope.h"
+#include "utils/KelvinToColor.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -60,6 +61,18 @@ public:
 		}
 	}
 
+	void Enable()
+	{
+		FASSERT(m_ctrl != nullptr);
+		m_ctrl->Enable();
+	}
+
+	void Disable()
+	{
+		FASSERT(m_ctrl != nullptr);
+		m_ctrl->Disable();
+	}
+
 	TControl* GetControl() const { return m_ctrl; }
 
 	MaxControl& operator=(const MaxControl&) = delete;
@@ -104,6 +117,14 @@ public:
 	static void Release(TControl* ctrl) { ReleaseICustButton(ctrl); }
 };
 
+class MaxColorSwatchTraits
+{
+public:
+	using TControl = IColorSwatch;
+	static TControl* Capture(HWND wnd) { return GetIColorSwatch(wnd); }
+	static void Release(TControl* ctrl) { ReleaseIColorSwatch(ctrl); }
+};
+
 /* This class wraps 3dsMax ISpinnerControl */
 class MaxSpinner :
 	public MaxControl<MaxSpinnerTraits>
@@ -113,11 +134,19 @@ public:
 	using ParentClass::ParentClass;
 	using ParentClass::operator=;
 
+	struct DefaultFloatSettings
+	{
+		static constexpr float Min = 0.0f;
+		static constexpr float Max = FLT_MAX;
+		static constexpr float Default = 1.0f;
+		static constexpr float Delta = 0.001;
+	};
+
 	template<typename T>
-	void SetLimits(T min, T max)
+	void SetLimits(T min, T max, bool limitCurrent = false)
 	{
 		FASSERT(m_ctrl != nullptr);
-		m_ctrl->SetLimits(min, max);
+		m_ctrl->SetLimits(min, max, limitCurrent);
 	}
 
 	template<typename T>
@@ -134,10 +163,10 @@ public:
 	}
 
 	template<typename T>
-	void SetValue(T value)
+	void SetValue(T value, bool notify = false)
 	{
 		FASSERT(m_ctrl != nullptr);
-		m_ctrl->SetValue(value, TRUE);
+		m_ctrl->SetValue(value, notify);
 	}
 
 	template<typename Settings>
@@ -147,14 +176,6 @@ public:
 		SetResetValue(Settings::Default);
 		SetScale(Settings::Delta);
 	}
-
-	struct DefaultFloatSettings
-	{
-		static constexpr float Min = 0.0f;
-		static constexpr float Max = FLT_MAX;
-		static constexpr float Default = 1.0f;
-		static constexpr float Delta = 0.001;
-	};
 };
 
 /* This class wraps 3dsMax ICustEdit control */
@@ -198,7 +219,6 @@ private:
 	};
 };
 
-
 /* This class wraps 3dsMax ICustButton control */
 class MaxButton :
 	public MaxControl<MaxButtonTraits>
@@ -212,6 +232,34 @@ public:
 	{
 		FASSERT(m_ctrl != nullptr);
 		m_ctrl->SetType(type);
+	}
+};
+
+class MaxColorSwatch :
+	public MaxControl<MaxColorSwatchTraits>
+{
+	using ParentClass = MaxControl<MaxColorSwatchTraits>;
+public:
+	using ParentClass::ParentClass;
+	using ParentClass::operator=;
+
+	Color GetColor() const
+	{
+		FASSERT(m_ctrl != nullptr);
+		auto c = m_ctrl->GetColor();
+
+		Color result;
+		result.r = GetRValue(c);
+		result.g = GetGValue(c);
+		result.b = GetBValue(c);
+
+		return result;
+	}
+
+	void SetColor(Color c)
+	{
+		FASSERT(m_ctrl != nullptr);
+		m_ctrl->SetColor(c);
 	}
 };
 
@@ -269,11 +317,69 @@ public:
 	MaxEdit& GetEdit() { return m_edit; }
 	MaxSpinner& GetSpinner() { return m_spinner; }
 
+	const MaxEdit& GetEdit() const { return m_edit; }
+	const MaxSpinner& GetSpinner() const { return m_spinner; }
+
 	MaxEditAndSpinner& operator=(MaxEditAndSpinner&&) = default;
 	MaxEditAndSpinner& operator=(const MaxEditAndSpinner&) = delete;
 private:
 	MaxEdit m_edit;
 	MaxSpinner m_spinner;
+};
+
+// Combines 3dsMax colors watch, edit and spinner controls in one object
+class MaxKelvinColor
+{
+public:
+	MaxKelvinColor() = default;
+	MaxKelvinColor(MaxKelvinColor&&) = default;
+	MaxKelvinColor(const MaxKelvinColor&) = delete;
+
+	void Capture(HWND window, int colorsWatch, int edit, int spinnerId)
+	{
+		m_color.Capture(window, colorsWatch);
+		m_kelvin.Capture(window, edit, spinnerId);
+		m_kelvin.Bind(EditSpinnerType::EDITTYPE_FLOAT);
+
+		auto& spinner = m_kelvin.GetSpinner();
+		spinner.SetLimits(MinKelvin, MaxKelvin);
+		spinner.SetResetValue(DefaultKelvin);
+		spinner.SetScale(10.f);
+	}
+
+	float GetTemperature() const
+	{
+		return m_kelvin.GetEdit().GetValue<float>();
+	}
+
+	Color GetColor() const
+	{
+		return m_color.GetColor();
+	}
+
+	void SetTemperature(float value)
+	{
+		m_kelvin.GetSpinner().SetValue(value);
+		UpdateColor();
+	}
+
+	void UpdateColor()
+	{
+		m_color.SetColor(KelvinToColor(GetTemperature()));
+	}
+
+	void Release()
+	{
+		m_color.Release();
+		m_kelvin.Release();
+	}
+
+	MaxKelvinColor& operator=(MaxKelvinColor&&) = default;
+	MaxKelvinColor& operator=(const MaxKelvinColor&) = delete;
+
+private:
+	MaxColorSwatch m_color;
+	MaxEditAndSpinner m_kelvin;
 };
 
 /* Wraps Windows check box control */
@@ -418,6 +524,7 @@ public:
 	INT_PTR OnEditChange(int editId, HWND editHWND) { return FALSE; }
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
 	INT_PTR OnButtonClick(WORD controlId) { return FALSE; }
+	INT_PTR OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final) { return FALSE; }
 
 protected:
 	HWND m_panel;
@@ -476,6 +583,17 @@ private:
 					_this->OnButtonClick(controlId);
 					return FALSE;
 				}
+			}
+			break;
+
+			case CC_COLOR_CHANGE:
+			case CC_COLOR_CLOSE:
+			{
+				auto controlPtr = reinterpret_cast<IColorSwatch*>(lParam);
+				auto controlId = LOWORD(wParam);
+				auto _this = GetAttachedThis(hWnd);
+
+				_this->OnColorSwatchChange(controlPtr, controlId, msg == CC_COLOR_CLOSE);
 			}
 			break;
 		}
