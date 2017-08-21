@@ -37,6 +37,9 @@
     <Filter Include="Plugin\light">
       <UniqueIdentifier>{975d78d1-a624-4fbe-a71a-df1679c58022}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Plugin\materials">
+      <UniqueIdentifier>{a9b727cc-7b2f-44ba-97b9-dc4185660b75}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
@@ -93,37 +96,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\ClassDescs.h">
       <Filter>Plugin</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAddMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAnalyticalSun.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderArithmMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderAvgMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderBlendMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderBlendValueMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderColorMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseRefractionMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderDisplacementMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderEmissiveMtl.h">
       <Filter>Plugin</Filter>
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderEnvironment.h">
@@ -132,58 +105,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderer.h">
       <Filter>Plugin</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderFresnelMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderFresnelSchlickMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderInputLUMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMaterialMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMFRefractionMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMicrofacetMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderMtlBase.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderNormalMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderOrenNayarMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderPortalLight.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderReflectionMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderRefractionMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderStandardMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderTransparentMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderUberMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderUberMtlv2.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderVolumeMtl.h">
-      <Filter>Plugin</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\FireRenderWardMtl.h">
       <Filter>Plugin</Filter>
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.h">
@@ -273,6 +195,87 @@
     <ClInclude Include="FireRender.Max.Plugin\utils\KelvinToColor.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderArithmMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAvgMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendValueMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderColorMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseRefractionMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderDisplacementMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderEmissiveMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderFresnelMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderFresnelSchlickMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderInputLUMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderMaterialMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderMFRefractionMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderMicrofacetMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderMtlBase.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderNormalMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderOrenNayarMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderReflectionMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderRefractionMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderStandardMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderTransparentMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtlv2.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderVolumeMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderWardMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -337,37 +340,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\CamManager.cpp">
       <Filter>Plugin</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAddMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAnalyticalSun.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderArithmMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderAvgMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderBlendMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderBlendValueMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderColorMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDiffuseRefractionMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderDisplacementMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderEmissiveMtl.cpp">
       <Filter>Plugin</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderEnvironment.cpp">
@@ -376,55 +349,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderer.cpp">
       <Filter>Plugin</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderFresnelMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderFresnelSchlickMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderInputLUMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMaterialMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMFRefractionMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderMicrofacetMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderNormalMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderOrenNayarMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderPortalLight.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderReflectionMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderRefractionMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderStandardMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderTransparentMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderUberMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderUberMtlv2.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderVolumeMtl.cpp">
-      <Filter>Plugin</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\FireRenderWardMtl.cpp">
       <Filter>Plugin</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\FRExportMaterialXML.cpp">
@@ -495,6 +420,84 @@
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.cpp">
       <Filter>Plugin\light</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderArithmMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAvgMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendValueMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderColorMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseRefractionMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderDisplacementMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderEmissiveMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderFresnelMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderFresnelSchlickMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderInputLUMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderMaterialMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderMFRefractionMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderMicrofacetMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderNormalMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderOrenNayarMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderReflectionMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderRefractionMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderStandardMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderTransparentMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtlv2.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderVolumeMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderWardMtl.cpp">
+      <Filter>Plugin\materials</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
