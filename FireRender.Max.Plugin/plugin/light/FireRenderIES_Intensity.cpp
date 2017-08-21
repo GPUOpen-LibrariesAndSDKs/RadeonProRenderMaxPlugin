@@ -101,6 +101,8 @@ bool IES_Intensity::InitializePage()
 		m_temperatureControl.SetTemperature(m_parent->GetTemperature());
 	}
 
+	UpdateControlsEnabled();
+
 	return TRUE;
 }
 
@@ -117,6 +119,7 @@ INT_PTR IES_Intensity::HandleControlCommand(WORD code, WORD controlId)
 	if (code == CBN_SELCHANGE && controlId == IDC_FIRERENDER_IES_LIGHT_COLOR_MODE)
 	{
 		UpdateColorModeParam();
+		UpdateControlsEnabled();
 		return TRUE;
 	}
 
@@ -174,6 +177,20 @@ INT_PTR IES_Intensity::OnColorSwatchChange(IColorSwatch* colorSwatch, WORD contr
 	}
 
 	return FALSE;
+}
+
+void IES_Intensity::UpdateControlsEnabled()
+{
+	if (m_parent->GetColorMode() == IES_LIGHT_COLOR_MODE_COLOR)
+	{
+		m_temperatureControl.Disable();
+		m_colorControl.Enable();
+	}
+	else
+	{
+		m_temperatureControl.Enable();
+		m_colorControl.Disable();
+	}
 }
 
 FIRERENDER_NAMESPACE_END

@@ -314,6 +314,18 @@ public:
 		m_spinner.Release();
 	}
 
+	void Enable()
+	{
+		m_edit.Enable();
+		m_spinner.Enable();
+	}
+
+	void Disable()
+	{
+		m_edit.Disable();
+		m_spinner.Disable();
+	}
+
 	MaxEdit& GetEdit() { return m_edit; }
 	MaxSpinner& GetSpinner() { return m_spinner; }
 
@@ -372,6 +384,18 @@ public:
 	{
 		m_color.Release();
 		m_kelvin.Release();
+	}
+
+	void Enable()
+	{
+		m_color.Enable();
+		m_kelvin.Enable();
+	}
+
+	void Disable()
+	{
+		m_color.Disable();
+		m_kelvin.Disable();
 	}
 
 	MaxKelvinColor& operator=(MaxKelvinColor&&) = default;

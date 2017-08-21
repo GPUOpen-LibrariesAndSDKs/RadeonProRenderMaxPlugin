@@ -31,6 +31,8 @@ public:
 	INT_PTR OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final);
 
 private:
+	void UpdateControlsEnabled();
+
 	MaxEditAndSpinner m_intensityControl;
 	WinCombobox m_colorModeControl;
 	MaxColorSwatch m_colorControl;
