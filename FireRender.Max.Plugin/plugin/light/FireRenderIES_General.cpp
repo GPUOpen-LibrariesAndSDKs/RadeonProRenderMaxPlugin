@@ -170,6 +170,12 @@ bool IES_General::InitializePage()
 	// Import button
 	m_importButton.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_IMPORT);
 	m_importButton.SetType(CustButType::CBT_PUSH);
+	m_importButton.SetButtonDownNotify(true);
+
+	// Delete current profile button
+	m_deleteCurrentButton.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_DELETE_PROFILE);
+	m_deleteCurrentButton.SetType(CustButType::CBT_PUSH);
+	m_deleteCurrentButton.SetButtonDownNotify(true);
 
 	// Profiles combo box
 	m_profilesComboBox.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_PROFILE);
@@ -222,14 +228,26 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 		}
 	}
 
+	if (code == BN_BUTTONUP)
+	{
+		switch (controlId)
+		{
+			case IDC_FIRERENDER_IES_LIGHT_IMPORT:
+				if(m_importButton.CursorIsOver())
+					ImportProfile();
+				return TRUE;
+
+			case IDC_FIRERENDER_IES_LIGHT_DELETE_CURRENT:
+				if (m_deleteCurrentButton.CursorIsOver())
+					DeleteSelectedProfile();
+				return TRUE;
+		}
+	}
+
 	if (code == CBN_SELCHANGE && controlId == IDC_FIRERENDER_IES_LIGHT_PROFILE)
 	{
-		auto index = m_profilesComboBox.GetSelectedIndex();
-		auto profile = m_profilesComboBox.GetItemText(index);
-		auto filename = GetIESProfilesDirectory() + profile;
-
-		m_parent->ActivateProfile(filename.c_str());
-
+		ActivateSelectedProfile();
+		UpdateDeleteProfileButtonState();
 		return TRUE;
 	}
 
@@ -260,21 +278,6 @@ INT_PTR IES_General::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, b
 	return FALSE;
 }
 
-INT_PTR IES_General::OnButtonClick(WORD controlId)
-{
-	if (IDC_FIRERENDER_IES_LIGHT_IMPORT == controlId)
-	{
-		ImportFile();
-	}
-	
-	return FALSE;
-}
-
-void IES_General::SaveCurrent()
-{
-	FASSERT(!"Not implemented");
-}
-
 void IES_General::UpdateEnabledParam()
 {
 	m_parent->SetEnabled(m_enabledControl.IsChecked());
@@ -290,7 +293,7 @@ void IES_General::UpdateAreaWidthParam()
 	m_parent->SetAreaWidth(m_areaWidthControl.GetEdit().GetValue<float>());
 }
 
-void IES_General::ImportFile()
+void IES_General::ImportProfile()
 {
 	std::wstring filename;
 	size_t nameOffset;
@@ -302,8 +305,57 @@ void IES_General::ImportFile()
 		if (CopyIES_File(filename.c_str(), nameOffset))
 		{
 			m_profilesComboBox.AddItem(name);
+			UpdateDeleteProfileButtonState();
 		}
 	}
+}
+
+void IES_General::ActivateSelectedProfile()
+{
+	auto index = m_profilesComboBox.GetSelectedIndex();
+
+	// Nothing is selected
+	if (index == -1)
+	{
+		m_parent->ActivateProfile(_T(""));
+		return;
+	}
+
+	auto profile = m_profilesComboBox.GetItemText(index);
+	auto filename = GetIESProfilesDirectory() + profile;
+
+	m_parent->ActivateProfile(filename.c_str());
+}
+
+void IES_General::DeleteSelectedProfile()
+{
+	auto selIdx = m_profilesComboBox.GetSelectedIndex();
+
+	// Nothing is selected
+	if (selIdx < 0)
+	{
+		return;
+	}
+
+	auto itemText = m_profilesComboBox.GetItemText(selIdx);
+	auto profilesDir = GetIESProfilesDirectory();
+	auto path = profilesDir + itemText;
+
+	if (FileExists(path.c_str()) && !DeleteFile(path.c_str()))
+	{
+		MessageBox(
+			GetCOREInterface()->GetMAXHWnd(),
+			_T("Failed to delete the file"),
+			_T("Error"),
+			MB_ICONERROR);
+
+		return;
+	}
+
+	m_profilesComboBox.DeleteItem(selIdx);
+	m_profilesComboBox.SetSelected(-1);
+	ActivateSelectedProfile();
+	UpdateDeleteProfileButtonState();
 }
 
 void IES_General::UpdateProfiles()
@@ -312,6 +364,20 @@ void IES_General::UpdateProfiles()
 	{
 		m_profilesComboBox.AddItem(filename);
 	});
+
+	UpdateDeleteProfileButtonState();
+}
+
+void IES_General::UpdateDeleteProfileButtonState()
+{
+	if (m_profilesComboBox.GetSelectedIndex() < 0)
+	{
+		m_deleteCurrentButton.Disable();
+	}
+	else
+	{
+		m_deleteCurrentButton.Enable();
+	}
 }
 
 FIRERENDER_NAMESPACE_END

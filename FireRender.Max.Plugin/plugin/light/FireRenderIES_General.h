@@ -18,11 +18,12 @@ public:
 	// Use base class constructor
 	using BasePanel::BasePanel;
 
-	void SaveCurrent();
 	void UpdateEnabledParam();
 	void UpdateTargetedParam();
 	void UpdateAreaWidthParam();
-	void ImportFile();
+	void ImportProfile();
+	void ActivateSelectedProfile();
+	void DeleteSelectedProfile();
 
 	// IES_Panel overrides
 	bool InitializePage();
@@ -30,12 +31,13 @@ public:
 	INT_PTR HandleControlCommand(WORD code, WORD controlId);
 	INT_PTR OnEditChange(int editId, HWND editHWND);
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
-	INT_PTR OnButtonClick(WORD controlId);
 
 protected:
 	void UpdateProfiles();
+	void UpdateDeleteProfileButtonState();
 
 	MaxButton m_importButton;
+	MaxButton m_deleteCurrentButton;
 	WinCombobox m_profilesComboBox;
 	WinCheckbox m_enabledControl;
 	WinCheckbox m_targetedControl;

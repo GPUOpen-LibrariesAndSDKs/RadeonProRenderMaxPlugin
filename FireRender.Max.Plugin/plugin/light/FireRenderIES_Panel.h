@@ -233,6 +233,38 @@ public:
 		FASSERT(m_ctrl != nullptr);
 		m_ctrl->SetType(type);
 	}
+
+	void SetButtonDownNotify(bool notify)
+	{
+		FASSERT(m_ctrl != nullptr);
+		m_ctrl->SetButtonDownNotify(notify);
+	}
+
+	RECT GetRect() const
+	{
+		FASSERT(m_ctrl != nullptr);
+
+		RECT rect;
+		auto ret = GetWindowRect(m_ctrl->GetHwnd(), &rect);
+		FASSERT(ret);
+
+		return rect;
+	}
+
+	bool PointIsOver(POINT pt) const
+	{
+		auto rect = GetRect();
+		return PtInRect(&rect, pt);
+	}
+
+	bool CursorIsOver() const
+	{
+		POINT cursorPos;
+		auto ret = GetCursorPos(&cursorPos);
+		FASSERT(ret);
+
+		return PointIsOver(cursorPos);
+	}
 };
 
 class MaxColorSwatch :
@@ -440,11 +472,7 @@ public:
 	int GetSelectedIndex() const
 	{
 		FASSERT(m_hWnd != nullptr);
-
-		auto curSel = ComboBox_GetCurSel(m_hWnd);
-		FASSERT(curSel != CB_ERR);
-
-		return curSel;
+		return ComboBox_GetCurSel(m_hWnd);
 	}
 
 	TString GetItemText(int index) const
@@ -474,6 +502,14 @@ public:
 		return index;
 	}
 
+	void DeleteItem(int index)
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto res = ComboBox_DeleteString(m_hWnd, index);
+		FASSERT(res != CB_ERR);
+	}
+
 	void SetItemData(int index, size_t data)
 	{
 		FASSERT(m_hWnd != nullptr);
@@ -491,6 +527,16 @@ public:
 
 		// -1 is valid input but ComboBox_SetCurSel returns CB_ERR in this case
 		FASSERT(ret == -1 || ret != CB_ERR);
+	}
+
+	int GetItemsCount() const
+	{
+		FASSERT(m_hWnd != nullptr);
+
+		auto result = ComboBox_GetCount(m_hWnd);
+		FASSERT(result != CB_ERR);
+
+		return result;
 	}
 };
 
@@ -547,7 +593,6 @@ public:
 	INT_PTR HandleControlCommand(WORD code, WORD controlId) { return FALSE; }
 	INT_PTR OnEditChange(int editId, HWND editHWND) { return FALSE; }
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
-	INT_PTR OnButtonClick(WORD controlId) { return FALSE; }
 	INT_PTR OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final) { return FALSE; }
 
 protected:
@@ -594,19 +639,6 @@ private:
 				auto _this = GetAttachedThis(hWnd);
 
 				return _this->OnSpinnerChange(spinner, spinnerId, isDragging);
-			}
-			break;
-
-			case WM_MENUSELECT:
-			{
-				if (lParam != 0)
-				{
-					auto controlId = LOWORD(wParam);
-					auto _this = GetAttachedThis(hWnd);
-
-					_this->OnButtonClick(controlId);
-					return FALSE;
-				}
 			}
 			break;
 
