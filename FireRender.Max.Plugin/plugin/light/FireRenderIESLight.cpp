@@ -30,6 +30,7 @@
 #include <type_traits>
 
 #include "LookAtTarget.h"
+#include "FireRenderIES_Profiles.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -831,9 +832,10 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	auto light = scope.GetContext().CreateIESLight();
 
 	// load IES data
-	std::string iesFile("D:\\download\\IES light\\10817_AWF.ies");
+	auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(GetActiveProfile());
 
-	std::string iesData((std::istreambuf_iterator<char>(std::ifstream(iesFile))),
+	std::string iesData(
+		(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
 		std::istreambuf_iterator<char>());
 
 	light.SetImageFromData(iesData.c_str(), 256, 256);

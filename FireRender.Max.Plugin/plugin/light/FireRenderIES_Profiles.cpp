@@ -135,4 +135,9 @@ void FireRenderIES_Profiles::ForEachProfile(std::function<void(const TCHAR* name
 	});
 }
 
+std::wstring FireRenderIES_Profiles::ProfileNameToPath(const TCHAR* profileName)
+{
+	return GetIESProfilesDirectory() + profileName;
+}
+
 FIRERENDER_NAMESPACE_END

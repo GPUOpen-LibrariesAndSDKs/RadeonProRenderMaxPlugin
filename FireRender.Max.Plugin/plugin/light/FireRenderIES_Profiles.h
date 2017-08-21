@@ -29,7 +29,10 @@ public:
 	static bool CopyIES_File(const TCHAR* from, size_t nameOffset);
 
 	// Calls passed function object for each profile in the profiles directory
-	static void ForEachProfile(std::function<void(const TCHAR* name)> f);
+	static void ForEachProfile(std::function<void(const TCHAR* profileName)> f);
+
+	// Combines profiles directory path and the profile name
+	static std::wstring ProfileNameToPath(const TCHAR* profileName);
 };
 
 FIRERENDER_NAMESPACE_END
