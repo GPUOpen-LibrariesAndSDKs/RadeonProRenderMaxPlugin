@@ -38,7 +38,7 @@
       <UniqueIdentifier>{975d78d1-a624-4fbe-a71a-df1679c58022}</UniqueIdentifier>
     </Filter>
     <Filter Include="Plugin\materials">
-      <UniqueIdentifier>{a9b727cc-7b2f-44ba-97b9-dc4185660b75}</UniqueIdentifier>
+      <UniqueIdentifier>{2f5e8d16-fd76-4403-af01-1256dd4a4be2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -276,6 +276,9 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderWardMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -498,6 +501,9 @@
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderWardMtl.cpp">
       <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.cpp">
+      <Filter>Plugin\light</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

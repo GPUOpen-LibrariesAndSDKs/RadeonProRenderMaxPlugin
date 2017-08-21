@@ -361,6 +361,9 @@ public:
 	}
 };
 
+bool FileExists(const TCHAR* name);
+bool FolderExists(const TCHAR* path);
+
 // macro for convinient getter/setters declaration and definition
 #define DECLARE_GETTERS(type, getterName)	\
 public:										\

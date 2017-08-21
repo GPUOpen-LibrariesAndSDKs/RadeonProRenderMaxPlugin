@@ -134,6 +134,11 @@ namespace
 			p_default, FireRenderIESLight::DefaultEnabled,
 			PB_END,
 
+		// Profile name parameter
+		IES_PARAM_PROFILE,  _T("Profile"), TYPE_STRING, 0, 0,
+			p_default, "",
+			PB_END,
+
 		// Area width parameter
 		IES_PARAM_AREA_WIDTH, _T("AreaWidth"), TYPE_FLOAT, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::AreaWidthSettings::Default,
@@ -236,6 +241,16 @@ namespace
 		>>
 	{
 		using T1 = Color;
+		using T2 = T1;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_PROFILE
+		>>
+	{
+		using T1 = const TCHAR*;
 		using T2 = T1;
 	};
 
@@ -813,9 +828,7 @@ static INode* FindNodeRef(ReferenceTarget *rt) {
 void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
 {
 	// create light
-	rpr_light light = 0;
-	rpr_int res = rprContextCreateIESLight(scope.GetContext().Handle(), &light);
-	FASSERT(res == RPR_SUCCESS);
+	auto light = scope.GetContext().CreateIESLight();
 
 	// load IES data
 	std::string iesFile("D:\\download\\IES light\\10817_AWF.ies");
@@ -823,17 +836,12 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	std::string iesData((std::istreambuf_iterator<char>(std::ifstream(iesFile))),
 		std::istreambuf_iterator<char>());
 
-	res = rprIESLightSetImageFromIESdata(light, iesData.c_str(), 256, 256);
-	FASSERT(res == RPR_SUCCESS);
+	light.SetImageFromData(iesData.c_str(), 256, 256);
 
 	// setup color & intensity
-	Point3 color = GetRGBColor(params.t);
-	float intensity = GetIntensity(params.t);
+	Point3 color = GetRGBColor(params.t) * GetIntensity(params.t) * 100;
 
-	color *= intensity * 100;
-
-	res = rprIESLightSetRadiantPower3f(light, color.x, color.y, color.z);
-	FASSERT(res == RPR_SUCCESS);
+	light.SetRadiantPower(color.x, color.y, color.z);
 
 	// setup position
 	Matrix3 tm;
@@ -842,13 +850,11 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
 	
-	res = rprLightSetTransform(light, false, frTm);
-	FASSERT(res == RPR_SUCCESS);
+	light.SetTransform(frTm, false);
 
-	// attach to scene	
-	auto fireLight = frw::Light(light, scope.GetContext());
-	fireLight.SetUserData(node.id);
-	scope.GetScene().Attach(fireLight);
+	// attach to scene
+	light.SetUserData(node.id);
+	scope.GetScene().Attach(light);
 }
 
 void FireRenderIESLight::AddTarget()
@@ -998,10 +1004,14 @@ float FireRenderIESLight::GetVolumeScale() const
 	return GetBlockValue<IES_PARAM_VOLUME_SCALE>(m_pblock2);
 }
 
-void FireRenderIESLight::ActivateProfile(const TCHAR* profileName)
+void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
 {
-	//TODO:
-	FASSERT(!"Not implemented");
+	SetBlockValue(m_pblock2, IES_PARAM_PROFILE, profileName);
+}
+
+const TCHAR* FireRenderIESLight::GetActiveProfile() const
+{
+	return GetBlockValue<IES_PARAM_PROFILE>(m_pblock2);
 }
 
 FIRERENDER_NAMESPACE_END

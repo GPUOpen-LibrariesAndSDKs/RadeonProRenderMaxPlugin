@@ -167,7 +167,8 @@ public:
 	void SetAreaWidth(float value);
 	float GetAreaWidth() const;
 
-	void ActivateProfile(const TCHAR* profileName);
+	void SetActiveProfile(const TCHAR* profileName);
+	const TCHAR* GetActiveProfile() const;
 
 	void SetIntensity(float value);
 	float GetIntensity() const;

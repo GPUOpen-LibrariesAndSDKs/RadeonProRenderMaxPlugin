@@ -857,6 +857,12 @@ namespace frw
 	public:
 		DirectionalLight(rpr_light h, const Context &context) : Light(h, context, new Data()) {}
 
+#ifdef FRW_USE_MAX_TYPES
+		void SetRadiantPower(Color color)
+		{
+			SetRadiantPower(color.r, color.g, color. b);
+		}
+#endif
 		void SetRadiantPower(float r, float g, float b)
 		{
 			auto res = rprDirectionalLightSetRadiantPower3f(Handle(), r, g, b);
@@ -883,6 +889,34 @@ namespace frw
 		}
 		void SetImage(Image img);
 		void AttachPortal(Shape shape);
+	};
+
+	class IESLight : public Light
+	{
+		DECLARE_OBJECT_NO_DATA(IESLight, Light);
+
+	public:
+		IESLight(rpr_light h, const Context& context) :
+			Light(h, context, new Data())
+		{}
+
+		void SetRadiantPower(float r, float g, float b)
+		{
+			auto res = rprIESLightSetRadiantPower3f(Handle(), r, g, b);
+			FASSERT(RPR_SUCCESS == res);
+		}
+
+		void SetImageFromFile(const rpr_char* path, int nx, int ny)
+		{
+			auto res = rprIESLightSetImageFromFile(Handle(), path, nx, ny);
+			FASSERT(RPR_SUCCESS == res);
+		}
+
+		void SetImageFromData(const rpr_char* data, int nx, int ny)
+		{
+			auto res = rprIESLightSetImageFromIESdata(Handle(), data, nx, ny);
+			FASSERT(RPR_SUCCESS == res);
+		}
 	};
 	
 	class Camera : public Object
@@ -1156,6 +1190,15 @@ namespace frw
 			auto res = rprContextCreateDirectionalLight(Handle(), &h);
 			FASSERT(RPR_SUCCESS == res);
 			return DirectionalLight(h, *this);
+		}
+
+		IESLight CreateIESLight()
+		{
+			rpr_light light = 0;
+			rpr_int res = rprContextCreateIESLight(Handle(), &light);
+			FASSERT(res == RPR_SUCCESS);
+
+			return IESLight(light, *this);
 		}
 
 		// context state

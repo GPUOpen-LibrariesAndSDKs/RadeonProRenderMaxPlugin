@@ -467,6 +467,12 @@ class WinCombobox :
 	using TString = std::basic_string<TCHAR>;
 
 public:
+	enum class Style
+	{
+		Dropdown,
+		DropdownList
+	};
+
 	// Returns the index of selected item.
 	// Returns -1 if nothing is selected
 	int GetSelectedIndex() const
