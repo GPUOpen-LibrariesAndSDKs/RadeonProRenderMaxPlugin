@@ -281,9 +281,9 @@ public:
 		auto c = m_ctrl->GetColor();
 
 		Color result;
-		result.r = GetRValue(c);
-		result.g = GetGValue(c);
-		result.b = GetBValue(c);
+		result.r = GetRValue(c) / 255.f;
+		result.g = GetGValue(c) / 255.f;
+		result.b = GetBValue(c) / 255.f;
 
 		return result;
 	}

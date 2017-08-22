@@ -857,12 +857,6 @@ namespace frw
 	public:
 		DirectionalLight(rpr_light h, const Context &context) : Light(h, context, new Data()) {}
 
-#ifdef FRW_USE_MAX_TYPES
-		void SetRadiantPower(Color color)
-		{
-			SetRadiantPower(color.r, color.g, color. b);
-		}
-#endif
 		void SetRadiantPower(float r, float g, float b)
 		{
 			auto res = rprDirectionalLightSetRadiantPower3f(Handle(), r, g, b);
@@ -899,6 +893,13 @@ namespace frw
 		IESLight(rpr_light h, const Context& context) :
 			Light(h, context, new Data())
 		{}
+
+#ifdef FRW_USE_MAX_TYPES
+		void SetRadiantPower(Color color)
+		{
+			SetRadiantPower(color.r, color.g, color.b);
+		}
+#endif
 
 		void SetRadiantPower(float r, float g, float b)
 		{

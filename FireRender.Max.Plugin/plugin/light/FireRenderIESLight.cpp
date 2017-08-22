@@ -256,19 +256,19 @@ namespace
 	};
 
 	template<typename T>
-	void SetBlockValue(IParamBlock2* pBlock, IESLightParameter parameter, T value)
+	void SetBlockValue(IParamBlock2* pBlock, IESLightParameter parameter, T value, TimeValue time = 0)
 	{
-		auto res = pBlock->SetValue(parameter, 0, value);
+		auto res = pBlock->SetValue(parameter, time, value);
 		FASSERT(res);
 	}
 
 	template<IESLightParameter parameter>
-	decltype(auto) GetBlockValue(IParamBlock2* pBlock)
+	decltype(auto) GetBlockValue(IParamBlock2* pBlock, TimeValue t = 0, Interval valid = FOREVER)
 	{
 		using Helper = GetBlockValueHelper<parameter>;
 		typename Helper::T1 result;
 
-		auto ok = pBlock->GetValue(parameter, 0, result, FOREVER);
+		auto ok = pBlock->GetValue(parameter, t, result, valid);
 		FASSERT(ok);
 
 		return static_cast<typename Helper::T2>(result);
@@ -659,10 +659,7 @@ void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vp
     }
 }
 
-// LightObject methods
-
-Point3 FireRenderIESLight::GetRGBColor(TimeValue t, Interval &valid) { return Point3(1.0f, 1.0f, 1.0f); }
-void FireRenderIESLight::SetRGBColor(TimeValue t, Point3 &color)  { /* empty */ }
+// LightObject dummy implementation
 void FireRenderIESLight::SetUseLight(int onOff)  { /* empty */ }
 BOOL FireRenderIESLight::GetUseLight()  { return TRUE; }
 void FireRenderIESLight::SetHotspot(TimeValue time, float f)  { /* empty */ }
@@ -675,8 +672,6 @@ void FireRenderIESLight::SetTDist(TimeValue time, float f)  { /* empty */ }
 float FireRenderIESLight::GetTDist(TimeValue t, Interval& valid)  { return 0.0f; }
 void FireRenderIESLight::SetConeDisplay(int s, int notify)  { /* empty */ }
 BOOL FireRenderIESLight::GetConeDisplay()  { return FALSE; }
-void FireRenderIESLight::SetIntensity(TimeValue time, float f)  { /* empty */ }
-float FireRenderIESLight::GetIntensity(TimeValue t, Interval& valid)  { return 1.0f; }
 void FireRenderIESLight::SetUseAtten(int s)  { /* empty */ }
 BOOL FireRenderIESLight::GetUseAtten()  { return FALSE; }
 void FireRenderIESLight::SetAspect(TimeValue t, float f)  { /* empty */ }
@@ -685,6 +680,28 @@ void FireRenderIESLight::SetOvershoot(int a)  { /* empty */ }
 int FireRenderIESLight::GetOvershoot()  { return 0; }
 void FireRenderIESLight::SetShadow(int a)  { /* empty */ }
 int FireRenderIESLight::GetShadow()  { return 0; }
+
+// LightObject custom implementation
+void FireRenderIESLight::SetIntensity(TimeValue time, float f)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_INTENSITY, f, time);
+}
+
+float FireRenderIESLight::GetIntensity(TimeValue t, Interval& valid)
+{
+	return GetBlockValue<IES_PARAM_INTENSITY>(m_pblock2, t, valid);
+}
+
+void FireRenderIESLight::SetRGBColor(TimeValue time, Point3 &color)
+{
+	SetBlockValue(m_pblock2, IES_PARAM_COLOR, color, time);
+}
+
+Point3 FireRenderIESLight::GetRGBColor(TimeValue t, Interval &valid)
+{
+	return GetBlockValue<IES_PARAM_COLOR>(m_pblock2, t, valid);
+}
+
 
 // From Light
 RefResult FireRenderIESLight::EvalLightState(TimeValue t, Interval& valid, LightState* cs)
@@ -841,9 +858,9 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	light.SetImageFromData(iesData.c_str(), 256, 256);
 
 	// setup color & intensity
-	Point3 color = GetRGBColor(params.t) * GetIntensity(params.t) * 100;
+	auto color = GetFinalColor(params.t) * GetIntensity(params.t) * 100;
 
-	light.SetRadiantPower(color.x, color.y, color.z);
+	light.SetRadiantPower(color);
 
 	// setup position
 	Matrix3 tm;
@@ -1014,6 +1031,29 @@ void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
 const TCHAR* FireRenderIESLight::GetActiveProfile() const
 {
 	return GetBlockValue<IES_PARAM_PROFILE>(m_pblock2);
+}
+
+// Result depends on color mode
+Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
+{
+	Color result(1.f, 1.f, 1.f);
+
+	switch (GetColorMode())
+	{
+		case IES_LIGHT_COLOR_MODE_COLOR:
+			result = GetBlockValue<IES_PARAM_COLOR>(m_pblock2, t, i);
+			break;
+
+		case IES_LIGHT_COLOR_MODE_TEMPERATURE:
+			result = KelvinToColor(GetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2, t, i));
+			break;
+
+		default:
+			FASSERT(!"Not implemented!");
+			break;
+	}
+
+	return result;
 }
 
 FIRERENDER_NAMESPACE_END

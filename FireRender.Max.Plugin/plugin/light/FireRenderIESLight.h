@@ -194,6 +194,9 @@ public:
 	void SetVolumeScale(float value);
 	float GetVolumeScale() const;
 
+	// Result depends on color mode (but without intensity)
+	Color GetFinalColor(TimeValue t = 0, Interval& valid = FOREVER) const;
+
 protected:
 	ExclList m_exclList;
 
