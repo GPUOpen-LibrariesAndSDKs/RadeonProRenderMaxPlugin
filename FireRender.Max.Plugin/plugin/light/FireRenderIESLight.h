@@ -10,6 +10,7 @@
 #pragma once
 
 #include "FireRenderIES_General.h"
+#include "IFireRenderLight.h"
 #include "FireRenderIES_Intensity.h"
 #include "FireRenderIES_Shadows.h"
 #include "FireRenderIES_Volume.h"
@@ -20,7 +21,7 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-class FireRenderIESLight : public GenLight
+class FireRenderIESLight : public GenLight, public IFireRenderLight
 {
 public:
 	static Class_ID GetClassId();
@@ -57,12 +58,17 @@ public:
 	Class_ID ClassID() override;
 	void GetClassName(TSTR& s) override;
 	RefTargetHandle Clone(RemapDir& remap) override;
-	IParamBlock2* GetParamBlock(int i) override;
+
+	//********************** can move this to IFace?
+	IParamBlock2* GetParamBlock(int i) override; // override??? function not in the base class
+	const IParamBlock2* GetParamBlock(int i) const;
+
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
 	int NumRefs() override;
 	void SetReference(int i, RefTargetHandle rtarg) override;
 	RefTargetHandle GetReference(int i) override;
 	void DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel = FALSE, BOOL frozen = FALSE);
+	void DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
 	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
 	Color GetViewportMainColor(INode* pNode);
 	Color GetViewportColor(INode* pNode, Color selectedColor);
@@ -154,7 +160,9 @@ public:
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
 
-	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params);
+	virtual void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params);
+	virtual bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags);
+	virtual bool CalculateLightRepresentation(std::vector<std::vector<Point3> >& edges) const;
 
 	void FireRenderIESLight::AddTarget();
 
@@ -214,6 +222,9 @@ private:
 
 	Point3 m_vertices[4];
 	bool m_verticesBuilt;
+
+	std::string m_iesFilename;
+	std::vector<std::vector<Point3> > m_plines;
 };
 
 FIRERENDER_NAMESPACE_END

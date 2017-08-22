@@ -285,6 +285,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\IFireRenderLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.h" />
@@ -361,6 +362,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\FRSettingsFileHandler.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLightImpl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.cpp" />

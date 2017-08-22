@@ -32,6 +32,8 @@
 #include "LookAtTarget.h"
 #include "FireRenderIES_Profiles.h"
 
+#include "IESprocessor.h"
+
 FIRERENDER_NAMESPACE_BEGIN
 
 namespace
@@ -294,7 +296,9 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_volume(this),
 	m_iObjParam(nullptr),
 	m_pblock2(nullptr),
-	m_verticesBuilt(false)
+	m_verticesBuilt(false),
+	m_iesFilename(),
+	m_plines()
 {
 	GetClassDesc()->MakeAutoParamBlocks(this);
 }
@@ -433,6 +437,12 @@ IParamBlock2* FireRenderIESLight::GetParamBlock(int i)
     return m_pblock2;
 }
 
+const IParamBlock2* FireRenderIESLight::GetParamBlock(int i) const
+{
+	return const_cast<const IParamBlock2*>
+		(const_cast<FireRenderIESLight*>(this)->GetParamBlock(i));
+}
+
 IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 {
     FASSERT(m_pblock2->ID() == id);
@@ -558,8 +568,31 @@ Color FireRenderIESLight::GetViewportColor(INode* pNode, Color selectedColor)
     return selectedColor * 0.5f;
 }
 
+bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags)
+{
+	if (!vpt || !vpt->IsAlive())
+	{
+		// why are we here
+		DbgAssert(!_T("Invalid viewport!"));
+		return false;
+	}
+
+	Matrix3 prevtm = vpt->getGW()->getTransform();
+	Matrix3 tm = inode->GetObjectTM(t);
+	vpt->getGW()->setTransform(tm);
+
+	DrawWeb(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
+
+	vpt->getGW()->setTransform(prevtm);
+
+	return true;
+}
+
 int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
+#ifdef WEB_ENABLED
+	DisplayLight(t, inode, vpt, flags);
+#else
     if (!vpt || !vpt->IsAlive())
     {
         // why are we here
@@ -572,10 +605,11 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
     vpt->getGW()->setTransform(tm);
     DrawGeometry(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
     vpt->getGW()->setTransform(prevtm);
+#endif
 
     return(0);
 }
-    
+
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
     if (!vpt || !vpt->IsAlive())

@@ -1,4 +1,3 @@
-#pragma once
 /*********************************************************************************************************************************
 * Radeon ProRender for 3ds Max plugin
 * Copyright (c) 2017 AMD
@@ -24,56 +23,56 @@ public:
 	// - out: lightData
 	// - out: error message; in case Parse fails, information about error will be written to errorMessage
 	// - returns: false for error, true if parse successfull 
-	bool Parse(IESLightData& lightData, const char* filename, std::string& errorMessage) const;
+	bool Parse (IESLightData& lightData, const char* filename, std::string& errorMessage) const;
 
 	// save IES data in inner format in file (bin file?)
 	// - in: lightData: struct with IES ligh parameters
 	// - in: outfilename: name of file where data in internal representation should be saved
 	// - returns: false for error, true if successfull 
-	bool Save(const IESLightData& lightData, const char* outfilename) const;
+	bool Save (const IESLightData& lightData, const char* outfilename) const;
 
 	// load IES data from inner format
 	// - in: name filename of file to be loaded
 	// - out: lightData
 	// - returns: false for error, true if parse successfull 
-	bool Load(IESLightData& lightData, const char* filename) const;
+	bool Load (IESLightData& lightData, const char* filename) const;
 
 	// change light data according to request, e.g. intensity is changed and so on
 	// - in: req: struct with values to be updated in lightData
 	// - in/out: lightData: struct with IES data that should be changed according to request req
 	// - returns: false for error, true if successfull 
-	bool Update(IESLightData& lightData, const IESUpdateRequest& req) const;
+	bool Update (IESLightData& lightData, const IESUpdateRequest& req) const;
 
 	// returns string representation of IES light source declaration
 	// should be used for call to RPR
 	// - returns string representing IES data
-	std::string ToString(const IESLightData& lightData) const;
+	std::string ToString (const IESLightData& lightData) const;
 
 protected:
 	// checks if filename is .ies file
 	// - in: filename: name filename of file to be checked
 	// - returns: true if file is ies file
-	bool IsIESFile(const char* filename) const;
+	bool IsIESFile (const char* filename) const;
 
 	// reads file and fills array tokens with numbers (as strings) read from the file
 	// basically makes data more convinient to parse
-	void GetTokensFromFile(std::vector<std::string>& tokens, std::ifstream& inputFile) const;
+	void GetTokensFromFile (std::vector<std::string>& tokens, std::ifstream& inputFile) const;
 
 	// split line with several values separated by space(s) into array of strings each containing single value
-	void SplitLine(std::vector<std::string>& tokens, const std::string& lineToParse) const;
+	void SplitLine (std::vector<std::string>& tokens, const std::string& lineToParse) const;
 
 	// fills lightData with data read from tokens
 	// - returns false in case of parse failure
-	bool ParseTokens(IESLightData& lightData, std::vector<std::string>& tokens, std::string& errorMessage) const;
+	bool ParseTokens (IESLightData& lightData, std::vector<std::string>& tokens, std::string& errorMessage) const;
 
 	// auxilary function that hides interaction with enum
 	// - returns first value of ParseOrder enum
-	IESProcessor::ParseOrder FirstParseState(void) const;
+	IESProcessor::ParseOrder FirstParseState (void) const;
 
 	// fills corresponing to state lightData parameter with data read from value
 	// value is supposed to string with one value, double or integer
 	// - returns false in case of error
-	bool ReadValue(IESLightData& lightData, IESProcessor::ParseOrder& state, const std::string& value) const;
+	bool ReadValue (IESLightData& lightData, IESProcessor::ParseOrder& state, const std::string& value) const;
 };
 
 // holds data for IES light source
@@ -83,7 +82,7 @@ public:
 	IESLightData();
 
 	// getters / setters
-	// Should always be 1 according to Autodesk specification
+	// Should always be 1 according to Autodesk specification.
 	DECLARE_VAR_AND_GETTERS(int, countLamps, CountLamps)
 
 	// The initial rated lumens for the lamp used in the test or -1 if absolute photometry is used
@@ -103,8 +102,8 @@ public:
 	// The number of horizontal (azimuth) angles in the photometric web. 
 	DECLARE_VAR_AND_GETTERS(int, countHorizontalAngles, CountHorizontalAngles)
 
-	// Should always be 1 according to Autodesk specification
-	// Can be 1, 2 or 3 according to IES specification
+	// Should always be 1 according to Autodesk specification.
+	// Can be 1, 2 or 3 according to IES specification.
 	DECLARE_VAR_AND_GETTERS(int, photometricType, PhotometricType)
 
 	// The type of unit used to measure the dimensions of the luminous opening.
@@ -117,24 +116,24 @@ public:
 	DECLARE_VAR_AND_GETTERS(double, height, Height)
 
 	// Multiplier representing difference between lab mesaurments and real world performance
-	// Should always be 1 according to Autodesk specification
+	// Should always be 1 according to Autodesk specification.
 	DECLARE_VAR_AND_GETTERS(int, ballast, Ballast)
 
 	// Standard version
-	// Should always be 1 according to Autodesk specification
+	// Should always be 1 according to Autodesk specification.
 	DECLARE_VAR_AND_GETTERS(int, version, Version)
 
 	// Power of light source
-	// Should always be 0 according to Autodesk specification
+	// Should always be 0 according to Autodesk specification.
 	DECLARE_VAR_AND_GETTERS(double, wattage, Wattage)
 
-	// The set of vertical angles, listed in increasing order. 
+	// The set of vertical angles (aka polar angles), listed in increasing order. 
 	// If the distribution lies completely in the bottom hemisphere, the first and last angles must be 0° and 90°, respectively.
 	// If the distribution lies completely in the top hemisphere, the first and last angles must be 90° and 180°, respectively.
 	// Otherwise, they must be 0° and 180°, respectively.
 	DECLARE_VAR_AND_GETTERS(std::vector<double>, verticalAngles, VerticalAngles)
 
-	// The set of horizontal angles, listed in increasing order.
+	// The set of horizontal angles (aka azimuth angles), listed in increasing order.
 	// The first angle must be 0°.
 	// The last angle determines the degree of lateral symmetry displayed by the intensity distribution.
 	// If it is 0°, the distribution is axially symmetric.
@@ -158,10 +157,24 @@ public:
 
 	// checks if struct holds correct data values
 	// - returns false if data is corrupted
-	bool IsValid(void) const;
+	bool IsValid (void) const;
 
 	// deletes all data in this container
-	void Clear(void);
+	void Clear (void);
+
+	// the distribution is axially symmetric.
+	bool IsAxiallySymmetric (void) const;
+
+	// the distribution is symmetric in each quadrant.
+	bool IsQuadrantSymmetric (void) const;
+
+	// the distribution is symmetric about a vertical plane.
+	bool IsPlaneSymmetric (void) const;
 
 protected:
+};
+
+struct IESProcessor::IESUpdateRequest
+{
+	// NIY
 };

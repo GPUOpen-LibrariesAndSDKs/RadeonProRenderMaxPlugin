@@ -92,7 +92,36 @@ bool IESProcessor::IESLightData::IsValid() const
 	bool areArrsSorted = std::is_sorted(horizontalAngles.begin(), horizontalAngles.end()) &&
 		std::is_sorted(verticalAngles.begin(), verticalAngles.end());
 
-	return areValuesCorrect && isSizeCorrect && isArrDataConsistent && areArrsSorted;
+	// ensure correct value for angles
+	const float tolerance = 0.0001f;
+	bool correctAngles = 
+		(abs(horizontalAngles.back()) <= tolerance) || 
+		(abs(horizontalAngles.back() - 90.0f)  <= tolerance) ||
+		(abs(horizontalAngles.back() - 180.0f) <= tolerance) ||
+		(abs(horizontalAngles.back() - 360.0f) <= tolerance);
+
+	return areValuesCorrect && isSizeCorrect && isArrDataConsistent && areArrsSorted && correctAngles;
+}
+
+// the distribution is axially symmetric.
+bool IESProcessor::IESLightData::IsAxiallySymmetric(void) const
+{
+	const float tolerance = 0.0001f;
+	return (abs(horizontalAngles.back()) <= tolerance);
+}
+
+// the distribution is symmetric in each quadrant.
+bool IESProcessor::IESLightData::IsQuadrantSymmetric(void) const
+{
+	const float tolerance = 0.0001f;
+	return (abs(horizontalAngles.back() - 90.0f) <= tolerance);
+}
+
+// the distribution is symmetric about a vertical plane.
+bool IESProcessor::IESLightData::IsPlaneSymmetric(void) const
+{
+	const float tolerance = 0.0001f;
+	return (abs(horizontalAngles.back() - 180.0f) <= tolerance);
 }
 
 // format to string
@@ -145,7 +174,7 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 	std::string outString;
 	outString = firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
 
-	size_t valuesPerLine = lightData.VerticalAngles().size();
+	size_t valuesPerLine = lightData.VerticalAngles().size(); // verticle angles count is number of columns in candela values table
 	auto it = lightData.CandelaValues().begin();
 	while (it != lightData.CandelaValues().end())
 	{
@@ -162,11 +191,6 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 
 	return outString;
 }
-
-struct IESProcessor::IESUpdateRequest
-{
-	// NIY
-};
 
 bool IESProcessor::IsIESFile(const char* filename) const
 {
