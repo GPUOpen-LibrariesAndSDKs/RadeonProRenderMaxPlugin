@@ -34,7 +34,8 @@ private:
 	void UpdateControlsEnabled();
 
 	MaxEditAndSpinner m_intensityControl;
-	WinCombobox m_colorModeControl;
+	WinButton m_rgbModeControl;
+	WinButton m_kelvinModeControl;
 	MaxColorSwatch m_colorControl;
 	MaxKelvinColor m_temperatureControl;
 };

@@ -80,7 +80,7 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 					ImportProfile();
 				return TRUE;
 
-			case IDC_FIRERENDER_IES_LIGHT_DELETE_CURRENT:
+			case IDC_FIRERENDER_IES_LIGHT_DELETE_PROFILE:
 				if (m_deleteCurrentButton.CursorIsOver())
 					DeleteSelectedProfile();
 				return TRUE;

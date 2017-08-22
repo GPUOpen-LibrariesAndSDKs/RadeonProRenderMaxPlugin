@@ -4,38 +4,6 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-namespace
-{
-	const TCHAR* ToString(IESLightColorMode mode)
-	{
-		switch (mode)
-		{
-			case IES_LIGHT_COLOR_MODE_COLOR:		return _T("Color");
-			case IES_LIGHT_COLOR_MODE_TEMPERATURE:	return _T("Temperature");
-		}
-
-		FASSERT(!"Not implemented");
-		return nullptr;
-	}
-
-	IESLightColorMode ParseColorMode(const TCHAR* text)
-	{
-		if (_tcscmp(text, ToString(IES_LIGHT_COLOR_MODE_COLOR)) == 0)
-			return IES_LIGHT_COLOR_MODE_COLOR;
-
-		if (_tcscmp(text, ToString(IES_LIGHT_COLOR_MODE_TEMPERATURE)) == 0)
-			return IES_LIGHT_COLOR_MODE_TEMPERATURE;
-
-		FASSERT(!"Not implemented");
-		return IES_LIGHT_COLOR_MODE_COLOR;
-	}
-
-	Color TemperatureToColor(float kelvin)
-	{
-		return Color();
-	}
-}
-
 void IES_Intensity::UpdateIntensityParam()
 {
 	m_parent->SetIntensity(m_intensityControl.GetEdit().GetValue<float>());
@@ -43,11 +11,10 @@ void IES_Intensity::UpdateIntensityParam()
 
 void IES_Intensity::UpdateColorModeParam()
 {
-	auto index = m_colorModeControl.GetSelectedIndex();
-	auto text = m_colorModeControl.GetItemText(index);
-	auto mode = ParseColorMode(text.c_str());
-
-	m_parent->SetColorMode(mode);
+	m_parent->SetColorMode(
+		m_rgbModeControl.IsChecked() ?
+		IES_LIGHT_COLOR_MODE_COLOR :
+		IES_LIGHT_COLOR_MODE_TEMPERATURE);
 }
 
 void IES_Intensity::UpdateColorParam()
@@ -74,15 +41,13 @@ bool IES_Intensity::InitializePage()
 		spinner.SetValue(m_parent->GetIntensity());
 	}
 
-	// Color mode control
+	// Color modes controls
 	{
-		m_colorModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_COLOR_MODE);
-		auto colorIdx = m_colorModeControl.AddItem(ToString(IES_LIGHT_COLOR_MODE_COLOR));
-		auto tempIdx = m_colorModeControl.AddItem(ToString(IES_LIGHT_COLOR_MODE_TEMPERATURE));
+		m_rgbModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_RGB_MODE);
+		m_kelvinModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE);
 
-		m_colorModeControl.SetSelected(
-			m_parent->GetColorMode() == IES_LIGHT_COLOR_MODE_COLOR ?
-			colorIdx : tempIdx);
+		m_rgbModeControl.SetCheck(m_parent->GetColorMode() == IES_LIGHT_COLOR_MODE_COLOR);
+		m_kelvinModeControl.SetCheck(!m_rgbModeControl.IsChecked());
 	}
 
 	// Color parameter
@@ -109,18 +74,24 @@ bool IES_Intensity::InitializePage()
 void IES_Intensity::UninitializePage()
 {
 	m_intensityControl.Release();
-	m_colorModeControl.Release();
+	m_rgbModeControl.Release();
+	m_kelvinModeControl.Release();
 	m_colorControl.Release();
 	m_temperatureControl.Release();
 }
 
 INT_PTR IES_Intensity::HandleControlCommand(WORD code, WORD controlId)
 {
-	if (code == CBN_SELCHANGE && controlId == IDC_FIRERENDER_IES_LIGHT_COLOR_MODE)
+	if (code == BN_CLICKED)
 	{
-		UpdateColorModeParam();
-		UpdateControlsEnabled();
-		return TRUE;
+		switch (controlId)
+		{
+		case IDC_FIRERENDER_IES_LIGHT_RGB_MODE:
+		case IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE:
+			UpdateColorModeParam();
+			UpdateControlsEnabled();
+			return TRUE;
+		}
 	}
 
 	return FALSE;

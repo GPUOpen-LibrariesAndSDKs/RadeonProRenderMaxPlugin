@@ -29,7 +29,7 @@ public:
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
 
 private:
-	WinCheckbox m_enabledControl;
+	WinButton m_enabledControl;
 	MaxEditAndSpinner m_softnessControl;
 	MaxEditAndSpinner m_transparencyControl;
 };

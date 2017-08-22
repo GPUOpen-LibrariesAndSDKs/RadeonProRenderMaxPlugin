@@ -39,8 +39,8 @@ protected:
 	MaxButton m_importButton;
 	MaxButton m_deleteCurrentButton;
 	WinCombobox m_profilesComboBox;
-	WinCheckbox m_enabledControl;
-	WinCheckbox m_targetedControl;
+	WinButton m_enabledControl;
+	WinButton m_targetedControl;
 	MaxEditAndSpinner m_areaWidthControl;
 };
 

@@ -439,7 +439,7 @@ private:
 };
 
 /* Wraps Windows check box control */
-class WinCheckbox :
+class WinButton :
 	public WinControl
 {
 public:
