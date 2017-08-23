@@ -8,93 +8,163 @@
 #include <mouseman.h>
 #include <gfx.h>
 
-class LookAtTargetObjectClassDesc : public ClassDesc
+namespace
 {
+
+	class LookAtTargetObjectClassDesc : public ClassDesc
+	{
 	public:
-	int 			IsPublic() { return 0; }
-	void *			Create(BOOL loading = FALSE) { return new LookAtTarget; }
-	const TCHAR *	ClassName() { return _T("TARGET"); }
-	SClass_ID		SuperClassID() { return GEOMOBJECT_CLASS_ID; }
-	Class_ID		ClassID() { return Class_ID( TARGET_CLASS_ID, 0); }
-	const TCHAR* 	Category() { return _T("PRIMITIVES"); }
+		static constexpr auto TargetClassName = _T("TARGET");
+		static constexpr auto TargetObjectName = TargetClassName;
+		static constexpr auto TargetNodeName = TargetClassName;
+
+		int 			IsPublic() override { return 0; }
+		void *			Create(BOOL loading = FALSE) override { return new LookAtTarget; }
+		const TCHAR *	ClassName() override { return TargetClassName; }
+		SClass_ID		SuperClassID() override { return GEOMOBJECT_CLASS_ID; }
+		Class_ID		ClassID() override { return Class_ID(TARGET_CLASS_ID, 0); }
+		const TCHAR* 	Category() override { return _T("PRIMITIVES"); }
 	};
 
-static LookAtTargetObjectClassDesc lookAtTargetObjDesc;
+	class MeshCache
+	{
+	public:
+		MeshCache() :
+			meshBuilt(false)
+		{}
 
-ClassDesc* GetTargetObjDesc() { return &lookAtTargetObjDesc; }
+		Mesh& GetMesh()
+		{
+			Build();
+			return mesh;
+		}
 
-IObjParam* LookAtTarget::iObjParams;
-Mesh LookAtTarget::mesh;
-int LookAtTarget::meshBuilt=0;
+		Box3 GetBoundingBox(Matrix3 *tm = nullptr)
+		{
+			return GetMesh().getBoundingBox(tm);
+		}
 
+	private:
+		static void MakeQuad(Face *f, int a, int b, int c, int d, int sg)
+		{
+			f[0].setVerts(a, b, c);
+			f[0].setSmGroup(sg);
+			f[0].setEdgeVisFlags(1, 1, 0);
+			f[1].setVerts(c, d, a);
+			f[1].setSmGroup(sg);
+			f[1].setEdgeVisFlags(1, 1, 0);
+		}
 
-INT_PTR CALLBACK TargetParamDialogProc( HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam )
-{
-	return 0;
+		void Build()
+		{
+			if (meshBuilt)
+			{
+				return;
+			}
+
+			constexpr auto sz = 4.f;
+			constexpr int nverts = 8;
+			constexpr int nfaces = 12;
+
+			mesh.setNumVerts(nverts);
+			mesh.setNumFaces(nfaces);
+
+			Point3 va(-sz, -sz, -sz);
+			Point3 vb(sz, sz, sz);
+
+			mesh.setVert(0, Point3(va.x, va.y, va.z));
+			mesh.setVert(1, Point3(vb.x, va.y, va.z));
+			mesh.setVert(2, Point3(va.x, vb.y, va.z));
+			mesh.setVert(3, Point3(vb.x, vb.y, va.z));
+			mesh.setVert(4, Point3(va.x, va.y, vb.z));
+			mesh.setVert(5, Point3(vb.x, va.y, vb.z));
+			mesh.setVert(6, Point3(va.x, vb.y, vb.z));
+			mesh.setVert(7, Point3(vb.x, vb.y, vb.z));
+
+			MakeQuad(&(mesh.faces[0]), 0, 2, 3, 1, 1);
+			MakeQuad(&(mesh.faces[2]), 2, 0, 4, 6, 2);
+			MakeQuad(&(mesh.faces[4]), 3, 2, 6, 7, 4);
+			MakeQuad(&(mesh.faces[6]), 1, 3, 7, 5, 8);
+			MakeQuad(&(mesh.faces[8]), 0, 1, 5, 4, 16);
+			MakeQuad(&(mesh.faces[10]), 4, 5, 7, 6, 32);
+
+			mesh.buildNormals();
+			mesh.EnableEdgeList(1);
+
+			meshBuilt = true;
+		}
+
+		Mesh mesh;
+		bool meshBuilt;
+	};
+
+	static LookAtTargetObjectClassDesc lookAtTargetObjDesc;
+	static MeshCache meshCache;
 }
 
-void LookAtTarget::BeginEditParams( IObjParam *ip, ULONG flags,Animatable *prev)	{}
-		
-void LookAtTarget::EndEditParams( IObjParam *ip, ULONG flags,Animatable *next )	{}
+void LookAtTarget::BeginEditParams( IObjParam *ip, ULONG flags,Animatable *prev){}
+void LookAtTarget::EndEditParams( IObjParam *ip, ULONG flags,Animatable *next ){}
+const TCHAR* LookAtTarget::GetObjectName() { return LookAtTargetObjectClassDesc::TargetObjectName; }
 
-class TargetObjectCreateCallBack: public CreateMouseCallBack
+class LookAtTarget::CreateCallBack :
+	public CreateMouseCallBack
 {
 	LookAtTarget *ob;
-	public:
-		int proc( ViewExp *vpt,int msg, int point, int flags, IPoint2 m, Matrix3& mat );
-		void SetObj(LookAtTarget *obj) { ob = obj; }
-};
-
-int TargetObjectCreateCallBack::proc(ViewExp *vpt,int msg, int point, int flags, IPoint2 m, Matrix3& mat )
-{
-	if ( !vpt || ! vpt->IsAlive() )
+public:
+	int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat)
 	{
-		DbgAssert(!_T("Invalid viewport!"));
-		return FALSE;
-	}
-
-	Point3 c;
-
-	if (msg == MOUSE_POINT || msg == MOUSE_MOVE)
-	{
-		switch(point)
+		if (!vpt || !vpt->IsAlive())
 		{
-			case 0:
-				c = vpt->GetPointOnCP(m);
-				mat.SetTrans(c);
-				return CREATE_STOP;
-				break;
+			DbgAssert(!_T("Invalid viewport!"));
+			return FALSE;
 		}
+
+
+		switch (msg)
+		{
+			case MOUSE_POINT:
+			case MOUSE_MOVE:
+			{
+				Point3 c;
+
+				switch (point)
+				{
+				case 0:
+					c = vpt->GetPointOnCP(m);
+					mat.SetTrans(c);
+					return CREATE_STOP;
+				}
+			}
+			break;
+
+			case MOUSE_ABORT:
+				return CREATE_ABORT;
+		}
+
+		return TRUE;
 	}
-	else if (msg == MOUSE_ABORT)
-		return CREATE_ABORT;
 
-	return TRUE;
-}
+	void SetObj(LookAtTarget *obj) { ob = obj; }
 
-static TargetObjectCreateCallBack boxCreateCB;
+	static CreateCallBack* GetInstance()
+	{
+		static CreateCallBack instance;
+		return &instance;
+	}
+};
 
 CreateMouseCallBack* LookAtTarget::GetCreateMouseCallBack()
 {
-	boxCreateCB.SetObj(this);
-	return(&boxCreateCB);
+	auto instance = CreateCallBack::GetInstance();
+	instance->SetObj(this);
+	return instance;
 }
 
-static void MakeQuad(Face *f, int a, int b , int c , int d, int sg)
-{
-	f[0].setVerts( a, b, c);
-	f[0].setSmGroup(sg);
-	f[0].setEdgeVisFlags(1,1,0);
-	f[1].setVerts( c, d, a);
-	f[1].setSmGroup(sg);
-	f[1].setEdgeVisFlags(1,1,0);
-}
-
-void LookAtTarget::AddRenderitem(const MaxSDK::Graphics::UpdateDisplayContext& updateDisplayContext,
-	MaxSDK::Graphics::UpdateNodeContext& nodeContext,  MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer)
-{
-
-}
+void LookAtTarget::AddRenderitem(
+	const MaxSDK::Graphics::UpdateDisplayContext& updateDisplayContext,
+	MaxSDK::Graphics::UpdateNodeContext& nodeContext,
+	MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer)
+{}
 
 unsigned long LookAtTarget::GetObjectDisplayRequirement() const
 {
@@ -114,47 +184,8 @@ bool LookAtTarget::UpdatePerNodeItems(
 	return true;
 }
 
-#define sz float(4.0)
-void LookAtTarget::BuildMesh()
-{
-	int nverts = 8;
-	int nfaces = 12;
-	Point3 va(-sz,-sz,-sz);
-	Point3 vb( sz, sz, sz);
-	mesh.setNumVerts(nverts);
-	mesh.setNumFaces(nfaces);
-
-	mesh.setVert(0, Point3( va.x, va.y, va.z));
-	mesh.setVert(1, Point3( vb.x, va.y, va.z));
-	mesh.setVert(2, Point3( va.x, vb.y, va.z));
-	mesh.setVert(3, Point3( vb.x, vb.y, va.z));
-	mesh.setVert(4, Point3( va.x, va.y, vb.z));
-	mesh.setVert(5, Point3( vb.x, va.y, vb.z));
-	mesh.setVert(6, Point3( va.x, vb.y, vb.z));
-	mesh.setVert(7, Point3( vb.x, vb.y, vb.z));
-
-	MakeQuad(&(mesh.faces[ 0]), 0,2,3,1,  1);
-	MakeQuad(&(mesh.faces[ 2]), 2,0,4,6,  2);
-	MakeQuad(&(mesh.faces[ 4]), 3,2,6,7,  4);
-	MakeQuad(&(mesh.faces[ 6]), 1,3,7,5,  8);
-	MakeQuad(&(mesh.faces[ 8]), 0,1,5,4, 16);
-	MakeQuad(&(mesh.faces[10]), 4,5,7,6, 32);
-	mesh.buildNormals();
-	mesh.EnableEdgeList(1);
-}
-
-LookAtTarget::LookAtTarget() : GeomObject()
-{
-	if (!meshBuilt)
-	{
-		BuildMesh();
-		meshBuilt = 1;
-		}
-}
-
-LookAtTarget::~LookAtTarget()
-{
-}
+LookAtTarget::LookAtTarget() = default;
+LookAtTarget::~LookAtTarget() = default;
 
 void LookAtTarget::GetMat(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm)
 {
@@ -174,7 +205,37 @@ void LookAtTarget::GetMat(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm)
 
 void LookAtTarget::GetDeformBBox(TimeValue t, Box3& box, Matrix3 *tm, BOOL useSel )
 {
-	box = mesh.getBoundingBox(tm);
+	box = meshCache.GetBoundingBox(tm);
+}
+
+BOOL LookAtTarget::HasViewDependentBoundingBox()
+{
+	return true;
+}
+
+void LookAtTarget::DeleteThis()
+{
+	delete this;
+}
+
+Class_ID LookAtTarget::ClassID()
+{
+	return Class_ID(TARGET_CLASS_ID, 0);
+}
+
+void LookAtTarget::GetClassName(TSTR& s)
+{
+	s = LookAtTargetObjectClassDesc::TargetClassName;
+}
+
+int LookAtTarget::IsKeyable()
+{
+	return 1;
+}
+
+LRESULT CALLBACK LookAtTarget::TrackViewWinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	return 0;
 }
 
 void LookAtTarget::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box )
@@ -187,7 +248,7 @@ void LookAtTarget::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box
 	
 	Matrix3 m = inode->GetObjectTM(t);
 	float scaleFactor = vpt->NonScalingObjectSize()*vpt->GetVPWorldWidth(m.GetTrans())/(float)360.0;
-	box = mesh.getBoundingBox();
+	box = meshCache.GetBoundingBox();
 	box.Scale(scaleFactor);
 }
 
@@ -198,6 +259,8 @@ void LookAtTarget::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box
 		box.Init();
 		return;
 	}
+
+	auto& mesh = meshCache.GetMesh();
 
 	int i,nv;
 	Matrix3 m;
@@ -213,21 +276,28 @@ int LookAtTarget::HitTest(TimeValue t, INode *inode, int type, int crossing, int
 {
 	if ( ! vpt || ! vpt->IsAlive() )
 	{
-		DbgAssert(!_T("Invalid viewport!"));
+		FASSERT(!_T("Invalid viewport!"));
 		return FALSE;
 	}
 	
 	HitRegion hitRegion;
+	MakeHitRegion(hitRegion,type,crossing,4,p);
+
 	DWORD savedLimits;
-	Matrix3 m;
-	GraphicsWindow *gw = vpt->getGW();	
-	MakeHitRegion(hitRegion,type,crossing,4,p);	
+	auto gw = vpt->getGW();
 	gw->setRndLimits(((savedLimits = gw->getRndLimits()) | GW_PICK) & ~GW_ILLUM);
+
+	Matrix3 m;
 	GetMat(t,inode,*vpt,m);
 	gw->setTransform(m);
-	if(mesh.select( gw, gw->getMaterial(), &hitRegion, flags & HIT_ABORTONHIT ))
+
+	if (meshCache.GetMesh().select(gw, gw->getMaterial(), &hitRegion, flags & HIT_ABORTONHIT))
+	{
 		return TRUE;
-	gw->setRndLimits( savedLimits );
+	}
+
+	gw->setRndLimits(savedLimits);
+
 	return FALSE;
 
 #if 0
@@ -297,24 +367,25 @@ void LookAtTarget::Snap(TimeValue t, INode* inode, SnapInfo *snap, IPoint2 *p, V
 
 int LookAtTarget::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
-	if ( ! vpt || ! vpt->IsAlive() )
+	if (!vpt || !vpt->IsAlive())
 	{
 		DbgAssert(!_T("Invalid viewport!"));
 		return FALSE;
 	}
 	
-	if (MaxSDK::Graphics::IsRetainedModeEnabled())
+	if (MaxSDK::Graphics::IsRetainedModeEnabled() &&
+		vpt != nullptr &&
+		vpt->GetViewCamera() != nullptr &&
+		vpt->GetViewCamera()->GetTarget() == inode)
 	{
-		if (NULL != vpt && NULL != vpt->GetViewCamera() && vpt->GetViewCamera()->GetTarget() == inode)
-		{
-			return 0;
-		}
+		return 0;
 	}
 
 	Matrix3 m;
-	GraphicsWindow *gw = vpt->getGW();
+	auto gw = vpt->getGW();
 	GetMat(t,inode,*vpt,m);
 	gw->setTransform(m);
+
 	DWORD rlim = gw->getRndLimits();
 	gw->setRndLimits(GW_WIREFRAME|GW_EDGES_ONLY|GW_BACKCULL| (rlim&GW_Z_BUFFER) );
 	
@@ -336,8 +407,8 @@ int LookAtTarget::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 			gw->setColor( LINE_COLOR, GetUIColor(COLOR_CAMERA_OBJ)); // default target color, just use camera targ color
 	}
 
-	mesh.render( gw, gw->getMaterial(), NULL, COMP_ALL);	
-    gw->setRndLimits(rlim);
+	meshCache.GetMesh().render( gw, gw->getMaterial(), NULL, COMP_ALL);	
+	gw->setRndLimits(rlim);
 	
 	return 0;
 }
@@ -348,7 +419,8 @@ int LookAtTarget::IntersectRay(TimeValue t, Ray& r, float& at)
 }
 
 // This is only called if the object MAKES references to other things.
-RefResult LookAtTarget::NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget,
+RefResult LookAtTarget::NotifyRefChanged(
+	const Interval& changeInt, RefTargetHandle hTarget,
      PartID& partID, RefMessage message, BOOL propagate ) 
 {
 	switch (message)
@@ -363,6 +435,21 @@ RefResult LookAtTarget::NotifyRefChanged(const Interval& changeInt, RefTargetHan
 ObjectState LookAtTarget::Eval(TimeValue time)
 {
 	return ObjectState(this);
+}
+
+void LookAtTarget::InitNodeName(TSTR& s)
+{
+	s = LookAtTargetObjectClassDesc::TargetNodeName;
+}
+
+int LookAtTarget::UsesWireColor()
+{
+	return 1;
+}
+
+int LookAtTarget::IsRenderable()
+{
+	return 0;
 }
 
 RefTargetHandle LookAtTarget::Clone(RemapDir& remap)
