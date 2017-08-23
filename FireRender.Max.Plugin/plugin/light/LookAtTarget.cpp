@@ -37,13 +37,13 @@ namespace
 	{
 	public:
 		MeshCache() :
-			meshBuilt(false)
+			m_meshBuilt(false)
 		{}
 
 		Mesh& GetMesh()
 		{
 			Build();
-			return mesh;
+			return m_mesh;
 		}
 
 		Box3 GetBoundingBox(Matrix3 *tm = nullptr)
@@ -64,7 +64,7 @@ namespace
 
 		void Build()
 		{
-			if (meshBuilt)
+			if (m_meshBuilt)
 			{
 				return;
 			}
@@ -100,14 +100,14 @@ namespace
 			constexpr auto sideFacesCount = StaticArraySize(sideFaces);
 			constexpr auto baseFacesCount = StaticArraySize(baseFaces);
 
-			mesh.setNumVerts(vertsCount);
-			mesh.setNumFaces(sideFacesCount + baseFacesCount);
+			m_mesh.setNumVerts(vertsCount);
+			m_mesh.setNumFaces(sideFacesCount + baseFacesCount);
 
 			// Set vertices
 			for (size_t i = 0; i < vertsCount; ++i)
 			{
 				auto& v = verts[i];
-				mesh.setVert(i, v[0], v[1], v[2]);
+				m_mesh.setVert(i, v[0], v[1], v[2]);
 			}
 
 			size_t nextSmGroup = 0;
@@ -117,7 +117,7 @@ namespace
 			for (size_t i = 0; i < sideFacesCount; ++i)
 			{
 				auto& f = sideFaces[i];
-				auto& meshFace = mesh.faces[nextFaceIndex++];
+				auto& meshFace = m_mesh.faces[nextFaceIndex++];
 
 				meshFace.setVerts(f[0], f[1], f[2]);
 				meshFace.setSmGroup(1 << (nextSmGroup++));
@@ -128,21 +128,21 @@ namespace
 			for (size_t i = 0; i < baseFacesCount; ++i)
 			{
 				auto& f = baseFaces[i];
-				auto& meshFace = mesh.faces[nextFaceIndex++];
+				auto& meshFace = m_mesh.faces[nextFaceIndex++];
 
 				meshFace.setVerts(f[0], f[1], f[2]);
 				meshFace.setSmGroup(1 << nextSmGroup);
 				meshFace.setEdgeVisFlags(0, 1, 1);
 			}
 
-			mesh.buildNormals();
-			mesh.EnableEdgeList(1);
+			m_mesh.buildNormals();
+			m_mesh.EnableEdgeList(1);
 
-			meshBuilt = true;
+			m_meshBuilt = true;
 		}
 
-		Mesh mesh;
-		bool meshBuilt;
+		Mesh m_mesh;
+		bool m_meshBuilt;
 	};
 
 	static LookAtTargetObjectClassDesc lookAtTargetObjDesc;
