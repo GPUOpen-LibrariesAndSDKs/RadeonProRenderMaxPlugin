@@ -1,4 +1,4 @@
-#include "LookAtTarget.h"
+#include <array>
 
 #include <Graphics/Utilities/MeshEdgeRenderItem.h>
 #include <Graphics/CustomRenderItemHandle.h>
@@ -8,8 +8,15 @@
 #include <mouseman.h>
 #include <gfx.h>
 
+#include "LookAtTarget.h"
+
 namespace
 {
+	template<typename T, size_t N>
+	constexpr size_t StaticArraySize(const T(&)[N])
+	{
+		return N;
+	}
 
 	class LookAtTargetObjectClassDesc : public ClassDesc
 	{
@@ -30,13 +37,13 @@ namespace
 	{
 	public:
 		MeshCache() :
-			meshBuilt(false)
+			m_meshBuilt(false)
 		{}
 
 		Mesh& GetMesh()
 		{
 			Build();
-			return mesh;
+			return m_mesh;
 		}
 
 		Box3 GetBoundingBox(Matrix3 *tm = nullptr)
@@ -45,57 +52,87 @@ namespace
 		}
 
 	private:
-		static void MakeQuad(Face *f, int a, int b, int c, int d, int sg)
-		{
-			f[0].setVerts(a, b, c);
-			f[0].setSmGroup(sg);
-			f[0].setEdgeVisFlags(1, 1, 0);
-			f[1].setVerts(c, d, a);
-			f[1].setSmGroup(sg);
-			f[1].setEdgeVisFlags(1, 1, 0);
-		}
-
 		void Build()
 		{
-			if (meshBuilt)
+			if (m_meshBuilt)
 			{
 				return;
 			}
 
-			constexpr auto sz = 4.f;
-			constexpr int nverts = 8;
-			constexpr int nfaces = 12;
+			constexpr auto h = 20.f;
+			constexpr auto s = h;
+			constexpr auto hs = s / 2;
+			
+			constexpr std::array<float, 3> verts[]
+			{
+				{  0,   0,  0 },
+				{ hs,  hs,  h },
+				{-hs,  hs,  h },
+				{-hs, -hs,  h },
+				{ hs, -hs,  h }
+			};
+			
+			constexpr std::array<size_t, 3> sideFaces[]
+			{
+				{0, 2, 1},
+				{0, 3, 2},
+				{0, 4, 3},
+				{0, 1, 4}
+			};
+			
+			constexpr std::array<size_t, 3> baseFaces[]
+			{
+				{ 3, 1, 2 },
+				{ 1, 3, 4 }
+			};
+			
+			constexpr auto vertsCount = StaticArraySize(verts);
+			constexpr auto sideFacesCount = StaticArraySize(sideFaces);
+			constexpr auto baseFacesCount = StaticArraySize(baseFaces);
+			
+			m_mesh.setNumVerts(vertsCount);
+			m_mesh.setNumFaces(sideFacesCount + baseFacesCount);
+			
+			// Set vertices
+			for (size_t i = 0; i < vertsCount; ++i)
+			{
+				auto& v = verts[i];
+				m_mesh.setVert(i, v[0], v[1], v[2]);
+			}
+			
+			size_t nextSmGroup = 0;
+			size_t nextFaceIndex = 0;
+			
+			// Set side faces
+			for (size_t i = 0; i < sideFacesCount; ++i)
+			{
+				auto& f = sideFaces[i];
+				auto& meshFace = m_mesh.faces[nextFaceIndex++];
+			
+				meshFace.setVerts(f[0], f[1], f[2]);
+				meshFace.setSmGroup(1 << (nextSmGroup++));
+				meshFace.setEdgeVisFlags(1, 1, 1);
+			}
+			
+			// Set base faces
+			for (size_t i = 0; i < baseFacesCount; ++i)
+			{
+				auto& f = baseFaces[i];
+				auto& meshFace = m_mesh.faces[nextFaceIndex++];
+			
+				meshFace.setVerts(f[0], f[1], f[2]);
+				meshFace.setSmGroup(1 << nextSmGroup);
+				meshFace.setEdgeVisFlags(0, 1, 1);
+			}
+			
+			m_mesh.buildNormals();
+			m_mesh.EnableEdgeList(1);
 
-			mesh.setNumVerts(nverts);
-			mesh.setNumFaces(nfaces);
-
-			Point3 va(-sz, -sz, -sz);
-			Point3 vb(sz, sz, sz);
-
-			mesh.setVert(0, Point3(va.x, va.y, va.z));
-			mesh.setVert(1, Point3(vb.x, va.y, va.z));
-			mesh.setVert(2, Point3(va.x, vb.y, va.z));
-			mesh.setVert(3, Point3(vb.x, vb.y, va.z));
-			mesh.setVert(4, Point3(va.x, va.y, vb.z));
-			mesh.setVert(5, Point3(vb.x, va.y, vb.z));
-			mesh.setVert(6, Point3(va.x, vb.y, vb.z));
-			mesh.setVert(7, Point3(vb.x, vb.y, vb.z));
-
-			MakeQuad(&(mesh.faces[0]), 0, 2, 3, 1, 1);
-			MakeQuad(&(mesh.faces[2]), 2, 0, 4, 6, 2);
-			MakeQuad(&(mesh.faces[4]), 3, 2, 6, 7, 4);
-			MakeQuad(&(mesh.faces[6]), 1, 3, 7, 5, 8);
-			MakeQuad(&(mesh.faces[8]), 0, 1, 5, 4, 16);
-			MakeQuad(&(mesh.faces[10]), 4, 5, 7, 6, 32);
-
-			mesh.buildNormals();
-			mesh.EnableEdgeList(1);
-
-			meshBuilt = true;
+			m_meshBuilt = true;
 		}
 
-		Mesh mesh;
-		bool meshBuilt;
+		Mesh m_mesh;
+		bool m_meshBuilt;
 	};
 
 	static LookAtTargetObjectClassDesc lookAtTargetObjDesc;
