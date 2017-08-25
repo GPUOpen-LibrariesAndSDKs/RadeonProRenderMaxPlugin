@@ -52,16 +52,6 @@ namespace
 		}
 
 	private:
-		static void MakeQuad(Face *f, int a, int b, int c, int d, int sg)
-		{
-			f[0].setVerts(a, b, c);
-			f[0].setSmGroup(sg);
-			f[0].setEdgeVisFlags(1, 1, 0);
-			f[1].setVerts(c, d, a);
-			f[1].setSmGroup(sg);
-			f[1].setEdgeVisFlags(1, 1, 0);
-		}
-
 		void Build()
 		{
 			if (m_meshBuilt)
@@ -72,7 +62,7 @@ namespace
 			constexpr auto h = 20.f;
 			constexpr auto s = h;
 			constexpr auto hs = s / 2;
-
+			
 			constexpr std::array<float, 3> verts[]
 			{
 				{  0,   0,  0 },
@@ -81,7 +71,7 @@ namespace
 				{-hs, -hs,  h },
 				{ hs, -hs,  h }
 			};
-
+			
 			constexpr std::array<size_t, 3> sideFaces[]
 			{
 				{0, 2, 1},
@@ -89,52 +79,52 @@ namespace
 				{0, 4, 3},
 				{0, 1, 4}
 			};
-
+			
 			constexpr std::array<size_t, 3> baseFaces[]
 			{
 				{ 3, 1, 2 },
 				{ 1, 3, 4 }
 			};
-
+			
 			constexpr auto vertsCount = StaticArraySize(verts);
 			constexpr auto sideFacesCount = StaticArraySize(sideFaces);
 			constexpr auto baseFacesCount = StaticArraySize(baseFaces);
-
+			
 			m_mesh.setNumVerts(vertsCount);
 			m_mesh.setNumFaces(sideFacesCount + baseFacesCount);
-
+			
 			// Set vertices
 			for (size_t i = 0; i < vertsCount; ++i)
 			{
 				auto& v = verts[i];
 				m_mesh.setVert(i, v[0], v[1], v[2]);
 			}
-
+			
 			size_t nextSmGroup = 0;
 			size_t nextFaceIndex = 0;
-
+			
 			// Set side faces
 			for (size_t i = 0; i < sideFacesCount; ++i)
 			{
 				auto& f = sideFaces[i];
 				auto& meshFace = m_mesh.faces[nextFaceIndex++];
-
+			
 				meshFace.setVerts(f[0], f[1], f[2]);
 				meshFace.setSmGroup(1 << (nextSmGroup++));
 				meshFace.setEdgeVisFlags(1, 1, 1);
 			}
-
+			
 			// Set base faces
 			for (size_t i = 0; i < baseFacesCount; ++i)
 			{
 				auto& f = baseFaces[i];
 				auto& meshFace = m_mesh.faces[nextFaceIndex++];
-
+			
 				meshFace.setVerts(f[0], f[1], f[2]);
 				meshFace.setSmGroup(1 << nextSmGroup);
 				meshFace.setEdgeVisFlags(0, 1, 1);
 			}
-
+			
 			m_mesh.buildNormals();
 			m_mesh.EnableEdgeList(1);
 
