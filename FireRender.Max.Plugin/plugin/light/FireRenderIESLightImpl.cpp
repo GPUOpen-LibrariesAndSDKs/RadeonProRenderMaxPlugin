@@ -11,6 +11,8 @@
 #include "Resource.h"
 #include "FireRenderIESLight.h"
 #include "IESprocessor.h"
+#include "FireRenderIES_Profiles.h"
+#include <fstream>
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -73,14 +75,14 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 		);
 		CloneAndTransform(edges, matrMirrorXZ);
 
-		// rotate around x axis
-		Matrix3 matrRotateX(
+		// rotate around x axis by 90 degrees
+		Matrix3 matrRotateAroundX(
 			Point3(1.0, 0.0, 0.0),
 			Point3(0.0, 0.0, -1.0),
 			Point3(0.0, 1.0, 0.0),
 			Point3(0.0, 0.0, 0.0)
 		);
-		CloneAndTransform(edges, matrRotateX);
+		CloneAndTransform(edges, matrRotateAroundX);
 
 		return true;
 	}
@@ -110,17 +112,21 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 
 bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Point3> >& edges) const
 {
+	// load IES data
+	auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(GetActiveProfile());
+	std::string iesFilename((std::istreambuf_iterator<char>(std::ifstream(profilePath))), {});
+
 	// ************** DEBUG ***************
-	std::string iesFilename = "C:\\Users\\endar\\Downloads\\L04148904.IES";
-	//std::string iesFilename = "C:\\Users\\endar\\Downloads\\LLI-16162-2-R01.IES";
-	//std::string iesFilename = "C:\\Users\\endar\\Downloads\\T31177.IES";
+	//iesFilename = "C:\\Users\\endar\\Downloads\\L04148904.IES";
+	iesFilename = "C:\\Users\\endar\\Downloads\\LLI-16162-2-R01.IES";
+	//iesFilename = "C:\\Users\\endar\\Downloads\\T31177.IES";
 	// ************ END DEBUG *************
 
 	// get .ies light params
 	IESProcessor parser;
 	IESProcessor::IESLightData data;
 	std::string errorMsg;
-	bool isSuccessfull = parser.Parse(data, /*m_iesFilename.c_str()*/ iesFilename.c_str(), errorMsg);
+	bool isSuccessfull = parser.Parse(data, iesFilename.c_str(), errorMsg);
 	if (!isSuccessfull)
 		return false;
 
@@ -174,6 +180,8 @@ bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Po
 		return false;
 
 	// generate edges for mesh (edges crossing slices)
+#define IES_LIGHT_DONT_GEN_EXTRA_EDGES
+#ifndef IES_LIGHT_DONT_GEN_EXTRA_EDGES
 	if (!data.IsAxiallySymmetric()) // axially simmetric light field is a special case (should be processed after mirroring)
 	{
 		size_t columnCount = data.VerticalAngles().size();
@@ -202,6 +210,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Po
 		}
 
 	}
+#endif
 
 	// mirror edges if necessary
 	if (!MirrorEdges(edges, data))
@@ -212,22 +221,118 @@ bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Po
 	return true;
 }
 
+INode* FindNodeRef(ReferenceTarget *rt);
+
+static INode* GetNodeRef(ReferenceMaker *rm) {
+	if (rm->SuperClassID() == BASENODE_CLASS_ID) return (INode *)rm;
+	else return rm->IsRefTarget() ? FindNodeRef((ReferenceTarget *)rm) : NULL;
+}
+
+static INode* FindNodeRef(ReferenceTarget *rt) {
+	DependentIterator di(rt);
+	ReferenceMaker *rm = NULL;
+	INode *nd = NULL;
+	while ((rm = di.Next()) != NULL) {
+		nd = GetNodeRef(rm);
+		if (nd) return nd;
+	}
+	return NULL;
+}
+
 void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected /*= false*/, bool isFrozen /*= false*/)
 {
 	bool doWantCalculateLightRepresentation = m_plines.empty();
+
 	if (doWantCalculateLightRepresentation)
 	{
+		// calculate IES web
 		bool success = CalculateLightRepresentation(m_plines);
 		FASSERT(success);
+
+		m_preview_plines = m_plines;
+
+		// align light representation to look at controller (-Z axis is up vector)
+		// - rotate around x axis by 90 degrees
+		Matrix3 matrRotateAroundX(
+			Point3(1.0, 0.0, 0.0),
+			Point3(0.0, 0.0, -1.0),
+			Point3(0.0, 1.0, 0.0),
+			Point3(0.0, 0.0, 0.0)
+		);
+
+		for (auto& pline : m_plines)
+		{
+			for (Point3& point : pline)
+				point = point * matrRotateAroundX;
+		}
 	}
 
 	GraphicsWindow* gw = pVprt->getGW();
 	gw->setColor(LINE_COLOR, GetEdgeColor(isFrozen, isSelected));
 
-	// draw web (mesh)
-	for (auto& pline : m_plines)
+	// draw line from light source to target
+	Point3 dirMesh[2];
+	pPBlock->GetValue(IES_PARAM_P0, 0, dirMesh[0], FOREVER);
+	pPBlock->GetValue(IES_PARAM_P1, 0, dirMesh[1], FOREVER);
+
+	INode *nd = FindNodeRef(this);
+	Control* pLookAtController = nd->GetTMController();
+
+	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
 	{
-		gw->polyline(pline.size(), &pline.front(), NULL, NULL, false /*isClosed*/, NULL);
+		// no look at controller => user have not put target yet (have not released mouse buttion yet)
+		dirMesh[1] = dirMesh[1] - dirMesh[0];
+		dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
+
+		// draw line from light source to target
+		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+
+		// rotate light web so it would look at mouse target (around Z axis)
+		// - between prev look at vector and current one (Y axis is up vector for light representation)
+		Point3 normDir = dirMesh[1].Normalize();
+		float dotProduct = prevUp % normDir; // Dot product, for angle between vectors
+		float cosAngle = dotProduct; // vectors are normalized
+		float angle = acos(cosAngle);
+		Matrix3 rotateMx = RotAngleAxisMatrix(Point3(0.0f, 0.0f, 1.0f), angle);
+
+		auto preview_plines = m_preview_plines;
+
+		for (auto& pline : preview_plines)
+		{
+			for (Point3& point : pline)
+				point = point * rotateMx;
+		}
+
+		// draw web
+		for (auto& pline : preview_plines)
+		{
+			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false /*isClosed*/, NULL);
+		}
+	}
+	else
+	{
+		// have controller => need to calculate dist between ligh root and target
+		INode* pTargNode = pLookAtController->GetTarget();
+		Matrix3 targTransform = pTargNode->GetObjectTM(0.0);
+		Point3 targVector(0.0f, 0.0f, 0.0f);
+		targVector = targVector * targTransform;
+
+		Matrix3 rootTransform = nd->GetObjectTM(0.0);
+		Point3 rootVector(0.0f, 0.0f, 0.0f);
+		rootVector = rootVector * rootTransform;
+
+		float dist = (targVector - rootVector).FLength();
+		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
+		dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
+
+		// draw line from light source to target
+		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+
+		// draw web
+		for (auto& pline : m_plines)
+		{
+			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false /*isClosed*/, NULL);
+		}
 	}
 }
 

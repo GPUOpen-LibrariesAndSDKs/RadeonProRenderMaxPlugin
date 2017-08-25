@@ -60,6 +60,7 @@ namespace
 				case MOUSE_POINT:
 					if (point == 0)
 					{
+						mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
 						p0 = p1 = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
 						pblock->SetValue(IES_PARAM_P0, 0, p0);
 						pblock->SetValue(IES_PARAM_P1, 0, p1);
@@ -297,7 +298,8 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_iObjParam(nullptr),
 	m_pblock2(nullptr),
 	m_verticesBuilt(false),
-	m_iesFilename(),
+	prevUp(0.0f, 1.0f, 0.0f),
+	m_preview_plines(),
 	m_plines()
 {
 	GetClassDesc()->MakeAutoParamBlocks(this);
@@ -493,6 +495,8 @@ void DrawSphereArcs(TimeValue t, GraphicsWindow *gw, float r, Point3 *q, Point3&
 	gw->polyline(NUM_CIRC_PTS, q + 2 * NUM_CIRC_PTS, NULL, NULL, TRUE, NULL);
 }
 
+INode* FindNodeRef(ReferenceTarget *rt);
+
 void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel, BOOL frozen)
 {
 	GraphicsWindow* gw = vpt->getGW();
@@ -514,6 +518,28 @@ void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL s
 	pblock->GetValue(IES_PARAM_P0, 0, dirMesh[0], FOREVER);
 	pblock->GetValue(IES_PARAM_P1, 0, dirMesh[1], FOREVER);
 
+	INode *nd = FindNodeRef(this);
+	Control* pLookAtController = nd->GetTMController();
+	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
+	{
+		dirMesh[1] = dirMesh[1] - dirMesh[0];
+	}
+	else
+	{
+		INode* pTargNode = pLookAtController->GetTarget();
+		Matrix3 targTransform = pTargNode->GetObjectTM(0.0);
+		Point3 targVector(0.0f, 0.0f, 0.0f);
+		targVector = targVector * targTransform;
+
+		Matrix3 rootTransform = nd->GetObjectTM(0.0);
+		Point3 rootVector(0.0f, 0.0f, 0.0f);
+		rootVector = rootVector * rootTransform;
+
+		float dist = (targVector - rootVector).FLength();
+		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
+	}
+	dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
+
 	// light source
 	DrawSphereArcs(0, gw, 2.0, sphereMesh, dirMesh[0]);
 
@@ -523,6 +549,8 @@ void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL s
 	// light lookAt
 	DrawSphereArcs(0, gw, 1.0, sphereMesh, dirMesh[1]);
 
+	// look at
+	//DrawSphereArcs(0, gw, 1.0, sphereMesh, dirMesh[1]);
 
 	// marker
 	//gw->marker(const_cast<Point3*>(&Point3::Origin), X_MRKR);
@@ -590,6 +618,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 
 int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
+#define WEB_ENABLED
 #ifdef WEB_ENABLED
 	DisplayLight(t, inode, vpt, flags);
 #else
@@ -607,7 +636,7 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
     vpt->getGW()->setTransform(prevtm);
 #endif
 
-    return(0);
+    return(1);
 }
 
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
@@ -637,6 +666,9 @@ void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vp
 
 int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
 {
+#ifdef WEB_ENABLED
+	DisplayLight(t, inode, vpt, flags);
+#else
     if (!vpt || !vpt->IsAlive())
     {
         // why are we here
@@ -667,8 +699,8 @@ int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossin
 
     gw->setRndLimits(savedLimits);
     gw->setTransform(prevtm);
-
-    return res;
+#endif
+    return (1);
 }
 
 void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
@@ -859,7 +891,6 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 	endEdit(m_volume);
 }
 
-INode* FindNodeRef(ReferenceTarget *rt);
 
 static INode* GetNodeRef(ReferenceMaker *rm) {
 	if (rm->SuperClassID() == BASENODE_CLASS_ID) return (INode *)rm;
@@ -917,13 +948,16 @@ void FireRenderIESLight::AddTarget()
 	Interface *iface = GetCOREInterface();
 	TimeValue t = iface->GetTime();
 
-	Point3 p;
-	m_pblock2->GetValue(IES_PARAM_P1, 0, p, FOREVER);
+	Point3 p1;
+	m_pblock2->GetValue(IES_PARAM_P1, 0, p1, FOREVER);
+	Point3 p0;
+	m_pblock2->GetValue(IES_PARAM_P0, 0, p0, FOREVER);
+	Point3 r = p1 - p0;
 
 	Matrix3 tm = nd->GetNodeTM(t);
 	Matrix3 targtm = tm;
 	
-	targtm.PreTranslate(p);
+	targtm.PreTranslate(r);
 
 	Object *targObject = new LookAtTarget;
 	INode *targNode = iface->CreateObjectNode(targObject);

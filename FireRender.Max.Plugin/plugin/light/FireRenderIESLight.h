@@ -70,8 +70,10 @@ public:
 	void DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel = FALSE, BOOL frozen = FALSE);
 	void DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
 	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
+	//***************************************************************************************
 	Color GetViewportMainColor(INode* pNode);
 	Color GetViewportColor(INode* pNode, Color selectedColor);
+	//***************************************************************************************
 	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	void GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box) override;
 	int HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override;
@@ -221,10 +223,12 @@ private:
 	IParamBlock2* m_pblock2;
 
 	Point3 m_vertices[4];
-	bool m_verticesBuilt;
+	bool m_verticesBuilt; // don't forget to remove this!!!
 
 	std::string m_iesFilename;
 	std::vector<std::vector<Point3> > m_plines;
+	Point3 prevUp;
+	std::vector<std::vector<Point3> > m_preview_plines;
 };
 
 FIRERENDER_NAMESPACE_END
