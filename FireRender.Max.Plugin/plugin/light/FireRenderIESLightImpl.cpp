@@ -118,7 +118,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Po
 
 	// ************** DEBUG ***************
 	//iesFilename = "C:\\Users\\endar\\Downloads\\L04148904.IES";
-	iesFilename = "C:\\Users\\endar\\Downloads\\LLI-16162-2-R01.IES";
+	//iesFilename = "C:\\Users\\endar\\Downloads\\LLI-16162-2-R01.IES";
 	//iesFilename = "C:\\Users\\endar\\Downloads\\T31177.IES";
 	// ************ END DEBUG *************
 
