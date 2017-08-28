@@ -203,17 +203,24 @@ void CopyDataToPreviewBitmap(const std::vector<float>& fbData, Bitmap* output, c
 
 void CopyDataToBitmap(std::vector<float>& fbData, const std::vector<float>& alphaData, Bitmap* output, const float exposure, const bool isNormals)
 {
-	// back-off
 	if (fbData.size() == 0)
 		return;
 
-	FASSERT(output && IsReal(exposure));
+	FASSERT(output);
+	FASSERT( IsReal(exposure) );
+
 	if (!output)
 		return;
 
-	bool resize_needed = fbData.size() != 4 * output->Width() * output->Height();
-	FASSERT(!resize_needed);
-	if (resize_needed)
+	int width = output->Width();
+	int height = output->Height();
+
+	// we have 4 components of float type for each pixel from Core
+	bool sizeValid = fbData.size() != 4 * width * height;
+
+	FASSERT(!sizeValid);
+
+	if (sizeValid)
 		return;
 
 	// convert normals from RPR representation to Max's
@@ -221,8 +228,7 @@ void CopyDataToBitmap(std::vector<float>& fbData, const std::vector<float>& alph
 	{
 		std::for_each(fbData.begin(), fbData.end(), [](float& element)
 		{
-			element *= 0.5f;
-			element += 0.5f;
+			element = element * 0.5f + 0.5f;
 		});
 	}
 
@@ -231,27 +237,28 @@ void CopyDataToBitmap(std::vector<float>& fbData, const std::vector<float>& alph
 
 	if (hasAlpha)
 	{
+		output->SetFlag(MAP_HAS_ALPHA);
+
 		// fbData values are r g b alpha quadruplets; alpha is 1 by default
-		// If we have input alpha values, we should replace alpha elementa in dbData array (each 4-th element) with valus from alphaData array
-		FASSERT(fbData.size() == 4 * alphaData.size());
-		for (size_t idx = 0; idx < alphaData.size(); ++idx)
-		{
-			fbData[idx * 4 + 3] = alphaData[idx];
-		}
+		// If we have input alpha values, we should replace alpha elementa in fbData
+		// array (each 4-th element) with valus from alphaData array.
+		FASSERT( fbData.size() == alphaData.size() );
+
+		for (size_t idx = 3; idx < fbData.size(); idx += 4)
+			fbData[idx] = alphaData[idx - 3];
 	}
 
 	// write data to output
-	int height = output->Height();
-	int width = output->Width();
-
-	for (int y = 0; y < height; ++y) // max sdk can recieve picture data only by lines, thus loop is needed
+	// max sdk can recieve picture data only by lines, thus loop is needed
+	for (int y = 0; y < height; ++y)
 	{
-		output->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(fbData.data() + y*(width * 4))); // don't want to do unnecessary copy here
+		// the reason of using reinterpret_cast here is to avoide unnecessary copying
+		// BMM_Color_fl is a structure with 4 float values (r,g,b,a)
+		output->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(fbData.data() + y*(width * 4)));
 	}
 }
 
-
-	// don't do unit conversion here... all 3dsmax classes should retain system units
+// don't do unit conversion here... all 3dsmax classes should retain system units
 ViewParams ViewExp2viewParams(ViewExp& viewExp, INode*& outCameraNode) {
     ViewParams result;
     viewExp.GetAffineTM(result.affineTM);
