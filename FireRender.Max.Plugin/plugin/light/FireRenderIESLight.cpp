@@ -913,13 +913,16 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	auto light = scope.GetContext().CreateIESLight();
 
 	// load IES data
-	auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(GetActiveProfile());
+	if (auto activeProfile = GetActiveProfile())
+	{
+		auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
 
-	std::string iesData(
-		(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
-		std::istreambuf_iterator<char>());
+		std::string iesData(
+			(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
+			std::istreambuf_iterator<char>());
 
-	light.SetImageFromData(iesData.c_str(), 256, 256);
+		light.SetImageFromData(iesData.c_str(), 256, 256);
+	}
 
 	// setup color & intensity
 	auto color = GetFinalColor(params.t) * GetIntensity(params.t) * 100;
