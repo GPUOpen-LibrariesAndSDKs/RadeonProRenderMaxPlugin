@@ -616,6 +616,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 	return true;
 }
 
+#define WEB_ENABLED
 int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
 #ifdef WEB_ENABLED
