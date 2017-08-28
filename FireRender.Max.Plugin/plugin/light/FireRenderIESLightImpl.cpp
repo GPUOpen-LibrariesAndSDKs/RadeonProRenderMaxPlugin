@@ -114,13 +114,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Po
 {
 	// load IES data
 	auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(GetActiveProfile());
-	std::string iesFilename((std::istreambuf_iterator<char>(std::ifstream(profilePath))), {});
-
-	// ************** DEBUG ***************
-	//iesFilename = "C:\\Users\\endar\\Downloads\\L04148904.IES";
-	//iesFilename = "C:\\Users\\endar\\Downloads\\LLI-16162-2-R01.IES";
-	//iesFilename = "C:\\Users\\endar\\Downloads\\T31177.IES";
-	// ************ END DEBUG *************
+	std::string iesFilename(profilePath.begin(), profilePath.end());
 
 	// get .ies light params
 	IESProcessor parser;
@@ -249,6 +243,7 @@ void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 		bool success = CalculateLightRepresentation(m_plines);
 		FASSERT(success);
 
+		// preview graphic (before mouse button is released) should be aligned differently
 		m_preview_plines = m_plines;
 
 		// align light representation to look at controller (-Z axis is up vector)
@@ -290,10 +285,13 @@ void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 		// rotate light web so it would look at mouse target (around Z axis)
 		// - between prev look at vector and current one (Y axis is up vector for light representation)
 		Point3 normDir = dirMesh[1].Normalize();
+		normDir = normDir.Normalize();
+		Point3 normal = prevUp ^ normDir; // cross product, axis of rotation
+		normal = normal.Normalize();
 		float dotProduct = prevUp % normDir; // Dot product, for angle between vectors
 		float cosAngle = dotProduct; // vectors are normalized
 		float angle = acos(cosAngle);
-		Matrix3 rotateMx = RotAngleAxisMatrix(Point3(0.0f, 0.0f, 1.0f), angle);
+		Matrix3 rotateMx = RotAngleAxisMatrix(normal, angle);
 
 		auto preview_plines = m_preview_plines;
 

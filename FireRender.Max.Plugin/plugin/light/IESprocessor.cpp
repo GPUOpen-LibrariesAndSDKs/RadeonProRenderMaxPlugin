@@ -439,7 +439,7 @@ bool IESProcessor::Parse(IESLightData& lightData, const char* filename, std::str
 	bool isParseOk = ParseTokens(lightData, tokens, errorMessage);
 
 	// ensure correct parse results
-	if (isParseOk || !lightData.IsValid())
+	if (!isParseOk || !lightData.IsValid())
 		errorMessage = "invalid data read from .ies file";
 	if (!isParseOk || !lightData.IsValid())
 	{
