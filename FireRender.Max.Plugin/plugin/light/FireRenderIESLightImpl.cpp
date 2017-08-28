@@ -43,7 +43,7 @@ Color GetEdgeColor(bool isFrozen, bool isSelected)
 	return color;
 }
 
-const float SCALE_WEB = 0.01f;
+const float SCALE_WEB = 0.05f;
 
 // clones all edges in edges array, transforms cloned edges them by matrTransform and inserts them to edges array
 void CloneAndTransform(std::vector<std::vector<Point3> >& edges, const Matrix3 &matrTransform)
@@ -89,8 +89,25 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 
 	if (data.IsQuadrantSymmetric())
 	{
-		// NIY
-		return false;
+		// mirror around xy plane
+		Matrix3 matrMirrorXZ(
+			Point3(1.0, 0.0, 0.0),
+			Point3(0.0, -1.0, 0.0),
+			Point3(0.0, 0.0, 1.0),
+			Point3(0.0, 0.0, 0.0)
+		);
+		CloneAndTransform(edges, matrMirrorXZ);
+
+		// mirror around xy plane
+		Matrix3 matrMirrorXY(
+			Point3(1.0, 0.0, 0.0),
+			Point3(0.0, 1.0, 0.0),
+			Point3(0.0, 0.0, -1.0),
+			Point3(0.0, 0.0, 0.0)
+		);
+		CloneAndTransform(edges, matrMirrorXY);
+
+		return true;
 	}
 
 	if (data.IsPlaneSymmetric())
@@ -273,10 +290,13 @@ void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 	INode *nd = FindNodeRef(this);
 	Control* pLookAtController = nd->GetTMController();
 
+	float scaleFactor = pVprt->NonScalingObjectSize() * pVprt->GetVPWorldWidth(nd->GetObjectTM(0).GetTrans()) / 360.0f;
+
 	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
 	{
 		// no look at controller => user have not put target yet (have not released mouse buttion yet)
 		dirMesh[1] = dirMesh[1] - dirMesh[0];
+		dirMesh[1] = dirMesh[1] / scaleFactor; // to cancel out scaling of graphic window
 		dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
 
 		// draw line from light source to target
@@ -309,7 +329,7 @@ void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 	}
 	else
 	{
-		// have controller => need to calculate dist between ligh root and target
+		// have controller => need to calculate dist between light root and target
 		INode* pTargNode = pLookAtController->GetTarget();
 		Matrix3 targTransform = pTargNode->GetObjectTM(0.0);
 		Point3 targVector(0.0f, 0.0f, 0.0f);
@@ -320,6 +340,8 @@ void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 		rootVector = rootVector * rootTransform;
 
 		float dist = (targVector - rootVector).FLength();
+		dist = dist / scaleFactor; // to cancel out scaling of graphic window
+
 		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
 		dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
 

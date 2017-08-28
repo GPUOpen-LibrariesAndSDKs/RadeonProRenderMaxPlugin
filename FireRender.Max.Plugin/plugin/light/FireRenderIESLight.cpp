@@ -548,12 +548,6 @@ void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL s
 
 	// light lookAt
 	DrawSphereArcs(0, gw, 1.0, sphereMesh, dirMesh[1]);
-
-	// look at
-	//DrawSphereArcs(0, gw, 1.0, sphereMesh, dirMesh[1]);
-
-	// marker
-	//gw->marker(const_cast<Point3*>(&Point3::Origin), X_MRKR);
 }
 
 Matrix3 FireRenderIESLight::GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt)
@@ -607,6 +601,12 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 
 	Matrix3 prevtm = vpt->getGW()->getTransform();
 	Matrix3 tm = inode->GetObjectTM(t);
+
+	// apply scaling
+	float scaleFactor = vpt->NonScalingObjectSize() * vpt->GetVPWorldWidth(tm.GetTrans()) / 360.0f;
+	if (scaleFactor!=(float)1.0)
+		tm.Scale(Point3(scaleFactor,scaleFactor,scaleFactor));
+
 	vpt->getGW()->setTransform(tm);
 
 	DrawWeb(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
