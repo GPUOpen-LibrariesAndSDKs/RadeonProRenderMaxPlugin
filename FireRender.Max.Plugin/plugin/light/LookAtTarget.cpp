@@ -52,6 +52,156 @@ namespace
 		}
 
 	private:
+
+		enum class Shape
+		{
+			Pyramid,
+			Cube
+		};
+
+		template<Shape shape>
+		void BuildShape();
+
+		template<>
+		void BuildShape<Shape::Pyramid>()
+		{
+			constexpr auto h = ShapeSize;
+			constexpr auto s = h;
+			constexpr auto hs = s / 2;
+
+			constexpr std::array<float, 3> verts[]
+			{
+				{   0,   0,  0 },
+				{  hs,  hs,  h },
+				{ -hs,  hs,  h },
+				{ -hs, -hs,  h },
+				{  hs, -hs,  h }
+			};
+
+			constexpr std::array<size_t, 3> sideFaces[]
+			{
+				{ 0, 2, 1 },
+				{ 0, 3, 2 },
+				{ 0, 4, 3 },
+				{ 0, 1, 4 }
+			};
+
+			constexpr std::array<size_t, 3> baseFaces[]
+			{
+				{ 3, 1, 2 },
+				{ 1, 3, 4 }
+			};
+
+			constexpr auto vertsCount = StaticArraySize(verts);
+			constexpr auto sideFacesCount = StaticArraySize(sideFaces);
+			constexpr auto baseFacesCount = StaticArraySize(baseFaces);
+
+			m_mesh.setNumVerts(vertsCount);
+			m_mesh.setNumFaces(sideFacesCount + baseFacesCount);
+
+			// Set vertices
+			for (size_t i = 0; i < vertsCount; ++i)
+			{
+				auto& v = verts[i];
+				m_mesh.setVert(i, v[0], v[1], v[2]);
+			}
+
+			size_t nextSmGroup = 0;
+			size_t nextFaceIndex = 0;
+
+			// Set side faces
+			for (size_t i = 0; i < sideFacesCount; ++i)
+			{
+				auto& f = sideFaces[i];
+				auto& meshFace = m_mesh.faces[nextFaceIndex++];
+
+				meshFace.setVerts(f[0], f[1], f[2]);
+				meshFace.setSmGroup(1 << (nextSmGroup++));
+				meshFace.setEdgeVisFlags(1, 1, 1);
+			}
+
+			// Set base faces
+			for (size_t i = 0; i < baseFacesCount; ++i)
+			{
+				auto& f = baseFaces[i];
+				auto& meshFace = m_mesh.faces[nextFaceIndex++];
+
+				meshFace.setVerts(f[0], f[1], f[2]);
+				meshFace.setSmGroup(1 << nextSmGroup);
+				meshFace.setEdgeVisFlags(0, 1, 1);
+			}
+		}
+
+		template<>
+		void BuildShape<Shape::Cube>()
+		{
+			constexpr auto hsz = ShapeSize / 2;
+
+			constexpr std::array<float, 3> verts[]
+			{
+				{ -hsz, -hsz, -hsz },
+				{  hsz, -hsz, -hsz },
+				{ -hsz,  hsz, -hsz },
+				{  hsz,  hsz, -hsz },
+				{ -hsz, -hsz,  hsz },
+				{  hsz, -hsz,  hsz },
+				{ -hsz,  hsz,  hsz },
+				{  hsz,  hsz,  hsz },
+			};
+
+			constexpr std::array<size_t, 3> faces[]
+			{
+				// XY FACES (-Z)
+				{ 2, 1, 0 },
+				{ 1, 2, 3 },
+
+				// XY FACES (+Z)
+				{ 5, 6, 4 },
+				{ 6, 5, 7 },
+
+				// XZ FACES (-Y)
+				{ 1, 4, 0 },
+				{ 4, 1, 5 },
+				
+				// XZ FACES (+Y)
+				{ 6, 3, 2 },
+				{ 3, 6, 7 },
+				
+				// YZ FACES (-X)
+				{ 4, 2, 0 },
+				{ 2, 4, 6 },
+				
+				// YZ FACES (+X)
+				{ 3, 5, 1 },
+				{ 5, 3, 7 }
+			};
+
+			constexpr auto vertsCount = StaticArraySize(verts);
+			constexpr auto facesCount = StaticArraySize(faces);
+
+			m_mesh.setNumVerts(vertsCount);
+			m_mesh.setNumFaces(facesCount);
+
+			for (size_t i = 0; i < vertsCount; ++i)
+			{
+				auto& v = verts[i];
+				m_mesh.setVert(i, v[0], v[1], v[2]);
+			}
+
+			for (size_t i = 0; i < facesCount; ++i)
+			{
+				auto& f = faces[i];
+				auto& meshFace = m_mesh.faces[i];
+
+				meshFace.setVerts(f[0], f[1], f[2]);
+				meshFace.setSmGroup(1 << (i / 2));
+				meshFace.setEdgeVisFlags(0, 1, 1);
+			}
+		}
+
+		static constexpr auto DefaultMeshShape = Shape::Cube;
+		static constexpr auto ShapeSize = 10.f;
+
 		void Build()
 		{
 			if (m_meshBuilt)
@@ -59,72 +209,8 @@ namespace
 				return;
 			}
 
-			constexpr auto h = 20.f;
-			constexpr auto s = h;
-			constexpr auto hs = s / 2;
-			
-			constexpr std::array<float, 3> verts[]
-			{
-				{  0,   0,  0 },
-				{ hs,  hs,  h },
-				{-hs,  hs,  h },
-				{-hs, -hs,  h },
-				{ hs, -hs,  h }
-			};
-			
-			constexpr std::array<size_t, 3> sideFaces[]
-			{
-				{0, 2, 1},
-				{0, 3, 2},
-				{0, 4, 3},
-				{0, 1, 4}
-			};
-			
-			constexpr std::array<size_t, 3> baseFaces[]
-			{
-				{ 3, 1, 2 },
-				{ 1, 3, 4 }
-			};
-			
-			constexpr auto vertsCount = StaticArraySize(verts);
-			constexpr auto sideFacesCount = StaticArraySize(sideFaces);
-			constexpr auto baseFacesCount = StaticArraySize(baseFaces);
-			
-			m_mesh.setNumVerts(vertsCount);
-			m_mesh.setNumFaces(sideFacesCount + baseFacesCount);
-			
-			// Set vertices
-			for (size_t i = 0; i < vertsCount; ++i)
-			{
-				auto& v = verts[i];
-				m_mesh.setVert(i, v[0], v[1], v[2]);
-			}
-			
-			size_t nextSmGroup = 0;
-			size_t nextFaceIndex = 0;
-			
-			// Set side faces
-			for (size_t i = 0; i < sideFacesCount; ++i)
-			{
-				auto& f = sideFaces[i];
-				auto& meshFace = m_mesh.faces[nextFaceIndex++];
-			
-				meshFace.setVerts(f[0], f[1], f[2]);
-				meshFace.setSmGroup(1 << (nextSmGroup++));
-				meshFace.setEdgeVisFlags(1, 1, 1);
-			}
-			
-			// Set base faces
-			for (size_t i = 0; i < baseFacesCount; ++i)
-			{
-				auto& f = baseFaces[i];
-				auto& meshFace = m_mesh.faces[nextFaceIndex++];
-			
-				meshFace.setVerts(f[0], f[1], f[2]);
-				meshFace.setSmGroup(1 << nextSmGroup);
-				meshFace.setEdgeVisFlags(0, 1, 1);
-			}
-			
+			BuildShape<DefaultMeshShape>();
+
 			m_mesh.buildNormals();
 			m_mesh.EnableEdgeList(1);
 
@@ -134,6 +220,7 @@ namespace
 		Mesh m_mesh;
 		bool m_meshBuilt;
 	};
+
 
 	static LookAtTargetObjectClassDesc lookAtTargetObjDesc;
 	static MeshCache meshCache;
