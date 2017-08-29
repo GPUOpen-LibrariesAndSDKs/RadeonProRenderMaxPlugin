@@ -216,11 +216,11 @@ void CopyDataToBitmap(std::vector<float>& fbData, const std::vector<float>& alph
 	int height = output->Height();
 
 	// we have 4 components of float type for each pixel from Core
-	bool sizeValid = fbData.size() != 4 * width * height;
+	bool sizeValid = fbData.size() == 4 * width * height;
 
-	FASSERT(!sizeValid);
+	FASSERT(sizeValid);
 
-	if (sizeValid)
+	if (!sizeValid)
 		return;
 
 	// convert normals from RPR representation to Max's
