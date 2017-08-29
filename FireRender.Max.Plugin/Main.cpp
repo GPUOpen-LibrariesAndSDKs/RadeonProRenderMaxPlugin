@@ -38,6 +38,7 @@
 #include "FireRenderUberMtl.h"
 #include "FireRenderUberMtlv2.h"
 #include "FireRenderVolumeMtl.h"
+#include "FireRenderPbrMtl.h"
 
 #include "XMLMaterialExporter.h"
 #include "FireRenderEnvironment.h"
@@ -232,8 +233,8 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MaterialMtl)::ClassDescInstance);
     gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtlv2)::ClassDescInstance);
-
     gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(VolumeMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(PbrMtl)::ClassDescInstance);
 
 	gClassInstances.push_back(FireRender::GetFireRenderEnvironmentDesc());
 
