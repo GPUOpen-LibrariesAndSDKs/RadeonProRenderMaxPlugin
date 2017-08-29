@@ -348,6 +348,11 @@ namespace
 		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_VOLUME_SCALE>(pBlock);
 
+		if (instance->ProfileIsSelected())
+		{
+			instance->CalculateLightRepresentation(instance->GetActiveProfile());
+		}
+
 		return instance;
 	}
 }
@@ -666,13 +671,6 @@ Color FireRenderIESLight::GetViewportColor(INode* pNode, Color selectedColor)
 
 bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
-	if (!vpt || !vpt->IsAlive())
-	{
-		// why are we here
-		DbgAssert(!_T("Invalid viewport!"));
-		return false;
-	}
-
 	Matrix3 prevtm = vpt->getGW()->getTransform();
 	Matrix3 tm = inode->GetObjectTM(t);
 
@@ -683,34 +681,32 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 
 	vpt->getGW()->setTransform(tm);
 
-	DrawWeb(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
+	auto result = DrawWeb(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
 
 	vpt->getGW()->setTransform(prevtm);
 
-	return true;
+	return result;
 }
 
-#define WEB_ENABLED
 int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
-#ifdef WEB_ENABLED
-	DisplayLight(t, inode, vpt, flags);
-#else
-    if (!vpt || !vpt->IsAlive())
-    {
-        // why are we here
-        DbgAssert(!_T("Invalid viewport!"));
-        return FALSE;
-    }
+	if (!vpt || !vpt->IsAlive())
+	{
+		// why are we here
+		DbgAssert(!_T("Invalid viewport!"));
+		return FALSE;
+	}
 
-    Matrix3 prevtm = vpt->getGW()->getTransform();
-    Matrix3 tm = inode->GetObjectTM(t);
-    vpt->getGW()->setTransform(tm);
-    DrawGeometry(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
-    vpt->getGW()->setTransform(prevtm);
-#endif
+	if (!DisplayLight(t, inode, vpt, flags))
+	{
+		Matrix3 prevtm = vpt->getGW()->getTransform();
+		Matrix3 tm = inode->GetObjectTM(t);
+		vpt->getGW()->setTransform(tm);
+		DrawGeometry(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
+		vpt->getGW()->setTransform(prevtm);
+	}
 
-    return(1);
+    return TRUE;
 }
 
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
@@ -996,10 +992,11 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 {
 	// create light
 	auto light = scope.GetContext().CreateIESLight();
+	auto activeProfile = GetActiveProfile();
 
-	// load IES data
-	if (auto activeProfile = GetActiveProfile())
+	if (ProfileIsSelected())
 	{
+		// profile is ok, load IES data
 		auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
 
 		std::string iesData(
@@ -1007,6 +1004,14 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 			std::istreambuf_iterator<char>());
 
 		light.SetImageFromData(iesData.c_str(), 256, 256);
+	}
+	else
+	{
+		MessageBox(
+			GetCOREInterface()->GetMAXHWnd(),
+			_T("No profile is selected!"),
+			_T("Warning"),
+			MB_ICONWARNING | MB_OK);
 	}
 
 	// setup color & intensity
@@ -1181,11 +1186,21 @@ float FireRenderIESLight::GetVolumeScale() const
 void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
 {
 	SetBlockValue<IES_PARAM_PROFILE>(m_pblock2, profileName);
+	CalculateLightRepresentation(profileName);
 }
 
 const TCHAR* FireRenderIESLight::GetActiveProfile() const
 {
 	return GetBlockValue<IES_PARAM_PROFILE>(m_pblock2);
+}
+
+bool FireRenderIESLight::ProfileIsSelected() const
+{
+	auto activeProfile = GetActiveProfile();
+
+	return
+		activeProfile != nullptr &&
+		_tcscmp(activeProfile, _T(""));
 }
 
 // Result depends on color mode

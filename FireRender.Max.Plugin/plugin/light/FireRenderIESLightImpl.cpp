@@ -127,90 +127,68 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 	return true;
 }
 
-bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Point3> >& edges) const
+bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 {
+	m_plines.clear();
+	auto& edges = m_plines;
+
 	// load IES data
-	auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(GetActiveProfile());
+	auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName);
 	std::string iesFilename(profilePath.begin(), profilePath.end());
 
 	// get .ies light params
 	IESProcessor parser;
 	IESProcessor::IESLightData data;
 	std::string errorMsg;
-	bool isSuccessfull = parser.Parse(data, iesFilename.c_str(), errorMsg);
-	if (!isSuccessfull)
-		return false;
 
-	// calculate points of the mesh
-	// - verticle angles count is number of columns in candela values table
-	// - horizontal angles count is number of rows in candela values table
-	std::vector<Point3> candela_XYZ;
-	candela_XYZ.reserve(data.CandelaValues().size());
-	auto it_candela = data.CandelaValues().begin();
-	for (double horizontalAngle : data.HorizontalAngles())
+	bool failed = false;
+	const TCHAR* failReason = _T("Internal error");
+
+	failed = !parser.Parse(data, iesFilename.c_str(), errorMsg);
+	if (failed)
 	{
-		for (double verticleAngle : data.VerticalAngles())
-		{
-			// get world coordinates from polar representation in .ies
-			candela_XYZ.emplace_back(0.0f, 0.0f, 0.0f);
-			Polar2XYZ(candela_XYZ.back(), verticleAngle, horizontalAngle, *it_candela);
-			candela_XYZ.back() *= SCALE_WEB;
-
-			++it_candela;
-		}
+		failReason = _T("Failed to parse IES profile");
 	}
 
-	// generate edges for each verticle angle (slices)
-	const size_t MAX_POINTS_PER_POLYLINE = 32; // this is 3DMax limitation!
-	size_t valuesPerRow = data.VerticalAngles().size(); // verticle angles count is number of columns in candela values table
-	auto it_points = candela_XYZ.begin();
-	while (it_points != candela_XYZ.end())
+	if (!failed)
 	{
-		auto endRow = it_points + valuesPerRow;
-		std::vector<Point3> pline; pline.reserve(MAX_POINTS_PER_POLYLINE);
-		bool isClosed = true;
-		for (; it_points != endRow; ++it_points)
+		// calculate points of the mesh
+		// - verticle angles count is number of columns in candela values table
+		// - horizontal angles count is number of rows in candela values table
+		std::vector<Point3> candela_XYZ;
+		candela_XYZ.reserve(data.CandelaValues().size());
+		auto it_candela = data.CandelaValues().begin();
+		for (double horizontalAngle : data.HorizontalAngles())
 		{
-			pline.push_back(*it_points);
-			if (pline.size() == MAX_POINTS_PER_POLYLINE)
+			for (double verticleAngle : data.VerticalAngles())
 			{
-				edges.push_back(pline);
-				pline.clear();
-				isClosed = false;
-				--it_points; // want to view continuous line
+				// get world coordinates from polar representation in .ies
+				candela_XYZ.emplace_back(0.0f, 0.0f, 0.0f);
+				Polar2XYZ(candela_XYZ.back(), verticleAngle, horizontalAngle, *it_candela);
+				candela_XYZ.back() *= SCALE_WEB;
+
+				++it_candela;
 			}
 		}
 
-		if (!pline.empty())
+		// generate edges for each verticle angle (slices)
+		const size_t MAX_POINTS_PER_POLYLINE = 32; // this is 3DMax limitation!
+		size_t valuesPerRow = data.VerticalAngles().size(); // verticle angles count is number of columns in candela values table
+		auto it_points = candela_XYZ.begin();
+		while (it_points != candela_XYZ.end())
 		{
-			edges.push_back(pline);
-		}
-	}
-
-	if (edges.empty())
-		return false;
-
-	// generate edges for mesh (edges crossing slices)
-#define IES_LIGHT_DONT_GEN_EXTRA_EDGES
-#ifndef IES_LIGHT_DONT_GEN_EXTRA_EDGES
-	if (!data.IsAxiallySymmetric()) // axially simmetric light field is a special case (should be processed after mirroring)
-	{
-		size_t columnCount = data.VerticalAngles().size();
-		size_t rowCount = data.HorizontalAngles().size();
-
-		for (size_t idx_column = 0; idx_column < columnCount; idx_column++) // 0 - 180
-		{
+			auto endRow = it_points + valuesPerRow;
 			std::vector<Point3> pline; pline.reserve(MAX_POINTS_PER_POLYLINE);
-			for (size_t idx_row = 0; idx_row < rowCount; idx_row++) // 0 - 360
+			bool isClosed = true;
+			for (; it_points != endRow; ++it_points)
 			{
-				Point3 &tpoint = candela_XYZ[idx_row*columnCount + idx_column];
-				pline.push_back(tpoint);
-
+				pline.push_back(*it_points);
 				if (pline.size() == MAX_POINTS_PER_POLYLINE)
 				{
 					edges.push_back(pline);
 					pline.clear();
-					//--i; // want to view continuous line
+					isClosed = false;
+					--it_points; // want to view continuous line
 				}
 			}
 
@@ -219,17 +197,88 @@ bool FireRenderIESLight::CalculateLightRepresentation(std::vector<std::vector<Po
 				edges.push_back(pline);
 			}
 		}
-
 	}
+
+	if (!failed && edges.empty())
+	{
+		failed = true;
+		failReason = _T("Wrong IES file (edges list is empty).");
+	}
+
+	if (!failed)
+	{
+		// generate edges for mesh (edges crossing slices)
+#define IES_LIGHT_DONT_GEN_EXTRA_EDGES
+#ifndef IES_LIGHT_DONT_GEN_EXTRA_EDGES
+		if (!data.IsAxiallySymmetric()) // axially simmetric light field is a special case (should be processed after mirroring)
+		{
+			size_t columnCount = data.VerticalAngles().size();
+			size_t rowCount = data.HorizontalAngles().size();
+
+			for (size_t idx_column = 0; idx_column < columnCount; idx_column++) // 0 - 180
+			{
+				std::vector<Point3> pline; pline.reserve(MAX_POINTS_PER_POLYLINE);
+				for (size_t idx_row = 0; idx_row < rowCount; idx_row++) // 0 - 360
+				{
+					Point3 &tpoint = candela_XYZ[idx_row*columnCount + idx_column];
+					pline.push_back(tpoint);
+
+					if (pline.size() == MAX_POINTS_PER_POLYLINE)
+					{
+						edges.push_back(pline);
+						pline.clear();
+						//--i; // want to view continuous line
+					}
+				}
+
+				if (!pline.empty())
+				{
+					edges.push_back(pline);
+				}
+			}
+
+		}
 #endif
+	}
 
 	// mirror edges if necessary
-	if (!MirrorEdges(edges, data))
+	if (!failed && !MirrorEdges(edges, data))
 	{
-		return false;
+		failed = true;
+		failReason = _T("Failed to mirror edges");
 	}
 
-	return true;
+	if (!failed)
+	{
+		// preview graphic (before mouse button is released) should be aligned differently
+		m_preview_plines = m_plines;
+
+		// align light representation to look at controller (-Z axis is up vector)
+		// - rotate around x axis by 90 degrees
+		Matrix3 matrRotateAroundX(
+			Point3(1.0, 0.0, 0.0),
+			Point3(0.0, 0.0, -1.0),
+			Point3(0.0, 1.0, 0.0),
+			Point3(0.0, 0.0, 0.0)
+		);
+
+		for (auto& pline : m_plines)
+		{
+			for (Point3& point : pline)
+				point = point * matrRotateAroundX;
+		}
+	}
+
+	if (failed)
+	{
+		MessageBox(
+			GetCOREInterface()->GetMAXHWnd(),
+			failReason,
+			_T("Error"),
+			MB_ICONERROR | MB_OK);
+	}
+
+	return !failed;
 }
 
 INode* FindNodeRef(ReferenceTarget *rt);
@@ -250,33 +299,11 @@ static INode* FindNodeRef(ReferenceTarget *rt) {
 	return NULL;
 }
 
-void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected /*= false*/, bool isFrozen /*= false*/)
+bool FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected /*= false*/, bool isFrozen /*= false*/)
 {
-	bool doWantCalculateLightRepresentation = m_plines.empty();
-
-	if (doWantCalculateLightRepresentation)
+	if (m_plines.empty())
 	{
-		// calculate IES web
-		bool success = CalculateLightRepresentation(m_plines);
-		FASSERT(success);
-
-		// preview graphic (before mouse button is released) should be aligned differently
-		m_preview_plines = m_plines;
-
-		// align light representation to look at controller (-Z axis is up vector)
-		// - rotate around x axis by 90 degrees
-		Matrix3 matrRotateAroundX(
-			Point3(1.0, 0.0, 0.0),
-			Point3(0.0, 0.0, -1.0),
-			Point3(0.0, 1.0, 0.0),
-			Point3(0.0, 0.0, 0.0)
-		);
-
-		for (auto& pline : m_plines)
-		{
-			for (Point3& point : pline)
-				point = point * matrRotateAroundX;
-		}
+		return false;
 	}
 
 	GraphicsWindow* gw = pVprt->getGW();
@@ -354,6 +381,8 @@ void FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false /*isClosed*/, NULL);
 		}
 	}
+
+	return true;
 }
 
 FIRERENDER_NAMESPACE_END

@@ -15,5 +15,5 @@ class IFireRenderLight
 {
 	virtual void CreateSceneLight (const FireRender::ParsedNode& node, frw::Scope scope, const FireRender::RenderParameters& params) = 0;
 	virtual bool DisplayLight (TimeValue t, INode* inode, ViewExp *vpt, int flags) = 0;
-	virtual bool CalculateLightRepresentation (std::vector<std::vector<Point3> >& edges) const = 0;
+	virtual bool CalculateLightRepresentation (const TCHAR* profileName) = 0;
 };

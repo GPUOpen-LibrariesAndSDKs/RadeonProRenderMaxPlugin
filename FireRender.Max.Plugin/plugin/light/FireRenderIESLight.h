@@ -75,7 +75,7 @@ public:
 	void SetReference(int i, RefTargetHandle rtarg) override;
 	RefTargetHandle GetReference(int i) override;
 	void DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel = FALSE, BOOL frozen = FALSE);
-	void DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
+	bool DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
 	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
 	//***************************************************************************************
 	Color GetViewportMainColor(INode* pNode);
@@ -169,9 +169,9 @@ public:
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
 
-	virtual void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params);
-	virtual bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags);
-	virtual bool CalculateLightRepresentation(std::vector<std::vector<Point3> >& edges) const;
+	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params) override;
+	bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
+	bool CalculateLightRepresentation(const TCHAR* profileName) override;
 
 	void FireRenderIESLight::AddTarget();
 
@@ -210,6 +210,8 @@ public:
 
 	void SetVolumeScale(float value);
 	float GetVolumeScale() const;
+
+	bool ProfileIsSelected() const;
 
 	// Result depends on color mode (but without intensity)
 	Color GetFinalColor(TimeValue t = 0, Interval& valid = FOREVER) const;
