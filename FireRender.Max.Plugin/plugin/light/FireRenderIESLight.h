@@ -40,6 +40,11 @@ public:
 	static constexpr bool DefaultShadowsEnabled = true;
 	static constexpr auto DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
 
+	static constexpr bool EnableGeneralPanel = true;
+	static constexpr bool EnableIntensityPanel = true;
+	static constexpr bool EnableShadowsPanel = false;
+	static constexpr bool EnableVolumePanel = false;
+
 	FireRenderIESLight();
 	~FireRenderIESLight();
 

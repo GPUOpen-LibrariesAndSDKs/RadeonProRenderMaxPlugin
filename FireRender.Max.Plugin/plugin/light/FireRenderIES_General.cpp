@@ -121,6 +121,32 @@ INT_PTR IES_General::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, b
 	return FALSE;
 }
 
+void IES_General::Enable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<true>(
+		m_importButton,
+		m_deleteCurrentButton,
+		m_profilesComboBox,
+		m_enabledControl,
+		m_targetedControl,
+		m_areaWidthControl);
+}
+
+void IES_General::Disable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<false>(
+		m_importButton,
+		m_deleteCurrentButton,
+		m_profilesComboBox,
+		m_enabledControl,
+		m_targetedControl,
+		m_areaWidthControl);
+}
+
 void IES_General::UpdateEnabledParam()
 {
 	m_parent->SetEnabled(m_enabledControl.IsChecked());

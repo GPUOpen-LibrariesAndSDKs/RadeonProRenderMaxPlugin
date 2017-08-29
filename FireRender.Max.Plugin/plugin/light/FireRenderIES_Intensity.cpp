@@ -150,6 +150,30 @@ INT_PTR IES_Intensity::OnColorSwatchChange(IColorSwatch* colorSwatch, WORD contr
 	return FALSE;
 }
 
+void IES_Intensity::Enable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<true>(
+		m_intensityControl,
+		m_rgbModeControl,
+		m_kelvinModeControl,
+		m_colorControl,
+		m_temperatureControl);
+}
+
+void IES_Intensity::Disable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<false>(
+		m_intensityControl,
+		m_rgbModeControl,
+		m_kelvinModeControl,
+		m_colorControl,
+		m_temperatureControl);
+}
+
 void IES_Intensity::UpdateControlsEnabled()
 {
 	if (m_parent->GetColorMode() == IES_LIGHT_COLOR_MODE_COLOR)

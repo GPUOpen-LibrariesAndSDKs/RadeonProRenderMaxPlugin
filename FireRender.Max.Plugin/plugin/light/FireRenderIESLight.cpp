@@ -952,6 +952,12 @@ void FireRenderIESLight::BeginEditParams(IObjParam* objParam, ULONG flags, Anima
 	beginEdit(m_intensity);
 	beginEdit(m_shadows);
 	beginEdit(m_volume);
+
+	using namespace ies_panel_utils;
+	EnableControl<EnableGeneralPanel>(m_general);
+	EnableControl<EnableIntensityPanel>(m_intensity);
+	EnableControl<EnableShadowsPanel>(m_shadows);
+	EnableControl<EnableVolumePanel>(m_volume);
 }
 
 void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animatable* next)

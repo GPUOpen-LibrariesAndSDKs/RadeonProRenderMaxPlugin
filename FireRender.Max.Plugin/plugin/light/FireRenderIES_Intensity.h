@@ -29,6 +29,8 @@ public:
 	INT_PTR OnEditChange(int editId, HWND editHWND);
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
 	INT_PTR OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final);
+	void Enable();
+	void Disable();
 
 private:
 	void UpdateControlsEnabled();

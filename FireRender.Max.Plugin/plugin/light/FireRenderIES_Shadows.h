@@ -27,6 +27,8 @@ public:
 	INT_PTR HandleControlCommand(WORD code, WORD controlId);
 	INT_PTR OnEditChange(int editId, HWND editHWND);
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	void Enable();
+	void Disable();
 
 private:
 	WinButton m_enabledControl;

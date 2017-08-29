@@ -458,6 +458,18 @@ public:
 		FASSERT(m_hWnd != nullptr);
 		Button_SetCheck(m_hWnd, checked ? BST_CHECKED : BST_UNCHECKED);
 	}
+
+	void Enable()
+	{
+		FASSERT(m_hWnd != nullptr);
+		Button_Enable(m_hWnd, TRUE);
+	}
+
+	void Disable()
+	{
+		FASSERT(m_hWnd != nullptr);
+		Button_Enable(m_hWnd, FALSE);
+	}
 };
 
 /* Wraps Windows combo box control */
@@ -544,6 +556,18 @@ public:
 
 		return result;
 	}
+
+	void Enable()
+	{
+		FASSERT(m_hWnd != nullptr);
+		ComboBox_Enable(m_hWnd, TRUE);
+	}
+
+	void Disable()
+	{
+		FASSERT(m_hWnd != nullptr);
+		ComboBox_Enable(m_hWnd, FALSE);
+	}
 };
 
 /* This class contains common code to manage 3dsMax rollup pages.
@@ -600,6 +624,8 @@ public:
 	INT_PTR OnEditChange(int editId, HWND editHWND) { return FALSE; }
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
 	INT_PTR OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final) { return FALSE; }
+	void Enable() {}
+	void Disable() {}
 
 protected:
 	HWND m_panel;
@@ -672,5 +698,44 @@ private:
 		return _this;
 	}
 };
+
+namespace ies_panel_utils
+{
+	// Need this helper to use partial specialization
+	template<typename Control, bool enable>
+	struct EnableControlHelper
+	{
+		static void EnablePanel(Control& control)
+		{
+			control.Enable();
+		}
+	};
+
+	// Disable case specialization
+	template<typename Control>
+	struct EnableControlHelper<Control, false>
+	{
+		static void EnablePanel(Control& control)
+		{
+			control.Disable();
+		}
+	};
+
+	template<bool enable, typename Control>
+	void EnableControl(Control& control)
+	{
+		EnableControlHelper<Control, enable>::EnablePanel(control);
+	}
+
+	template<bool enable, typename... Control>
+	void EnableControls(Control&... controls)
+	{
+		// Call EnableControl for each control
+		(void)std::initializer_list<int>
+		{
+			(EnableControl<enable>(controls), 0)...
+		};
+	}
+}
 
 FIRERENDER_NAMESPACE_END

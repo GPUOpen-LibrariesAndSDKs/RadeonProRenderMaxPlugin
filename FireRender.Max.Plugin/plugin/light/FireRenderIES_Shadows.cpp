@@ -99,4 +99,24 @@ INT_PTR IES_Shadows::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, b
 	return FALSE;
 }
 
+void IES_Shadows::Enable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<true>(
+		m_enabledControl,
+		m_softnessControl,
+		m_transparencyControl);
+}
+
+void IES_Shadows::Disable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<false>(
+		m_enabledControl,
+		m_softnessControl,
+		m_transparencyControl);
+}
+
 FIRERENDER_NAMESPACE_END

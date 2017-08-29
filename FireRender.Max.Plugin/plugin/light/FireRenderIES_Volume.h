@@ -24,6 +24,8 @@ public:
 	void UninitializePage();
 	INT_PTR OnEditChange(int editId, HWND editHWND);
 	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	void Enable();
+	void Disable();
 
 private:
 	MaxEditAndSpinner m_volumeScaleControl;

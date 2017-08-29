@@ -50,4 +50,20 @@ INT_PTR IES_Volume::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bo
 	return FALSE;
 }
 
+void IES_Volume::Enable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<true>(
+		m_volumeScaleControl);
+}
+
+void IES_Volume::Disable()
+{
+	using namespace ies_panel_utils;
+
+	EnableControls<false>(
+		m_volumeScaleControl);
+}
+
 FIRERENDER_NAMESPACE_END
