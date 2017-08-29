@@ -116,10 +116,12 @@ namespace
 		Class_ID ClassID() override { return FireRenderIESLight::GetClassId(); }
 		SClass_ID SuperClassID() override { return LIGHT_CLASS_ID; }
 		const TCHAR* Category() override { return FIRERENDER_IESLIGHT_CATEGORY; }
-		void* Create(BOOL loading) override { return new FireRenderIESLight(); }
+		void* Create(BOOL loading) override;
+
 	};
 
 	static FireRenderIESLightClassDesc desc;
+	static bool parametersCacheEnabled = false;
 
 	static ParamBlockDesc2 paramBlock(0, _T("IESLightPbDesc"), 0, &desc, P_AUTO_CONSTRUCT + P_VERSION,
 		VERSION, // for P_VERSION
@@ -211,6 +213,7 @@ namespace
 	{
 		using T1 = BOOL;
 		using T2 = bool;
+		using TCache = T2;
 	};
 
 	template<IESLightParameter p>
@@ -221,6 +224,7 @@ namespace
 	{
 		using T1 = INT;
 		using T2 = int;
+		using TCache = T2;
 	};
 
 	template<IESLightParameter p>
@@ -236,6 +240,7 @@ namespace
 	{
 		using T1 = FLOAT;
 		using T2 = float;
+		using TCache = T2;
 	};
 
 	template<IESLightParameter p>
@@ -246,6 +251,7 @@ namespace
 	{
 		using T1 = Color;
 		using T2 = T1;
+		using TCache = T2;
 	};
 
 	template<IESLightParameter p>
@@ -256,14 +262,8 @@ namespace
 	{
 		using T1 = const TCHAR*;
 		using T2 = T1;
+		using TCache = std::basic_string<TCHAR>;
 	};
-
-	template<typename T>
-	void SetBlockValue(IParamBlock2* pBlock, IESLightParameter parameter, T value, TimeValue time = 0)
-	{
-		auto res = pBlock->SetValue(parameter, time, value);
-		FASSERT(res);
-	}
 
 	template<IESLightParameter parameter>
 	decltype(auto) GetBlockValue(IParamBlock2* pBlock, TimeValue t = 0, Interval valid = FOREVER)
@@ -275,6 +275,80 @@ namespace
 		FASSERT(ok);
 
 		return static_cast<typename Helper::T2>(result);
+	}
+
+	template<typename From, typename To>
+	To CastParameter(From& from)
+	{
+		return static_cast<To>(from);
+	}
+
+	template<>
+	const TCHAR* CastParameter(std::basic_string<TCHAR>& from)
+	{
+		return from.c_str();
+	}
+
+	template<IESLightParameter p>
+	struct ParameterCache
+	{
+		using T = typename GetBlockValueHelper<p>::TCache;
+
+		static T& GetValue(IParamBlock2* pBlock)
+		{
+			static T value = GetBlockValue<p>(pBlock);
+			return value;
+		}
+
+		static void SetValue(IParamBlock2* pBlock, T value)
+		{
+			if (parametersCacheEnabled)
+			{
+				GetValue(pBlock) = value;
+			}
+		}
+	};
+
+	template<IESLightParameter parameter>
+	void SetBlockValue(IParamBlock2* pBlock,
+		typename GetBlockValueHelper<parameter>::T1 value,
+		TimeValue time = 0)
+	{
+		ParameterCache<parameter>::SetValue(pBlock, value);
+		auto res = pBlock->SetValue(parameter, time, value);
+		FASSERT(res);
+	}
+
+	template<IESLightParameter p>
+	void InitializeDefaultBlockValue(IParamBlock2* pBlock)
+	{
+		using From = typename GetBlockValueHelper<p>::TCache;
+		using To = typename GetBlockValueHelper<p>::T1;
+
+		SetBlockValue<p>(pBlock,
+			CastParameter<From, To>(
+				ParameterCache<p>::GetValue(pBlock)));
+	}
+
+	void* FireRenderIESLightClassDesc::Create(BOOL loading)
+	{
+		auto instance = new FireRenderIESLight();
+		auto pBlock = instance->GetParamBlock(0);
+
+		InitializeDefaultBlockValue<IES_PARAM_ENABLED>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_COLOR>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_TEMPERATURE>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_ENABLED>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_VOLUME_SCALE>(pBlock);
+
+		return instance;
 	}
 }
 
@@ -750,7 +824,7 @@ int FireRenderIESLight::GetShadow()  { return 0; }
 // LightObject custom implementation
 void FireRenderIESLight::SetIntensity(TimeValue time, float f)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_INTENSITY, f, time);
+	SetBlockValue<IES_PARAM_INTENSITY>(m_pblock2, f, time);
 }
 
 float FireRenderIESLight::GetIntensity(TimeValue t, Interval& valid)
@@ -760,7 +834,7 @@ float FireRenderIESLight::GetIntensity(TimeValue t, Interval& valid)
 
 void FireRenderIESLight::SetRGBColor(TimeValue time, Point3 &color)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_COLOR, color, time);
+	SetBlockValue<IES_PARAM_COLOR>(m_pblock2, color, time);
 }
 
 Point3 FireRenderIESLight::GetRGBColor(TimeValue t, Interval &valid)
@@ -865,7 +939,9 @@ float FireRenderIESLight::GetDecayRadius(TimeValue t, Interval& valid)  { return
 void FireRenderIESLight::BeginEditParams(IObjParam* objParam, ULONG flags, Animatable* prev)
 {
 	m_iObjParam = objParam;
-	bool inCreate = (flags & BEGIN_EDIT_CREATE) ? 1 : 0;
+
+	// Enable parameters caching when we are in the 'Create' tab
+	parametersCacheEnabled = (flags & BEGIN_EDIT_CREATE) != 0;
 
 	auto beginEdit = [&](auto& panel)
 	{
@@ -889,6 +965,8 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 	endEdit(m_intensity);
 	endEdit(m_shadows);
 	endEdit(m_volume);
+
+	parametersCacheEnabled = false;
 }
 
 
@@ -984,7 +1062,7 @@ void FireRenderIESLight::AddTarget()
 
 void FireRenderIESLight::SetEnabled(bool value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_ENABLED, value);
+	SetBlockValue<IES_PARAM_ENABLED>(m_pblock2, value);
 }
 
 bool FireRenderIESLight::GetEnabled() const
@@ -994,7 +1072,7 @@ bool FireRenderIESLight::GetEnabled() const
 
 void FireRenderIESLight::SetTargeted(bool value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_TARGETED, value);
+	SetBlockValue<IES_PARAM_TARGETED>(m_pblock2, value);
 }
 
 bool FireRenderIESLight::GetTargeted() const
@@ -1004,7 +1082,7 @@ bool FireRenderIESLight::GetTargeted() const
 
 void FireRenderIESLight::SetAreaWidth(float value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_AREA_WIDTH, value);
+	SetBlockValue<IES_PARAM_AREA_WIDTH>(m_pblock2, value);
 }
 
 float FireRenderIESLight::GetAreaWidth() const
@@ -1014,7 +1092,7 @@ float FireRenderIESLight::GetAreaWidth() const
 
 void FireRenderIESLight::SetIntensity(float value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_INTENSITY, value);
+	SetBlockValue<IES_PARAM_INTENSITY>(m_pblock2, value);
 }
 
 float FireRenderIESLight::GetIntensity() const
@@ -1024,7 +1102,7 @@ float FireRenderIESLight::GetIntensity() const
 
 void FireRenderIESLight::SetTemperature(float value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_TEMPERATURE, value);
+	SetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2, value);
 }
 
 float FireRenderIESLight::GetTemperature() const
@@ -1034,7 +1112,7 @@ float FireRenderIESLight::GetTemperature() const
 
 void FireRenderIESLight::SetColor(Color value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_COLOR, value);
+	SetBlockValue<IES_PARAM_COLOR>(m_pblock2, value);
 }
 
 Color FireRenderIESLight::GetColor() const
@@ -1044,7 +1122,7 @@ Color FireRenderIESLight::GetColor() const
 
 void FireRenderIESLight::SetColorMode(IESLightColorMode value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_COLOR_MODE, value);
+	SetBlockValue<IES_PARAM_COLOR_MODE>(m_pblock2, value);
 }
 
 IESLightColorMode FireRenderIESLight::GetColorMode() const
@@ -1056,7 +1134,7 @@ IESLightColorMode FireRenderIESLight::GetColorMode() const
 
 void FireRenderIESLight::SetShadowsEnabled(bool value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_SHADOWS_ENABLED, value);
+	SetBlockValue<IES_PARAM_SHADOWS_ENABLED>(m_pblock2, value);
 }
 
 bool FireRenderIESLight::GetShadowsEnabled() const
@@ -1066,7 +1144,7 @@ bool FireRenderIESLight::GetShadowsEnabled() const
 
 void FireRenderIESLight::SetShadowsSoftness(float value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_SHADOWS_SOFTNESS, value);
+	SetBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(m_pblock2, value);
 }
 
 float FireRenderIESLight::GetShadowsSoftness() const
@@ -1076,7 +1154,7 @@ float FireRenderIESLight::GetShadowsSoftness() const
 
 void FireRenderIESLight::SetShadowsTransparency(float value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_SHADOWS_TRANSPARENCY, value);
+	SetBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(m_pblock2, value);
 }
 
 float FireRenderIESLight::GetShadowsTransparency() const
@@ -1086,7 +1164,7 @@ float FireRenderIESLight::GetShadowsTransparency() const
 
 void FireRenderIESLight::SetVolumeScale(float value)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_VOLUME_SCALE, value);
+	SetBlockValue<IES_PARAM_VOLUME_SCALE>(m_pblock2, value);
 }
 
 float FireRenderIESLight::GetVolumeScale() const
@@ -1096,7 +1174,7 @@ float FireRenderIESLight::GetVolumeScale() const
 
 void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
 {
-	SetBlockValue(m_pblock2, IES_PARAM_PROFILE, profileName);
+	SetBlockValue<IES_PARAM_PROFILE>(m_pblock2, profileName);
 }
 
 const TCHAR* FireRenderIESLight::GetActiveProfile() const
