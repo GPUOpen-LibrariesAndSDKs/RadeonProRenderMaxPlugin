@@ -379,6 +379,9 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_verticesBuilt(false),
 	prevUp(0.0f, 1.0f, 0.0f),
 	m_preview_plines(),
+	m_BBoxMin(0.0f, 0.0f, 0.0f),
+	m_BBoxMax(0.0f, 0.0f, 0.0f),
+	m_BBoxCalculated(false),
 	m_plines()
 {
 	GetClassDesc()->MakeAutoParamBlocks(this);
@@ -675,9 +678,15 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 	Matrix3 tm = inode->GetObjectTM(t);
 
 	// apply scaling
+#define IES_IGNORE_SCENE_SCALING
+#ifndef IES_IGNORE_SCENE_SCALING
 	float scaleFactor = vpt->NonScalingObjectSize() * vpt->GetVPWorldWidth(tm.GetTrans()) / 360.0f;
 	if (scaleFactor!=(float)1.0)
 		tm.Scale(Point3(scaleFactor,scaleFactor,scaleFactor));
+#endif
+	float scaleFactor;
+	GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+	tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
 
 	vpt->getGW()->setTransform(tm);
 
@@ -711,32 +720,57 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
 
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
+	box.Init();
+
     if (!vpt || !vpt->IsAlive())
     {
-        box.Init();
         return;
     }
 
-    Matrix3 worldTM = inode->GetNodeTM(t);
-    Point3 _Vertices[4];
-    for (int i = 0; i < 4; i++)
-        _Vertices[i] = m_vertices[i] * worldTM;
+	if (!m_BBoxCalculated)
+		bool haveBBox = CalculateBBox();
 
-    box.Init();
-    for (int i = 0; i < 4; i++)
-    {
-        box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
-        box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
-        box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
-        box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
-        box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
-        box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
-    }
+	if (!m_BBoxCalculated)
+		return;
+
+	// transform
+	Matrix3 tm = inode->GetObjectTM(t);
+	float scaleFactor;
+	GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+	tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
+
+	Point3 BBoxMin = m_BBoxMin * tm;
+	Point3 BBoxMax = m_BBoxMax * tm;
+	Point3 dirMesh[2];
+	dirMesh[0] = BBoxMin;
+	dirMesh[1] = BBoxMax;
+	vpt->getGW()->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+
+	box.pmin.x = BBoxMin.x;
+	box.pmin.y = BBoxMin.y;
+	box.pmin.z = BBoxMin.z;
+	box.pmax.x = BBoxMax.x;
+	box.pmax.y = BBoxMax.y;
+	box.pmax.z = BBoxMax.z;
 }
 
 int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
 {
+#define WEB_ENABLED
 #ifdef WEB_ENABLED
+	/*HitRegion hitRegion;
+	DWORD savedLimits;
+	GraphicsWindow *gw = vpt->getGW();
+
+	gw->setTransform(idTM);
+	MakeHitRegion(hitRegion, type, crossing, 8, p);
+	savedLimits = gw->getRndLimits();
+
+	gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM & ~GW_Z_BUFFER);
+	gw->setHitRegion(&hitRegion);
+	gw->clearHitCode();*/
+
+	// draw web
 	DisplayLight(t, inode, vpt, flags);
 #else
     if (!vpt || !vpt->IsAlive())
@@ -784,7 +818,8 @@ void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vp
         _Vertices[i] = m_vertices[i] * localTM;
 
     box.Init();
-    for (int i = 0; i < 4; i++)
+
+    /*for (int i = 0; i < 4; i++)
     {
         box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
         box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
@@ -792,7 +827,7 @@ void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vp
         box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
         box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
         box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
-    }
+    }*/
 }
 
 // LightObject dummy implementation

@@ -127,6 +127,47 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 	return true;
 }
 
+bool FireRenderIESLight::CalculateBBox(void)
+{
+	if (m_plines.empty())
+		return false;
+
+	// get lowest and max values of X, Y, Z;
+	float minX = INFINITY; 
+	float minY = INFINITY;
+	float minZ = INFINITY;
+	float maxX = -INFINITY;
+	float maxY = -INFINITY;
+	float maxZ = -INFINITY;
+	for (auto& it : m_plines)
+	{
+		for (Point3& tPoint : it)
+		{
+			if (tPoint.x > maxX)
+				maxX = tPoint.x;
+
+			if (tPoint.y > maxY)
+				maxY = tPoint.y;
+
+			if (tPoint.z > maxZ)
+				maxZ = tPoint.z;
+
+			if (tPoint.x < minX)
+				minX = tPoint.x;
+
+			if (tPoint.y < minY)
+				minY = tPoint.y;
+
+			if (tPoint.z < minZ)
+				minZ = tPoint.z;
+		}
+	}
+
+	m_BBoxMin = Point3(minX, minY, minZ);
+	m_BBoxMax = Point3(maxX, maxY, maxZ);
+	m_BBoxCalculated = true;
+}
+
 bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 {
 	m_plines.clear();
@@ -317,7 +358,9 @@ bool FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 	INode *nd = FindNodeRef(this);
 	Control* pLookAtController = nd->GetTMController();
 
-	float scaleFactor = pVprt->NonScalingObjectSize() * pVprt->GetVPWorldWidth(nd->GetObjectTM(0).GetTrans()) / 360.0f;
+	//float scaleFactor = pVprt->NonScalingObjectSize() * pVprt->GetVPWorldWidth(nd->GetObjectTM(0).GetTrans()) / 360.0f;
+	float scaleFactor;
+	pPBlock->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
 
 	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
 	{
