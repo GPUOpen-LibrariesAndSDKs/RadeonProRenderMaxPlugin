@@ -139,7 +139,7 @@ public:
 		static constexpr float Min = 0.0f;
 		static constexpr float Max = FLT_MAX;
 		static constexpr float Default = 1.0f;
-		static constexpr float Delta = 0.001;
+		static constexpr float Delta = 0.1;
 	};
 
 	template<typename T>

@@ -21,7 +21,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-class FireRenderIESLight : public GenLight, public IFireRenderLight
+class FireRenderIESLight :
+	public GenLight,
+	public IFireRenderLight
 {
 public:
 	static Class_ID GetClassId();
