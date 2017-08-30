@@ -1088,7 +1088,7 @@ static INode* FindNodeRef(ReferenceTarget *rt) {
 void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
 {
 	// create light
-	auto light = scope.GetContext().CreateIESLight();
+	frw::IESLight light = scope.GetContext().CreateIESLight();
 	auto activeProfile = GetActiveProfile();
 
 	if (ProfileIsSelected())
@@ -1112,13 +1112,21 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	}
 
 	// setup color & intensity
-	auto color = GetFinalColor(params.t) * GetIntensity(params.t) * 100;
+	auto color = GetFinalColor(params.t);
+	float intensity = GetIntensity(params.t);
+	color *= intensity;
 
 	light.SetRadiantPower(color);
 
 	// setup position
-	Matrix3 tm;
-	tm.IdentityMatrix();
+	INode* inode = FindNodeRef(this);
+	Matrix3 tm = inode->GetObjectTM(0);
+
+	//AffineParts ap;
+	//decomp_affine(tm, &ap);
+	//tm.IdentityMatrix();
+	//tm.SetRotate(ap.q);
+	//tm.SetTrans(ap.t);
 
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
