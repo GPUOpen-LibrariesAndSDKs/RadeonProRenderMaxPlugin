@@ -379,12 +379,13 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_verticesBuilt(false),
 	prevUp(0.0f, 1.0f, 0.0f),
 	m_preview_plines(),
-	m_BBoxMin(0.0f, 0.0f, 0.0f),
-	m_BBoxMax(0.0f, 0.0f, 0.0f),
+	m_bbox(),
 	m_BBoxCalculated(false),
 	m_plines()
 {
 	GetClassDesc()->MakeAutoParamBlocks(this);
+
+	m_bbox.resize(8, Point3(0.0f, 0.0f, 0.0f));
 }
 
 FireRenderIESLight::~FireRenderIESLight()
@@ -720,38 +721,99 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
 
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
+	//set default output result
 	box.Init();
 
+	// back-off
     if (!vpt || !vpt->IsAlive())
     {
         return;
     }
 
+	// calculate BBox for web
 	if (!m_BBoxCalculated)
 		bool haveBBox = CalculateBBox();
 
 	if (!m_BBoxCalculated)
 		return;
 
-	// transform
+	// transform BBox with current web transformation
+	// - node transform
 	Matrix3 tm = inode->GetObjectTM(t);
+	// - scale
 	float scaleFactor;
 	GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
 	tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
+	// - apply transformation
+	std::vector<Point3> bbox(m_bbox);
+	for (Point3& it : bbox)
+		it = it * tm;
 
-	Point3 BBoxMin = m_BBoxMin * tm;
-	Point3 BBoxMax = m_BBoxMax * tm;
-	Point3 dirMesh[2];
-	dirMesh[0] = BBoxMin;
-	dirMesh[1] = BBoxMax;
-	vpt->getGW()->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+	// re-calculate BBox to form that 3DMax can accept (Xmin < Xmax, Ymin < Ymax, Zmin < Zmax)
+	Point3 bboxMin (INFINITY, INFINITY, INFINITY);
+	Point3 bboxMax (-INFINITY, -INFINITY, -INFINITY);
+	for (Point3& tPoint : bbox)
+	{
+		if (tPoint.x > bboxMax.x)
+			bboxMax.x = tPoint.x;
 
-	box.pmin.x = BBoxMin.x;
-	box.pmin.y = BBoxMin.y;
-	box.pmin.z = BBoxMin.z;
-	box.pmax.x = BBoxMax.x;
-	box.pmax.y = BBoxMax.y;
-	box.pmax.z = BBoxMax.z;
+		if (tPoint.y > bboxMax.y)
+			bboxMax.y = tPoint.y;
+
+		if (tPoint.z > bboxMax.z)
+			bboxMax.z = tPoint.z;
+
+		if (tPoint.x < bboxMin.x)
+			bboxMin.x = tPoint.x;
+
+		if (tPoint.y < bboxMin.y)
+			bboxMin.y = tPoint.y;
+
+		if (tPoint.z < bboxMin.z)
+			bboxMin.z = tPoint.z;
+	}
+
+	// output result
+	box.pmin.x = bboxMin.x;
+	box.pmin.y = bboxMin.y;
+	box.pmin.z = bboxMin.z;
+	box.pmax.x = bboxMax.x;
+	box.pmax.y = bboxMax.y;
+	box.pmax.z = bboxMax.z;
+
+	// DEBUG draw BBox
+#ifdef IES_DRAW_LIGHT_BBOX
+	vpt->getGW()->setColor(LINE_COLOR, Point3(0.0f, 1.0f, 1.0f));
+	Point3 bboxFaces[20]; // 4 faces enough
+	bboxFaces[0] = Point3(bboxMin.x, bboxMin.y, bboxMin.z); // 1-st face
+	bboxFaces[1] = Point3(bboxMax.x, bboxMin.y, bboxMin.z);
+	bboxFaces[2] = Point3(bboxMax.x, bboxMin.y, bboxMax.z);
+	bboxFaces[3] = Point3(bboxMin.x, bboxMin.y, bboxMax.z);
+	bboxFaces[4] = Point3(bboxMin.x, bboxMin.y, bboxMin.z);
+
+	bboxFaces[5] = Point3(bboxMin.x, bboxMin.y, bboxMin.z); // 2-nd face
+	bboxFaces[6] = Point3(bboxMin.x, bboxMax.y, bboxMin.z);
+	bboxFaces[7] = Point3(bboxMin.x, bboxMax.y, bboxMax.z);
+	bboxFaces[8] = Point3(bboxMin.x, bboxMin.y, bboxMax.z);
+	bboxFaces[9] = Point3(bboxMin.x, bboxMin.y, bboxMin.z);
+
+	bboxFaces[10] = Point3(bboxMax.x, bboxMax.y, bboxMax.z); // 3-d face
+	bboxFaces[11] = Point3(bboxMax.x, bboxMax.y, bboxMin.z);
+	bboxFaces[12] = Point3(bboxMax.x, bboxMin.y, bboxMin.z);
+	bboxFaces[13] = Point3(bboxMax.x, bboxMin.y, bboxMax.z);
+	bboxFaces[14] = Point3(bboxMax.x, bboxMax.y, bboxMax.z);
+
+	bboxFaces[15] = Point3(bboxMax.x, bboxMax.y, bboxMax.z); // 4-th face
+	bboxFaces[16] = Point3(bboxMin.x, bboxMax.y, bboxMax.z);
+	bboxFaces[17] = Point3(bboxMin.x, bboxMax.y, bboxMin.z);
+	bboxFaces[18] = Point3(bboxMax.x, bboxMax.y, bboxMin.z);
+	bboxFaces[19] = Point3(bboxMax.x, bboxMax.y, bboxMax.z);
+
+	vpt->getGW()->polyline(5, bboxFaces, NULL, NULL, FALSE, NULL);
+	vpt->getGW()->polyline(5, bboxFaces+5, NULL, NULL, FALSE, NULL);
+	vpt->getGW()->polyline(5, bboxFaces+10, NULL, NULL, FALSE, NULL);
+	vpt->getGW()->polyline(5, bboxFaces+15, NULL, NULL, FALSE, NULL);
+#endif
 }
 
 int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
@@ -1222,6 +1284,7 @@ void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
 {
 	SetBlockValue<IES_PARAM_PROFILE>(m_pblock2, profileName);
 	CalculateLightRepresentation(profileName);
+	CalculateBBox();
 }
 
 const TCHAR* FireRenderIESLight::GetActiveProfile() const

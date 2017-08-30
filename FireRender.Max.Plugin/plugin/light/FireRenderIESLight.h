@@ -238,8 +238,7 @@ private:
 	std::string m_iesFilename;
 	std::vector<std::vector<Point3> > m_plines;
 	Point3 prevUp; // up vector of IES light
-	Point3 m_BBoxMin;
-	Point3 m_BBoxMax;
+	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
 	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;
 };

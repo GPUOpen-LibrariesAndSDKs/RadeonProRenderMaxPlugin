@@ -163,8 +163,14 @@ bool FireRenderIESLight::CalculateBBox(void)
 		}
 	}
 
-	m_BBoxMin = Point3(minX, minY, minZ);
-	m_BBoxMax = Point3(maxX, maxY, maxZ);
+	m_bbox[0] = Point3(minX, minY, minZ); // minX
+	m_bbox[1] = Point3(maxX, minY, minZ);
+	m_bbox[2] = Point3(minX, maxY, minZ);
+	m_bbox[3] = Point3(minX, minY, maxZ);
+	m_bbox[4] = Point3(maxX, maxY, maxZ); // maxX
+	m_bbox[5] = Point3(minX, maxY, maxZ);
+	m_bbox[6] = Point3(maxX, minY, maxZ);
+	m_bbox[7] = Point3(maxX, maxY, minZ);
 	m_BBoxCalculated = true;
 }
 
