@@ -32,16 +32,27 @@ bool IES_General::InitializePage()
 	m_targetedControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_TARGETED_CHECKBOX);
 	m_targetedControl.SetCheck(m_parent->GetTargeted());
 
-	// Area width parameter
-	m_areaWidthControl.Capture(m_panel,
-		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH,
-		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S);
+	{// Target distance parameter
+		m_targetDistanceControl.Capture(m_panel,
+			IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE,
+			IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S);
 
-	m_areaWidthControl.Bind(EDITTYPE_FLOAT);
-	
-	auto& spinner = m_areaWidthControl.GetSpinner();
-	spinner.SetSettings<FireRenderIESLight::AreaWidthSettings>();
-	spinner.SetValue(m_parent->GetAreaWidth());
+		m_targetDistanceControl.Bind(EDITTYPE_FLOAT);
+
+		UpdateTargetDistanceUi();
+	}
+
+	{// Area width parameter
+		m_areaWidthControl.Capture(m_panel,
+			IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH,
+			IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S);
+
+		m_areaWidthControl.Bind(EDITTYPE_FLOAT);
+
+		auto& spinner = m_areaWidthControl.GetSpinner();
+		spinner.SetSettings<FireRenderIESLight::AreaWidthSettings>();
+		spinner.SetValue(m_parent->GetAreaWidth());
+	}
 
 	return true;
 }
@@ -52,6 +63,7 @@ void IES_General::UninitializePage()
 	m_profilesComboBox.Release();
 	m_enabledControl.Release();
 	m_targetedControl.Release();
+	m_targetDistanceControl.Release();
 	m_areaWidthControl.Release();
 }
 
@@ -104,6 +116,10 @@ INT_PTR IES_General::OnEditChange(int editId, HWND editHWND)
 	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
 		UpdateAreaWidthParam();
 		return TRUE;
+
+	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
+		UpdateTargetDistanceParam();
+		break;
 	}
 
 	return FALSE;
@@ -116,6 +132,10 @@ INT_PTR IES_General::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, b
 	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
 		UpdateAreaWidthParam();
 		return TRUE;
+
+	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
+		UpdateTargetDistanceParam();
+		break;
 	}
 
 	return FALSE;
@@ -131,6 +151,7 @@ void IES_General::Enable()
 		m_profilesComboBox,
 		m_enabledControl,
 		m_targetedControl,
+		m_targetDistanceControl,
 		m_areaWidthControl);
 }
 
@@ -144,7 +165,15 @@ void IES_General::Disable()
 		m_profilesComboBox,
 		m_enabledControl,
 		m_targetedControl,
+		m_targetDistanceControl,
 		m_areaWidthControl);
+}
+
+void IES_General::UpdateTargetDistanceUi()
+{
+	auto& spinner = m_targetDistanceControl.GetSpinner();
+	spinner.SetSettings<FireRenderIESLight::TargetDistanceSettings>();
+	spinner.SetValue(m_parent->GetTargetDistance());
 }
 
 void IES_General::UpdateEnabledParam()
@@ -155,6 +184,11 @@ void IES_General::UpdateEnabledParam()
 void IES_General::UpdateTargetedParam()
 {
 	m_parent->SetTargeted(m_enabledControl.IsChecked());
+}
+
+void IES_General::UpdateTargetDistanceParam()
+{
+	m_parent->SetTargetDistance(m_targetDistanceControl.GetEdit().GetValue<float>());
 }
 
 void IES_General::UpdateAreaWidthParam()

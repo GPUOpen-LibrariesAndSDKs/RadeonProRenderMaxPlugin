@@ -64,13 +64,13 @@ public:
 	void Enable()
 	{
 		FASSERT(m_ctrl != nullptr);
-		m_ctrl->Enable();
+		m_ctrl->Enable(TRUE);
 	}
 
 	void Disable()
 	{
 		FASSERT(m_ctrl != nullptr);
-		m_ctrl->Disable();
+		m_ctrl->Enable(FALSE);
 	}
 
 	TControl* GetControl() const { return m_ctrl; }
@@ -586,6 +586,11 @@ public:
 		m_parent(parent)
 	{}
 
+	bool IsInitialized() const
+	{
+		return m_panel != nullptr;
+	}
+
 	void BeginEdit(IObjParam* objParam, ULONG flags, Animatable* prev)
 	{
 		FASSERT(m_panel == nullptr);
@@ -610,7 +615,7 @@ public:
 
 	void EndEdit(IObjParam* objParam, ULONG flags, Animatable* next)
 	{
-		FASSERT(m_panel != nullptr);
+		FASSERT(IsInitialized());
 		auto _this = static_cast<Derived*>(this);
 		_this->UninitializePage();
 		objParam->DeleteRollupPage(m_panel);

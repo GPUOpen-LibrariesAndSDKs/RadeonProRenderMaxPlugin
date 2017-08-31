@@ -18,8 +18,12 @@ public:
 	// Use base class constructor
 	using BasePanel::BasePanel;
 
+	void UpdateTargetDistanceUi();
+
+	// These methods move values from ui to the light object
 	void UpdateEnabledParam();
 	void UpdateTargetedParam();
+	void UpdateTargetDistanceParam();
 	void UpdateAreaWidthParam();
 	void ImportProfile();
 	void ActivateSelectedProfile();
@@ -44,6 +48,7 @@ protected:
 	WinButton m_enabledControl;
 	WinButton m_targetedControl;
 	MaxEditAndSpinner m_areaWidthControl;
+	MaxEditAndSpinner m_targetDistanceControl;
 };
 
 FIRERENDER_NAMESPACE_END

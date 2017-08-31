@@ -49,8 +49,6 @@ namespace
 	private:
 		FireRenderIESLight *ob = nullptr;
 		IParamBlock2 *pblock = nullptr;
-		Point3 p0;
-		Point3 p1;
 
 	public:
 		int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override
@@ -61,9 +59,9 @@ namespace
 					if (point == 0)
 					{
 						mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
-						p0 = p1 = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-						pblock->SetValue(IES_PARAM_P0, 0, p0);
-						pblock->SetValue(IES_PARAM_P1, 0, p1);
+						Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
+						pblock->SetValue(IES_PARAM_P0, 0, p);
+						pblock->SetValue(IES_PARAM_P1, 0, p);
 					}
 					else
 					{
@@ -73,8 +71,8 @@ namespace
 					break;
 
 				case MOUSE_MOVE:
-					p1 = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-					pblock->SetValue(IES_PARAM_P1, 0, p1);
+					pblock->SetValue(IES_PARAM_P1, 0,
+						vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
 					break;
 
 				case MOUSE_ABORT:
@@ -153,6 +151,11 @@ namespace
 		// Targeted parameter
 		IES_PARAM_TARGETED, _T("Targeted"), TYPE_BOOL, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::DefaultTargeted,
+			PB_END,
+
+		// Distance from light to target
+		IES_PARAM_TARGET_DISTANCE, _T("TargetDistance"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::TargetDistanceSettings::Default,
 			PB_END,
 
 		// Light intensity parameter
@@ -235,7 +238,8 @@ namespace
 			p == IES_PARAM_TEMPERATURE ||
 			p == IES_PARAM_SHADOWS_SOFTNESS ||
 			p == IES_PARAM_SHADOWS_TRANSPARENCY ||
-			p == IES_PARAM_VOLUME_SCALE
+			p == IES_PARAM_VOLUME_SCALE ||
+			p == IES_PARAM_TARGET_DISTANCE
 		>>
 	{
 		using T1 = FLOAT;
@@ -250,6 +254,18 @@ namespace
 		>>
 	{
 		using T1 = Color;
+		using T2 = T1;
+		using TCache = T2;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_P0 ||
+			p == IES_PARAM_P1
+		>>
+	{
+		using T1 = Point3;
 		using T2 = T1;
 		using TCache = T2;
 	};
@@ -339,6 +355,7 @@ namespace
 		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_TARGET_DISTANCE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_COLOR>(pBlock);
@@ -376,7 +393,6 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_volume(this),
 	m_iObjParam(nullptr),
 	m_pblock2(nullptr),
-	m_verticesBuilt(false),
 	prevUp(0.0f, 1.0f, 0.0f),
 	m_preview_plines(),
 	m_plines()
@@ -445,25 +461,25 @@ void FireRenderIESLight::NotifyChanged()
 // inherited virtual methods for Reference-management
 void FireRenderIESLight::BuildVertices(bool force)
 {
-    if (m_verticesBuilt && (!force))
-        return;
+	if (m_verticesBuilt && (!force))
+		return;
 
-    Point3 _p0, _p1, p0, p1;
+	Point3 _p0, _p1, p0, p1;
 
 	m_pblock2->GetValue(IES_PARAM_P0, 0, p0, FOREVER);
 	m_pblock2->GetValue(IES_PARAM_P1, 0, p1, FOREVER);
 
-    _p0.x = std::min(p0.x, p1.x);
-    _p0.y = std::min(p0.y, p1.y);
-    _p0.z = std::min(p0.z, p1.z);
-    _p1.x = std::max(p0.x, p1.x);
-    _p1.y = std::max(p0.y, p1.y);
-    _p1.z = std::max(p0.z, p1.z);
+	_p0.x = std::min(p0.x, p1.x);
+	_p0.y = std::min(p0.y, p1.y);
+	_p0.z = std::min(p0.z, p1.z);
+	_p1.x = std::max(p0.x, p1.x);
+	_p1.y = std::max(p0.y, p1.y);
+	_p1.z = std::max(p0.z, p1.z);
 
-    m_vertices[0] = p0;
-    m_vertices[1] = Point3(p1.x, p0.y, p0.z);
-    m_vertices[2] = p1;
-    m_vertices[3] = Point3(p0.x, p1.y, p0.z);
+	m_vertices[0] = p0;
+	m_vertices[1] = Point3(p1.x, p0.y, p0.z);
+	m_vertices[2] = p1;
+	m_vertices[3] = Point3(p0.x, p1.y, p0.z);
 
 	m_verticesBuilt = true;
 }
@@ -473,13 +489,30 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
     if ((REFMSG_CHANGE==msg)  && (hTarget == m_pblock2))
     {
         auto p = m_pblock2->LastNotifyParamID();
-        if (p == IES_PARAM_P0 || p == IES_PARAM_P1)
-            BuildVertices(true);
+
+		if (m_general.IsInitialized())
+		{
+			switch (p)
+			{
+				case IES_PARAM_P0:
+				case IES_PARAM_P1:
+				{
+					BuildVertices(true);
+					auto p0 = GetBlockValue<IES_PARAM_P0>(m_pblock2);
+					auto p1 = GetBlockValue<IES_PARAM_P1>(m_pblock2);
+					SetTargetDistance((p0 - p1).Length());
+					m_general.UpdateTargetDistanceUi();
+				}
+				break;
+			}
+		}
+
 		//some params have changed - should redraw all
 		if(GetCOREInterface()){
 			GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 		}
     }
+
     return REF_SUCCEED;
 }
 
@@ -502,11 +535,11 @@ void FireRenderIESLight::GetClassName(TSTR& s)
 RefTargetHandle FireRenderIESLight::Clone(RemapDir& remap)
 {
     FireRenderIESLight* newob = new FireRenderIESLight();
-    newob->m_verticesBuilt = m_verticesBuilt;
-    newob->m_vertices[0] = m_vertices[0];
-    newob->m_vertices[1] = m_vertices[1];
-    newob->m_vertices[2] = m_vertices[2];
-    newob->m_vertices[3] = m_vertices[3];
+	newob->m_verticesBuilt = m_verticesBuilt;
+	newob->m_vertices[0] = m_vertices[0];
+	newob->m_vertices[1] = m_vertices[1];
+	newob->m_vertices[2] = m_vertices[2];
+	newob->m_vertices[3] = m_vertices[3];
     newob->ReplaceReference(0, remap.CloneRef(m_pblock2));
     BaseClone(this, newob, remap);
     return(newob);
@@ -532,19 +565,19 @@ IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 
 int FireRenderIESLight::NumRefs()
 {
-    return 1;
+	return 1;
 }
 
 void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
 {
-    FASSERT(0 == i);
+	FASSERT(0 == i);
 	m_pblock2 = (IParamBlock2*)rtarg;
 }
 
 RefTargetHandle FireRenderIESLight::GetReference(int i)
 {
-    FASSERT(0 == i);
-    return (RefTargetHandle)m_pblock2;
+	FASSERT(0 == i);
+	return (RefTargetHandle)m_pblock2;
 }
 
 #define NUM_CIRC_PTS 28
@@ -557,7 +590,7 @@ void GetAttenPoints(TimeValue t, float rad, Point3 *q, Point3& center)
 
 	for (int i = 0; i < NUM_CIRC_PTS; i++)
 	{
-		a = (double)i * 2.0 * 3.1415926 / (double) NUM_CIRC_PTS;
+		a = (double)i * 2.0 * 3.1415926 / (double)NUM_CIRC_PTS;
 		sn = rad * (float)sin(a);
 		cs = rad * (float)cos(a);
 		q[i + 0 * NUM_CIRC_PTS] = Point3(sn, cs, 0.0f) + center;
@@ -579,18 +612,18 @@ INode* FindNodeRef(ReferenceTarget *rt);
 void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel, BOOL frozen)
 {
 	GraphicsWindow* gw = vpt->getGW();
-	
+
 	BuildVertices();
 
 	Color color = frozen ? Color(0.0f, 0.0f, 1.0f) : Color(0.0f, 1.0f, 0.0f);
 
-    if (sel)
-    {
-        color =  Color(1.0f, 0.0f, 0.0f);
-    }
+	if (sel)
+	{
+		color = Color(1.0f, 0.0f, 0.0f);
+	}
 
 	gw->setColor(LINE_COLOR, color);
-        
+
 	Point3 sphereMesh[3 * NUM_CIRC_PTS];
 	Point3 dirMesh[2];
 
@@ -711,27 +744,27 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
 
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
-    if (!vpt || !vpt->IsAlive())
-    {
-        box.Init();
-        return;
-    }
+	if (!vpt || !vpt->IsAlive())
+	{
+		box.Init();
+		return;
+	}
 
-    Matrix3 worldTM = inode->GetNodeTM(t);
-    Point3 _Vertices[4];
-    for (int i = 0; i < 4; i++)
-        _Vertices[i] = m_vertices[i] * worldTM;
+	Matrix3 worldTM = inode->GetNodeTM(t);
+	Point3 _Vertices[4];
+	for (int i = 0; i < 4; i++)
+		_Vertices[i] = m_vertices[i] * worldTM;
 
-    box.Init();
-    for (int i = 0; i < 4; i++)
-    {
-        box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
-        box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
-        box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
-        box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
-        box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
-        box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
-    }
+	box.Init();
+	for (int i = 0; i < 4; i++)
+	{
+		box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
+		box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
+		box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
+		box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
+		box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
+		box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
+	}
 }
 
 int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
@@ -763,7 +796,7 @@ int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossin
     Matrix3 tm = inode->GetObjectTM(t);
     gw->setTransform(tm);
 
-    DrawGeometry(vpt, GetParamBlock(0));
+	DrawGeometry(vpt, GetParamBlock(0));
 
     int res = gw->checkHitCode();
 
@@ -775,24 +808,24 @@ int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossin
 
 void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
-    Matrix3 nodeTM = inode->GetNodeTM(t);
-    Matrix3 parentTM = inode->GetParentNode()->GetNodeTM(t);
-    Matrix3 localTM = nodeTM*Inverse(parentTM);
+	Matrix3 nodeTM = inode->GetNodeTM(t);
+	Matrix3 parentTM = inode->GetParentNode()->GetNodeTM(t);
+	Matrix3 localTM = nodeTM*Inverse(parentTM);
 
-    Point3 _Vertices[4];
-    for (int i = 0; i < 4; i++)
-        _Vertices[i] = m_vertices[i] * localTM;
+	Point3 _Vertices[4];
+	for (int i = 0; i < 4; i++)
+		_Vertices[i] = m_vertices[i] * localTM;
 
-    box.Init();
-    for (int i = 0; i < 4; i++)
-    {
-        box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
-        box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
-        box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
-        box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
-        box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
-        box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
-    }
+	box.Init();
+	for (int i = 0; i < 4; i++)
+	{
+		box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
+		box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
+		box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
+		box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
+		box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
+		box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
+	}
 }
 
 // LightObject dummy implementation
@@ -1040,10 +1073,8 @@ void FireRenderIESLight::AddTarget()
 	Interface *iface = GetCOREInterface();
 	TimeValue t = iface->GetTime();
 
-	Point3 p1;
-	m_pblock2->GetValue(IES_PARAM_P1, 0, p1, FOREVER);
-	Point3 p0;
-	m_pblock2->GetValue(IES_PARAM_P0, 0, p0, FOREVER);
+	Point3 p1 = GetTargetPoint();
+	Point3 p0 = GetLightPoint();
 	Point3 r = p1 - p0;
 
 	Matrix3 tm = nd->GetNodeTM(t);
@@ -1051,7 +1082,7 @@ void FireRenderIESLight::AddTarget()
 	
 	targtm.PreTranslate(r);
 
-	Object *targObject = new LookAtTarget;
+	auto targObject = new LookAtTarget;
 	INode *targNode = iface->CreateObjectNode(targObject);
 	
 	TSTR targName;
@@ -1069,129 +1100,6 @@ void FireRenderIESLight::AddTarget()
 
 	Color lightWireColor(nd->GetWireColor());
 	targNode->SetWireColor(lightWireColor.toRGB());
-}
-
-void FireRenderIESLight::SetEnabled(bool value)
-{
-	SetBlockValue<IES_PARAM_ENABLED>(m_pblock2, value);
-}
-
-bool FireRenderIESLight::GetEnabled() const
-{
-	return GetBlockValue<IES_PARAM_ENABLED>(m_pblock2);
-}
-
-void FireRenderIESLight::SetTargeted(bool value)
-{
-	SetBlockValue<IES_PARAM_TARGETED>(m_pblock2, value);
-}
-
-bool FireRenderIESLight::GetTargeted() const
-{
-	return GetBlockValue<IES_PARAM_TARGETED>(m_pblock2);
-}
-
-void FireRenderIESLight::SetAreaWidth(float value)
-{
-	SetBlockValue<IES_PARAM_AREA_WIDTH>(m_pblock2, value);
-}
-
-float FireRenderIESLight::GetAreaWidth() const
-{
-	return GetBlockValue<IES_PARAM_AREA_WIDTH>(m_pblock2);
-}
-
-void FireRenderIESLight::SetIntensity(float value)
-{
-	SetBlockValue<IES_PARAM_INTENSITY>(m_pblock2, value);
-}
-
-float FireRenderIESLight::GetIntensity() const
-{
-	return GetBlockValue<IES_PARAM_INTENSITY>(m_pblock2);
-}
-
-void FireRenderIESLight::SetTemperature(float value)
-{
-	SetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2, value);
-}
-
-float FireRenderIESLight::GetTemperature() const
-{
-	return GetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2);
-}
-
-void FireRenderIESLight::SetColor(Color value)
-{
-	SetBlockValue<IES_PARAM_COLOR>(m_pblock2, value);
-}
-
-Color FireRenderIESLight::GetColor() const
-{
-	return GetBlockValue<IES_PARAM_COLOR>(m_pblock2);
-}
-
-void FireRenderIESLight::SetColorMode(IESLightColorMode value)
-{
-	SetBlockValue<IES_PARAM_COLOR_MODE>(m_pblock2, value);
-}
-
-IESLightColorMode FireRenderIESLight::GetColorMode() const
-{
-	return
-		static_cast<IESLightColorMode>(
-			GetBlockValue<IES_PARAM_COLOR_MODE>(m_pblock2));
-}
-
-void FireRenderIESLight::SetShadowsEnabled(bool value)
-{
-	SetBlockValue<IES_PARAM_SHADOWS_ENABLED>(m_pblock2, value);
-}
-
-bool FireRenderIESLight::GetShadowsEnabled() const
-{
-	return GetBlockValue<IES_PARAM_SHADOWS_ENABLED>(m_pblock2);
-}
-
-void FireRenderIESLight::SetShadowsSoftness(float value)
-{
-	SetBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(m_pblock2, value);
-}
-
-float FireRenderIESLight::GetShadowsSoftness() const
-{
-	return GetBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(m_pblock2);
-}
-
-void FireRenderIESLight::SetShadowsTransparency(float value)
-{
-	SetBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(m_pblock2, value);
-}
-
-float FireRenderIESLight::GetShadowsTransparency() const
-{
-	return GetBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(m_pblock2);
-}
-
-void FireRenderIESLight::SetVolumeScale(float value)
-{
-	SetBlockValue<IES_PARAM_VOLUME_SCALE>(m_pblock2, value);
-}
-
-float FireRenderIESLight::GetVolumeScale() const
-{
-	return GetBlockValue<IES_PARAM_VOLUME_SCALE>(m_pblock2);
-}
-
-void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
-{
-	SetBlockValue<IES_PARAM_PROFILE>(m_pblock2, profileName);
-	CalculateLightRepresentation(profileName);
-}
-
-const TCHAR* FireRenderIESLight::GetActiveProfile() const
-{
-	return GetBlockValue<IES_PARAM_PROFILE>(m_pblock2);
 }
 
 bool FireRenderIESLight::ProfileIsSelected() const
@@ -1225,5 +1133,40 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 
 	return result;
 }
+
+// Makes default implementation for parameter setter
+#define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)	\
+void FireRenderIESLight::Set##$paramName($paramType value)	\
+{															\
+	SetBlockValue<$enum>(m_pblock2, value);					\
+}
+
+// Makes default implementation for parameter getter
+#define IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)				\
+$paramType FireRenderIESLight::Get##$paramName() const					\
+{																		\
+	return static_cast<$paramType>(GetBlockValue<$enum>(m_pblock2));	\
+}
+
+// Makes default implementations for parameter setter and getter
+#define IES_DEFINE_PARAM($paramName, $paramType, $enum)\
+	IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)\
+	IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)
+
+IES_DEFINE_PARAM(LightPoint, Point3, IES_PARAM_P0)
+IES_DEFINE_PARAM(TargetPoint, Point3, IES_PARAM_P1)
+IES_DEFINE_PARAM(Enabled, bool, IES_PARAM_ENABLED)
+IES_DEFINE_PARAM(Targeted, bool, IES_PARAM_TARGETED)
+IES_DEFINE_PARAM(ShadowsEnabled, bool, IES_PARAM_SHADOWS_ENABLED)
+IES_DEFINE_PARAM(TargetDistance, float, IES_PARAM_TARGET_DISTANCE)
+IES_DEFINE_PARAM(AreaWidth, float, IES_PARAM_AREA_WIDTH)
+IES_DEFINE_PARAM(Intensity, float, IES_PARAM_INTENSITY)
+IES_DEFINE_PARAM(Temperature, float, IES_PARAM_TEMPERATURE)
+IES_DEFINE_PARAM(ShadowsSoftness, float, IES_PARAM_SHADOWS_SOFTNESS)
+IES_DEFINE_PARAM(ShadowsTransparency, float, IES_PARAM_SHADOWS_TRANSPARENCY)
+IES_DEFINE_PARAM(VolumeScale, float, IES_PARAM_VOLUME_SCALE)
+IES_DEFINE_PARAM(Color, Color, IES_PARAM_COLOR)
+IES_DEFINE_PARAM(ColorMode, IESLightColorMode, IES_PARAM_COLOR_MODE)
+IES_DEFINE_PARAM(ActiveProfile, const TCHAR*, IES_PARAM_PROFILE)
 
 FIRERENDER_NAMESPACE_END

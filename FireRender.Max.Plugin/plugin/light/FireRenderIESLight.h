@@ -21,6 +21,12 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+#define IES_DELCARE_PARAM_SET($paramName, $paramType) void Set##$paramName($paramType value)
+#define IES_DECLARE_PARAM_GET($paramName, $paramType) $paramType Get##$paramName() const
+#define IES_DECLARE_PARAM($paramName, $paramType)  \
+	IES_DELCARE_PARAM_SET($paramName, $paramType); \
+	IES_DECLARE_PARAM_GET($paramName, $paramType)
+
 class FireRenderIESLight :
 	public GenLight,
 	public IFireRenderLight
@@ -34,6 +40,7 @@ public:
 	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsTransparencySettings = MaxSpinner::DefaultFloatSettings;
 	using VolumeScaleSettings = MaxSpinner::DefaultFloatSettings;
+	using TargetDistanceSettings = MaxSpinner::DefaultFloatSettings;
 
 	static constexpr bool DefaultEnabled = true;
 	static constexpr bool DefaultTargeted = false;
@@ -175,41 +182,21 @@ public:
 
 	void FireRenderIESLight::AddTarget();
 
-	void SetEnabled(bool value);
-	bool GetEnabled() const;
-
-	void SetTargeted(bool value);
-	bool GetTargeted() const;
-
-	void SetAreaWidth(float value);
-	float GetAreaWidth() const;
-
-	void SetActiveProfile(const TCHAR* profileName);
-	const TCHAR* GetActiveProfile() const;
-
-	void SetIntensity(float value);
-	float GetIntensity() const;
-
-	void SetTemperature(float value);
-	float GetTemperature() const;
-
-	void SetColor(Color value);
-	Color GetColor() const;
-
-	void SetColorMode(IESLightColorMode value);
-	IESLightColorMode GetColorMode() const;
-
-	void SetShadowsEnabled(bool value);
-	bool GetShadowsEnabled() const;
-
-	void SetShadowsSoftness(float value);
-	float GetShadowsSoftness() const;
-
-	void SetShadowsTransparency(float value);
-	float GetShadowsTransparency() const;
-
-	void SetVolumeScale(float value);
-	float GetVolumeScale() const;
+	IES_DECLARE_PARAM(LightPoint, Point3);
+	IES_DECLARE_PARAM(TargetPoint, Point3);
+	IES_DECLARE_PARAM(Enabled, bool);
+	IES_DECLARE_PARAM(Targeted, bool);
+	IES_DECLARE_PARAM(TargetDistance, float);
+	IES_DECLARE_PARAM(AreaWidth, float);
+	IES_DECLARE_PARAM(ActiveProfile, const TCHAR*);
+	IES_DECLARE_PARAM(Intensity, float);
+	IES_DECLARE_PARAM(Temperature, float);
+	IES_DECLARE_PARAM(Color, Color);
+	IES_DECLARE_PARAM(ColorMode, IESLightColorMode);
+	IES_DECLARE_PARAM(ShadowsEnabled, bool);
+	IES_DECLARE_PARAM(ShadowsSoftness, float);
+	IES_DECLARE_PARAM(ShadowsTransparency, float);
+	IES_DECLARE_PARAM(VolumeScale, float);
 
 	bool ProfileIsSelected() const;
 
@@ -239,5 +226,9 @@ private:
 	Point3 prevUp;
 	std::vector<std::vector<Point3> > m_preview_plines;
 };
+
+#undef IES_DELCARE_PARAM_SET
+#undef IES_DELCARE_PARAM_GET
+#undef IES_DECLARE_PARAM
 
 FIRERENDER_NAMESPACE_END
