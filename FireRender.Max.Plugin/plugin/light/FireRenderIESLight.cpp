@@ -418,6 +418,42 @@ namespace
 			gw->polyline(numCircPts, &xyz_cuts[i][0], nullptr, nullptr, true, nullptr);
 		}
 	}
+
+	INode* FindNodeRef(ReferenceTarget *rt);
+
+	INode* GetNodeRef(ReferenceMaker *rm)
+	{
+		if (rm->SuperClassID() == BASENODE_CLASS_ID)
+		{
+			return (INode *)rm;
+		}
+
+		return rm->IsRefTarget() ? FindNodeRef((ReferenceTarget *)rm) : nullptr;
+	}
+
+	INode* FindNodeRef(ReferenceTarget *rt)
+	{
+		DependentIterator di(rt);
+		ReferenceMaker *rm = nullptr;
+
+		while ((rm = di.Next()) != nullptr)
+		{
+			if (auto nd = GetNodeRef(rm))
+			{
+				return nd;
+			}
+		}
+
+		return nullptr;
+	}
+
+	enum class IES_Light_Reference
+	{
+		ParamBlock = 0,
+
+		// This should be always last
+		__last
+	};
 }
 
 const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
@@ -560,7 +596,7 @@ void FireRenderIESLight::GetClassName(TSTR& s)
 RefTargetHandle FireRenderIESLight::Clone(RemapDir& remap)
 {
     auto newob = new FireRenderIESLight();
-    newob->ReplaceReference(0, remap.CloneRef(m_pblock2));
+    newob->ReplaceReference(BaseMaxType::NumRefs() + 0, remap.CloneRef(m_pblock2));
     BaseClone(this, newob, remap);
     return newob;
 }
@@ -585,22 +621,68 @@ IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 
 int FireRenderIESLight::NumRefs()
 {
-	return 1;
+	return BaseMaxType::NumRefs() + 
+		static_cast<int>(IES_Light_Reference::__last);
 }
 
 void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
 {
-	FASSERT(0 == i);
-	m_pblock2 = (IParamBlock2*)rtarg;
+	auto baseRefs = BaseMaxType::NumRefs();
+
+	if (i < baseRefs)
+	{
+		BaseMaxType::SetReference(i, rtarg);
+		return;
+	}
+
+	auto refId = static_cast<IES_Light_Reference>(i - baseRefs);
+
+	static_assert(
+		static_cast<int>(IES_Light_Reference::__last) == 1,
+		"Light references enumeration has been updated. Please, implement here");
+
+	switch (refId)
+	{
+		case IES_Light_Reference::ParamBlock:
+			m_pblock2 = dynamic_cast<IParamBlock2*>(rtarg);
+			break;
+
+		default:
+			FASSERT(!"Invalid reference request");
+			break;
+	}
 }
 
 RefTargetHandle FireRenderIESLight::GetReference(int i)
 {
-	FASSERT(0 == i);
-	return (RefTargetHandle)m_pblock2;
-}
+	auto baseRefs = BaseMaxType::NumRefs();
 
-INode* FindNodeRef(ReferenceTarget *rt);
+	if (i < baseRefs)
+	{
+		return BaseMaxType::GetReference(i);
+	}
+
+	auto refId = static_cast<IES_Light_Reference>(i - baseRefs);
+
+	RefTargetHandle result = nullptr;
+
+	static_assert(
+		static_cast<int>(IES_Light_Reference::__last) == 1,
+		"Light references enumeration has been updated. Please, implement here");
+
+	switch (refId)
+	{
+		case IES_Light_Reference::ParamBlock:
+			result = m_pblock2;
+			break;
+
+		default:
+			FASSERT(!"Invalid reference request");
+			break;
+	}
+
+	return result;
+}
 
 void FireRenderIESLight::DrawSphere(ViewExp *vpt, BOOL sel, BOOL frozen)
 {
@@ -1069,23 +1151,6 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 	endEdit(m_volume);
 
 	parametersCacheEnabled = false;
-}
-
-
-static INode* GetNodeRef(ReferenceMaker *rm) {
-	if (rm->SuperClassID() == BASENODE_CLASS_ID) return (INode *)rm;
-	else return rm->IsRefTarget() ? FindNodeRef((ReferenceTarget *)rm) : NULL;
-}
-
-static INode* FindNodeRef(ReferenceTarget *rt) {
-	DependentIterator di(rt);
-	ReferenceMaker *rm = NULL;
-	INode *nd = NULL;
-	while ((rm = di.Next()) != NULL) {
-		nd = GetNodeRef(rm);
-		if (nd) return nd;
-	}
-	return NULL;
 }
 
 void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)

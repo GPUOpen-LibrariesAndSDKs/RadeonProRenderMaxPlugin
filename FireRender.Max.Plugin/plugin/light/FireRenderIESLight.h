@@ -32,15 +32,16 @@ class FireRenderIESLight :
 	public IFireRenderLight
 {
 public:
-	static Class_ID GetClassId();
-	static ClassDesc2* GetClassDesc();
-
+	using BaseMaxType = GenLight;
 	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsTransparencySettings = MaxSpinner::DefaultFloatSettings;
 	using VolumeScaleSettings = MaxSpinner::DefaultFloatSettings;
 	using TargetDistanceSettings = MaxSpinner::DefaultFloatSettings;
+
+	static Class_ID GetClassId();
+	static ClassDesc2* GetClassDesc();
 
 	static constexpr bool DefaultEnabled = true;
 	static constexpr bool DefaultTargeted = false;
