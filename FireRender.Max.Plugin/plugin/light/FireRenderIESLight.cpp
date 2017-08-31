@@ -463,30 +463,6 @@ void FireRenderIESLight::NotifyChanged()
 }
 
 // inherited virtual methods for Reference-management
-void FireRenderIESLight::BuildVertices(bool force)
-{
-	if (m_verticesBuilt && (!force))
-		return;
-
-	Point3 _p0, _p1, p0, p1;
-
-	m_pblock2->GetValue(IES_PARAM_P0, 0, p0, FOREVER);
-	m_pblock2->GetValue(IES_PARAM_P1, 0, p1, FOREVER);
-
-	_p0.x = std::min(p0.x, p1.x);
-	_p0.y = std::min(p0.y, p1.y);
-	_p0.z = std::min(p0.z, p1.z);
-	_p1.x = std::max(p0.x, p1.x);
-	_p1.y = std::max(p0.y, p1.y);
-	_p1.z = std::max(p0.z, p1.z);
-
-	m_vertices[0] = p0;
-	m_vertices[1] = Point3(p1.x, p0.y, p0.z);
-	m_vertices[2] = p1;
-	m_vertices[3] = Point3(p0.x, p1.y, p0.z);
-
-	m_verticesBuilt = true;
-}
 
 RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate)
 {
@@ -501,7 +477,6 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 				case IES_PARAM_P0:
 				case IES_PARAM_P1:
 				{
-					BuildVertices(true);
 					auto p0 = GetBlockValue<IES_PARAM_P0>(m_pblock2);
 					auto p1 = GetBlockValue<IES_PARAM_P1>(m_pblock2);
 					SetTargetDistance((p0 - p1).Length());
@@ -538,15 +513,10 @@ void FireRenderIESLight::GetClassName(TSTR& s)
 
 RefTargetHandle FireRenderIESLight::Clone(RemapDir& remap)
 {
-    FireRenderIESLight* newob = new FireRenderIESLight();
-	newob->m_verticesBuilt = m_verticesBuilt;
-	newob->m_vertices[0] = m_vertices[0];
-	newob->m_vertices[1] = m_vertices[1];
-	newob->m_vertices[2] = m_vertices[2];
-	newob->m_vertices[3] = m_vertices[3];
+    auto newob = new FireRenderIESLight();
     newob->ReplaceReference(0, remap.CloneRef(m_pblock2));
     BaseClone(this, newob, remap);
-    return(newob);
+    return newob;
 }
 
 IParamBlock2* FireRenderIESLight::GetParamBlock(int i)
@@ -616,9 +586,6 @@ INode* FindNodeRef(ReferenceTarget *rt);
 void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel, BOOL frozen)
 {
 	GraphicsWindow* gw = vpt->getGW();
-
-	BuildVertices();
-
 	Color color = frozen ? Color(0.0f, 0.0f, 1.0f) : Color(0.0f, 1.0f, 0.0f);
 
 	if (sel)
@@ -904,25 +871,7 @@ int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossin
 
 void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
-	Matrix3 nodeTM = inode->GetNodeTM(t);
-	Matrix3 parentTM = inode->GetParentNode()->GetNodeTM(t);
-	Matrix3 localTM = nodeTM*Inverse(parentTM);
-
-	Point3 _Vertices[4];
-	for (int i = 0; i < 4; i++)
-		_Vertices[i] = m_vertices[i] * localTM;
-
     box.Init();
-
-    /*for (int i = 0; i < 4; i++)
-    {
-        box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
-        box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
-        box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
-        box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
-        box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
-        box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
-    }*/
 }
 
 // LightObject dummy implementation

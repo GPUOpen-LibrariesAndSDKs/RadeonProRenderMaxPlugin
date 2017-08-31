@@ -65,7 +65,6 @@ public:
 	BOOL UsesWireColor() override;
 	int DoOwnSelectHilite() override;
 	void NotifyChanged();
-	void BuildVertices(bool force = false);
 	RefResult NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate) override;
 
 	void DeleteThis() override;
@@ -218,9 +217,6 @@ private:
 
 	IObjParam* m_iObjParam;
 	IParamBlock2* m_pblock2;
-
-	Point3 m_vertices[4];
-	bool m_verticesBuilt; // don't forget to remove this!!!
 
 	std::string m_iesFilename;
 	std::vector<std::vector<Point3> > m_plines;
