@@ -200,7 +200,7 @@ namespace
 		}
 
 		static constexpr auto DefaultMeshShape = Shape::Cube;
-		static constexpr auto ShapeSize = 10.f;
+		static constexpr auto ShapeSize = 5.f;
 
 		void Build()
 		{
@@ -321,10 +321,10 @@ void LookAtTarget::GetMat(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm)
 	
 	tm = inode->GetObjectTM(t);
 	tm.NoScale();
-	float scaleFactor = vpt.NonScalingObjectSize() * vpt.GetVPWorldWidth(tm.GetTrans()) / 360.0f;
+	//float scaleFactor = vpt.NonScalingObjectSize() * vpt.GetVPWorldWidth(tm.GetTrans()) / 360.0f;
 	
-	if (scaleFactor!=(float)1.0)
-		tm.Scale(Point3(scaleFactor,scaleFactor,scaleFactor));
+	//if (scaleFactor!=(float)1.0)
+		//tm.Scale(Point3(scaleFactor,scaleFactor,scaleFactor));
 }
 
 void LookAtTarget::GetDeformBBox(TimeValue t, Box3& box, Matrix3 *tm, BOOL useSel )
@@ -371,9 +371,9 @@ void LookAtTarget::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box
 	}
 	
 	Matrix3 m = inode->GetObjectTM(t);
-	float scaleFactor = vpt->NonScalingObjectSize()*vpt->GetVPWorldWidth(m.GetTrans())/(float)360.0;
+	//float scaleFactor = vpt->NonScalingObjectSize()*vpt->GetVPWorldWidth(m.GetTrans())/(float)360.0;
 	box = meshCache.GetBoundingBox();
-	box.Scale(scaleFactor);
+	//box.Scale(scaleFactor);
 }
 
 void LookAtTarget::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)

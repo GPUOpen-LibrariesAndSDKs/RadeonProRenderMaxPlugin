@@ -179,6 +179,7 @@ public:
 	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params) override;
 	bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	bool CalculateLightRepresentation(const TCHAR* profileName) override;
+	bool CalculateBBox(void) override;
 
 	void FireRenderIESLight::AddTarget();
 
@@ -223,7 +224,9 @@ private:
 
 	std::string m_iesFilename;
 	std::vector<std::vector<Point3> > m_plines;
-	Point3 prevUp;
+	Point3 prevUp; // up vector of IES light
+	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
+	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;
 };
 
