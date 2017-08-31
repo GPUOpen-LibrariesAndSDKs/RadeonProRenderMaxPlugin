@@ -52,6 +52,8 @@ public:
 	static constexpr bool EnableShadowsPanel = false;
 	static constexpr bool EnableVolumePanel = false;
 
+	static constexpr auto SphereCirclePointsCount = 28u;
+
 	FireRenderIESLight();
 	~FireRenderIESLight();
 
@@ -80,7 +82,7 @@ public:
 	int NumRefs() override;
 	void SetReference(int i, RefTargetHandle rtarg) override;
 	RefTargetHandle GetReference(int i) override;
-	void DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel = FALSE, BOOL frozen = FALSE);
+	void DrawSphere(ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
 	bool DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
 	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
 	//***************************************************************************************

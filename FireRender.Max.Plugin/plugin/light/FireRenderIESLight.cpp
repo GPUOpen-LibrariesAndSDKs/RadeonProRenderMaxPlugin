@@ -15,6 +15,7 @@
 
 #include "utils/Utils.h"
 
+#include <array>
 #include <math.h>
 
 #include "../ParamBlock.h"
@@ -60,8 +61,8 @@ namespace
 					{
 						mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
 						Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-						pblock->SetValue(IES_PARAM_P0, 0, p);
-						pblock->SetValue(IES_PARAM_P1, 0, p);
+						ob->SetLightPoint(p);
+						ob->SetTargetPoint(p);
 					}
 					else
 					{
@@ -372,6 +373,51 @@ namespace
 
 		return instance;
 	}
+
+	// Computes sphere points for three cuts:
+	//	cuts[0] - XY
+	//	cuts[1] - XZ
+	//	cuts[2] - YZ
+	//	'numCircPts' - number of points in one cut (approximation level)
+	template<size_t numCircPts>
+	void ComputeSphereCutPoints(
+		TimeValue t, float rad, Point3& center,
+		std::array<std::array<Point3, numCircPts>, 3>& cuts)
+	{
+		// Delta angle
+		constexpr auto da = 2.0f * PI / numCircPts;
+
+		for (int i = 0; i < numCircPts; i++)
+		{
+			// Angle
+			auto a = i * da;
+
+			// Cached values
+			auto sn = rad * sin(a);
+			auto cs = rad * cos(a);
+
+			cuts[0][i] = Point3(sn, cs, 0.0f) + center;
+			cuts[1][i] = Point3(sn, 0.0f, cs) + center;
+			cuts[2][i] = Point3(0.0f, sn, cs) + center;
+		}
+	}
+
+	// Draws XY, XZ and YZ sphere cuts
+	//	'numCircPts' - number of points in one cut (approximation level)
+	template<size_t numCircPts>
+	void DrawSphereArcs(TimeValue t, GraphicsWindow *gw, float r, Point3& center)
+	{
+		// Compute points
+		using CutPoints = std::array<Point3, numCircPts>;
+		std::array<CutPoints, 3> xyz_cuts;
+		ComputeSphereCutPoints(t, r, center, xyz_cuts);
+
+		// Draw polylines
+		for (size_t i = 0; i < 3; ++i)
+		{
+			gw->polyline(numCircPts, &xyz_cuts[i][0], nullptr, nullptr, true, nullptr);
+		}
+	}
 }
 
 const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
@@ -477,8 +523,8 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 				case IES_PARAM_P0:
 				case IES_PARAM_P1:
 				{
-					auto p0 = GetBlockValue<IES_PARAM_P0>(m_pblock2);
-					auto p1 = GetBlockValue<IES_PARAM_P1>(m_pblock2);
+					auto p0 = GetLightPoint();
+					auto p1 = GetTargetPoint();
 					SetTargetDistance((p0 - p1).Length());
 					m_general.UpdateTargetDistanceUi();
 				}
@@ -554,36 +600,9 @@ RefTargetHandle FireRenderIESLight::GetReference(int i)
 	return (RefTargetHandle)m_pblock2;
 }
 
-#define NUM_CIRC_PTS 28
-
-void GetAttenPoints(TimeValue t, float rad, Point3 *q, Point3& center)
-{
-	double a;
-	float sn;
-	float cs;
-
-	for (int i = 0; i < NUM_CIRC_PTS; i++)
-	{
-		a = (double)i * 2.0 * 3.1415926 / (double)NUM_CIRC_PTS;
-		sn = rad * (float)sin(a);
-		cs = rad * (float)cos(a);
-		q[i + 0 * NUM_CIRC_PTS] = Point3(sn, cs, 0.0f) + center;
-		q[i + 1 * NUM_CIRC_PTS] = Point3(sn, 0.0f, cs) + center;
-		q[i + 2 * NUM_CIRC_PTS] = Point3(0.0f, sn, cs) + center;
-	}
-}
-
-void DrawSphereArcs(TimeValue t, GraphicsWindow *gw, float r, Point3 *q, Point3& center)
-{
-	GetAttenPoints(t, r, q, center);
-	gw->polyline(NUM_CIRC_PTS, q, NULL, NULL, TRUE, NULL);
-	gw->polyline(NUM_CIRC_PTS, q + NUM_CIRC_PTS, NULL, NULL, TRUE, NULL);
-	gw->polyline(NUM_CIRC_PTS, q + 2 * NUM_CIRC_PTS, NULL, NULL, TRUE, NULL);
-}
-
 INode* FindNodeRef(ReferenceTarget *rt);
 
-void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel, BOOL frozen)
+void FireRenderIESLight::DrawSphere(ViewExp *vpt, BOOL sel, BOOL frozen)
 {
 	GraphicsWindow* gw = vpt->getGW();
 	Color color = frozen ? Color(0.0f, 0.0f, 1.0f) : Color(0.0f, 1.0f, 0.0f);
@@ -595,17 +614,18 @@ void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL s
 
 	gw->setColor(LINE_COLOR, color);
 
-	Point3 sphereMesh[3 * NUM_CIRC_PTS];
-	Point3 dirMesh[2];
-
-	pblock->GetValue(IES_PARAM_P0, 0, dirMesh[0], FOREVER);
-	pblock->GetValue(IES_PARAM_P1, 0, dirMesh[1], FOREVER);
+	Point3 dirMesh[]
+	{
+		GetLightPoint(),
+		GetTargetPoint()
+	};
 
 	INode *nd = FindNodeRef(this);
 	Control* pLookAtController = nd->GetTMController();
+
 	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
 	{
-		dirMesh[1] = dirMesh[1] - dirMesh[0];
+		dirMesh[1] -= dirMesh[0];
 	}
 	else
 	{
@@ -618,19 +638,20 @@ void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL s
 		Point3 rootVector(0.0f, 0.0f, 0.0f);
 		rootVector = rootVector * rootTransform;
 
-		float dist = (targVector - rootVector).FLength();
+		auto dist = (targVector - rootVector).FLength();
 		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
 	}
+
 	dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
 
 	// light source
-	DrawSphereArcs(0, gw, 2.0, sphereMesh, dirMesh[0]);
+	DrawSphereArcs<SphereCirclePointsCount>(0, gw, 2.0, dirMesh[0]);
 
 	// draw direction
 	gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
 
 	// light lookAt
-	DrawSphereArcs(0, gw, 1.0, sphereMesh, dirMesh[1]);
+	DrawSphereArcs<SphereCirclePointsCount>(0, gw, 1.0, dirMesh[1]);
 }
 
 Matrix3 FireRenderIESLight::GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt)
@@ -712,7 +733,7 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
 		Matrix3 prevtm = vpt->getGW()->getTransform();
 		Matrix3 tm = inode->GetObjectTM(t);
 		vpt->getGW()->setTransform(tm);
-		DrawGeometry(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
+		DrawSphere(vpt, inode->Selected(), inode->IsFrozen());
 		vpt->getGW()->setTransform(prevtm);
 	}
 
