@@ -1182,6 +1182,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	// setup color & intensity
 	auto color = GetFinalColor(params.t);
 	float intensity = GetIntensity(params.t);
+	intensity *= ((intensity / 682.069f) / 683.f) / 2.5f;
 	color *= intensity;
 
 	light.SetRadiantPower(color);
@@ -1190,11 +1191,28 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	INode* inode = FindNodeRef(this);
 	Matrix3 tm = inode->GetObjectTM(0);
 
-	//AffineParts ap;
-	//decomp_affine(tm, &ap);
-	//tm.IdentityMatrix();
-	//tm.SetRotate(ap.q);
-	//tm.SetTrans(ap.t);
+	// apply magic translate koeff :)
+	Point3 tm_trans = tm.GetRow(3);
+	tm_trans *= 0.01;
+	tm.SetRow(3, tm_trans);
+
+	// rotate by 90 degrees around X axis
+	Matrix3 matrRotateAroundX(
+		Point3(1.0, 0.0, 0.0),
+		Point3(0.0, 0.0, -1.0),
+		Point3(0.0, 1.0, 0.0),
+		Point3(0.0, 0.0, 0.0)
+	);
+	tm = matrRotateAroundX * tm;
+
+	// rotate by -90 degrees around Z axis
+	Matrix3 matrRotateAroundZ(
+		Point3(0.0, 1.0, 0.0),
+		Point3(-1.0, 0.0, 0.0),
+		Point3(0.0, 0.0, 1.0),
+		Point3(0.0, 0.0, 0.0)
+	);
+	tm = matrRotateAroundZ * tm;
 
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
