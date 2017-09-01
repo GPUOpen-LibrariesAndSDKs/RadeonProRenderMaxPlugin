@@ -11,6 +11,8 @@ enum FRPbrMtl_TexmapId
 	FRPBRMTL_MAP_METALNESS        = 2,
 	FRPBRMTL_MAP_CAVITY           = 3,
 	FRPBRMTL_MAP_NORMAL           = 4,
+	FRPBRMTL_MAP_OPACITY          = 5,
+	FRPBRMTL_MAP_EMISSIVE         = 6,
 };
 
 enum FRPbrMtl_ParamID : ParamID
@@ -41,6 +43,17 @@ enum FRPbrMtl_ParamID : ParamID
 	FRPBRMTL_NORMAL                = 1041,
 	FRPBRMTL_NORMAL_MAP            = 1042,
 	FRPBRMTL_NORMAL_USEMAP         = 1043,
+
+	FRPBRMTL_OPACITY_MUL           = 1050,
+	FRPBRMTL_OPACITY               = 1051,
+	FRPBRMTL_OPACITY_MAP           = 1052,
+	FRPBRMTL_OPACITY_USEMAP        = 1053,
+	FRPBRMTL_OPACITY_INVERT        = 1054,
+
+	FRPBRMTL_EMISSIVE_MUL          = 1060,
+	FRPBRMTL_EMISSIVE              = 1061,
+	FRPBRMTL_EMISSIVE_MAP          = 1062,
+	FRPBRMTL_EMISSIVE_USEMAP       = 1063,
 };
 
 BEGIN_DECLARE_FRMTLCLASSDESC(PbrMtl, L"RPR PBR Material", FIRERENDER_PBRMTL_CID)
@@ -49,12 +62,13 @@ END_DECLARE_FRMTLCLASSDESC()
 BEGIN_DECLARE_FRMTL(PbrMtl)
 
 public:
-	virtual Color GetDiffuse(int mtlNum, BOOL backFace) override
-	{
-		return GetFromPb<Color>(pblock, FRPBRMTL_DIFFUSE_COLOR);
-	}
+	virtual Color GetDiffuse(int mtlNum, BOOL backFace) override;
 
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+
+private:
+	std::tuple<bool, Texmap*, Color, float> GetParameters(FRPbrMtl_ParamID useMapId,
+		FRPbrMtl_ParamID mapId, FRPbrMtl_ParamID colorId, FRPbrMtl_ParamID mulId);
 
 END_DECLARE_FRMTL(PbrMtl)
 
