@@ -1182,19 +1182,14 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	// setup color & intensity
 	auto color = GetFinalColor(params.t);
 	float intensity = GetIntensity(params.t);
+	// - convert physical values
 	intensity *= ((intensity / 682.069f) / 683.f) / 2.5f;
 	color *= intensity;
 
 	light.SetRadiantPower(color);
 
 	// setup position
-	INode* inode = FindNodeRef(this);
-	Matrix3 tm = inode->GetObjectTM(0);
-
-	// apply magic translate koeff :)
-	Point3 tm_trans = tm.GetRow(3);
-	tm_trans *= 0.01;
-	tm.SetRow(3, tm_trans);
+	Matrix3 tm = node.tm; // INode* inode = FindNodeRef(this); inode->GetObjectTM(0); <= this method doesn't take masterScale into acount, thus returns wrong transform!
 
 	// rotate by 90 degrees around X axis
 	Matrix3 matrRotateAroundX(
@@ -1205,7 +1200,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	);
 	tm = matrRotateAroundX * tm;
 
-	// rotate by -90 degrees around Z axis
+	// rotate by -90 degrees around Z axis (to make representation of web in Max align with RPR up-vector)
 	Matrix3 matrRotateAroundZ(
 		Point3(0.0, 1.0, 0.0),
 		Point3(-1.0, 0.0, 0.0),
@@ -1214,6 +1209,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	);
 	tm = matrRotateAroundZ * tm;
 
+	// create RPR matrix
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
 	
