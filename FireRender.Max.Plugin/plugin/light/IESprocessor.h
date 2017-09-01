@@ -54,9 +54,10 @@ protected:
 	// - returns: true if file is ies file
 	bool IsIESFile (const char* filename) const;
 
-	// reads file and fills array tokens with numbers (as strings) read from the file
-	// basically makes data more convinient to parse
-	void GetTokensFromFile (std::vector<std::string>& tokens, std::ifstream& inputFile) const;
+	// Reads file and fills array tokens with numbers (as strings) and text array with data other than numbers
+	// read from the file.
+	// Basically makes data more convinient to parse
+	void GetTokensFromFile (std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const;
 
 	// split line with several values separated by space(s) into array of strings each containing single value
 	void SplitLine (std::vector<std::string>& tokens, const std::string& lineToParse) const;
@@ -155,6 +156,9 @@ public:
 	// by following the instructions given earlier. 
 	DECLARE_VAR_AND_GETTERS(std::vector<double>, candelaValues, CandelaValues)
 
+	// this is text data that is written to the IES file before actual data
+	DECLARE_VAR_AND_GETTERS(std::string, extraData, ExtraData)
+
 	// checks if struct holds correct data values
 	// - returns false if data is corrupted
 	bool IsValid (void) const;
@@ -176,5 +180,7 @@ protected:
 
 struct IESProcessor::IESUpdateRequest
 {
-	// NIY
+	IESUpdateRequest(void);
+
+	float m_scale;
 };

@@ -352,7 +352,11 @@ bool FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 {
 	if (m_plines.empty())
 	{
-		return false;
+		// try regen web
+		bool webOk = CalculateLightRepresentation(GetActiveProfile());
+
+		if (!webOk)
+			return false;
 	}
 
 	GraphicsWindow* gw = pVprt->getGW();

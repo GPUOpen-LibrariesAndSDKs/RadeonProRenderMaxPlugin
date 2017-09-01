@@ -1162,13 +1162,40 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	if (ProfileIsSelected())
 	{
 		// profile is ok, load IES data
-		auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
+		std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
 
-		std::string iesData(
-			(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
-			std::istreambuf_iterator<char>());
+		// apply scaling to photometric web if necessary
+		float scaleFactor;
+		GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+		if (std::fabs(scaleFactor - 1.0f) > 0.01f)
+		{
+			// parse IES file
+			std::string iesFilename(profilePath.begin(), profilePath.end());
+			IESProcessor parser;
+			IESProcessor::IESLightData data;
+			std::string errorMsg;
+			bool parseOK = parser.Parse(data, iesFilename.c_str(), errorMsg);
 
-		light.SetImageFromData(iesData.c_str(), 256, 256);
+			// scale photometric web
+			IESProcessor::IESUpdateRequest req;
+			req.m_scale = scaleFactor;
+			parser.Update(data, req);
+
+			// pass IES data to RPR
+			std::string iesData = parser.ToString(data);
+
+			light.SetImageFromData(iesData.c_str(), 256, 256);
+		}
+		else
+		{
+			std::string iesData(
+				(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
+				std::istreambuf_iterator<char>());
+
+			// pass IES data to RPR
+			light.SetImageFromData(iesData.c_str(), 256, 256);
+		}
+		
 	}
 	else
 	{
