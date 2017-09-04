@@ -33,6 +33,7 @@ IESProcessor::IESLightData::IESLightData()
 	, verticalAngles()
 	, horizontalAngles()
 	, candelaValues()
+	, extraData()
 {}
 
 void IESProcessor::IESLightData::Clear()
@@ -53,6 +54,7 @@ void IESProcessor::IESLightData::Clear()
 	verticalAngles.clear();
 	horizontalAngles.clear();
 	candelaValues.clear();
+	extraData.clear();
 }
 
 DEFINE_GETTERS(int&, countLamps, CountLamps, IESProcessor::IESLightData)
@@ -71,6 +73,7 @@ DEFINE_GETTERS(double&, wattage, Wattage, IESProcessor::IESLightData)
 DEFINE_GETTERS(std::vector<double>&, horizontalAngles, HorizontalAngles, IESProcessor::IESLightData)
 DEFINE_GETTERS(std::vector<double>&, verticalAngles, VerticalAngles, IESProcessor::IESLightData)
 DEFINE_GETTERS(std::vector<double>&, candelaValues, CandelaValues, IESProcessor::IESLightData)
+DEFINE_GETTERS(std::string&, extraData, ExtraData, IESProcessor::IESLightData)
 
 bool IESProcessor::IESLightData::IsValid() const
 {
@@ -162,7 +165,7 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 	}
 
 	std::string outString;
-	outString = firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
+	outString = lightData.ExtraData() + "\n" + firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
 
 	size_t valuesPerLine = lightData.VerticalAngles().size(); // verticle angles count is number of columns in candela values table
 	auto it = lightData.CandelaValues().begin();
@@ -220,8 +223,10 @@ bool LineHaveNumbers(const std::string& lineToParse)
 	return (isdigit(*c) || (*c == '-'));
 }
 
-void IESProcessor::GetTokensFromFile(std::vector<std::string>& tokens, std::ifstream& inputFile) const
+void IESProcessor::GetTokensFromFile(std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const
 {
+	text.clear();
+
 	std::string lineToParse;
 
 	// parse file line after line
@@ -229,7 +234,10 @@ void IESProcessor::GetTokensFromFile(std::vector<std::string>& tokens, std::ifst
 	{
 		// skip all data irrelevant for render
 		if (!LineHaveNumbers(lineToParse))
+		{
+			text += lineToParse += "\n";
 			continue;
+		}
 
 		// split line
 		SplitLine(tokens, lineToParse);
@@ -433,7 +441,7 @@ bool IESProcessor::Parse(IESLightData& lightData, const char* filename, std::str
 
 	// read data from file in a way convinient for further parsing
 	std::vector<std::string> tokens;
-	GetTokensFromFile(tokens, inputFile);
+	GetTokensFromFile(tokens, lightData.ExtraData(), inputFile);
 
 	// read tokens to lightData
 	bool isParseOk = ParseTokens(lightData, tokens, errorMessage);
@@ -454,8 +462,14 @@ bool IESProcessor::Parse(IESLightData& lightData, const char* filename, std::str
 
 bool IESProcessor::Update(IESLightData& lightData, const IESUpdateRequest& req) const
 {
-	// NIY
-	return false;
+	// scale photometric web
+	if (std::fabs(req.m_scale - 1.0f) > 0.01f)
+	{
+		for (double& val : lightData.CandelaValues())
+			val *= req.m_scale;
+	}
+
+	return true;
 }
 
 bool IESProcessor::Save(const IESLightData& lightData, const char* outfilename) const
@@ -469,3 +483,7 @@ bool IESProcessor::Load(IESLightData& lightData, const char* filename) const
 	// NIY
 	return false;
 }
+
+IESProcessor::IESUpdateRequest::IESUpdateRequest()
+	: m_scale (1.0f)
+{}

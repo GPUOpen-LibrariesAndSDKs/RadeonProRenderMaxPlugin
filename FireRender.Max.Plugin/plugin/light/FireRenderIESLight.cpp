@@ -821,7 +821,11 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
 		return FALSE;
 	}
 
-	if (!DisplayLight(t, inode, vpt, flags))
+	if (ProfileIsSelected())
+	{
+		DisplayLight(t, inode, vpt, flags);
+	}
+	else
 	{
 		Matrix3 prevtm = vpt->getGW()->getTransform();
 		Matrix3 tm = inode->GetObjectTM(t);
@@ -947,7 +951,7 @@ int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossin
 	gw->clearHitCode();*/
 
 	// draw web
-	DisplayLight(t, inode, vpt, flags);
+	Display(t, inode, vpt, flags);
 #else
     if (!vpt || !vpt->IsAlive())
     {
@@ -1184,13 +1188,40 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	if (ProfileIsSelected())
 	{
 		// profile is ok, load IES data
-		auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
+		std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
 
-		std::string iesData(
-			(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
-			std::istreambuf_iterator<char>());
+		// apply scaling to photometric web if necessary
+		float scaleFactor;
+		GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+		if (std::fabs(scaleFactor - 1.0f) > 0.01f)
+		{
+			// parse IES file
+			std::string iesFilename(profilePath.begin(), profilePath.end());
+			IESProcessor parser;
+			IESProcessor::IESLightData data;
+			std::string errorMsg;
+			bool parseOK = parser.Parse(data, iesFilename.c_str(), errorMsg);
 
-		light.SetImageFromData(iesData.c_str(), 256, 256);
+			// scale photometric web
+			IESProcessor::IESUpdateRequest req;
+			req.m_scale = scaleFactor;
+			parser.Update(data, req);
+
+			// pass IES data to RPR
+			std::string iesData = parser.ToString(data);
+
+			light.SetImageFromData(iesData.c_str(), 256, 256);
+		}
+		else
+		{
+			std::string iesData(
+				(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
+				std::istreambuf_iterator<char>());
+
+			// pass IES data to RPR
+			light.SetImageFromData(iesData.c_str(), 256, 256);
+		}
+		
 	}
 	else
 	{
@@ -1204,20 +1235,34 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	// setup color & intensity
 	auto color = GetFinalColor(params.t);
 	float intensity = GetIntensity(params.t);
+	// - convert physical values
+	intensity *= ((intensity / 682.069f) / 683.f) / 2.5f;
 	color *= intensity;
 
 	light.SetRadiantPower(color);
 
 	// setup position
-	INode* inode = FindNodeRef(this);
-	Matrix3 tm = inode->GetObjectTM(0);
+	Matrix3 tm = node.tm; // INode* inode = FindNodeRef(this); inode->GetObjectTM(0); <= this method doesn't take masterScale into acount, thus returns wrong transform!
 
-	//AffineParts ap;
-	//decomp_affine(tm, &ap);
-	//tm.IdentityMatrix();
-	//tm.SetRotate(ap.q);
-	//tm.SetTrans(ap.t);
+	// rotate by 90 degrees around X axis
+	Matrix3 matrRotateAroundX(
+		Point3(1.0, 0.0, 0.0),
+		Point3(0.0, 0.0, -1.0),
+		Point3(0.0, 1.0, 0.0),
+		Point3(0.0, 0.0, 0.0)
+	);
+	tm = matrRotateAroundX * tm;
 
+	// rotate by -90 degrees around Z axis (to make representation of web in Max align with RPR up-vector)
+	Matrix3 matrRotateAroundZ(
+		Point3(0.0, 1.0, 0.0),
+		Point3(-1.0, 0.0, 0.0),
+		Point3(0.0, 0.0, 1.0),
+		Point3(0.0, 0.0, 0.0)
+	);
+	tm = matrRotateAroundZ * tm;
+
+	// create RPR matrix
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
 	
