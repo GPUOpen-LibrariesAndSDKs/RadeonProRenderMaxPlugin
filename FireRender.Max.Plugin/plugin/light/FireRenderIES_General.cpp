@@ -38,7 +38,8 @@ bool IES_General::InitializePage()
 			IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S);
 
 		m_targetDistanceControl.Bind(EDITTYPE_FLOAT);
-
+		auto& spinner = m_targetDistanceControl.GetSpinner();
+		spinner.SetSettings<FireRenderIESLight::TargetDistanceSettings>();
 		UpdateTargetDistanceUi();
 	}
 
@@ -172,8 +173,8 @@ void IES_General::Disable()
 void IES_General::UpdateTargetDistanceUi()
 {
 	auto& spinner = m_targetDistanceControl.GetSpinner();
-	spinner.SetSettings<FireRenderIESLight::TargetDistanceSettings>();
-	spinner.SetValue(m_parent->GetTargetDistance());
+	auto targetDistance = m_parent->GetTargetDistance();
+	spinner.SetValue(targetDistance);
 }
 
 void IES_General::UpdateEnabledParam()

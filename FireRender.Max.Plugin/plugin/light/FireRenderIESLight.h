@@ -19,6 +19,8 @@
 #include "parser/RenderParameters.h"
 #include "frScope.h"
 
+class LookAtTarget;
+
 FIRERENDER_NAMESPACE_BEGIN
 
 #define IES_DELCARE_PARAM_SET($paramName, $paramType) void Set##$paramName($paramType value)
@@ -32,6 +34,14 @@ class FireRenderIESLight :
 	public IFireRenderLight
 {
 public:
+	enum class Reference
+	{
+		ParamBlock = 0,
+
+		// This should be always last
+		__last
+	};
+
 	using BaseMaxType = GenLight;
 	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
@@ -83,6 +93,7 @@ public:
 	int NumRefs() override;
 	void SetReference(int i, RefTargetHandle rtarg) override;
 	RefTargetHandle GetReference(int i) override;
+
 	void DrawSphere(ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
 	bool DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
 	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
@@ -106,8 +117,6 @@ public:
 	float GetFallsize(TimeValue t, Interval& valid) override;
 	void SetAtten(TimeValue time, int which, float f) override;
 	float GetAtten(TimeValue t, int which, Interval& valid) override;
-	void SetTDist(TimeValue time, float f) override;
-	float GetTDist(TimeValue t, Interval& valid) override;
 	void SetConeDisplay(int s, int notify) override;
 	BOOL GetConeDisplay() override;
 	void SetIntensity(TimeValue time, float f) override;
@@ -120,6 +129,11 @@ public:
 	int GetOvershoot() override;
 	void SetShadow(int a) override;
 	int GetShadow() override;
+
+	// Target distance management
+	void UpdateTargDistance(TimeValue t, INode* inode) override;
+	void SetTDist(TimeValue time, float f) override;
+	float GetTDist(TimeValue t, Interval& valid) override;
 
 	// From Light
 	RefResult EvalLightState(TimeValue t, Interval& valid, LightState* cs) override;
@@ -212,6 +226,8 @@ protected:
 private:
 	static const Class_ID m_classId;
 
+	void ReplaceLocalReference(Reference id, RefTargetHandle handle);
+
 	// Panels
 	IES_General m_general;
 	IES_Intensity m_intensity;
@@ -219,14 +235,15 @@ private:
 	IES_Volume m_volume;
 
 	IObjParam* m_iObjParam;
-	IParamBlock2* m_pblock2;
 
-	std::string m_iesFilename;
 	std::vector<std::vector<Point3> > m_plines;
 	Point3 prevUp; // up vector of IES light
 	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
 	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;
+
+	// References
+	IParamBlock2* m_pblock2;
 };
 
 #undef IES_DELCARE_PARAM_SET
