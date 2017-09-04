@@ -10,6 +10,8 @@
 
 #include "utils\Utils.h"
 
+using TString = std::basic_string<TCHAR>;
+
 // process data for IES light sources
 class IESProcessor
 {
@@ -23,7 +25,7 @@ public:
 	// - out: lightData
 	// - out: error message; in case Parse fails, information about error will be written to errorMessage
 	// - returns: false for error, true if parse successfull 
-	bool Parse (IESLightData& lightData, const char* filename, std::string& errorMessage) const;
+	bool Parse (IESLightData& lightData, const char* filename, TString& errorMessage) const;
 
 	// save IES data in inner format in file (bin file?)
 	// - in: lightData: struct with IES ligh parameters
@@ -64,7 +66,7 @@ protected:
 
 	// fills lightData with data read from tokens
 	// - returns false in case of parse failure
-	bool ParseTokens (IESLightData& lightData, std::vector<std::string>& tokens, std::string& errorMessage) const;
+	bool ParseTokens (IESLightData& lightData, std::vector<std::string>& tokens, TString& errorMessage) const;
 
 	// auxilary function that hides interaction with enum
 	// - returns first value of ParseOrder enum

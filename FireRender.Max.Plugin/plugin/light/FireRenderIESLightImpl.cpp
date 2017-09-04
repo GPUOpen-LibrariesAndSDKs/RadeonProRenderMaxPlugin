@@ -188,15 +188,18 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	// get .ies light params
 	IESProcessor parser;
 	IESProcessor::IESLightData data;
-	std::string errorMsg;
+	TString errorMsg;
 
 	bool failed = false;
 	const TCHAR* failReason = _T("Internal error");
+	TString temp;
 
 	failed = !parser.Parse(data, iesFilename.c_str(), errorMsg);
 	if (failed)
 	{
-		failReason = _T("Failed to parse IES profile");
+		temp = _T("Failed to parse IES profile: ");
+		temp += errorMsg;
+		failReason = temp.c_str();
 	}
 
 	if (!failed)
