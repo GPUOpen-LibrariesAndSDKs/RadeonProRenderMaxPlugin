@@ -165,7 +165,7 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 	}
 
 	std::string outString;
-	outString = lightData.ExtraData() + "\n" + firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
+	outString = lightData.ExtraData() + firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
 
 	size_t valuesPerLine = lightData.VerticalAngles().size(); // verticle angles count is number of columns in candela values table
 	auto it = lightData.CandelaValues().begin();
@@ -382,7 +382,7 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseOrder& 
 	return true;
 }
 
-bool IESProcessor::ParseTokens(IESLightData& lightData, std::vector<std::string>& tokens, std::string& errorMessage) const
+bool IESProcessor::ParseTokens(IESLightData& lightData, std::vector<std::string>& tokens, TString& errorMessage) const
 {
 	// initial state to read data
 	IESProcessor::ParseOrder parseState = FirstParseState();
@@ -396,7 +396,7 @@ bool IESProcessor::ParseTokens(IESLightData& lightData, std::vector<std::string>
 		if (!parseOk)
 		{
 			// parse failed
-			errorMessage = "parse failed";
+			errorMessage = L"parse failed";
 			return false;
 		}
 	}
@@ -404,7 +404,7 @@ bool IESProcessor::ParseTokens(IESLightData& lightData, std::vector<std::string>
 	// parse is not complete => failure
 	if (parseState != ParseOrder::END_OF_PARSE)
 	{
-		errorMessage = "not enough data in .ies file";
+		errorMessage = L"not enough data in .ies file";
 		return false;
 	}
 
@@ -412,19 +412,19 @@ bool IESProcessor::ParseTokens(IESLightData& lightData, std::vector<std::string>
 	return true;
 }
 
-bool IESProcessor::Parse(IESLightData& lightData, const char* filename, std::string& errorMessage) const
+bool IESProcessor::Parse(IESLightData& lightData, const char* filename, TString& errorMessage) const
 {
 	// back-off
 	if (filename == nullptr)
 	{
-		errorMessage = "empty file";
+		errorMessage = L"empty file";
 		return false;
 	}
 
 	// file is not IES file => return
 	if (!IsIESFile(filename))
 	{
-		errorMessage = "not .ies file";
+		errorMessage = L"not .ies file";
 		return false;
 	}
 
@@ -432,7 +432,7 @@ bool IESProcessor::Parse(IESLightData& lightData, const char* filename, std::str
 	std::ifstream inputFile(filename);
 	if (!inputFile)
 	{
-		errorMessage = "invalid file";
+		errorMessage = L"invalid file";
 		return false;
 	}
 
@@ -448,7 +448,7 @@ bool IESProcessor::Parse(IESLightData& lightData, const char* filename, std::str
 
 	// ensure correct parse results
 	if (!isParseOk || !lightData.IsValid())
-		errorMessage = "invalid data read from .ies file";
+		errorMessage = L"invalid data read from .ies file";
 	if (!isParseOk || !lightData.IsValid())
 	{
 		// report failure
@@ -465,8 +465,9 @@ bool IESProcessor::Update(IESLightData& lightData, const IESUpdateRequest& req) 
 	// scale photometric web
 	if (std::fabs(req.m_scale - 1.0f) > 0.01f)
 	{
-		for (double& val : lightData.CandelaValues())
-			val *= req.m_scale;
+		lightData.Width() *= req.m_scale;
+		lightData.Length() *= req.m_scale;
+		lightData.Height() *= req.m_scale;
 	}
 
 	return true;

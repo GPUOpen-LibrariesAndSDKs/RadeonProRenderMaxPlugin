@@ -981,18 +981,6 @@ int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossin
 {
 #define WEB_ENABLED
 #ifdef WEB_ENABLED
-	/*HitRegion hitRegion;
-	DWORD savedLimits;
-	GraphicsWindow *gw = vpt->getGW();
-
-	gw->setTransform(idTM);
-	MakeHitRegion(hitRegion, type, crossing, 8, p);
-	savedLimits = gw->getRndLimits();
-
-	gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM & ~GW_Z_BUFFER);
-	gw->setHitRegion(&hitRegion);
-	gw->clearHitCode();*/
-
 	// draw web
 	Display(t, inode, vpt, flags);
 #else
@@ -1242,7 +1230,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 			std::string iesFilename(profilePath.begin(), profilePath.end());
 			IESProcessor parser;
 			IESProcessor::IESLightData data;
-			std::string errorMsg;
+			TString errorMsg;
 			bool parseOK = parser.Parse(data, iesFilename.c_str(), errorMsg);
 
 			// scale photometric web
