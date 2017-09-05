@@ -18,6 +18,7 @@
 #include "parser/SceneParser.h"
 #include "parser/RenderParameters.h"
 #include "frScope.h"
+#include "INodeTransformMonitor.h"
 
 class LookAtTarget;
 
@@ -34,9 +35,18 @@ class FireRenderIESLight :
 	public IFireRenderLight
 {
 public:
-	enum class Reference
+	enum class StrongReference
 	{
 		ParamBlock = 0,
+
+		// This should be always last
+		__last
+	};
+
+	enum class IndirectReference
+	{
+		ThisNode = static_cast<std::underlying_type_t<StrongReference>>(StrongReference::__last),
+		TargetNode,
 
 		// This should be always last
 		__last
@@ -226,7 +236,15 @@ protected:
 private:
 	static const Class_ID m_classId;
 
-	void ReplaceLocalReference(Reference id, RefTargetHandle handle);
+	template<typename T_Id>
+	void ReplaceLocalReference(T_Id id, RefTargetHandle handle)
+	{
+		auto ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
+		FASSERT(ret == REF_SUCCEED);
+	}
+
+	INode* GetThisNode();
+	INode* GetTargetNode();
 
 	// Panels
 	IES_General m_general;
@@ -244,6 +262,8 @@ private:
 
 	// References
 	IParamBlock2* m_pblock2;
+	ReferenceTarget* m_thisNodeMonitor;
+	ReferenceTarget* m_targNodeMonitor;
 };
 
 #undef IES_DELCARE_PARAM_SET

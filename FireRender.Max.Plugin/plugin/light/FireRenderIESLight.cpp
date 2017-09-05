@@ -156,11 +156,6 @@ namespace
 			p_default, FireRenderIESLight::DefaultTargeted,
 			PB_END,
 
-		// Distance from light to target
-		IES_PARAM_TARGET_DISTANCE, _T("TargetDistance"), TYPE_FLOAT, P_ANIMATABLE, 0,
-			p_default, FireRenderIESLight::TargetDistanceSettings::Default,
-			PB_END,
-
 		// Light intensity parameter
 		IES_PARAM_INTENSITY, _T("Intensity"), TYPE_FLOAT, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::IntensitySettings::Default,
@@ -241,8 +236,7 @@ namespace
 			p == IES_PARAM_TEMPERATURE ||
 			p == IES_PARAM_SHADOWS_SOFTNESS ||
 			p == IES_PARAM_SHADOWS_TRANSPARENCY ||
-			p == IES_PARAM_VOLUME_SCALE ||
-			p == IES_PARAM_TARGET_DISTANCE
+			p == IES_PARAM_VOLUME_SCALE
 		>>
 	{
 		using T1 = FLOAT;
@@ -358,7 +352,6 @@ namespace
 		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_TARGET_DISTANCE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_COLOR>(pBlock);
@@ -448,6 +441,12 @@ namespace
 
 		return nullptr;
 	}
+
+	ReferenceTarget* MakeNodeTransformMonitor()
+	{
+		auto ip = GetCOREInterface();
+		return static_cast<ReferenceTarget*>(ip->CreateInstance(REF_TARGET_CLASS_ID, NODETRANSFORMMONITOR_CLASS_ID));
+	}
 }
 
 const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
@@ -471,8 +470,13 @@ FireRenderIESLight::FireRenderIESLight() :
 	prevUp(0.0f, 1.0f, 0.0f),
 	m_bbox(),
 	m_BBoxCalculated(false),
-	m_pblock2(nullptr)
+	m_pblock2(nullptr),
+	m_thisNodeMonitor(MakeNodeTransformMonitor()),
+	m_targNodeMonitor(MakeNodeTransformMonitor())
 {
+	ReplaceLocalReference(IndirectReference::ThisNode, m_thisNodeMonitor);
+	ReplaceLocalReference(IndirectReference::TargetNode, m_targNodeMonitor);
+
 	GetClassDesc()->MakeAutoParamBlocks(this);
 
 	m_bbox.resize(8, Point3(0.0f, 0.0f, 0.0f));
@@ -540,28 +544,40 @@ void FireRenderIESLight::NotifyChanged()
 
 RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate)
 {
-	if (hTarget == m_pblock2 && REFMSG_CHANGE == msg)
+	if (REFMSG_CHANGE == msg)
 	{
-		auto p = m_pblock2->LastNotifyParamID();
-
-		switch (p)
+		if (hTarget == m_pblock2)
 		{
-			case IES_PARAM_P0:
-			case IES_PARAM_P1:
-			{
-				auto p0 = GetLightPoint();
-				auto p1 = GetTargetPoint();
-				SetTargetDistance((p0 - p1).Length());
-			}
+			auto p = m_pblock2->LastNotifyParamID();
 
-			case IES_PARAM_TARGET_DISTANCE:
-				if (m_general.IsInitialized())
+			switch (p)
+			{
+				case IES_PARAM_P0:
+				case IES_PARAM_P1:
 				{
-					m_general.UpdateTargetDistanceUi();
+					if (m_general.IsInitialized())
+					{
+						m_general.UpdateTargetDistanceUi();
+					}
 				}
 				break;
+			}
 		}
-
+		else if (hTarget == m_thisNodeMonitor)
+		{
+			auto time = GetCOREInterface()->GetTime();
+			auto thisNode = dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
+			auto thisTm = thisNode->GetNodeTM(time);
+			SetLightPoint(thisTm.GetTrans());
+		}
+		else if (hTarget == m_targNodeMonitor)
+		{
+			auto time = GetCOREInterface()->GetTime();
+			auto targetNode = dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
+			auto targetTm = targetNode->GetNodeTM(time);
+			SetTargetPoint(targetTm.GetTrans());
+		}
+		
 		//some params have changed - should redraw all
 		if(GetCOREInterface())
 		{
@@ -628,7 +644,7 @@ IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 
 int FireRenderIESLight::NumRefs()
 {
-	return BaseMaxType::NumRefs() + static_cast<int>(Reference::__last);
+	return BaseMaxType::NumRefs() + static_cast<int>(IndirectReference::__last);
 }
 
 void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
@@ -641,21 +657,38 @@ void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
 		return;
 	}
 
-	auto refId = static_cast<Reference>(i - baseRefs);
+	auto local_i = i - baseRefs;
+
+	bool referenceFound = false;
 
 	static_assert(
-		static_cast<int>(Reference::__last) == 1,
+		static_cast<int>(IndirectReference::__last) == 3,
 		"Light references enumeration has been updated. Please, implement here");
 
-	switch (refId)
+	switch (static_cast<StrongReference>(local_i))
 	{
-		case Reference::ParamBlock:
+		case StrongReference::ParamBlock:
 			m_pblock2 = dynamic_cast<IParamBlock2*>(rtarg);
+			referenceFound = true;
+			break;
+	}
+
+	switch (static_cast<IndirectReference>(local_i))
+	{
+		case IndirectReference::ThisNode:
+			m_thisNodeMonitor = rtarg;
+			referenceFound = true;
 			break;
 
-		default:
-			FASSERT(!"Invalid reference request");
+		case IndirectReference::TargetNode:
+			m_targNodeMonitor = rtarg;
+			referenceFound = true;
 			break;
+	}
+
+	if (!referenceFound)
+	{
+		FASSERT(!"Invalid reference request");
 	}
 }
 
@@ -668,32 +701,42 @@ RefTargetHandle FireRenderIESLight::GetReference(int i)
 		return BaseMaxType::GetReference(i);
 	}
 
-	auto refId = static_cast<Reference>(i - baseRefs);
+	auto local_i = i - baseRefs;
 
 	RefTargetHandle result = nullptr;
+	bool referenceFound = false;
 
 	static_assert(
-		static_cast<int>(Reference::__last) == 1,
+		static_cast<int>(IndirectReference::__last) == 3,
 		"Light references enumeration has been updated. Please, implement here");
 
-	switch (refId)
+	switch (static_cast<StrongReference>(local_i))
 	{
-		case Reference::ParamBlock:
+		case StrongReference::ParamBlock:
 			result = m_pblock2;
-			break;
-
-		default:
-			FASSERT(!"Invalid reference request");
+			referenceFound = true;
 			break;
 	}
 
-	return result;
-}
+	switch (static_cast<IndirectReference>(local_i))
+	{
+		case IndirectReference::ThisNode:
+			result = m_thisNodeMonitor;
+			referenceFound = true;
+			break;
 
-void FireRenderIESLight::ReplaceLocalReference(Reference id, RefTargetHandle handle)
-{
-	auto ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
-	FASSERT(ret == REF_SUCCEED);
+		case IndirectReference::TargetNode:
+			result = m_targNodeMonitor;
+			referenceFound = true;
+			break;
+	}
+
+	if (!referenceFound)
+	{
+		FASSERT(!"Invalid reference request");
+	}
+
+	return result;
 }
 
 void FireRenderIESLight::DrawSphere(ViewExp *vpt, BOOL sel, BOOL frozen)
@@ -1314,6 +1357,9 @@ void FireRenderIESLight::AddTarget()
 		targNode->SetIsTarget(TRUE);
 	}
 
+	dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->SetNode(thisNode);
+	dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->SetNode(targNode);
+
 	Color lightWireColor(thisNode->GetWireColor());
 	targNode->SetWireColor(lightWireColor.toRGB());
 }
@@ -1366,6 +1412,47 @@ void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
 	}
 }
 
+void FireRenderIESLight::SetTargetDistance(float value)
+{
+	if (auto thisNode = GetThisNode())
+	{
+		// Compute offset from light to target
+		auto p0 = GetLightPoint();
+		auto p1 = GetTargetPoint();
+		auto targetOffset = (p1 - p0).Normalize() * value;
+
+		// Get target node from controller
+		auto targetNode = GetTargetNode();
+
+		// Compute target node transform
+		auto time = GetCOREInterface()->GetTime();
+
+		auto thisTm = thisNode->GetNodeTM(time);
+		auto thisTrans = thisTm.GetTrans();
+
+		Matrix3 targetTm(true);
+		targetTm.SetTrans(thisTrans + targetOffset);
+
+		// Update target node position
+		targetNode->SetNodeTM(time, targetTm);
+	}
+}
+
+float FireRenderIESLight::GetTargetDistance() const
+{
+	return (GetTargetPoint() - GetLightPoint()).Length();
+}
+
+INode* FireRenderIESLight::GetThisNode()
+{
+	return dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
+}
+
+INode* FireRenderIESLight::GetTargetNode()
+{
+	return dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
+}
+
 // Makes default implementation for parameter setter
 #define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)	\
 void FireRenderIESLight::Set##$paramName($paramType value)	\
@@ -1390,7 +1477,6 @@ IES_DEFINE_PARAM(TargetPoint, Point3, IES_PARAM_P1)
 IES_DEFINE_PARAM(Enabled, bool, IES_PARAM_ENABLED)
 IES_DEFINE_PARAM(Targeted, bool, IES_PARAM_TARGETED)
 IES_DEFINE_PARAM(ShadowsEnabled, bool, IES_PARAM_SHADOWS_ENABLED)
-IES_DEFINE_PARAM(TargetDistance, float, IES_PARAM_TARGET_DISTANCE)
 IES_DEFINE_PARAM(AreaWidth, float, IES_PARAM_AREA_WIDTH)
 IES_DEFINE_PARAM(Intensity, float, IES_PARAM_INTENSITY)
 IES_DEFINE_PARAM(Temperature, float, IES_PARAM_TEMPERATURE)
