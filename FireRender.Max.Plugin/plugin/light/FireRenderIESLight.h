@@ -14,6 +14,7 @@
 #include "FireRenderIES_Intensity.h"
 #include "FireRenderIES_Shadows.h"
 #include "FireRenderIES_Volume.h"
+#include "FireRenderLight.h"
 #include "IESLightParameter.h"
 #include "parser/SceneParser.h"
 #include "parser/RenderParameters.h"
@@ -24,15 +25,14 @@ class LookAtTarget;
 
 FIRERENDER_NAMESPACE_BEGIN
 
-#define IES_DELCARE_PARAM_SET($paramName, $paramType) void Set##$paramName($paramType value)
-#define IES_DECLARE_PARAM_GET($paramName, $paramType) $paramType Get##$paramName() const
+#define IES_DELCARE_PARAM_SET($paramName, $paramType) void Set##$paramName($paramType value, TimeValue t = 0)
+#define IES_DECLARE_PARAM_GET($paramName, $paramType) $paramType Get##$paramName(TimeValue t = 0, Interval& valid = FOREVER) const
 #define IES_DECLARE_PARAM($paramName, $paramType)  \
 	IES_DELCARE_PARAM_SET($paramName, $paramType); \
 	IES_DECLARE_PARAM_GET($paramName, $paramType)
 
 class FireRenderIESLight :
-	public GenLight,
-	public IFireRenderLight
+	public FireRenderLight
 {
 public:
 	enum class StrongReference
@@ -52,7 +52,6 @@ public:
 		__last
 	};
 
-	using BaseMaxType = GenLight;
 	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
@@ -79,7 +78,6 @@ public:
 	~FireRenderIESLight();
 
 	CreateMouseCallBack* GetCreateMouseCallBack() override;
-	GenLight* NewLight(int type) override;
 	ObjectState Eval(TimeValue time) override;
 	void InitNodeName(TSTR& s) override;
 	const MCHAR *GetObjectName() override;
@@ -115,90 +113,8 @@ public:
 	void GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box) override;
 	int HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override;
 	void GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box) override;
-
-	// LightObject methods
-	Point3 GetRGBColor(TimeValue t, Interval& valid = Interval(0, 0)) override;
-	void SetRGBColor(TimeValue t, Point3 &color) override;
-	void SetUseLight(int onOff) override;
-	BOOL GetUseLight() override;
-	void SetHotspot(TimeValue time, float f) override;
-	float GetHotspot(TimeValue t, Interval& valid) override;
-	void SetFallsize(TimeValue time, float f) override;
-	float GetFallsize(TimeValue t, Interval& valid) override;
-	void SetAtten(TimeValue time, int which, float f) override;
-	float GetAtten(TimeValue t, int which, Interval& valid) override;
-	void SetConeDisplay(int s, int notify) override;
-	BOOL GetConeDisplay() override;
-	void SetIntensity(TimeValue time, float f) override;
-	float GetIntensity(TimeValue t, Interval& valid = Interval(0, 0)) override;
-	void SetUseAtten(int s) override;
-	BOOL GetUseAtten() override;
-	void SetAspect(TimeValue t, float f) override;
-	float GetAspect(TimeValue t, Interval& valid = Interval(0, 0)) override;
-	void SetOvershoot(int a) override;
-	int GetOvershoot() override;
-	void SetShadow(int a) override;
-	int GetShadow() override;
-
-	// Target distance management
-	void UpdateTargDistance(TimeValue t, INode* inode) override;
-	void SetTDist(TimeValue time, float f) override;
-	float GetTDist(TimeValue t, Interval& valid) override;
-
-	// From Light
 	RefResult EvalLightState(TimeValue t, Interval& valid, LightState* cs) override;
 
-	ObjLightDesc* CreateLightDesc(INode *inode, BOOL forceShadowBuf) override;
-	int Type() override;
-	void SetHSVColor(TimeValue, Point3 &) override;
-	Point3 GetHSVColor(TimeValue t, Interval &valid) override;
-
-	void SetAttenDisplay(int) override;
-	BOOL GetAttenDisplay() override;
-	void Enable(int) override;
-	void SetMapBias(TimeValue, float) override;
-	float GetMapBias(TimeValue, Interval &) override;
-	void SetMapRange(TimeValue, float) override;
-	float GetMapRange(TimeValue, Interval &) override;
-	void SetMapSize(TimeValue, int) override;
-	int  GetMapSize(TimeValue, Interval &) override;
-	void SetRayBias(TimeValue, float) override;
-	float GetRayBias(TimeValue, Interval &) override;
-	int GetUseGlobal() override;
-	void SetUseGlobal(int) override;
-	int GetShadowType() override;
-	void SetShadowType(int) override;
-	int GetAbsMapBias() override;
-	void SetAbsMapBias(int) override;
-	BOOL IsSpot() override;
-	BOOL IsDir() override;
-	void SetSpotShape(int) override;
-	int GetSpotShape() override;
-	void SetContrast(TimeValue, float) override;
-	float GetContrast(TimeValue, Interval &) override;
-	void SetUseAttenNear(int) override;
-	BOOL GetUseAttenNear() override;
-	void SetAttenNearDisplay(int) override;
-	BOOL GetAttenNearDisplay() override;
-	ExclList &GetExclusionList() override;
-	void SetExclusionList(ExclList &) override;
-	BOOL SetHotSpotControl(Control *) override;
-	BOOL SetFalloffControl(Control *) override;
-	BOOL SetColorControl(Control *) override;
-	Control *GetHotSpotControl() override;
-	Control *GetFalloffControl() override;
-	Control *GetColorControl() override;
-
-	void SetAffectDiffuse(BOOL onOff) override;
-	BOOL GetAffectDiffuse() override;
-	void SetAffectSpecular(BOOL onOff) override;
-	BOOL GetAffectSpecular() override;
-	void SetAmbientOnly(BOOL onOff) override;
-	BOOL GetAmbientOnly() override;
-	void SetDecayType(BOOL onOff) override;
-	BOOL GetDecayType() override;
-	void SetDecayRadius(TimeValue time, float f) override;
-	float GetDecayRadius(TimeValue t, Interval& valid) override;
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
 

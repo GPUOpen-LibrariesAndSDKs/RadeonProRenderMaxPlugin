@@ -283,6 +283,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IFireRenderLight.h" />
@@ -368,6 +369,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />

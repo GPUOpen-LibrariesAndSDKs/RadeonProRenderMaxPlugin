@@ -282,6 +282,9 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IFireRenderLight.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -509,6 +512,9 @@
       <Filter>Plugin\light</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLightImpl.cpp">
+      <Filter>Plugin\light</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.cpp">
       <Filter>Plugin\light</Filter>
     </ClCompile>
   </ItemGroup>

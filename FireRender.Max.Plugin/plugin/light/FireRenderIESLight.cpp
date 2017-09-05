@@ -495,11 +495,6 @@ CreateMouseCallBack* FireRenderIESLight::GetCreateMouseCallBack()
 	return &createCallback;
 }
 
-GenLight *FireRenderIESLight::NewLight(int type)
-{
-    return new FireRenderIESLight();
-}
-
 // From Object
 ObjectState FireRenderIESLight::Eval(TimeValue time)
 {
@@ -1020,63 +1015,8 @@ int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossin
 
 void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
-    box.Init();
+	box.Init();
 }
-
-// LightObject dummy implementation
-void FireRenderIESLight::SetUseLight(int onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetUseLight()  { return TRUE; }
-void FireRenderIESLight::SetHotspot(TimeValue time, float f)  { /* empty */ }
-float FireRenderIESLight::GetHotspot(TimeValue t, Interval& valid)  { return -1.0f; }
-void FireRenderIESLight::SetFallsize(TimeValue time, float f)  { /* empty */ }
-float FireRenderIESLight::GetFallsize(TimeValue t, Interval& valid)  { return -1.0f; }
-void FireRenderIESLight::SetAtten(TimeValue time, int which, float f)  { /* empty */ }
-float FireRenderIESLight::GetAtten(TimeValue t, int which, Interval& valid)  { return 0.0f; }
-void FireRenderIESLight::SetConeDisplay(int s, int notify)  { /* empty */ }
-BOOL FireRenderIESLight::GetConeDisplay()  { return FALSE; }
-void FireRenderIESLight::SetUseAtten(int s)  { /* empty */ }
-BOOL FireRenderIESLight::GetUseAtten()  { return FALSE; }
-void FireRenderIESLight::SetAspect(TimeValue t, float f)  { /* empty */ }
-float FireRenderIESLight::GetAspect(TimeValue t, Interval& valid)  { return -1.0f; }
-void FireRenderIESLight::SetOvershoot(int a)  { /* empty */ }
-int FireRenderIESLight::GetOvershoot()  { return 0; }
-void FireRenderIESLight::SetShadow(int a)  { /* empty */ }
-int FireRenderIESLight::GetShadow()  { return 0; }
-
-void FireRenderIESLight::SetTDist(TimeValue time, float f)
-{
-}
-
-void FireRenderIESLight::UpdateTargDistance(TimeValue t, INode* inode)
-{
-}
-
-float FireRenderIESLight::GetTDist(TimeValue t, Interval& valid)
-{
-	return 0.0f;
-}
-
-// LightObject custom implementation
-void FireRenderIESLight::SetIntensity(TimeValue time, float f)
-{
-	SetBlockValue<IES_PARAM_INTENSITY>(m_pblock2, f, time);
-}
-
-float FireRenderIESLight::GetIntensity(TimeValue t, Interval& valid)
-{
-	return GetBlockValue<IES_PARAM_INTENSITY>(m_pblock2, t, valid);
-}
-
-void FireRenderIESLight::SetRGBColor(TimeValue time, Point3 &color)
-{
-	SetBlockValue<IES_PARAM_COLOR>(m_pblock2, color, time);
-}
-
-Point3 FireRenderIESLight::GetRGBColor(TimeValue t, Interval &valid)
-{
-	return GetBlockValue<IES_PARAM_COLOR>(m_pblock2, t, valid);
-}
-
 
 // From Light
 RefResult FireRenderIESLight::EvalLightState(TimeValue t, Interval& valid, LightState* cs)
@@ -1096,80 +1036,10 @@ RefResult FireRenderIESLight::EvalLightState(TimeValue t, Interval& valid, Light
     cs->overshoot = GetOvershoot();
     cs->shadow = GetShadow();
     cs->shape = CIRCLE_LIGHT;
-    cs->ambientOnly = GetAmbientOnly();
-    cs->affectDiffuse = GetAffectDiffuse();
-    cs->affectSpecular = GetAffectSpecular();
     cs->type = OMNI_LGT;
 
     return REF_SUCCEED;
 }
-
-ObjLightDesc* FireRenderIESLight::CreateLightDesc(INode *inode, BOOL forceShadowBuf)  { return NULL; }
-
-int FireRenderIESLight::Type()  { return OMNI_LIGHT; }
-
-void FireRenderIESLight::SetHSVColor(TimeValue, Point3 &)
-{
-}
-
-Point3 FireRenderIESLight::GetHSVColor(TimeValue t, Interval &valid)
-{
-    int h, s, v;
-    Point3 rgbf = GetRGBColor(t, valid);
-    DWORD rgb = RGB((int)(rgbf[0] * 255.0f), (int)(rgbf[1] * 255.0f), (int)(rgbf[2] * 255.0f));
-    RGBtoHSV(rgb, &h, &s, &v);
-    return Point3(h / 255.0f, s / 255.0f, v / 255.0f);
-}
-
-
-void FireRenderIESLight::SetAttenDisplay(int)  { /* empty */ }
-BOOL FireRenderIESLight::GetAttenDisplay()  { return FALSE; }
-void FireRenderIESLight::Enable(int)  {}
-void FireRenderIESLight::SetMapBias(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetMapBias(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetMapRange(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetMapRange(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetMapSize(TimeValue, int)  { /* empty */ }
-int  FireRenderIESLight::GetMapSize(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetRayBias(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetRayBias(TimeValue, Interval &)  { return 0; }
-int FireRenderIESLight::GetUseGlobal()  { return FALSE; }
-void FireRenderIESLight::SetUseGlobal(int)  { /* empty */ }
-int FireRenderIESLight::GetShadowType()  { return -1; }
-void FireRenderIESLight::SetShadowType(int)  { /* empty */ }
-int FireRenderIESLight::GetAbsMapBias()  { return FALSE; }
-void FireRenderIESLight::SetAbsMapBias(int)  { /* empty */ }
-BOOL FireRenderIESLight::IsSpot()  { return FALSE; }
-BOOL FireRenderIESLight::IsDir()  { return FALSE; }
-void FireRenderIESLight::SetSpotShape(int)  { /* empty */ }
-int FireRenderIESLight::GetSpotShape()  { return CIRCLE_LIGHT; }
-void FireRenderIESLight::SetContrast(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetContrast(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetUseAttenNear(int)  { /* empty */ }
-BOOL FireRenderIESLight::GetUseAttenNear()  { return FALSE; }
-void FireRenderIESLight::SetAttenNearDisplay(int)  { /* empty */ }
-BOOL FireRenderIESLight::GetAttenNearDisplay()  { return FALSE; }
-ExclList & FireRenderIESLight::GetExclusionList()  { return m_exclList; }
-void FireRenderIESLight::SetExclusionList(ExclList &)  { /* empty */ }
-
-BOOL FireRenderIESLight::SetHotSpotControl(Control *)  { return FALSE; }
-BOOL FireRenderIESLight::SetFalloffControl(Control *)  { return FALSE; }
-BOOL FireRenderIESLight::SetColorControl(Control *)  { return FALSE; }
-Control * FireRenderIESLight::GetHotSpotControl()  { return NULL; }
-Control * FireRenderIESLight::GetFalloffControl()  { return NULL; }
-Control * FireRenderIESLight::GetColorControl()  { return NULL; }
-
-void FireRenderIESLight::SetAffectDiffuse(BOOL onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetAffectDiffuse()  { return TRUE; }
-void FireRenderIESLight::SetAffectSpecular(BOOL onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetAffectSpecular()  { return TRUE; }
-void FireRenderIESLight::SetAmbientOnly(BOOL onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetAmbientOnly()  { return FALSE; }
-
-void FireRenderIESLight::SetDecayType(BOOL onOff)  {}
-BOOL FireRenderIESLight::GetDecayType()  { return 1; }
-void FireRenderIESLight::SetDecayRadius(TimeValue time, float f)  {}
-float FireRenderIESLight::GetDecayRadius(TimeValue t, Interval& valid)  { return 40.0f; } //! check different values
 
 void FireRenderIESLight::BeginEditParams(IObjParam* objParam, ULONG flags, Animatable* prev)
 {
@@ -1384,9 +1254,9 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 	return result;
 }
 
-void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
+void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName, TimeValue time)
 {
-	SetBlockValue<IES_PARAM_PROFILE>(m_pblock2, profileName);
+	SetBlockValue<IES_PARAM_PROFILE>(m_pblock2, profileName, time);
 
 	if (ProfileIsSelected())
 	{
@@ -1400,7 +1270,7 @@ void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName)
 	}
 }
 
-void FireRenderIESLight::SetTargetDistance(float value)
+void FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
 {
 	if (auto thisNode = GetThisNode())
 	{
@@ -1411,9 +1281,6 @@ void FireRenderIESLight::SetTargetDistance(float value)
 
 		// Get target node from controller
 		auto targetNode = GetTargetNode();
-
-		// Compute target node transform
-		auto time = GetCOREInterface()->GetTime();
 
 		auto thisTm = thisNode->GetNodeTM(time);
 		auto thisTrans = thisTm.GetTrans();
@@ -1426,9 +1293,9 @@ void FireRenderIESLight::SetTargetDistance(float value)
 	}
 }
 
-float FireRenderIESLight::GetTargetDistance() const
+float FireRenderIESLight::GetTargetDistance(TimeValue t, Interval& valid) const
 {
-	return (GetTargetPoint() - GetLightPoint()).Length();
+	return (GetTargetPoint(t, valid) - GetLightPoint(t, valid)).Length();
 }
 
 INode* FireRenderIESLight::GetThisNode()
@@ -1442,17 +1309,17 @@ INode* FireRenderIESLight::GetTargetNode()
 }
 
 // Makes default implementation for parameter setter
-#define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)	\
-void FireRenderIESLight::Set##$paramName($paramType value)	\
-{															\
-	SetBlockValue<$enum>(m_pblock2, value);					\
+#define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)				\
+void FireRenderIESLight::Set##$paramName($paramType value, TimeValue t)	\
+{																		\
+	SetBlockValue<$enum>(m_pblock2, value, t);							\
 }
 
 // Makes default implementation for parameter getter
-#define IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)				\
-$paramType FireRenderIESLight::Get##$paramName() const					\
-{																		\
-	return static_cast<$paramType>(GetBlockValue<$enum>(m_pblock2));	\
+#define IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)							\
+$paramType FireRenderIESLight::Get##$paramName(TimeValue t, Interval& valid) const	\
+{																					\
+	return static_cast<$paramType>(GetBlockValue<$enum>(m_pblock2, t, valid));		\
 }
 
 // Makes default implementations for parameter setter and getter
