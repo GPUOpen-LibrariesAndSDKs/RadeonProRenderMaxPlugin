@@ -189,47 +189,15 @@ Color FRMTLCLASSNAME(PbrMtl)::GetDiffuse(int mtlNum, BOOL backFace)
 
 frw::Shader FRMTLCLASSNAME(PbrMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
-#if 0
-	auto ms = mtlParser.materialSystem;
-
-	frw::Shader material(ms, frw::ShaderTypeVolume);
-
-	bool useMap = false;
-	Texmap* map = nullptr;
-	Color color(0.0f, 0.0f, 0.0f);
-	float mul = 0.0f;
-	frw::Value value = frw::Value(color);
-	bool shouldUseMap = false;
-
-	// EMISSIVE
-	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_EMISSIVE_USEMAP, FRPBRMTL_EMISSIVE_MAP,
-		FRPBRMTL_EMISSIVE, FRPBRMTL_EMISSIVE_MUL);
-
-	shouldUseMap = (useMap && map != nullptr);
-	value = shouldUseMap ? mtlParser.createMap(map, MAP_FLAG_WANTSHDR) : color;
-	value = mtlParser.materialSystem.ValueMul(value, mul);
-	material.SetValue("emission", value);
-
-	// check if an object really produces light
-	if (mul > 0.0f && (color != Color(0.0f) || shouldUseMap))
-		mtlParser.shaderData.mNumEmissive++;
-
-	//material.SetValue("sigmas", color);
-	//material.SetValue( "sigmaa", ms.ValueSub(frw::Value(1), color) );
-	//material.SetValue("g", frw::Value(1.0f));
-	//material.SetValue("multiscatter", frw::Value(1.0f));
-
-	return material;
-#else
-	return frw::Shader(mtlParser.materialSystem, frw::ShaderTypeVolume);
-#endif
+	return frw::Shader();
 }
 
 frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
-	auto ms = mtlParser.materialSystem;
+	const frw::MaterialSystem& materialSystem = mtlParser.materialSystem;
+	const frw::Scope& scope = mtlParser.GetScope();
 
-	frw::Shader material(ms, frw::ShaderTypeUber);
+	frw::Shader shader(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);
 
 	bool useMap = false;
 	Texmap* map = nullptr;
@@ -243,79 +211,64 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_DIFFUSE_COLOR_USEMAP, FRPBRMTL_DIFFUSE_COLOR_MAP,
 		FRPBRMTL_DIFFUSE_COLOR, FRPBRMTL_DIFFUSE_COLOR_MUL);
 	shouldUseMap = (useMap && map != nullptr);
+	
+	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOFLAGS), color) : color;
 
-	value = shouldUseMap ? mtlParser.createMap(map, MAP_FLAG_NOFLAGS) : color;
-	value = mtlParser.materialSystem.ValueMul(value, mul);
-	material.SetValue("diffuse.color", value);
-
-#if 0
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, value);
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, mul);
+	
 	// ROUGHNESS
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_ROUGHNESS_USEMAP, FRPBRMTL_ROUGHNESS_MAP,
 		FRPBRMTL_ROUGHNESS, FRPBRMTL_ROUGHNESS_MUL);
+	shouldInvert = GetFromPb<bool>(pblock, FRPBRMTL_ROUGHNESS_INVERT);
+	shouldUseMap = (useMap && map != nullptr);
 
-	value = color;
+	mul = shouldInvert ? 1 - mul : mul;
+	value = shouldUseMap ? mtlParser.createMap(map, MAP_FLAG_NOFLAGS) : color;
+	value = materialSystem.ValueMul(value, mul);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, value);
 
-	if (useMap && map != nullptr)
-		value = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
-
-	value = mtlParser.materialSystem.ValueMul(value, mul);
-	value = mtlParser.materialSystem.ValueSub(frw::Value(1.0f), value); // converts roughness to glossy
-	material.SetValue("weights.glossy2diffuse", value);
-	//material.SetValue("glossy.roughness_x", value);
-	//material.SetValue("glossy.roughness_y", value);
-#endif
-
-#if 0
 	// METALNESS
-	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_ROUGHNESS_USEMAP, FRPBRMTL_ROUGHNESS_MAP,
-		FRPBRMTL_ROUGHNESS, FRPBRMTL_ROUGHNESS_MUL);
+	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_METALNESS_USEMAP, FRPBRMTL_METALNESS_MAP,
+		FRPBRMTL_METALNESS, FRPBRMTL_METALNESS_MUL);
+	shouldUseMap = (useMap && map != nullptr);
 
-	value = color;
+	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), color) : color;
 
-	if (useMap && map != nullptr)
-		value = mtlParser.createMap(map, MAP_FLAG_NOGAMMA);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, value);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, 1.0f);
+	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, mul);
 
-	value = mtlParser.materialSystem.ValueMul(value, mul);
-	value = mtlParser.materialSystem.ValueSub(frw::Value(1.0f), value); // converts roughness to glossy
-	material.SetValue("weights.glossy2diffuse", value);
-	//material.SetValue("glossy.roughness_x", value);
-	//material.SetValue("glossy.roughness_y", value);
-#endif
-
-#if 1
 	// OPACITY
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_OPACITY_USEMAP, FRPBRMTL_OPACITY_MAP,
 		FRPBRMTL_OPACITY, FRPBRMTL_OPACITY_MUL);
 	shouldInvert = GetFromPb<bool>(pblock, FRPBRMTL_OPACITY_INVERT);
 	shouldUseMap = (useMap && map != nullptr);
 
-	material.SetValue("transparency.color", color);
+	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	value = shouldUseMap ? mtlParser.createMap(map, MAP_FLAG_NOGAMMA) : mul;
-
-	// converts opacity to transparency. If "invert" checkbox is selected treats the value as transparency (no need to invert).
+	// If "invert" checkbox is selected treat the value as transparency (use as is).
+	// in the other case convert opacity to transparency.
 	if (!shouldInvert)
 		value = mtlParser.materialSystem.ValueSub(frw::Value(1), value);
 
-	material.SetValue("weights.transparency", value);
-#endif
+	shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, value);
 
-#if 0
 	// EMISSIVE
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_EMISSIVE_USEMAP, FRPBRMTL_EMISSIVE_MAP,
 		FRPBRMTL_EMISSIVE, FRPBRMTL_EMISSIVE_MUL);
-
 	shouldUseMap = (useMap && map != nullptr);
-	value = shouldUseMap ? mtlParser.createMap(map, MAP_FLAG_WANTSHDR) : color;
-	value = mtlParser.materialSystem.ValueMul(value, mul);
-	material.SetValue("emission", value);
 
-	// check if an object really produces light
-	if ( mul > 0.0f && ( color != Color(0.0f) || shouldUseMap) )
+	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_WANTSHDR), color) : color;
+
+	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_COLOR, value);
+	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, mul);
+
+	if (mul > 0.0f)
 		mtlParser.shaderData.mNumEmissive++;
-#endif
 
-	return material;
+	return shader;
 }
 
 std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(PbrMtl)::GetParameters(FRPbrMtl_ParamID useMapId,
@@ -330,35 +283,3 @@ std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(PbrMtl)::GetParameters(FR
 }
 
 FIRERENDER_NAMESPACE_END;
-
-/*
-{ RPR_MATERIAL_STANDARD_INPUT_DIFFUSE_COLOR, "diffuse.color" },
-{ RPR_MATERIAL_STANDARD_INPUT_DIFFUSE_NORMAL, "diffuse.normal" },
-{ RPR_MATERIAL_STANDARD_INPUT_GLOSSY_COLOR, "glossy.color" },
-{ RPR_MATERIAL_STANDARD_INPUT_GLOSSY_NORMAL, "glossy.normal" },
-{ RPR_MATERIAL_STANDARD_INPUT_GLOSSY_ROUGHNESS_X, "glossy.roughness_x" },
-{ RPR_MATERIAL_STANDARD_INPUT_GLOSSY_ROUGHNESS_Y, "glossy.roughness_y" },
-{ RPR_MATERIAL_STANDARD_INPUT_CLEARCOAT_COLOR, "clearcoat.color" },
-{ RPR_MATERIAL_STANDARD_INPUT_CLEARCOAT_NORMAL, "clearcoat.normal" },
-{ RPR_MATERIAL_STANDARD_INPUT_REFRACTION_COLOR, "refraction.color" },
-{ RPR_MATERIAL_STANDARD_INPUT_REFRACTION_NORMAL, "refraction.normal" },
-{ RPR_MATERIAL_STANDARD_INPUT_REFRACTION_ROUGHNESS, "refraction.roughness" },   //  REFRACTION doesn't have roughness parameter.
-{ RPR_MATERIAL_STANDARD_INPUT_REFRACTION_IOR, "refraction.ior" },
-{ RPR_MATERIAL_STANDARD_INPUT_TRANSPARENCY_COLOR, "transparency.color" },
-{ RPR_MATERIAL_STANDARD_INPUT_DIFFUSE_TO_REFRACTION_WEIGHT, "weights.diffuse2refraction" },
-{ RPR_MATERIAL_STANDARD_INPUT_GLOSSY_TO_DIFFUSE_WEIGHT, "weights.glossy2diffuse" },
-{ RPR_MATERIAL_STANDARD_INPUT_CLEARCOAT_TO_GLOSSY_WEIGHT, "weights.clearcoat2glossy" },
-{ RPR_MATERIAL_STANDARD_INPUT_TRANSPARENCY, "weights.transparency" },
-{ RPR_MATERIAL_INPUT_RASTER_COLOR, "raster.color" },
-{ RPR_MATERIAL_INPUT_RASTER_NORMAL, "raster.normal" },
-{ RPR_MATERIAL_INPUT_RASTER_METALLIC, "raster.metallic" },
-{ RPR_MATERIAL_INPUT_RASTER_ROUGHNESS, "raster.roughness" },
-{ RPR_MATERIAL_INPUT_RASTER_SUBSURFACE, "raster.subsurface" },
-{ RPR_MATERIAL_INPUT_RASTER_ANISOTROPIC, "raster.anisotropic" },
-{ RPR_MATERIAL_INPUT_RASTER_SPECULAR, "raster.specular" },
-{ RPR_MATERIAL_INPUT_RASTER_SPECULARTINT, "raster.specularTint" },
-{ RPR_MATERIAL_INPUT_RASTER_SHEEN, "raster.sheen" },
-{ RPR_MATERIAL_INPUT_RASTER_SHEENTINT, "raster.sheenTint" },
-{ RPR_MATERIAL_INPUT_RASTER_CLEARCOAT, "raster.clearcoat" },
-{ RPR_MATERIAL_INPUT_RASTER_CLEARCOATGLOSS, "raster.clearcoatGloss" }
-*/
