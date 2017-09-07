@@ -204,53 +204,77 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	Color color(0.0f, 0.0f, 0.0f);
 	float mul = 0.0f;
 	frw::Value value = frw::Value(color);
-	bool shouldInvert = false;
-	bool shouldUseMap = false;
+	bool toInvert = false;
+	bool toUseMap = false;
 
-	// DIFFUSE COLOR
-	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_DIFFUSE_COLOR_USEMAP, FRPBRMTL_DIFFUSE_COLOR_MAP,
+	// DIFFUSE COLOR & CAVITY
+	float diffuseMul = 0.0f;
+
+	std::tie(useMap, map, color, diffuseMul) = GetParameters(FRPBRMTL_DIFFUSE_COLOR_USEMAP, FRPBRMTL_DIFFUSE_COLOR_MAP,
 		FRPBRMTL_DIFFUSE_COLOR, FRPBRMTL_DIFFUSE_COLOR_MUL);
-	shouldUseMap = (useMap && map != nullptr);
+	toUseMap = (useMap && map != nullptr);
 	
-	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOFLAGS), color) : color;
+	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOFLAGS), color) : color;
 
 	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, value);
-	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, mul);
-	
+
+	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_CAVITY_USEMAP, FRPBRMTL_CAVITY_MAP,
+		FRPBRMTL_CAVITY, FRPBRMTL_CAVITY_MUL);
+	toInvert = GetFromPb<bool>(pblock, FRPBRMTL_CAVITY_INVERT);
+	toUseMap = (useMap && map != nullptr);
+
+	mul = toInvert ? 1.0f - mul : mul;
+	value = toUseMap ? mtlParser.createMap(map, MAP_FLAG_NOGAMMA) : color;
+	value = materialSystem.ValueMul(value, mul);
+	value = materialSystem.ValueSub(diffuseMul, value);
+
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, value);
+
 	// ROUGHNESS
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_ROUGHNESS_USEMAP, FRPBRMTL_ROUGHNESS_MAP,
 		FRPBRMTL_ROUGHNESS, FRPBRMTL_ROUGHNESS_MUL);
-	shouldInvert = GetFromPb<bool>(pblock, FRPBRMTL_ROUGHNESS_INVERT);
-	shouldUseMap = (useMap && map != nullptr);
+	toInvert = GetFromPb<bool>(pblock, FRPBRMTL_ROUGHNESS_INVERT);
+	toUseMap = (useMap && map != nullptr);
 
-	mul = shouldInvert ? 1 - mul : mul;
-	value = shouldUseMap ? mtlParser.createMap(map, MAP_FLAG_NOFLAGS) : color;
+	mul = toInvert ? 1.0f - mul : mul;
+	value = toUseMap ? mtlParser.createMap(map, MAP_FLAG_NOGAMMA) : color;
 	value = materialSystem.ValueMul(value, mul);
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, value);
 
 	// METALNESS
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_METALNESS_USEMAP, FRPBRMTL_METALNESS_MAP,
 		FRPBRMTL_METALNESS, FRPBRMTL_METALNESS_MUL);
-	shouldUseMap = (useMap && map != nullptr);
+	toUseMap = (useMap && map != nullptr);
 
-	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), color) : color;
+	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), color) : color;
 
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, value);
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, 1.0f);
 	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, mul);
 
+	// MATERIAL NORMAL
+	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_NORMAL_USEMAP, FRPBRMTL_NORMAL_MAP,
+		FRPBRMTL_NORMAL, FRPBRMTL_NORMAL_MUL);
+	toUseMap = (useMap && map != nullptr);
+
+	if (toUseMap && mul > 0.0f)
+	{
+		value = materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP), mul);
+		shader.xSetValue(RPRX_UBER_MATERIAL_NORMAL, value);
+	}
+
 	// OPACITY
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_OPACITY_USEMAP, FRPBRMTL_OPACITY_MAP,
 		FRPBRMTL_OPACITY, FRPBRMTL_OPACITY_MUL);
-	shouldInvert = GetFromPb<bool>(pblock, FRPBRMTL_OPACITY_INVERT);
-	shouldUseMap = (useMap && map != nullptr);
+	toInvert = GetFromPb<bool>(pblock, FRPBRMTL_OPACITY_INVERT);
+	toUseMap = (useMap && map != nullptr);
 
-	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
+	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
 	// If "invert" checkbox is selected treat the value as transparency (use as is).
 	// in the other case convert opacity to transparency.
-	if (!shouldInvert)
+	if (!toInvert)
 		value = mtlParser.materialSystem.ValueSub(frw::Value(1), value);
 
 	shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, value);
@@ -258,9 +282,9 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	// EMISSIVE
 	std::tie(useMap, map, color, mul) = GetParameters(FRPBRMTL_EMISSIVE_USEMAP, FRPBRMTL_EMISSIVE_MAP,
 		FRPBRMTL_EMISSIVE, FRPBRMTL_EMISSIVE_MUL);
-	shouldUseMap = (useMap && map != nullptr);
+	toUseMap = (useMap && map != nullptr);
 
-	value = shouldUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_WANTSHDR), color) : color;
+	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_WANTSHDR), color) : color;
 
 	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_COLOR, value);
 	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, mul);
