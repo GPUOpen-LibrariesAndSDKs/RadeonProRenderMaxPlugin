@@ -63,7 +63,7 @@ public:
 	static ClassDesc2* GetClassDesc();
 
 	static constexpr bool DefaultEnabled = true;
-	static constexpr bool DefaultTargeted = false;
+	static constexpr bool DefaultTargeted = true;
 	static constexpr bool DefaultShadowsEnabled = true;
 	static constexpr auto DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
 
@@ -102,7 +102,7 @@ public:
 	void SetReference(int i, RefTargetHandle rtarg) override;
 	RefTargetHandle GetReference(int i) override;
 
-	void DrawSphere(ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
+	void DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
 	bool DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
 	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
 	//***************************************************************************************
@@ -122,8 +122,6 @@ public:
 	bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	bool CalculateLightRepresentation(const TCHAR* profileName) override;
 	bool CalculateBBox(void) override;
-
-	void FireRenderIESLight::AddTarget();
 
 	IES_DECLARE_PARAM(LightPoint, Point3);
 	IES_DECLARE_PARAM(TargetPoint, Point3);
@@ -147,6 +145,15 @@ public:
 	Color GetFinalColor(TimeValue t = 0, Interval& valid = FOREVER) const;
 
 protected:
+	class CreateCallback;
+
+	void AddTarget();
+
+	void SetThisNode(INode*);
+	void SetTargetNode(INode*);
+	INode* GetThisNode();
+	INode* GetTargetNode();
+
 	ExclList m_exclList;
 
 private:
@@ -158,9 +165,6 @@ private:
 		auto ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
 		FASSERT(ret == REF_SUCCEED);
 	}
-
-	INode* GetThisNode();
-	INode* GetTargetNode();
 
 	// Panels
 	IES_General m_general;

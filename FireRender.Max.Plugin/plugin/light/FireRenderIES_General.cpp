@@ -29,7 +29,7 @@ bool IES_General::InitializePage()
 	m_enabledControl.SetCheck(m_parent->GetEnabled());
 
 	// Targeted parameter
-	m_targetedControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_TARGETED_CHECKBOX);
+	m_targetedControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_TARGETED);
 	m_targetedControl.SetCheck(m_parent->GetTargeted());
 
 	{// Target distance parameter
@@ -78,7 +78,7 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 			UpdateEnabledParam();
 			return TRUE;
 
-		case IDC_FIRERENDER_IES_LIGHT_TARGETED_CHECKBOX:
+		case IDC_FIRERENDER_IES_LIGHT_TARGETED:
 			UpdateTargetedParam();
 			return TRUE;
 		}
@@ -184,7 +184,7 @@ void IES_General::UpdateEnabledParam()
 
 void IES_General::UpdateTargetedParam()
 {
-	m_parent->SetTargeted(m_enabledControl.IsChecked());
+	m_parent->SetTargeted(m_targetedControl.IsChecked());
 }
 
 void IES_General::UpdateTargetDistanceParam()

@@ -45,57 +45,6 @@ namespace
 	constexpr auto FIRERENDER_IESLIGHT_INTERNAL_NAME = _T("RPRIESLight");
 	constexpr auto FIRERENDER_IESLIGHT_CLASS_NAME = _T("RPRIESLight");
 
-	class CreateCallBack : public CreateMouseCallBack
-	{
-	private:
-		FireRenderIESLight *ob = nullptr;
-		IParamBlock2 *pblock = nullptr;
-
-	public:
-		int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override
-		{
-			int result = CREATE_CONTINUE;
-
-			switch (msg)
-			{
-				case MOUSE_POINT:
-					if (point == 0)
-					{
-						mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
-						Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-						ob->SetLightPoint(p);
-						ob->SetTargetPoint(p);
-					}
-					else
-					{
-						ob->AddTarget();
-						result = CREATE_STOP;
-					}
-					break;
-
-				case MOUSE_MOVE:
-					pblock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
-					break;
-
-				case MOUSE_ABORT:
-					result = CREATE_ABORT;
-					break;
-
-				case MOUSE_FREEMOVE:
-					vpt->SnapPreview(m, m, NULL, SNAP_IN_3D);
-					break;
-			}
-
-			return result;
-		}
-
-		void SetObj(FireRenderIESLight* obj)
-		{
-			ob = obj;
-			pblock = ob->GetParamBlock(0);
-		}
-	};
-
 	class FireRenderIESLightClassDesc : public ClassDesc2
 	{
 	public:
@@ -449,6 +398,58 @@ namespace
 	}
 }
 
+class FireRenderIESLight::CreateCallback : public CreateMouseCallBack
+{
+private:
+	FireRenderIESLight *ob = nullptr;
+	IParamBlock2 *pblock = nullptr;
+
+public:
+	int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override
+	{
+		int result = CREATE_CONTINUE;
+
+		switch (msg)
+		{
+		case MOUSE_POINT:
+			if (point == 0)
+			{
+				auto time = GetCOREInterface()->GetTime();
+				mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
+				Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
+				ob->SetLightPoint(p, time);
+				ob->SetTargetPoint(p, time);
+			}
+			else
+			{
+				ob->AddTarget();
+				result = CREATE_STOP;
+			}
+			break;
+
+		case MOUSE_MOVE:
+			pblock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
+			break;
+
+		case MOUSE_ABORT:
+			result = CREATE_ABORT;
+			break;
+
+		case MOUSE_FREEMOVE:
+			vpt->SnapPreview(m, m, NULL, SNAP_IN_3D);
+			break;
+		}
+
+		return result;
+	}
+
+	void SetObj(FireRenderIESLight* obj)
+	{
+		ob = obj;
+		pblock = ob->GetParamBlock(0);
+	}
+};
+
 const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
 
 Class_ID FireRenderIESLight::GetClassId()
@@ -490,7 +491,7 @@ FireRenderIESLight::~FireRenderIESLight()
 
 CreateMouseCallBack* FireRenderIESLight::GetCreateMouseCallBack()
 {
-	static CreateCallBack createCallback;
+	static CreateCallback createCallback;
 	createCallback.SetObj(this);
 	return &createCallback;
 }
@@ -563,14 +564,14 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 			auto time = GetCOREInterface()->GetTime();
 			auto thisNode = dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
 			auto thisTm = thisNode->GetNodeTM(time);
-			SetLightPoint(thisTm.GetTrans());
+			SetLightPoint(thisTm.GetTrans(), time);
 		}
 		else if (hTarget == m_targNodeMonitor)
 		{
 			auto time = GetCOREInterface()->GetTime();
 			auto targetNode = dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
 			auto targetTm = targetNode->GetNodeTM(time);
-			SetTargetPoint(targetTm.GetTrans());
+			SetTargetPoint(targetTm.GetTrans(), time);
 		}
 		
 		//some params have changed - should redraw all
@@ -734,7 +735,7 @@ RefTargetHandle FireRenderIESLight::GetReference(int i)
 	return result;
 }
 
-void FireRenderIESLight::DrawSphere(ViewExp *vpt, BOOL sel, BOOL frozen)
+void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL frozen)
 {
 	GraphicsWindow* gw = vpt->getGW();
 	Color color = frozen ? Color(0.0f, 0.0f, 1.0f) : Color(0.0f, 1.0f, 0.0f);
@@ -748,13 +749,13 @@ void FireRenderIESLight::DrawSphere(ViewExp *vpt, BOOL sel, BOOL frozen)
 
 	Point3 dirMesh[]
 	{
-		GetLightPoint(),
-		GetTargetPoint()
+		GetLightPoint(t),
+		GetTargetPoint(t)
 	};
 
 	INode *nd = FindNodeRef(this);
 	Control* pLookAtController = nd->GetTMController();
-
+	
 	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
 	{
 		dirMesh[1] -= dirMesh[0];
@@ -765,11 +766,11 @@ void FireRenderIESLight::DrawSphere(ViewExp *vpt, BOOL sel, BOOL frozen)
 		Matrix3 targTransform = pTargNode->GetObjectTM(0.0);
 		Point3 targVector(0.0f, 0.0f, 0.0f);
 		targVector = targVector * targTransform;
-
+	
 		Matrix3 rootTransform = nd->GetObjectTM(0.0);
 		Point3 rootVector(0.0f, 0.0f, 0.0f);
 		rootVector = rootVector * rootTransform;
-
+	
 		auto dist = (targVector - rootVector).FLength();
 		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
 	}
@@ -868,7 +869,7 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
 		Matrix3 prevtm = vpt->getGW()->getTransform();
 		Matrix3 tm = inode->GetObjectTM(t);
 		vpt->getGW()->setTransform(tm);
-		DrawSphere(vpt, inode->Selected(), inode->IsFrozen());
+		DrawSphere(t, vpt, inode->Selected(), inode->IsFrozen());
 		vpt->getGW()->setTransform(prevtm);
 	}
 
@@ -1198,9 +1199,7 @@ void FireRenderIESLight::AddTarget()
 		Point3 p0 = GetLightPoint();
 		Point3 r = p1 - p0;
 
-		Matrix3 tm = thisNode->GetNodeTM(t);
-		Matrix3 targtm = tm;
-
+		Matrix3 targtm = thisNode->GetNodeTM(t);
 		targtm.PreTranslate(r);
 
 		targNode->SetNodeTM(0, targtm);
@@ -1215,8 +1214,8 @@ void FireRenderIESLight::AddTarget()
 		targNode->SetIsTarget(TRUE);
 	}
 
-	dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->SetNode(thisNode);
-	dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->SetNode(targNode);
+	SetTargetNode(targNode);
+	SetThisNode(thisNode);
 
 	Color lightWireColor(thisNode->GetWireColor());
 	targNode->SetWireColor(lightWireColor.toRGB());
@@ -1275,8 +1274,8 @@ void FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
 	if (auto thisNode = GetThisNode())
 	{
 		// Compute offset from light to target
-		auto p0 = GetLightPoint();
-		auto p1 = GetTargetPoint();
+		auto p0 = GetLightPoint(time);
+		auto p1 = GetTargetPoint(time);
 		auto targetOffset = (p1 - p0).Normalize() * value;
 
 		// Get target node from controller
@@ -1306,6 +1305,16 @@ INode* FireRenderIESLight::GetThisNode()
 INode* FireRenderIESLight::GetTargetNode()
 {
 	return dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
+}
+
+void FireRenderIESLight::SetThisNode(INode* node)
+{
+	dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->SetNode(node);
+}
+
+void FireRenderIESLight::SetTargetNode(INode* node)
+{
+	dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->SetNode(node);
 }
 
 // Makes default implementation for parameter setter

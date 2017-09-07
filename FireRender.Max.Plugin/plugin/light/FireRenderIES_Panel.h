@@ -306,7 +306,7 @@ public:
 	void Capture(HWND parentWindow, int controlId)
 	{
 		m_hWnd = GetDlgItem(parentWindow, controlId);
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 	}
 
 	void Release()
@@ -315,6 +315,11 @@ public:
 	}
 
 protected:
+	void CheckControl() const
+	{
+		FASSERT(m_hWnd != nullptr);
+	}
+
 	HWND m_hWnd;
 };
 
@@ -438,14 +443,14 @@ private:
 	MaxEditAndSpinner m_kelvin;
 };
 
-/* Wraps Windows check box control */
+/* Wraps Windows button control */
 class WinButton :
 	public WinControl
 {
 public:
 	bool IsChecked() const
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 
 		auto result = Button_GetCheck(m_hWnd);
 		FASSERT(result != BST_INDETERMINATE);
@@ -455,19 +460,19 @@ public:
 
 	void SetCheck(bool checked)
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 		Button_SetCheck(m_hWnd, checked ? BST_CHECKED : BST_UNCHECKED);
 	}
 
 	void Enable()
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 		Button_Enable(m_hWnd, TRUE);
 	}
 
 	void Disable()
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 		Button_Enable(m_hWnd, FALSE);
 	}
 };
@@ -489,13 +494,13 @@ public:
 	// Returns -1 if nothing is selected
 	int GetSelectedIndex() const
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 		return ComboBox_GetCurSel(m_hWnd);
 	}
 
 	TString GetItemText(int index) const
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 
 		auto chars = ComboBox_GetLBTextLen(m_hWnd, index);
 		FASSERT(chars != CB_ERR && "Index out of range");
@@ -511,7 +516,7 @@ public:
 
 	int AddItem(const TCHAR* name)
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 
 		auto index = ComboBox_AddString(m_hWnd, name);
 		FASSERT(index != CB_ERR);
@@ -522,7 +527,7 @@ public:
 
 	void DeleteItem(int index)
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 
 		auto res = ComboBox_DeleteString(m_hWnd, index);
 		FASSERT(res != CB_ERR);
@@ -530,7 +535,7 @@ public:
 
 	void SetItemData(int index, size_t data)
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 
 		auto ret = ComboBox_SetItemData(m_hWnd, index, data);
 		FASSERT(ret != CB_ERR);
@@ -539,7 +544,7 @@ public:
 	// -1 to clear selection
 	void SetSelected(int index)
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 
 		auto ret = ComboBox_SetCurSel(m_hWnd, index);
 
@@ -549,7 +554,7 @@ public:
 
 	int GetItemsCount() const
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 
 		auto result = ComboBox_GetCount(m_hWnd);
 		FASSERT(result != CB_ERR);
@@ -559,13 +564,13 @@ public:
 
 	void Enable()
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 		ComboBox_Enable(m_hWnd, TRUE);
 	}
 
 	void Disable()
 	{
-		FASSERT(m_hWnd != nullptr);
+		CheckControl();
 		ComboBox_Enable(m_hWnd, FALSE);
 	}
 };
@@ -643,6 +648,10 @@ private:
 		{
 			case WM_INITDIALOG:
 				return TRUE;
+				break;
+
+			case BM_CLICK:
+				FASSERT(false);
 				break;
 
 			case WM_COMMAND:
