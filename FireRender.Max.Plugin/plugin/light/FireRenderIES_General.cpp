@@ -8,7 +8,7 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-bool IES_General::InitializePage()
+bool IES_General::InitializePage(TimeValue time)
 {
 	// Import button
 	m_importButton.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_IMPORT);
@@ -22,15 +22,15 @@ bool IES_General::InitializePage()
 
 	// Profiles combo box
 	m_profilesComboBox.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_PROFILE);
-	UpdateProfiles();
+	UpdateProfiles(time);
 
 	// Enabled parameter
 	m_enabledControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_ENABLED);
-	m_enabledControl.SetCheck(m_parent->GetEnabled());
+	m_enabledControl.SetCheck(m_parent->GetEnabled(time));
 
 	// Targeted parameter
 	m_targetedControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_TARGETED);
-	m_targetedControl.SetCheck(m_parent->GetTargeted());
+	m_targetedControl.SetCheck(m_parent->GetTargeted(time));
 
 	{// Target distance parameter
 		m_targetDistanceControl.Capture(m_panel,
@@ -40,7 +40,7 @@ bool IES_General::InitializePage()
 		m_targetDistanceControl.Bind(EDITTYPE_FLOAT);
 		auto& spinner = m_targetDistanceControl.GetSpinner();
 		spinner.SetSettings<FireRenderIESLight::TargetDistanceSettings>();
-		UpdateTargetDistanceUi();
+		m_targetDistanceControl.GetSpinner().SetValue(m_parent->GetTargetDistance(time));
 	}
 
 	{// Area width parameter
@@ -52,7 +52,7 @@ bool IES_General::InitializePage()
 
 		auto& spinner = m_areaWidthControl.GetSpinner();
 		spinner.SetSettings<FireRenderIESLight::AreaWidthSettings>();
-		spinner.SetValue(m_parent->GetAreaWidth());
+		spinner.SetValue(m_parent->GetAreaWidth(time));
 	}
 
 	return true;
@@ -68,19 +68,17 @@ void IES_General::UninitializePage()
 	m_areaWidthControl.Release();
 }
 
-INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
+bool IES_General::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 {
 	if (code == BN_CLICKED)
 	{
 		switch (controlId)
 		{
 		case IDC_FIRERENDER_IES_LIGHT_ENABLED:
-			UpdateEnabledParam();
-			return TRUE;
+			return UpdateEnabledParam(t);
 
 		case IDC_FIRERENDER_IES_LIGHT_TARGETED:
-			UpdateTargetedParam();
-			return TRUE;
+			return UpdateTargetedParam(t);
 		}
 	}
 
@@ -95,51 +93,115 @@ INT_PTR IES_General::HandleControlCommand(WORD code, WORD controlId)
 
 			case IDC_FIRERENDER_IES_LIGHT_DELETE_PROFILE:
 				if (m_deleteCurrentButton.CursorIsOver())
-					DeleteSelectedProfile();
-				return TRUE;
+					DeleteSelectedProfile(t);
+				return true;
 		}
 	}
 
 	if (code == CBN_SELCHANGE && controlId == IDC_FIRERENDER_IES_LIGHT_PROFILE)
 	{
-		ActivateSelectedProfile();
+		auto retVal = ActivateSelectedProfile(t);
 		UpdateDeleteProfileButtonState();
-		return TRUE;
+		return retVal;
 	}
 
-	return FALSE;
+	return false;
 }
 
-INT_PTR IES_General::OnEditChange(int editId, HWND editHWND)
+bool IES_General::OnEditChange(TimeValue t, int editId, HWND editHWND)
 {
 	switch (editId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
-		UpdateAreaWidthParam();
-		return TRUE;
+		return UpdateAreaWidthParam(t);
 
 	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
-		UpdateTargetDistanceParam();
-		break;
+		return UpdateTargetDistanceParam(t);
 	}
 
-	return FALSE;
+	return false;
 }
 
-INT_PTR IES_General::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging)
+bool IES_General::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging)
 {
 	switch (controlId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
-		UpdateAreaWidthParam();
-		return TRUE;
+		return UpdateAreaWidthParam(t);
 
 	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
-		UpdateTargetDistanceParam();
-		break;
+		return UpdateTargetDistanceParam(t);
 	}
 
-	return FALSE;
+	return false;
+}
+
+const TCHAR* IES_General::GetAcceptMessage(WORD controlId) const
+{
+	switch (controlId)
+	{
+	case IDC_FIRERENDER_IES_LIGHT_PROFILE:
+		return _T("IES light: change profile");
+
+	case IDC_FIRERENDER_IES_LIGHT_ENABLED:
+		return _T("IES light: change enabled parameter");
+
+	case IDC_FIRERENDER_IES_LIGHT_TARGETED:
+		return _T("IES light: change targeted parameter");
+
+	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
+	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
+		return _T("IES light: move target object");
+
+	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
+	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
+		return _T("IES light: change area width");
+	}
+
+	FASSERT(false);
+	return IES_Panel::GetAcceptMessage(controlId);
+}
+
+void IES_General::UpdateUI(TimeValue t)
+{
+	if (!IsInitialized())
+	{
+		return;
+	}
+
+	m_enabledControl.SetCheck(m_parent->GetEnabled(t));
+	m_targetedControl.SetCheck(m_parent->GetTargeted(t));
+	m_areaWidthControl.GetSpinner().SetValue(m_parent->GetAreaWidth(t));
+	m_targetDistanceControl.GetSpinner().SetValue(m_parent->GetTargetDistance(t));
+
+	{// Update profiles list and delete button
+		int activeIndex = -1;
+
+		if (m_parent->ProfileIsSelected(t))
+		{
+			auto activeProfile = m_parent->GetActiveProfile(t);
+
+			// Compute active profile index in the combo box by it's name
+			auto profileFound =
+				m_profilesComboBox.ForEachItem([&](int index, const std::basic_string<TCHAR>& text)
+			{
+				if (_tcscmp(text.c_str(), activeProfile) == 0)
+				{
+					// Active profile is found, break the loop
+					activeIndex = index;
+					return true;
+				}
+
+				// Keep searching
+				return false;
+			});
+
+			FASSERT(profileFound);
+		}
+
+		m_profilesComboBox.SetSelected(activeIndex);
+		UpdateDeleteProfileButtonState();
+	}
 }
 
 void IES_General::Enable()
@@ -170,31 +232,24 @@ void IES_General::Disable()
 		m_areaWidthControl);
 }
 
-void IES_General::UpdateTargetDistanceUi()
+bool IES_General::UpdateEnabledParam(TimeValue t)
 {
-	auto& spinner = m_targetDistanceControl.GetSpinner();
-	auto targetDistance = m_parent->GetTargetDistance();
-	spinner.SetValue(targetDistance);
+	return m_parent->SetEnabled(m_enabledControl.IsChecked(), t);
 }
 
-void IES_General::UpdateEnabledParam()
+bool IES_General::UpdateTargetedParam(TimeValue t)
 {
-	m_parent->SetEnabled(m_enabledControl.IsChecked());
+	return m_parent->SetTargeted(m_targetedControl.IsChecked(), t);
 }
 
-void IES_General::UpdateTargetedParam()
+bool IES_General::UpdateTargetDistanceParam(TimeValue t)
 {
-	m_parent->SetTargeted(m_targetedControl.IsChecked());
+	return m_parent->SetTargetDistance(m_targetDistanceControl.GetValue<float>(), t);
 }
 
-void IES_General::UpdateTargetDistanceParam()
+bool IES_General::UpdateAreaWidthParam(TimeValue t)
 {
-	m_parent->SetTargetDistance(m_targetDistanceControl.GetEdit().GetValue<float>());
-}
-
-void IES_General::UpdateAreaWidthParam()
-{
-	m_parent->SetAreaWidth(m_areaWidthControl.GetEdit().GetValue<float>());
+	return m_parent->SetAreaWidth(m_areaWidthControl.GetValue<float>(), t);
 }
 
 void IES_General::ImportProfile()
@@ -214,28 +269,28 @@ void IES_General::ImportProfile()
 	}
 }
 
-void IES_General::ActivateSelectedProfile()
+bool IES_General::ActivateSelectedProfile(TimeValue t)
 {
 	auto index = m_profilesComboBox.GetSelectedIndex();
 
 	// Nothing is selected
 	if (index == -1)
 	{
-		m_parent->SetActiveProfile(_T(""));
-		return;
+		m_parent->SetActiveProfile(_T(""), t);
+		return false;
 	}
 
-	m_parent->SetActiveProfile(m_profilesComboBox.GetItemText(index).c_str());
+	return m_parent->SetActiveProfile(m_profilesComboBox.GetItemText(index).c_str(), t);
 }
 
-void IES_General::DeleteSelectedProfile()
+bool IES_General::DeleteSelectedProfile(TimeValue t)
 {
 	auto selIdx = m_profilesComboBox.GetSelectedIndex();
 
 	// Nothing is selected
 	if (selIdx < 0)
 	{
-		return;
+		return false;
 	}
 
 	auto itemText = m_profilesComboBox.GetItemText(selIdx);
@@ -250,18 +305,20 @@ void IES_General::DeleteSelectedProfile()
 			_T("Error"),
 			MB_ICONERROR);
 
-		return;
+		return false;
 	}
 
 	m_profilesComboBox.DeleteItem(selIdx);
 	m_profilesComboBox.SetSelected(-1);
-	ActivateSelectedProfile();
+	auto retVal = ActivateSelectedProfile(t);
 	UpdateDeleteProfileButtonState();
+
+	return retVal;
 }
 
-void IES_General::UpdateProfiles()
+void IES_General::UpdateProfiles(TimeValue time)
 {
-	auto activeProfile = m_parent->GetActiveProfile();
+	auto activeProfile = m_parent->GetActiveProfile(time);
 	int activeIndex = -1;
 
 	FireRenderIES_Profiles::ForEachProfile([&](const TCHAR* filename)

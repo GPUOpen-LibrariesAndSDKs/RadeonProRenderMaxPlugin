@@ -18,28 +18,28 @@ public:
 	// Use base class constructor
 	using BasePanel::BasePanel;
 
-	void UpdateTargetDistanceUi();
-
 	// These methods move values from ui to the light object
-	void UpdateEnabledParam();
-	void UpdateTargetedParam();
-	void UpdateTargetDistanceParam();
-	void UpdateAreaWidthParam();
+	bool UpdateEnabledParam(TimeValue t);
+	bool UpdateTargetedParam(TimeValue t);
+	bool UpdateTargetDistanceParam(TimeValue t);
+	bool UpdateAreaWidthParam(TimeValue t);
 	void ImportProfile();
-	void ActivateSelectedProfile();
-	void DeleteSelectedProfile();
+	bool ActivateSelectedProfile(TimeValue t);
+	bool DeleteSelectedProfile(TimeValue t);
 
 	// IES_Panel overrides
-	bool InitializePage();
+	bool InitializePage(TimeValue time);
 	void UninitializePage();
-	INT_PTR HandleControlCommand(WORD code, WORD controlId);
-	INT_PTR OnEditChange(int editId, HWND editHWND);
-	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	bool HandleControlCommand(TimeValue t, WORD code, WORD controlId);
+	bool OnEditChange(TimeValue t, int editId, HWND editHWND);
+	bool OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	const TCHAR* GetAcceptMessage(WORD controlId) const;
+	void UpdateUI(TimeValue t);
 	void Enable();
 	void Disable();
 
 protected:
-	void UpdateProfiles();
+	void UpdateProfiles(TimeValue time);
 	void UpdateDeleteProfileButtonState();
 
 	MaxButton m_importButton;

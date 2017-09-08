@@ -4,30 +4,30 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-void IES_Intensity::UpdateIntensityParam()
+bool IES_Intensity::UpdateIntensityParam(TimeValue t)
 {
-	m_parent->SetIntensity(m_intensityControl.GetEdit().GetValue<float>());
+	return m_parent->SetIntensity(m_intensityControl.GetValue<float>(), t);
 }
 
-void IES_Intensity::UpdateColorModeParam()
+bool IES_Intensity::UpdateColorModeParam(TimeValue t)
 {
-	m_parent->SetColorMode(
+	return m_parent->SetColorMode(
 		m_rgbModeControl.IsChecked() ?
 		IES_LIGHT_COLOR_MODE_COLOR :
-		IES_LIGHT_COLOR_MODE_TEMPERATURE);
+		IES_LIGHT_COLOR_MODE_TEMPERATURE, t);
 }
 
-void IES_Intensity::UpdateColorParam()
+bool IES_Intensity::UpdateColorParam(TimeValue t)
 {
-	m_parent->SetColor(m_colorControl.GetColor());
+	return m_parent->SetColor(m_colorControl.GetColor(), t);
 }
 
-void IES_Intensity::UpdateTemperatureParam()
+bool IES_Intensity::UpdateTemperatureParam(TimeValue t)
 {
-	m_parent->SetTemperature(m_temperatureControl.GetTemperature());
+	return m_parent->SetTemperature(m_temperatureControl.GetTemperature(), t);
 }
 
-bool IES_Intensity::InitializePage()
+bool IES_Intensity::InitializePage(TimeValue time)
 {
 	// Intensity parameter
 	{
@@ -38,7 +38,7 @@ bool IES_Intensity::InitializePage()
 
 		auto& spinner = m_intensityControl.GetSpinner();
 		spinner.SetSettings<FireRenderIESLight::IntensitySettings>();
-		spinner.SetValue(m_parent->GetIntensity());
+		spinner.SetValue(m_parent->GetIntensity(time));
 	}
 
 	// Color modes controls
@@ -46,14 +46,14 @@ bool IES_Intensity::InitializePage()
 		m_rgbModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_RGB_MODE);
 		m_kelvinModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE);
 
-		m_rgbModeControl.SetCheck(m_parent->GetColorMode() == IES_LIGHT_COLOR_MODE_COLOR);
+		m_rgbModeControl.SetCheck(m_parent->GetColorMode(time) == IES_LIGHT_COLOR_MODE_COLOR);
 		m_kelvinModeControl.SetCheck(!m_rgbModeControl.IsChecked());
 	}
 
 	// Color parameter
 	{
 		m_colorControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_COLOR);
-		m_colorControl.SetColor(m_parent->GetColor());
+		m_colorControl.SetColor(m_parent->GetColor(time));
 	}
 
 	// Temperature parameter
@@ -63,12 +63,12 @@ bool IES_Intensity::InitializePage()
 			IDC_FIRERENDER_IES_LIGHT_TEMPERATURE,
 			IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S);
 
-		m_temperatureControl.SetTemperature(m_parent->GetTemperature());
+		m_temperatureControl.SetTemperature(m_parent->GetTemperature(time));
 	}
 
-	UpdateControlsEnabled();
+	UpdateControlsEnabled(time);
 
-	return TRUE;
+	return true;
 }
 
 void IES_Intensity::UninitializePage()
@@ -80,65 +80,88 @@ void IES_Intensity::UninitializePage()
 	m_temperatureControl.Release();
 }
 
-INT_PTR IES_Intensity::HandleControlCommand(WORD code, WORD controlId)
+bool IES_Intensity::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 {
 	if (code == BN_CLICKED)
 	{
 		switch (controlId)
 		{
-		case IDC_FIRERENDER_IES_LIGHT_RGB_MODE:
-		case IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE:
-			UpdateColorModeParam();
-			UpdateControlsEnabled();
-			return TRUE;
+			case IDC_FIRERENDER_IES_LIGHT_RGB_MODE:
+			case IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE:
+			{
+				auto ret = UpdateColorModeParam(t);
+				UpdateControlsEnabled(t);
+				return ret;
+			}
 		}
 	}
 
-	return FALSE;
+	return false;
 }
 
-INT_PTR IES_Intensity::OnEditChange(int editId, HWND editHWND)
+bool IES_Intensity::OnEditChange(TimeValue t, int editId, HWND editHWND)
 {
 	switch (editId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_INTENSITY:
-		UpdateIntensityParam();
-		break;
+		return UpdateIntensityParam(t);
 
 	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE:
 		m_temperatureControl.UpdateColor();
-		UpdateTemperatureParam();
-		break;
+		return UpdateTemperatureParam(t);
 	}
 
-	return FALSE;
+	return false;
 }
 
-INT_PTR IES_Intensity::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging)
+bool IES_Intensity::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging)
 {
 	switch (controlId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_INTENSITY_S:
-		UpdateIntensityParam();
-		break;
+		return UpdateIntensityParam(t);
 
 	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S:
 		m_temperatureControl.UpdateColor();
-		UpdateTemperatureParam();
-		break;
+		return UpdateTemperatureParam(t);
 	}
 
-	return FALSE;
+	return false;
 }
 
-INT_PTR IES_Intensity::OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final)
+const TCHAR* IES_Intensity::GetAcceptMessage(WORD controlId) const
+{
+	switch (controlId)
+	{
+	case IDC_FIRERENDER_IES_LIGHT_INTENSITY:
+	case IDC_FIRERENDER_IES_LIGHT_INTENSITY_S:
+		return _T("IES light: change intensity");
+
+	case IDC_FIRERENDER_IES_LIGHT_RGB_MODE:
+	case IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE:
+		return _T("IES light: change color mode");
+
+	case IDC_FIRERENDER_IES_LIGHT_COLOR:
+		return _T("IES light: change color");
+
+	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE:
+	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_C:
+	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S:
+		return _T("IES light: change temperature");
+	}
+
+	FASSERT(false);
+	return IES_Panel::GetAcceptMessage(controlId);
+}
+
+bool IES_Intensity::OnColorSwatchChange(TimeValue t, IColorSwatch* colorSwatch, WORD controlId, bool final)
 {
 	switch (controlId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_COLOR:
 		if (final)
 		{
-			UpdateColorParam();
+			return UpdateColorParam(t);
 		}
 		break;
 
@@ -147,7 +170,7 @@ INT_PTR IES_Intensity::OnColorSwatchChange(IColorSwatch* colorSwatch, WORD contr
 		break;
 	}
 
-	return FALSE;
+	return false;
 }
 
 void IES_Intensity::Enable()
@@ -174,9 +197,9 @@ void IES_Intensity::Disable()
 		m_temperatureControl);
 }
 
-void IES_Intensity::UpdateControlsEnabled()
+void IES_Intensity::UpdateControlsEnabled(TimeValue time)
 {
-	if (m_parent->GetColorMode() == IES_LIGHT_COLOR_MODE_COLOR)
+	if (m_parent->GetColorMode(time) == IES_LIGHT_COLOR_MODE_COLOR)
 	{
 		m_temperatureControl.Disable();
 		m_colorControl.Enable();

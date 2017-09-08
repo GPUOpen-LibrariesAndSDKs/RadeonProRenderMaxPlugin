@@ -271,14 +271,25 @@ namespace
 		}
 	};
 
+	// Sets parameter value in the parameter block
+	// Returns 'true' if value is updated
+	// It doesn't change the parameter block value if input is the same
+	// which prevents unnecessary updates
 	template<IESLightParameter parameter>
-	void SetBlockValue(IParamBlock2* pBlock,
-		typename GetBlockValueHelper<parameter>::T1 value,
+	bool SetBlockValue(IParamBlock2* pBlock,
+		typename GetBlockValueHelper<parameter>::T2 value,
 		TimeValue time = 0)
 	{
+		if (GetBlockValue<parameter>(pBlock, time) == value)
+		{
+			return false;
+		}
+		
 		ParameterCache<parameter>::SetValue(pBlock, value);
 		auto res = pBlock->SetValue(parameter, time, value);
 		FASSERT(res);
+
+		return true;
 	}
 
 	template<IESLightParameter p>
@@ -310,9 +321,10 @@ namespace
 		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_VOLUME_SCALE>(pBlock);
 
-		if (instance->ProfileIsSelected())
+		auto t = GetCOREInterface()->GetTime();
+		if (instance->ProfileIsSelected(t))
 		{
-			instance->CalculateLightRepresentation(instance->GetActiveProfile());
+			instance->CalculateLightRepresentation(instance->GetActiveProfile(t));
 		}
 
 		return instance;
@@ -542,36 +554,82 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 {
 	if (REFMSG_CHANGE == msg)
 	{
-		if (hTarget == m_pblock2)
+		auto updatePoint = [&](
+			INode* (FireRenderIESLight::* nodeGetter)(),
+			bool (FireRenderIESLight::* pointSetter)(Point3, TimeValue))
+		{
+			auto time = GetCOREInterface()->GetTime();
+			auto node = (this->*nodeGetter)();
+			auto nodeController = node->GetTMController();
+
+			if (!nodeController->TestAFlag(A_HELD))
+			{
+				auto thisTm = node->GetNodeTM(time);
+				(this->*pointSetter)(thisTm.GetTrans(), time);
+			}
+		};
+
+		if (hTarget == m_thisNodeMonitor)
+		{
+			updatePoint(&FireRenderIESLight::GetThisNode, &FireRenderIESLight::SetLightPoint);
+		}
+		else if (hTarget == m_targNodeMonitor)
+		{
+			updatePoint(&FireRenderIESLight::GetTargetNode, &FireRenderIESLight::SetTargetPoint);
+		}
+		else if (hTarget == m_pblock2)
 		{
 			auto p = m_pblock2->LastNotifyParamID();
+			auto time = GetCOREInterface()->GetTime();
 
 			switch (p)
 			{
-				case IES_PARAM_P0:
-				case IES_PARAM_P1:
+				case IES_PARAM_PROFILE:
 				{
-					if (m_general.IsInitialized())
+					if (ProfileIsSelected(time))
 					{
-						m_general.UpdateTargetDistanceUi();
+						auto time = GetCOREInterface()->GetTime();
+						CalculateLightRepresentation(GetActiveProfile(time));
+						CalculateBBox();
+					}
+					else
+					{
+						m_plines.clear();
+						m_preview_plines.clear();
 					}
 				}
 				break;
 			}
-		}
-		else if (hTarget == m_thisNodeMonitor)
-		{
-			auto time = GetCOREInterface()->GetTime();
-			auto thisNode = dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
-			auto thisTm = thisNode->GetNodeTM(time);
-			SetLightPoint(thisTm.GetTrans(), time);
-		}
-		else if (hTarget == m_targNodeMonitor)
-		{
-			auto time = GetCOREInterface()->GetTime();
-			auto targetNode = dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
-			auto targetTm = targetNode->GetNodeTM(time);
-			SetTargetPoint(targetTm.GetTrans(), time);
+
+			// Update panels
+			switch (p)
+			{
+				case IES_PARAM_P0:
+				case IES_PARAM_P1:
+				case IES_PARAM_ENABLED:
+				case IES_PARAM_PROFILE:
+				case IES_PARAM_AREA_WIDTH:
+				case IES_PARAM_TARGETED:
+					m_general.UpdateUI(time);
+					break;
+
+				case IES_PARAM_INTENSITY:
+				case IES_PARAM_COLOR_MODE:
+				case IES_PARAM_COLOR:
+				case IES_PARAM_TEMPERATURE:
+					m_intensity.UpdateUI(time);
+					break;
+
+				case IES_PARAM_SHADOWS_ENABLED:
+				case IES_PARAM_SHADOWS_SOFTNESS:
+				case IES_PARAM_SHADOWS_TRANSPARENCY:
+					m_shadows.UpdateUI(time);
+					break;
+
+				case IES_PARAM_VOLUME_SCALE:
+					m_volume.UpdateUI(time);
+					break;
+			}
 		}
 		
 		//some params have changed - should redraw all
@@ -839,12 +897,12 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 	if (scaleFactor!=(float)1.0)
 		tm.Scale(Point3(scaleFactor,scaleFactor,scaleFactor));
 #endif
-	float scaleFactor = GetAreaWidth();
+	float scaleFactor = GetAreaWidth(t);
 	tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
 
 	vpt->getGW()->setTransform(tm);
 
-	auto result = DrawWeb(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
+	auto result = DrawWeb(t, vpt, inode->Selected(), inode->IsFrozen());
 
 	vpt->getGW()->setTransform(prevtm);
 
@@ -860,7 +918,7 @@ int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int fla
 		return FALSE;
 	}
 
-	if (ProfileIsSelected())
+	if (ProfileIsSelected(t))
 	{
 		DisplayLight(t, inode, vpt, flags);
 	}
@@ -1085,9 +1143,9 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 {
 	// create light
 	frw::IESLight light = scope.GetContext().CreateIESLight();
-	auto activeProfile = GetActiveProfile();
+	auto activeProfile = GetActiveProfile(params.t);
 
-	if (ProfileIsSelected())
+	if (ProfileIsSelected(params.t))
 	{
 		// profile is ok, load IES data
 		std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
@@ -1195,8 +1253,8 @@ void FireRenderIESLight::AddTarget()
 
 	// Set target node transform
 	{
-		Point3 p1 = GetTargetPoint();
-		Point3 p0 = GetLightPoint();
+		Point3 p1 = GetTargetPoint(t);
+		Point3 p0 = GetLightPoint(t);
 		Point3 r = p1 - p0;
 
 		Matrix3 targtm = thisNode->GetNodeTM(t);
@@ -1221,9 +1279,9 @@ void FireRenderIESLight::AddTarget()
 	targNode->SetWireColor(lightWireColor.toRGB());
 }
 
-bool FireRenderIESLight::ProfileIsSelected() const
+bool FireRenderIESLight::ProfileIsSelected(TimeValue t) const
 {
-	auto activeProfile = GetActiveProfile();
+	auto activeProfile = GetActiveProfile(t);
 
 	return
 		activeProfile != nullptr &&
@@ -1235,7 +1293,7 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 {
 	Color result(1.f, 1.f, 1.f);
 
-	switch (GetColorMode())
+	switch (GetColorMode(t))
 	{
 		case IES_LIGHT_COLOR_MODE_COLOR:
 			result = GetBlockValue<IES_PARAM_COLOR>(m_pblock2, t, i);
@@ -1253,43 +1311,34 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 	return result;
 }
 
-void FireRenderIESLight::SetActiveProfile(const TCHAR* profileName, TimeValue time)
-{
-	SetBlockValue<IES_PARAM_PROFILE>(m_pblock2, profileName, time);
-
-	if (ProfileIsSelected())
-	{
-		CalculateLightRepresentation(profileName);
-		CalculateBBox();
-	}
-	else
-	{
-		m_plines.clear();
-		m_preview_plines.clear();
-	}
-}
-
-void FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
+bool FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
 {
 	if (auto thisNode = GetThisNode())
 	{
-		// Compute offset from light to target
-		auto p0 = GetLightPoint(time);
-		auto p1 = GetTargetPoint(time);
-		auto targetOffset = (p1 - p0).Normalize() * value;
+		if (GetTargetDistance(time) != value)
+		{
+			// Compute offset from light to target
+			auto p0 = GetLightPoint(time);
+			auto p1 = GetTargetPoint(time);
+			auto targetOffset = (p1 - p0).Normalize() * value;
 
-		// Get target node from controller
-		auto targetNode = GetTargetNode();
+			// Get target node from controller
+			auto targetNode = GetTargetNode();
 
-		auto thisTm = thisNode->GetNodeTM(time);
-		auto thisTrans = thisTm.GetTrans();
+			auto thisTm = thisNode->GetNodeTM(time);
+			auto thisTrans = thisTm.GetTrans();
 
-		Matrix3 targetTm(true);
-		targetTm.SetTrans(thisTrans + targetOffset);
+			Matrix3 targetTm(true);
+			targetTm.SetTrans(thisTrans + targetOffset);
 
-		// Update target node position
-		targetNode->SetNodeTM(time, targetTm);
+			// Update target node position
+			targetNode->SetNodeTM(time, targetTm);
+
+			return true;
+		}
 	}
+
+	return false;
 }
 
 float FireRenderIESLight::GetTargetDistance(TimeValue t, Interval& valid) const
@@ -1319,9 +1368,9 @@ void FireRenderIESLight::SetTargetNode(INode* node)
 
 // Makes default implementation for parameter setter
 #define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)				\
-void FireRenderIESLight::Set##$paramName($paramType value, TimeValue t)	\
+bool FireRenderIESLight::Set##$paramName($paramType value, TimeValue t)	\
 {																		\
-	SetBlockValue<$enum>(m_pblock2, value, t);							\
+	return SetBlockValue<$enum>(m_pblock2, value, t);					\
 }
 
 // Makes default implementation for parameter getter
@@ -1349,6 +1398,6 @@ IES_DEFINE_PARAM(ShadowsTransparency, float, IES_PARAM_SHADOWS_TRANSPARENCY)
 IES_DEFINE_PARAM(VolumeScale, float, IES_PARAM_VOLUME_SCALE)
 IES_DEFINE_PARAM(Color, Color, IES_PARAM_COLOR)
 IES_DEFINE_PARAM(ColorMode, IESLightColorMode, IES_PARAM_COLOR_MODE)
-IES_DEFINE_PARAM_GET(ActiveProfile, const TCHAR*, IES_PARAM_PROFILE)
+IES_DEFINE_PARAM(ActiveProfile, const TCHAR*, IES_PARAM_PROFILE)
 
 FIRERENDER_NAMESPACE_END

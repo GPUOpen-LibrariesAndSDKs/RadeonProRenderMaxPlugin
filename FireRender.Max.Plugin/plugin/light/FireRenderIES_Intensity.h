@@ -17,23 +17,24 @@ public:
 	// Use base class constructor
 	using BasePanel::BasePanel;
 
-	void UpdateIntensityParam();
-	void UpdateColorModeParam();
-	void UpdateColorParam();
-	void UpdateTemperatureParam();
+	bool UpdateIntensityParam(TimeValue t);
+	bool UpdateColorModeParam(TimeValue t);
+	bool UpdateColorParam(TimeValue t);
+	bool UpdateTemperatureParam(TimeValue t);
 
 	// IES_Panel overrides
-	bool InitializePage();
+	bool InitializePage(TimeValue time);
 	void UninitializePage();
-	INT_PTR HandleControlCommand(WORD code, WORD controlId);
-	INT_PTR OnEditChange(int editId, HWND editHWND);
-	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
-	INT_PTR OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final);
+	bool HandleControlCommand(TimeValue t, WORD code, WORD controlId);
+	bool OnEditChange(TimeValue t, int editId, HWND editHWND);
+	bool OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	bool OnColorSwatchChange(TimeValue t, IColorSwatch* colorSwatch, WORD controlId, bool final);
+	const TCHAR* GetAcceptMessage(WORD controlId) const;
 	void Enable();
 	void Disable();
 
 private:
-	void UpdateControlsEnabled();
+	void UpdateControlsEnabled(TimeValue time);
 
 	MaxEditAndSpinner m_intensityControl;
 	WinButton m_rgbModeControl;

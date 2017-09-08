@@ -17,16 +17,17 @@ public:
 	// Use base class constructor
 	using BasePanel::BasePanel;
 
-	void UpdateEnabledParam();
-	void UpdateSoftnessParam();
-	void UpdateTransparencyParam();
+	bool UpdateEnabledParam(TimeValue t);
+	bool UpdateSoftnessParam(TimeValue t);
+	bool UpdateTransparencyParam(TimeValue t);
 
 	// IES_Panel overrides
-	bool InitializePage();
+	bool InitializePage(TimeValue t);
 	void UninitializePage();
-	INT_PTR HandleControlCommand(WORD code, WORD controlId);
-	INT_PTR OnEditChange(int editId, HWND editHWND);
-	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	bool HandleControlCommand(TimeValue t, WORD code, WORD controlId);
+	bool OnEditChange(TimeValue t, int editId, HWND editHWND);
+	bool OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	const TCHAR* GetAcceptMessage(WORD controlId) const;
 	void Enable();
 	void Disable();
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 #include "frScope.h"
 #include "utils/KelvinToColor.h"
 
@@ -176,6 +178,37 @@ public:
 		SetResetValue(Settings::Default);
 		SetScale(Settings::Delta);
 	}
+
+	template<typename T>
+	T GetValue() const
+	{
+		FASSERT(m_ctrl != nullptr);
+		return static_cast<T>(GetValueHelper<T>::GetValue(m_ctrl));
+	}
+
+private:
+	template<typename T, typename Enable = void>
+	struct GetValueHelper;
+
+	// Specialization for integral types
+	template<typename T>
+	struct GetValueHelper<T, std::enable_if_t<std::is_integral<T>::value>>
+	{
+		static decltype(auto) GetValue(Traits::TControl* pControl)
+		{
+			return pControl->GetIVal();
+		}
+	};
+
+	// Specialization for floating-point types
+	template<typename T>
+	struct GetValueHelper<T, std::enable_if_t<std::is_floating_point<T>::value>>
+	{
+		static decltype(auto) GetValue(Traits::TControl* pControl)
+		{
+			return pControl->GetFVal();
+		}
+	};
 };
 
 /* This class wraps 3dsMax ICustEdit control */
@@ -363,6 +396,12 @@ public:
 		m_spinner.Disable();
 	}
 
+	template<typename T>
+	T GetValue() const
+	{
+		return m_spinner.GetValue<T>();
+	}
+
 	MaxEdit& GetEdit() { return m_edit; }
 	MaxSpinner& GetSpinner() { return m_spinner; }
 
@@ -398,7 +437,7 @@ public:
 
 	float GetTemperature() const
 	{
-		return m_kelvin.GetEdit().GetValue<float>();
+		return m_kelvin.GetValue<float>();
 	}
 
 	Color GetColor() const
@@ -500,18 +539,22 @@ public:
 
 	TString GetItemText(int index) const
 	{
+		TString result;
+		GetItemText(index, result);
+		return result;
+	}
+
+	void GetItemText(int index, TString& outText) const
+	{
 		CheckControl();
 
 		auto chars = ComboBox_GetLBTextLen(m_hWnd, index);
 		FASSERT(chars != CB_ERR && "Index out of range");
 
-		TString result;
 		auto len = chars + 1;
-		result.resize(len);
-		auto getLBText_result = ComboBox_GetLBText(m_hWnd, index, &result[0]);
+		outText.resize(len);
+		auto getLBText_result = ComboBox_GetLBText(m_hWnd, index, &outText[0]);
 		FASSERT(getLBText_result != CB_ERR && getLBText_result == chars);
-
-		return result;
 	}
 
 	int AddItem(const TCHAR* name)
@@ -573,6 +616,24 @@ public:
 		CheckControl();
 		ComboBox_Enable(m_hWnd, FALSE);
 	}
+
+	bool ForEachItem(std::function<bool(int index, const TString& str)> f)
+	{
+		int cnt = GetItemsCount();
+		TString cache;
+
+		for (int i = 0; i < cnt; ++i)
+		{
+			GetItemText(i, cache);
+			
+			if (f(i, cache))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 };
 
 /* This class contains common code to manage 3dsMax rollup pages.
@@ -612,7 +673,7 @@ public:
 		auto wndContext = reinterpret_cast<LONG_PTR>(_this);
 		auto prevLong = SetWindowLongPtr(m_panel, GWLP_USERDATA, wndContext);
 
-		_this->InitializePage();
+		_this->InitializePage(objParam->GetTime());
 		objParam->RegisterDlgWnd(m_panel);
 		
 		FASSERT(prevLong == 0);
@@ -628,13 +689,35 @@ public:
 	}
 
 	// These methods are optional to override in the derived class
-	bool InitializePage() { return true; }
+
+	// Capture and initialize page controls
+	bool InitializePage(TimeValue time) { return true; }
+
+	// Release page controls
 	void UninitializePage() {}
-	INT_PTR HandleControlCommand(WORD code, WORD controlId) { return FALSE; }
-	INT_PTR OnEditChange(int editId, HWND editHWND) { return FALSE; }
-	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging) { return FALSE; }
-	INT_PTR OnColorSwatchChange(IColorSwatch* colorSwatch, WORD controlId, bool final) { return FALSE; }
+
+	// WM_COMMAND simplified event
+	bool HandleControlCommand(TimeValue t, WORD code, WORD controlId) { return false; }
+
+	// 3ds Max custom edit change event
+	bool OnEditChange(TimeValue t, int editId, HWND editHWND) { return false; }
+
+	// Spinner change event
+	bool OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging) { return false; }
+
+	// Color shatch change event
+	bool OnColorSwatchChange(TimeValue t, IColorSwatch* colorSwatch, WORD controlId, bool final) { return false; }
+
+	// Returns message for undo / redo stack
+	const TCHAR* GetAcceptMessage(WORD controlId) const { return _T("IES light: change parameter"); }
+
+	// Update controls state from param block
+	void UpdateUI(TimeValue t) {}
+
+	// Enable controls on the panel
 	void Enable() {}
+
+	// Disable controls on the panel
 	void Disable() {}
 
 protected:
@@ -642,6 +725,23 @@ protected:
 	FireRenderIESLight* m_parent;
 
 private:
+	static void BeginUndoDelta()
+	{
+		theHold.Begin();
+	}
+
+	static void EndUndoDelta(bool accept, Derived* _this, int control)
+	{
+		if (accept)
+		{
+			theHold.Accept(_this->GetAcceptMessage(control));
+		}
+		else
+		{
+			theHold.Cancel();
+		}
+	}
+
 	static INT_PTR CALLBACK DlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (msg)
@@ -658,11 +758,14 @@ private:
 			{
 				if (lParam != 0)
 				{
+					auto time = GetCOREInterface()->GetTime();
 					auto code = HIWORD(wParam);
 					auto controlId = LOWORD(wParam);
 					auto _this = GetAttachedThis(hWnd);
 
-					return _this->HandleControlCommand(code, controlId);
+					BeginUndoDelta();
+					auto accept = _this->HandleControlCommand(time, code, controlId);
+					EndUndoDelta(accept, _this, controlId);
 				}
 			}
 			break;
@@ -672,19 +775,57 @@ private:
 				auto customEditId = wParam;
 				auto customEditHWND = reinterpret_cast<HWND>(lParam);
 				auto _this = GetAttachedThis(hWnd);
-
-				return _this->OnEditChange(customEditId, customEditHWND);
+				auto time = GetCOREInterface()->GetTime();
+			
+				BeginUndoDelta();
+				auto accept = _this->OnEditChange(time, customEditId, customEditHWND);
+				EndUndoDelta(accept, _this, customEditId);
+			
+				return TRUE;
 			}
 			break;
 
+			// start dragging the spinner
+			case CC_SPINNER_BUTTONDOWN:
+				BeginUndoDelta();
+			break;
+
+			// on change value in the spinner
 			case CC_SPINNER_CHANGE:
 			{
 				auto spinner = reinterpret_cast<ISpinnerControl*>(lParam);
 				auto spinnerId = LOWORD(wParam);
 				auto isDragging = HIWORD(wParam);
 				auto _this = GetAttachedThis(hWnd);
+				auto time = GetCOREInterface()->GetTime();
 
-				return _this->OnSpinnerChange(spinner, spinnerId, isDragging);
+				if (!isDragging)
+				{
+					BeginUndoDelta();
+				}
+
+				auto accept = _this->OnSpinnerChange(time, spinner, spinnerId, isDragging);
+
+				if (!isDragging)
+				{
+					EndUndoDelta(accept, _this, spinnerId);
+				}
+
+				return TRUE;
+			}
+			break;
+
+			// finish spinner editing
+			case CC_SPINNER_BUTTONUP:
+			{
+				auto _this = GetAttachedThis(hWnd);
+				auto spinner = reinterpret_cast<ISpinnerControl*>(lParam);
+				auto spinnerId = LOWORD(wParam);
+				auto accept = HIWORD(wParam);
+				auto time = GetCOREInterface()->GetTime();
+				auto retVal = _this->OnSpinnerChange(time, spinner, spinnerId, false);
+
+				EndUndoDelta(accept, _this, spinnerId);
 			}
 			break;
 
@@ -694,8 +835,11 @@ private:
 				auto controlPtr = reinterpret_cast<IColorSwatch*>(lParam);
 				auto controlId = LOWORD(wParam);
 				auto _this = GetAttachedThis(hWnd);
+				auto time = GetCOREInterface()->GetTime();
 
-				_this->OnColorSwatchChange(controlPtr, controlId, msg == CC_COLOR_CLOSE);
+				BeginUndoDelta();
+				auto accept = _this->OnColorSwatchChange(time, controlPtr, controlId, msg == CC_COLOR_CLOSE);
+				EndUndoDelta(accept, _this, controlId);
 			}
 			break;
 		}

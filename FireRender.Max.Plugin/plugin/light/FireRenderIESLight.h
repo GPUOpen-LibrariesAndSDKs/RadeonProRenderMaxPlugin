@@ -25,8 +25,8 @@ class LookAtTarget;
 
 FIRERENDER_NAMESPACE_BEGIN
 
-#define IES_DELCARE_PARAM_SET($paramName, $paramType) void Set##$paramName($paramType value, TimeValue t = 0)
-#define IES_DECLARE_PARAM_GET($paramName, $paramType) $paramType Get##$paramName(TimeValue t = 0, Interval& valid = FOREVER) const
+#define IES_DELCARE_PARAM_SET($paramName, $paramType) bool Set##$paramName($paramType value, TimeValue t)
+#define IES_DECLARE_PARAM_GET($paramName, $paramType) $paramType Get##$paramName(TimeValue t, Interval& valid = FOREVER) const
 #define IES_DECLARE_PARAM($paramName, $paramType)  \
 	IES_DELCARE_PARAM_SET($paramName, $paramType); \
 	IES_DECLARE_PARAM_GET($paramName, $paramType)
@@ -103,7 +103,7 @@ public:
 	RefTargetHandle GetReference(int i) override;
 
 	void DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
-	bool DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected = false, bool isFrozen = false);
+	bool DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected = false, bool isFrozen = false);
 	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
 	//***************************************************************************************
 	Color GetViewportMainColor(INode* pNode);
@@ -139,7 +139,7 @@ public:
 	IES_DECLARE_PARAM(ShadowsTransparency, float);
 	IES_DECLARE_PARAM(VolumeScale, float);
 
-	bool ProfileIsSelected() const;
+	bool ProfileIsSelected(TimeValue t) const;
 
 	// Result depends on color mode (but without intensity)
 	Color GetFinalColor(TimeValue t = 0, Interval& valid = FOREVER) const;

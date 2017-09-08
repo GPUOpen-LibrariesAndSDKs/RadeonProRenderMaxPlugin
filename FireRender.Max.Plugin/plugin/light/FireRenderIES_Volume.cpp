@@ -3,12 +3,12 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-void IES_Volume::UpdateVolumeScaleParam()
+bool IES_Volume::UpdateVolumeScaleParam(TimeValue t)
 {
-	m_parent->SetVolumeScale(m_volumeScaleControl.GetEdit().GetValue<float>());
+	return m_parent->SetVolumeScale(m_volumeScaleControl.GetValue<float>(), t);
 }
 
-bool IES_Volume::InitializePage()
+bool IES_Volume::InitializePage(TimeValue t)
 {
 	m_volumeScaleControl.Capture(m_panel,
 		IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE,
@@ -16,7 +16,7 @@ bool IES_Volume::InitializePage()
 
 	m_volumeScaleControl.Bind(EditSpinnerType::EDITTYPE_FLOAT);
 	m_volumeScaleControl.GetSpinner().SetSettings<FireRenderIESLight::VolumeScaleSettings>();
-	m_volumeScaleControl.GetSpinner().SetValue(m_parent->GetVolumeScale());
+	m_volumeScaleControl.GetSpinner().SetValue(m_parent->GetVolumeScale(t));
 
 	return TRUE;
 }
@@ -26,28 +26,39 @@ void IES_Volume::UninitializePage()
 	m_volumeScaleControl.Release();
 }
 
-INT_PTR IES_Volume::OnEditChange(int controlId, HWND editHWND)
+bool IES_Volume::OnEditChange(TimeValue t, int controlId, HWND editHWND)
 {
 	switch (controlId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE:
-		UpdateVolumeScaleParam();
-		return TRUE;
+		return UpdateVolumeScaleParam(t);
 	}
 
-	return FALSE;
+	return false;
 }
 
-INT_PTR IES_Volume::OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging)
+bool IES_Volume::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging)
 {
 	switch (controlId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE_S:
-		UpdateVolumeScaleParam();
-		return TRUE;
+		return UpdateVolumeScaleParam(t);
 	}
 
-	return FALSE;
+	return false;
+}
+
+const TCHAR* IES_Volume::GetAcceptMessage(WORD controlId) const
+{
+	switch (controlId)
+	{
+	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE:
+	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE_S:
+		return _T("IES light: change volume scale");
+	}
+
+	FASSERT(false);
+	return IES_Panel::GetAcceptMessage(controlId);
 }
 
 void IES_Volume::Enable()

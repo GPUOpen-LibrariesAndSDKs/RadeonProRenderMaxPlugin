@@ -351,12 +351,12 @@ static INode* FindNodeRef(ReferenceTarget *rt) {
 	return NULL;
 }
 
-bool FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isSelected /*= false*/, bool isFrozen /*= false*/)
+bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*= false*/, bool isFrozen /*= false*/)
 {
 	if (m_plines.empty())
 	{
 		// try regen web
-		bool webOk = CalculateLightRepresentation(GetActiveProfile());
+		bool webOk = CalculateLightRepresentation(GetActiveProfile(t));
 
 		if (!webOk)
 			return false;
@@ -366,16 +366,17 @@ bool FireRenderIESLight::DrawWeb(ViewExp *pVprt, IParamBlock2 *pPBlock, bool isS
 	gw->setColor(LINE_COLOR, GetEdgeColor(isFrozen, isSelected));
 
 	// draw line from light source to target
-	Point3 dirMesh[2];
-	pPBlock->GetValue(IES_PARAM_P0, 0, dirMesh[0], FOREVER);
-	pPBlock->GetValue(IES_PARAM_P1, 0, dirMesh[1], FOREVER);
+	Point3 dirMesh[2]
+	{
+		GetLightPoint(t),
+		GetTargetPoint(t)
+	};
 
 	INode *nd = FindNodeRef(this);
 	Control* pLookAtController = nd->GetTMController();
 
 	//float scaleFactor = pVprt->NonScalingObjectSize() * pVprt->GetVPWorldWidth(nd->GetObjectTM(0).GetTrans()) / 360.0f;
-	float scaleFactor;
-	pPBlock->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+	auto scaleFactor = GetAreaWidth(t);
 
 	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
 	{

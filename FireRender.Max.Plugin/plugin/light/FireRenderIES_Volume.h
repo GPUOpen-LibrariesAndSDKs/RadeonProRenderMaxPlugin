@@ -17,13 +17,14 @@ public:
 	// Use base class constructor
 	using BasePanel::BasePanel;
 
-	void UpdateVolumeScaleParam();
+	bool UpdateVolumeScaleParam(TimeValue t);
 
 	// IES_Panel overrides
-	bool InitializePage();
+	bool InitializePage(TimeValue t);
 	void UninitializePage();
-	INT_PTR OnEditChange(int editId, HWND editHWND);
-	INT_PTR OnSpinnerChange(ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	bool OnEditChange(TimeValue t, int editId, HWND editHWND);
+	bool OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	const TCHAR* GetAcceptMessage(WORD controlId) const;
 	void Enable();
 	void Disable();
 
