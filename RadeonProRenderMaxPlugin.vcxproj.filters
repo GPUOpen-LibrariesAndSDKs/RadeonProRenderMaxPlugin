@@ -270,6 +270,9 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderWardMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -476,6 +479,9 @@
       <Filter>Plugin\materials</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderWardMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.cpp">
       <Filter>Plugin\materials</Filter>
     </ClCompile>
   </ItemGroup>
