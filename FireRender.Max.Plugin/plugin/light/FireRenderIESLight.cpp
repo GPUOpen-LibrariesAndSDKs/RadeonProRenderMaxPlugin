@@ -1153,11 +1153,27 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 
 void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
 {
+	if (!ProfileIsSelected(params.t))
+	{
+		MessageBox(
+			GetCOREInterface()->GetMAXHWnd(),
+			_T("No profile is selected!"),
+			_T("Warning"),
+			MB_ICONWARNING | MB_OK);
+
+		return;
+	}
+
+	if (!GetEnabled(params.t))
+	{
+		return;
+	}
+
 	// create light
 	frw::IESLight light = scope.GetContext().CreateIESLight();
 	auto activeProfile = GetActiveProfile(params.t);
 
-	if (ProfileIsSelected(params.t))
+	// Load profile
 	{
 		// profile is ok, load IES data
 		std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
@@ -1165,6 +1181,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 		// apply scaling to photometric web if necessary
 		float scaleFactor;
 		GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+
 		if (std::fabs(scaleFactor - 1.0f) > 0.01f)
 		{
 			// parse IES file
@@ -1193,15 +1210,6 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 			// pass IES data to RPR
 			light.SetImageFromData(iesData.c_str(), 256, 256);
 		}
-		
-	}
-	else
-	{
-		MessageBox(
-			GetCOREInterface()->GetMAXHWnd(),
-			_T("No profile is selected!"),
-			_T("Warning"),
-			MB_ICONWARNING | MB_OK);
 	}
 
 	// setup color & intensity
