@@ -104,7 +104,6 @@ public:
 
 	void DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
 	bool DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected = false, bool isFrozen = false);
-	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
 	//***************************************************************************************
 	Color GetViewportMainColor(INode* pNode);
 	Color GetViewportColor(INode* pNode, Color selectedColor);
@@ -147,7 +146,9 @@ public:
 protected:
 	class CreateCallback;
 
-	void AddTarget();
+	void AddTarget(TimeValue t, bool fromCreateCallback);
+	void RemoveTarget(TimeValue t);
+	void OnTargetedChanged(TimeValue t, bool fromCreateCallback);
 
 	void SetThisNode(INode*);
 	void SetTargetNode(INode*);

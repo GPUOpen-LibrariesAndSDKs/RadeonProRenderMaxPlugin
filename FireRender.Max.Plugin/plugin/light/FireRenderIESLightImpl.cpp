@@ -415,17 +415,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	}
 	else
 	{
-		// have controller => need to calculate dist between light root and target
-		INode* pTargNode = pLookAtController->GetTarget();
-		Matrix3 targTransform = pTargNode->GetObjectTM(0.0);
-		Point3 targVector(0.0f, 0.0f, 0.0f);
-		targVector = targVector * targTransform;
-
-		Matrix3 rootTransform = nd->GetObjectTM(0.0);
-		Point3 rootVector(0.0f, 0.0f, 0.0f);
-		rootVector = rootVector * rootTransform;
-
-		float dist = (targVector - rootVector).FLength();
+		float dist = GetTargetDistance(t);
 		dist = dist / scaleFactor; // to cancel out scaling of graphic window
 
 		dirMesh[1] = Point3(0.0f, 0.0f, -dist);

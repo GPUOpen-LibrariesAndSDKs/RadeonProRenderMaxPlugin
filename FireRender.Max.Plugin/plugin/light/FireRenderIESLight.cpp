@@ -423,33 +423,55 @@ public:
 
 		switch (msg)
 		{
-		case MOUSE_POINT:
-			if (point == 0)
+			case MOUSE_POINT:
 			{
 				auto time = GetCOREInterface()->GetTime();
-				mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
-				Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-				ob->SetLightPoint(p, time);
-				ob->SetTargetPoint(p, time);
+
+				// First click
+				if (point == 0)
+				{
+					auto thisNode = FindNodeRef(ob);
+					ob->SetThisNode(thisNode);
+
+					mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
+
+					auto p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
+
+					ob->SetLightPoint(p, time);
+
+					if (ob->GetTargeted(time))
+					{
+						ob->SetTargetPoint(p, time);
+					}
+					else
+					{
+						// Just to avoid zero target distance
+						ob->SetTargetPoint(p + Point3(1, 0, 0), time);
+
+						// Don't need to wait for the second point
+						result = CREATE_STOP;
+					}
+				}
+				// Second click
+				else
+				{
+					ob->OnTargetedChanged(time, true);
+					result = CREATE_STOP;
+				}
 			}
-			else
-			{
-				ob->AddTarget();
-				result = CREATE_STOP;
-			}
 			break;
 
-		case MOUSE_MOVE:
-			pblock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
-			break;
+			case MOUSE_MOVE:
+				pblock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
+				break;
 
-		case MOUSE_ABORT:
-			result = CREATE_ABORT;
-			break;
+			case MOUSE_ABORT:
+				result = CREATE_ABORT;
+				break;
 
-		case MOUSE_FREEMOVE:
-			vpt->SnapPreview(m, m, NULL, SNAP_IN_3D);
-			break;
+			case MOUSE_FREEMOVE:
+				vpt->SnapPreview(m, m, NULL, SNAP_IN_3D);
+				break;
 		}
 
 		return result;
@@ -588,7 +610,6 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 				{
 					if (ProfileIsSelected(time))
 					{
-						auto time = GetCOREInterface()->GetTime();
 						CalculateLightRepresentation(GetActiveProfile(time));
 						CalculateBBox();
 					}
@@ -599,6 +620,11 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 					}
 				}
 				break;
+
+				case IES_PARAM_TARGETED:
+					if(!theHold.RestoreOrRedoing())
+						OnTargetedChanged(time, false);
+					break;
 			}
 
 			// Update panels
@@ -811,25 +837,17 @@ void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL fr
 		GetTargetPoint(t)
 	};
 
-	INode *nd = FindNodeRef(this);
-	Control* pLookAtController = nd->GetTMController();
+	auto thisNode = FindNodeRef(this);
+	auto targNode = GetTargetNode();
 	
-	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
+	if (targNode == nullptr)
 	{
 		dirMesh[1] -= dirMesh[0];
 	}
 	else
 	{
-		INode* pTargNode = pLookAtController->GetTarget();
-		Matrix3 targTransform = pTargNode->GetObjectTM(0.0);
-		Point3 targVector(0.0f, 0.0f, 0.0f);
-		targVector = targVector * targTransform;
-	
-		Matrix3 rootTransform = nd->GetObjectTM(0.0);
-		Point3 rootVector(0.0f, 0.0f, 0.0f);
-		rootVector = rootVector * rootTransform;
-	
-		auto dist = (targVector - rootVector).FLength();
+		auto targTm = targNode->GetNodeTM(t);
+		auto dist = GetTargetDistance(t);
 		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
 	}
 
@@ -838,17 +856,14 @@ void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL fr
 	// light source
 	DrawSphereArcs<SphereCirclePointsCount>(0, gw, 2.0, dirMesh[0]);
 
-	// draw direction
-	gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+	if (GetTargeted(t))
+	{
+		// draw direction
+		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
 
-	// light lookAt
-	DrawSphereArcs<SphereCirclePointsCount>(0, gw, 1.0, dirMesh[1]);
-}
-
-Matrix3 FireRenderIESLight::GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt)
-{
-    Matrix3 tm = inode->GetObjectTM(t);
-    return tm;
+		// light lookAt
+		DrawSphereArcs<SphereCirclePointsCount>(0, gw, 1.0, dirMesh[1]);
+	}
 }
 
 Color FireRenderIESLight::GetViewportMainColor(INode* pNode)
@@ -887,22 +902,39 @@ Color FireRenderIESLight::GetViewportColor(INode* pNode, Color selectedColor)
 
 bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
-	Matrix3 prevtm = vpt->getGW()->getTransform();
-	Matrix3 tm = inode->GetObjectTM(t);
+	if (!vpt || !vpt->IsAlive())
+	{
+		// why are we here
+		DbgAssert(!_T("Invalid viewport!"));
+		return FALSE;
+	}
 
-	// apply scaling
+	Matrix3 prevtm = vpt->getGW()->getTransform();
+	Matrix3 tm = prevtm;
+	BOOL result = TRUE;
+
+	if (ProfileIsSelected(t))
+	{
+		auto gw = vpt->getGW();
+
+		// apply scaling
 #define IES_IGNORE_SCENE_SCALING
 #ifndef IES_IGNORE_SCENE_SCALING
-	float scaleFactor = vpt->NonScalingObjectSize() * vpt->GetVPWorldWidth(tm.GetTrans()) / 360.0f;
-	if (scaleFactor!=(float)1.0)
-		tm.Scale(Point3(scaleFactor,scaleFactor,scaleFactor));
+		float scaleFactor = vpt->NonScalingObjectSize() * vpt->GetVPWorldWidth(tm.GetTrans()) / 360.0f;
+		if (scaleFactor != (float)1.0)
+			tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
 #endif
-	float scaleFactor = GetAreaWidth(t);
-	tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
+		float scaleFactor = GetAreaWidth(t);
+		tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
 
-	vpt->getGW()->setTransform(tm);
-
-	auto result = DrawWeb(t, vpt, inode->Selected(), inode->IsFrozen());
+		gw->setTransform(tm);
+		result = DrawWeb(t, vpt, inode->Selected(), inode->IsFrozen());
+	}
+	else
+	{
+		vpt->getGW()->setTransform(tm);
+		DrawSphere(t, vpt, inode->Selected(), inode->IsFrozen());
+	}
 
 	vpt->getGW()->setTransform(prevtm);
 
@@ -911,27 +943,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 
 int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
-	if (!vpt || !vpt->IsAlive())
-	{
-		// why are we here
-		DbgAssert(!_T("Invalid viewport!"));
-		return FALSE;
-	}
-
-	if (ProfileIsSelected(t))
-	{
-		DisplayLight(t, inode, vpt, flags);
-	}
-	else
-	{
-		Matrix3 prevtm = vpt->getGW()->getTransform();
-		Matrix3 tm = inode->GetObjectTM(t);
-		vpt->getGW()->setTransform(tm);
-		DrawSphere(t, vpt, inode->Selected(), inode->IsFrozen());
-		vpt->getGW()->setTransform(prevtm);
-	}
-
-    return TRUE;
+	return DisplayLight(t, inode, vpt, flags);
 }
 
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
@@ -1233,36 +1245,19 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	scope.GetScene().Attach(light);
 }
 
-void FireRenderIESLight::AddTarget()
+void FireRenderIESLight::AddTarget(TimeValue t, bool fromCreateCallback)
 {
-	auto thisNode = FindNodeRef(this);
-
-	Interface *iface = GetCOREInterface();
-	TimeValue t = iface->GetTime();
-
-	// Make new node for target object
-	auto targObject = new LookAtTarget;
-	INode *targNode = iface->CreateObjectNode(targObject);
+	auto thisNode = GetThisNode();
+	auto core = GetCOREInterface();
+	auto targNode = core->CreateObjectNode(new LookAtTarget);
 	
 	//Make target node name
 	{
 		TSTR targName = thisNode->GetName();
-		targName += _T("DOT_TARGET");
+		targName += _T("IES target");
 		targNode->SetName(targName);
 	}
 
-	// Set target node transform
-	{
-		Point3 p1 = GetTargetPoint(t);
-		Point3 p0 = GetLightPoint(t);
-		Point3 r = p1 - p0;
-
-		Matrix3 targtm = thisNode->GetNodeTM(t);
-		targtm.PreTranslate(r);
-
-		targNode->SetNodeTM(0, targtm);
-	}
-	
 	// Set up look at control
 	{
 		auto laControl = CreateLookatControl();
@@ -1272,11 +1267,89 @@ void FireRenderIESLight::AddTarget()
 		targNode->SetIsTarget(TRUE);
 	}
 
+	// Track target node changes
 	SetTargetNode(targNode);
-	SetThisNode(thisNode);
+
+	// Set target node transform
+	if (fromCreateCallback)
+	{
+		Point3 p1 = GetTargetPoint(t);
+		Point3 p0 = GetLightPoint(t);
+		Point3 r = p1 - p0;
+
+		Matrix3 targtm = thisNode->GetNodeTM(t);
+		targtm.PreTranslate(r);
+
+		targNode->SetNodeTM(t, targtm);
+	}
+	else
+	{
+		Matrix3 targtm(1);
+		targtm.SetTrans(GetTargetPoint(t));
+		targNode->SetNodeTM(t, targtm);
+		//FASSERT(targtm == targNode->GetNodeTM(t));
+	}
 
 	Color lightWireColor(thisNode->GetWireColor());
 	targNode->SetWireColor(lightWireColor.toRGB());
+
+	targNode->NotifyDependents(FOREVER, PART_OBJ, REFMSG_CHANGE);
+	targNode->NotifyDependents(FOREVER, PART_OBJ, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
+}
+
+void FireRenderIESLight::RemoveTarget(TimeValue t)
+{
+	auto thisNode = GetThisNode();
+	auto targNode = GetTargetNode();
+
+	if (!thisNode || !targNode)
+	{
+		return;
+	}
+
+	auto core = GetCOREInterface();
+	DependentIterator di(this);
+
+	// iterate through the instances
+	while (auto rm = di.Next())
+	{
+		if (auto node = GetNodeRef(rm))
+		{
+			if (auto target = node->GetTarget())
+			{
+				core->DeleteNode(target);
+			}
+
+			auto p0 = GetLightPoint(t);
+			auto p1 = GetTargetPoint(t);
+			auto dir = (p1 - p0).Normalize();
+
+			Matrix3 tm(1);
+			tm.SetAngleAxis(dir, 0);
+			tm.SetTrans(p0);
+
+			node->SetTMController(NewDefaultMatrix3Controller());
+			node->SetNodeTM(t, tm);
+		}
+	}
+
+	SetTargetNode(nullptr);
+}
+
+void FireRenderIESLight::OnTargetedChanged(TimeValue t, bool fromCreateCallback)
+{
+	if (GetTargeted(t))
+	{
+		AddTarget(t, fromCreateCallback);
+	}
+	else
+	{
+		RemoveTarget(t);
+	}
+
+	NotifyDependents(FOREVER, PART_OBJ, REFMSG_CHANGE);
+	NotifyDependents(FOREVER, PART_OBJ, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
+	GetCOREInterface()->RedrawViews(t);
 }
 
 bool FireRenderIESLight::ProfileIsSelected(TimeValue t) const

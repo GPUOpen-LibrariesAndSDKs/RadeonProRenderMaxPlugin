@@ -89,7 +89,7 @@ bool IES_General::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 			case IDC_FIRERENDER_IES_LIGHT_IMPORT:
 				if(m_importButton.CursorIsOver())
 					ImportProfile();
-				return TRUE;
+				return false;
 
 			case IDC_FIRERENDER_IES_LIGHT_DELETE_PROFILE:
 				if (m_deleteCurrentButton.CursorIsOver())
@@ -141,6 +141,7 @@ const TCHAR* IES_General::GetAcceptMessage(WORD controlId) const
 	switch (controlId)
 	{
 	case IDC_FIRERENDER_IES_LIGHT_PROFILE:
+	case IDC_FIRERENDER_IES_LIGHT_DELETE_PROFILE:
 		return _T("IES light: change profile");
 
 	case IDC_FIRERENDER_IES_LIGHT_ENABLED:
