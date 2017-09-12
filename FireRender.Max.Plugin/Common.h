@@ -111,6 +111,8 @@ const Class_ID FIRERENDER_UBERMTL_CID(0x2acc79c5, 0x314e0f46);
 const Class_ID FIRERENDER_UBERMTLV2_CID(0x358559fe, 0x22231035);
 /// Class ID of the Radeon ProRender custom Volume material node
 const Class_ID FIRERENDER_VOLUMEMTL_CID(0x716a2426, 0x37252fc1);
+/// Class ID of the Radeon ProRender custom PBR material node
+const Class_ID FIRERENDER_PBRMTL_CID(0x162a1228, 0x753a0690);
 
 // GUP singleton that manages legacy with old bg objects
 const Class_ID BGMANAGER_MAX_CLASSID(0x4069388a, 0x277a415f);

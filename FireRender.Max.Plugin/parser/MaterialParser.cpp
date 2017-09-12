@@ -40,6 +40,7 @@
 #include "FireRenderUberMtl.h"
 #include "FireRenderUberMtlv2.h"
 #include "FireRenderVolumeMtl.h"
+#include "FireRenderPbrMtl.h"
 #include "utils/KelvinToColor.h"
 
 #include <icurvctl.h>
@@ -803,21 +804,33 @@ frw::Shader MaterialParser::findVolumeMaterial(Mtl* mat)
 		return frw::Shader();
 
 	if (mat->ClassID() == FIRERENDER_VOLUMEMTL_CID)
+	{
 		return dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(mat)->getVolumeShader(mT, *this, 0);
+	}
 	else if (mat->ClassID() == FIRERENDER_UBERMTL_CID)
 	{
 		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(UberMtl)*>(mat)->getVolumeShader(mT, *this, 0);
+		
 		if (res)
 			return res;
 	}
 	else if (mat->ClassID() == FIRERENDER_UBERMTLV2_CID)
 	{
 		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(UberMtlv2)*>(mat)->getVolumeShader(mT, *this, 0);
+		
+		if (res)
+			return res;
+	}
+	else if (mat->ClassID() == FIRERENDER_PBRMTL_CID)
+	{
+		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(mat)->getVolumeShader(mT, *this, 0);
+		
 		if (res)
 			return res;
 	}
 
 	int npb = mat->NumParamBlocks();
+
 	for (int j = 0; j < npb; j++)
 	{
 		if (auto pb = mat->GetParamBlock(j))
@@ -1038,7 +1051,10 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 			else if (cid == FIRERENDER_UBERMTLV2_CID) {
 				shader = dynamic_cast<FRMTLCLASSNAME(UberMtlv2)*>(material)->getShader(mT, *this, node);
 			}
-    		else if (cid == FIRERENDER_VOLUMEMTL_CID) {
+			else if (cid == FIRERENDER_PBRMTL_CID) {
+				shader = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(material)->getShader(mT, *this, node);
+			}
+			else if (cid == FIRERENDER_VOLUMEMTL_CID) {
 				shader = dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(material)->getShader(mT, *this, node);
 			}
 			else if (cid == Corona::LAYERED_MTL_CID) {
