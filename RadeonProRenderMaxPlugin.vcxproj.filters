@@ -276,7 +276,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderWardMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
-	<ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.h">
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.h">
@@ -286,6 +286,9 @@
       <Filter>Plugin\light</Filter>
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.h">
+      <Filter>Plugin\light</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\ReferenceKeeper.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
   </ItemGroup>

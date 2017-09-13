@@ -288,6 +288,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IFireRenderLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\ReferenceKeeper.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderArithmMtl.h" />

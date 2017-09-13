@@ -149,12 +149,13 @@ namespace
 		PB_END
 	);
 
-	// For type inference
+	// GetBlockValue uses this class to infer the type of return value
+	// SetBlockValue uses this class to infer the type of argument
 	template<IESLightParameter p, typename Enabled = void>
-	struct GetBlockValueHelper;
+	struct BlockValueTraits;
 
 	template<IESLightParameter p>
-	struct GetBlockValueHelper<p,
+	struct BlockValueTraits<p,
 		std::enable_if_t<
 			p == IES_PARAM_ENABLED ||
 			p == IES_PARAM_TARGETED ||
@@ -167,7 +168,7 @@ namespace
 	};
 
 	template<IESLightParameter p>
-	struct GetBlockValueHelper<p,
+	struct BlockValueTraits<p,
 		std::enable_if_t<
 			p == IES_PARAM_COLOR_MODE
 		>>
@@ -178,7 +179,7 @@ namespace
 	};
 
 	template<IESLightParameter p>
-	struct GetBlockValueHelper<p,
+	struct BlockValueTraits<p,
 		std::enable_if_t<
 			p == IES_PARAM_AREA_WIDTH ||
 			p == IES_PARAM_INTENSITY ||
@@ -194,7 +195,7 @@ namespace
 	};
 
 	template<IESLightParameter p>
-	struct GetBlockValueHelper<p,
+	struct BlockValueTraits<p,
 		std::enable_if_t<
 			p == IES_PARAM_COLOR
 		>>
@@ -205,7 +206,7 @@ namespace
 	};
 
 	template<IESLightParameter p>
-	struct GetBlockValueHelper<p,
+	struct BlockValueTraits<p,
 		std::enable_if_t<
 			p == IES_PARAM_P0 ||
 			p == IES_PARAM_P1
@@ -217,7 +218,7 @@ namespace
 	};
 
 	template<IESLightParameter p>
-	struct GetBlockValueHelper<p,
+	struct BlockValueTraits<p,
 		std::enable_if_t<
 			p == IES_PARAM_PROFILE
 		>>
@@ -227,10 +228,11 @@ namespace
 		using TCache = std::basic_string<TCHAR>;
 	};
 
+	// Returns an actual value of parameter in the parameter block
 	template<IESLightParameter parameter>
 	decltype(auto) GetBlockValue(IParamBlock2* pBlock, TimeValue t = 0, Interval valid = FOREVER)
 	{
-		using Helper = GetBlockValueHelper<parameter>;
+		using Helper = BlockValueTraits<parameter>;
 		typename Helper::T1 result;
 
 		auto ok = pBlock->GetValue(parameter, t, result, valid);
@@ -251,10 +253,12 @@ namespace
 		return from.c_str();
 	}
 
+	// SetBlockValue uses this class to cache parameters
+	// when user is in the 'Create' tab only
 	template<IESLightParameter p>
 	struct ParameterCache
 	{
-		using T = typename GetBlockValueHelper<p>::TCache;
+		using T = typename BlockValueTraits<p>::TCache;
 
 		static T& GetValue(IParamBlock2* pBlock)
 		{
@@ -277,7 +281,7 @@ namespace
 	// which prevents unnecessary updates
 	template<IESLightParameter parameter>
 	bool SetBlockValue(IParamBlock2* pBlock,
-		typename GetBlockValueHelper<parameter>::T2 value,
+		typename BlockValueTraits<parameter>::T2 value,
 		TimeValue time = 0)
 	{
 		if (GetBlockValue<parameter>(pBlock, time) == value)
@@ -292,11 +296,13 @@ namespace
 		return true;
 	}
 
+	// This function sets the value in the parameter block
+	// to the value that was cached in the 'Create' tab
 	template<IESLightParameter p>
-	void InitializeDefaultBlockValue(IParamBlock2* pBlock)
+	void RestoreCachedValue(IParamBlock2* pBlock)
 	{
-		using From = typename GetBlockValueHelper<p>::TCache;
-		using To = typename GetBlockValueHelper<p>::T1;
+		using From = typename BlockValueTraits<p>::TCache;
+		using To = typename BlockValueTraits<p>::T1;
 
 		SetBlockValue<p>(pBlock,
 			CastParameter<From, To>(
@@ -308,18 +314,18 @@ namespace
 		auto instance = new FireRenderIESLight();
 		auto pBlock = instance->GetParamBlock(0);
 
-		InitializeDefaultBlockValue<IES_PARAM_ENABLED>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_COLOR>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_TEMPERATURE>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_ENABLED>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_VOLUME_SCALE>(pBlock);
+		RestoreCachedValue<IES_PARAM_ENABLED>(pBlock);
+		RestoreCachedValue<IES_PARAM_PROFILE>(pBlock);
+		RestoreCachedValue<IES_PARAM_AREA_WIDTH>(pBlock);
+		RestoreCachedValue<IES_PARAM_TARGETED>(pBlock);
+		RestoreCachedValue<IES_PARAM_INTENSITY>(pBlock);
+		RestoreCachedValue<IES_PARAM_COLOR_MODE>(pBlock);
+		RestoreCachedValue<IES_PARAM_COLOR>(pBlock);
+		RestoreCachedValue<IES_PARAM_TEMPERATURE>(pBlock);
+		RestoreCachedValue<IES_PARAM_SHADOWS_ENABLED>(pBlock);
+		RestoreCachedValue<IES_PARAM_SHADOWS_SOFTNESS>(pBlock);
+		RestoreCachedValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
+		RestoreCachedValue<IES_PARAM_VOLUME_SCALE>(pBlock);
 
 		auto t = GetCOREInterface()->GetTime();
 		if (instance->ProfileIsSelected(t))
@@ -462,6 +468,7 @@ public:
 			break;
 
 			case MOUSE_MOVE:
+				// Update the target point while mouse is moving
 				pblock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
 				break;
 
@@ -504,13 +511,10 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_iObjParam(nullptr),
 	prevUp(0.0f, 1.0f, 0.0f),
 	m_bbox(),
-	m_BBoxCalculated(false),
-	m_pblock2(nullptr),
-	m_thisNodeMonitor(MakeNodeTransformMonitor()),
-	m_targNodeMonitor(MakeNodeTransformMonitor())
+	m_BBoxCalculated(false)
 {
-	ReplaceLocalReference(IndirectReference::ThisNode, m_thisNodeMonitor);
-	ReplaceLocalReference(IndirectReference::TargetNode, m_targNodeMonitor);
+	ReplaceLocalReference<IES_LocalReference::ThisNode>(MakeNodeTransformMonitor());
+	ReplaceLocalReference<IES_LocalReference::TargetNode>(MakeNodeTransformMonitor());
 
 	GetClassDesc()->MakeAutoParamBlocks(this);
 
@@ -536,7 +540,7 @@ ObjectState FireRenderIESLight::Eval(TimeValue time)
     return ObjectState(this);
 }
 
-//makes part of the node name e.g. TheName001, if method returns L"TheName"
+//makes part of the node name e.g. TheName001
 void FireRenderIESLight::InitNodeName(TSTR& s)
 {
 	s = FIRERENDER_IESLIGHT_OBJECT_NAME;
@@ -570,12 +574,13 @@ void FireRenderIESLight::NotifyChanged()
 	NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
 }
 
-// inherited virtual methods for Reference-management
-
+// 3dsMax reference system callback
 RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate)
 {
+	// some object has been changed
 	if (REFMSG_CHANGE == msg)
 	{
+		// This lambda updates the point position from node transformation
 		auto updatePoint = [&](
 			INode* (FireRenderIESLight::* nodeGetter)(),
 			bool (FireRenderIESLight::* pointSetter)(Point3, TimeValue))
@@ -591,17 +596,17 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 			}
 		};
 
-		if (hTarget == m_thisNodeMonitor)
+		if (hTarget == GetLocalReference<IES_LocalReference::ThisNode>())
 		{
 			updatePoint(&FireRenderIESLight::GetThisNode, &FireRenderIESLight::SetLightPoint);
 		}
-		else if (hTarget == m_targNodeMonitor)
+		else if (hTarget == GetLocalReference<IES_LocalReference::TargetNode>())
 		{
 			updatePoint(&FireRenderIESLight::GetTargetNode, &FireRenderIESLight::SetTargetPoint);
 		}
-		else if (hTarget == m_pblock2)
+		else if (hTarget == GetLocalReference<IES_LocalReference::ParamBlock>())
 		{
-			auto p = m_pblock2->LastNotifyParamID();
+			auto p = ((IParamBlock2*)hTarget)->LastNotifyParamID();
 			auto time = GetCOREInterface()->GetTime();
 
 			switch (p)
@@ -704,10 +709,15 @@ RefTargetHandle FireRenderIESLight::Clone(RemapDir& remap)
 	return newob;
 }
 
+IParamBlock2* FireRenderIESLight::GetParamBlock() const
+{
+	return GetLocalReference<IES_LocalReference::ParamBlock>();
+}
+
 IParamBlock2* FireRenderIESLight::GetParamBlock(int i)
 {
     FASSERT(i == 0);
-    return m_pblock2;
+    return GetParamBlock();
 }
 
 const IParamBlock2* FireRenderIESLight::GetParamBlock(int i) const
@@ -718,105 +728,9 @@ const IParamBlock2* FireRenderIESLight::GetParamBlock(int i) const
 
 IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 {
-    FASSERT(m_pblock2->ID() == id);
-    return m_pblock2;
-}
-
-int FireRenderIESLight::NumRefs()
-{
-	return BaseMaxType::NumRefs() + static_cast<int>(IndirectReference::__last);
-}
-
-void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
-{
-	auto baseRefs = BaseMaxType::NumRefs();
-
-	if (i < baseRefs)
-	{
-		BaseMaxType::SetReference(i, rtarg);
-		return;
-	}
-
-	auto local_i = i - baseRefs;
-
-	bool referenceFound = false;
-
-	static_assert(
-		static_cast<int>(IndirectReference::__last) == 3,
-		"Light references enumeration has been updated. Please, implement here");
-
-	switch (static_cast<StrongReference>(local_i))
-	{
-		case StrongReference::ParamBlock:
-			m_pblock2 = dynamic_cast<IParamBlock2*>(rtarg);
-			referenceFound = true;
-			break;
-	}
-
-	switch (static_cast<IndirectReference>(local_i))
-	{
-		case IndirectReference::ThisNode:
-			m_thisNodeMonitor = rtarg;
-			referenceFound = true;
-			break;
-
-		case IndirectReference::TargetNode:
-			m_targNodeMonitor = rtarg;
-			referenceFound = true;
-			break;
-	}
-
-	if (!referenceFound)
-	{
-		FASSERT(!"Invalid reference request");
-	}
-}
-
-RefTargetHandle FireRenderIESLight::GetReference(int i)
-{
-	auto baseRefs = BaseMaxType::NumRefs();
-
-	if (i < baseRefs)
-	{
-		return BaseMaxType::GetReference(i);
-	}
-
-	auto local_i = i - baseRefs;
-
-	RefTargetHandle result = nullptr;
-	bool referenceFound = false;
-
-	static_assert(
-		static_cast<int>(IndirectReference::__last) == 3,
-		"Light references enumeration has been updated. Please, implement here");
-
-	switch (static_cast<StrongReference>(local_i))
-	{
-		case StrongReference::ParamBlock:
-			result = m_pblock2;
-			referenceFound = true;
-			break;
-	}
-
-	switch (static_cast<IndirectReference>(local_i))
-	{
-		case IndirectReference::ThisNode:
-			result = m_thisNodeMonitor;
-			referenceFound = true;
-			break;
-
-		case IndirectReference::TargetNode:
-			result = m_targNodeMonitor;
-			referenceFound = true;
-			break;
-	}
-
-	if (!referenceFound)
-	{
-		FASSERT(!"Invalid reference request");
-	}
-
-	return result;
+	auto pblck = GetParamBlock();
+    FASSERT(pblck->ID() == id);
+    return pblck;
 }
 
 void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL frozen)
@@ -1374,14 +1288,16 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 {
 	Color result(1.f, 1.f, 1.f);
 
+	auto pBlock = GetParamBlock();
+
 	switch (GetColorMode(t))
 	{
 		case IES_LIGHT_COLOR_MODE_COLOR:
-			result = GetBlockValue<IES_PARAM_COLOR>(m_pblock2, t, i);
+			result = GetBlockValue<IES_PARAM_COLOR>(pBlock, t, i);
 			break;
 
 		case IES_LIGHT_COLOR_MODE_TEMPERATURE:
-			result = KelvinToColor(GetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2, t, i));
+			result = KelvinToColor(GetBlockValue<IES_PARAM_TEMPERATURE>(pBlock, t, i));
 			break;
 
 		default:
@@ -1429,36 +1345,40 @@ float FireRenderIESLight::GetTargetDistance(TimeValue t, Interval& valid) const
 
 INode* FireRenderIESLight::GetThisNode()
 {
-	return dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
+	return dynamic_cast<INodeTransformMonitor*>(
+		GetLocalReference<IES_LocalReference::ThisNode>())->GetNode();
 }
 
 INode* FireRenderIESLight::GetTargetNode()
 {
-	return dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
+	return dynamic_cast<INodeTransformMonitor*>(
+		GetLocalReference<IES_LocalReference::TargetNode>())->GetNode();
 }
 
 void FireRenderIESLight::SetThisNode(INode* node)
 {
-	dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->SetNode(node);
+	return dynamic_cast<INodeTransformMonitor*>(
+		GetLocalReference<IES_LocalReference::ThisNode>())->SetNode(node);
 }
 
 void FireRenderIESLight::SetTargetNode(INode* node)
 {
-	dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->SetNode(node);
+	return dynamic_cast<INodeTransformMonitor*>(
+		GetLocalReference<IES_LocalReference::TargetNode>())->SetNode(node);
 }
 
 // Makes default implementation for parameter setter
 #define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)				\
 bool FireRenderIESLight::Set##$paramName($paramType value, TimeValue t)	\
 {																		\
-	return SetBlockValue<$enum>(m_pblock2, value, t);					\
+	return SetBlockValue<$enum>(GetParamBlock(), value, t);				\
 }
 
 // Makes default implementation for parameter getter
 #define IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)							\
 $paramType FireRenderIESLight::Get##$paramName(TimeValue t, Interval& valid) const	\
 {																					\
-	return static_cast<$paramType>(GetBlockValue<$enum>(m_pblock2, t, valid));		\
+	return static_cast<$paramType>(GetBlockValue<$enum>(GetParamBlock(), t, valid));\
 }
 
 // Makes default implementations for parameter setter and getter

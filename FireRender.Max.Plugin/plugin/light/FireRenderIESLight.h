@@ -20,10 +20,52 @@
 #include "parser/RenderParameters.h"
 #include "frScope.h"
 #include "INodeTransformMonitor.h"
+#include "ReferenceKeeper.h"
+
+#include <array>
+#include <memory>
 
 class LookAtTarget;
 
 FIRERENDER_NAMESPACE_BEGIN
+
+enum class IES_LocalReference
+{
+	ParamBlock,
+	ThisNode,
+	TargetNode,
+	__last
+};
+
+template<>
+struct MaxReferenceTraits<FireRenderIESLight>
+{
+	using Enum = IES_LocalReference;
+
+	template<Enum id>
+	struct ReferenceTraits;
+
+	template<>
+	struct ReferenceTraits<Enum::ParamBlock>
+	{
+		using ObjectType = IParamBlock2;
+		static constexpr auto RefType = MaxReferenceType::Strong;
+	};
+
+	template<>
+	struct ReferenceTraits<Enum::ThisNode>
+	{
+		using ObjectType = ReferenceTarget;
+		static constexpr auto RefType = MaxReferenceType::Indirect;
+	};
+
+	template<>
+	struct ReferenceTraits<Enum::TargetNode>
+	{
+		using ObjectType = ReferenceTarget;
+		static constexpr auto RefType = MaxReferenceType::Indirect;
+	};
+};
 
 #define IES_DELCARE_PARAM_SET($paramName, $paramType) bool Set##$paramName($paramType value, TimeValue t)
 #define IES_DECLARE_PARAM_GET($paramName, $paramType) $paramType Get##$paramName(TimeValue t, Interval& valid = FOREVER) const
@@ -32,26 +74,12 @@ FIRERENDER_NAMESPACE_BEGIN
 	IES_DECLARE_PARAM_GET($paramName, $paramType)
 
 class FireRenderIESLight :
-	public FireRenderLight
+	public ReferenceKeeper<
+		FireRenderIESLight,
+		LightObject,
+		FireRenderLight>
 {
 public:
-	enum class StrongReference
-	{
-		ParamBlock = 0,
-
-		// This should be always last
-		__last
-	};
-
-	enum class IndirectReference
-	{
-		ThisNode = static_cast<std::underlying_type_t<StrongReference>>(StrongReference::__last),
-		TargetNode,
-
-		// This should be always last
-		__last
-	};
-
 	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
@@ -94,13 +122,11 @@ public:
 	RefTargetHandle Clone(RemapDir& remap) override;
 
 	//********************** can move this to IFace?
+	IParamBlock2* GetParamBlock() const;
 	IParamBlock2* GetParamBlock(int i) override; // override??? function not in the base class
 	const IParamBlock2* GetParamBlock(int i) const;
 
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
-	int NumRefs() override;
-	void SetReference(int i, RefTargetHandle rtarg) override;
-	RefTargetHandle GetReference(int i) override;
 
 	void DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
 	bool DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected = false, bool isFrozen = false);
@@ -160,13 +186,6 @@ protected:
 private:
 	static const Class_ID m_classId;
 
-	template<typename T_Id>
-	void ReplaceLocalReference(T_Id id, RefTargetHandle handle)
-	{
-		auto ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
-		FASSERT(ret == REF_SUCCEED);
-	}
-
 	// Panels
 	IES_General m_general;
 	IES_Intensity m_intensity;
@@ -180,11 +199,6 @@ private:
 	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
 	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;
-
-	// References
-	IParamBlock2* m_pblock2;
-	ReferenceTarget* m_thisNodeMonitor;
-	ReferenceTarget* m_targNodeMonitor;
 };
 
 #undef IES_DELCARE_PARAM_SET
