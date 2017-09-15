@@ -207,11 +207,11 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 		// - verticle angles count is number of columns in candela values table
 		// - horizontal angles count is number of rows in candela values table
 		std::vector<Point3> candela_XYZ;
-		candela_XYZ.reserve(data.CandelaValues().size());
-		auto it_candela = data.CandelaValues().begin();
-		for (double horizontalAngle : data.HorizontalAngles())
+		candela_XYZ.reserve(data.m_candelaValues.size());
+		auto it_candela = data.m_candelaValues.begin();
+		for (double horizontalAngle : data.m_horizontalAngles)
 		{
-			for (double verticleAngle : data.VerticalAngles())
+			for (double verticleAngle : data.m_verticalAngles)
 			{
 				// get world coordinates from polar representation in .ies
 				candela_XYZ.emplace_back(0.0f, 0.0f, 0.0f);
@@ -224,7 +224,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 
 		// generate edges for each verticle angle (slices)
 		const size_t MAX_POINTS_PER_POLYLINE = 32; // this is 3DMax limitation!
-		size_t valuesPerRow = data.VerticalAngles().size(); // verticle angles count is number of columns in candela values table
+		size_t valuesPerRow = data.m_verticalAngles.size(); // verticle angles count is number of columns in candela values table
 		auto it_points = candela_XYZ.begin();
 		while (it_points != candela_XYZ.end())
 		{

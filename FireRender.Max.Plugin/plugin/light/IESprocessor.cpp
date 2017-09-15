@@ -17,91 +17,73 @@
 #include "IESprocessor.h"
 
 IESProcessor::IESLightData::IESLightData()
-	: countLamps(0)
-	, lumens(0)
-	, multiplier(0)
-	, countVerticalAngles(0)
-	, countHorizontalAngles(0)
-	, photometricType(0)
-	, unit(0)
-	, width(0.0)
-	, length(0.0)
-	, height(0.0)
-	, ballast(0)
-	, version(0)
-	, wattage(-1)
-	, verticalAngles()
-	, horizontalAngles()
-	, candelaValues()
-	, extraData()
+	: m_countLamps(0)
+	, m_lumens(0)
+	, m_multiplier(0)
+	, m_countVerticalAngles(0)
+	, m_countHorizontalAngles(0)
+	, m_photometricType(0)
+	, m_unit(0)
+	, m_width(0.0)
+	, m_length(0.0)
+	, m_height(0.0)
+	, m_ballast(0)
+	, m_version(0)
+	, m_wattage(-1)
+	, m_verticalAngles()
+	, m_horizontalAngles()
+	, m_candelaValues()
+	, m_extraData()
 {}
 
 void IESProcessor::IESLightData::Clear()
 {
-	countLamps = 0;
-	lumens = 0;
-	multiplier = 0;
-	countVerticalAngles = 0;
-	countHorizontalAngles = 0;
-	photometricType = 0;
-	unit = 0;
-	width = 0.0f;
-	length = 0.0f;
-	height = 0.0f;
-	ballast = 0;
-	version = 0;
-	wattage = -1.0f;
-	verticalAngles.clear();
-	horizontalAngles.clear();
-	candelaValues.clear();
-	extraData.clear();
+	m_countLamps = 0;
+	m_lumens = 0;
+	m_multiplier = 0;
+	m_countVerticalAngles = 0;
+	m_countHorizontalAngles = 0;
+	m_photometricType = 0;
+	m_unit = 0;
+	m_width = 0.0f;
+	m_length = 0.0f;
+	m_height = 0.0f;
+	m_ballast = 0;
+	m_version = 0;
+	m_wattage = -1.0f;
+	m_verticalAngles.clear();
+	m_horizontalAngles.clear();
+	m_candelaValues.clear();
+	m_extraData.clear();
 }
-
-DEFINE_GETTERS(int&, countLamps, CountLamps, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, lumens, Lumens, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, multiplier, Multiplier, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, countVerticalAngles, CountVerticalAngles, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, countHorizontalAngles, CountHorizontalAngles, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, photometricType, PhotometricType, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, unit, Unit, IESProcessor::IESLightData)
-DEFINE_GETTERS(double&, width, Width, IESProcessor::IESLightData)
-DEFINE_GETTERS(double&, length, Length, IESProcessor::IESLightData)
-DEFINE_GETTERS(double&, height, Height, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, ballast, Ballast, IESProcessor::IESLightData)
-DEFINE_GETTERS(int&, version, Version, IESProcessor::IESLightData)
-DEFINE_GETTERS(double&, wattage, Wattage, IESProcessor::IESLightData)
-DEFINE_GETTERS(std::vector<double>&, horizontalAngles, HorizontalAngles, IESProcessor::IESLightData)
-DEFINE_GETTERS(std::vector<double>&, verticalAngles, VerticalAngles, IESProcessor::IESLightData)
-DEFINE_GETTERS(std::vector<double>&, candelaValues, CandelaValues, IESProcessor::IESLightData)
-DEFINE_GETTERS(std::string&, extraData, ExtraData, IESProcessor::IESLightData)
 
 bool IESProcessor::IESLightData::IsValid() const
 {
 	// check values correctness (some params could have only one or two values, according to specification)
 	bool areValuesCorrect =
-		(countLamps >= 1) &&  // while Autodesk specification says it always should be zero, this is not the case with real files
-		((lumens == -1) || (lumens > 0)) &&
-		(photometricType == 1) &&
-		((unit == 1) || (unit == 2)) &&
-		(ballast == 1) &&
-		(version == 1) &&
-		(wattage >= 0.0f); // while Autodesk specification says it always should be zero, this is not the case with real files
+		(m_countLamps >= 1) &&  // while Autodesk specification says it always should be zero, this is not the case with real files
+		((m_lumens == -1) || (m_lumens > 0)) &&
+		(m_photometricType == 1) &&
+		((m_unit == 1) || (m_unit == 2)) &&
+		(m_ballast == 1) &&
+		(m_version == 1) &&
+		(m_wattage >= 0.0f); // while Autodesk specification says it always should be zero, this is not the case with real files
 
 						   // check table correctness
-	bool isSizeCorrect = horizontalAngles.size() * verticalAngles.size() == candelaValues.size();
-	bool isArrDataConsistent = (horizontalAngles.size() == countHorizontalAngles) && (verticalAngles.size() == countVerticalAngles);
+	bool isSizeCorrect = m_horizontalAngles.size() * m_verticalAngles.size() == m_candelaValues.size();
+	bool isArrDataConsistent = (m_horizontalAngles.size() == m_countHorizontalAngles) && (m_verticalAngles.size() == m_countVerticalAngles);
 
 	// check data correctness (both angles arrays should be in ascending order)
-	bool areArrsSorted = std::is_sorted(horizontalAngles.begin(), horizontalAngles.end()) &&
-		std::is_sorted(verticalAngles.begin(), verticalAngles.end());
+	bool areArrsSorted = std::is_sorted(m_horizontalAngles.begin(), m_horizontalAngles.end()) &&
+		std::is_sorted(m_verticalAngles.begin(), m_verticalAngles.end());
 
 	// ensure correct value for angles
 	const float tolerance = 0.0001f;
 	bool correctAngles = 
-		(abs(horizontalAngles.back()) <= tolerance) || 
-		(abs(horizontalAngles.back() - 90.0f)  <= tolerance) ||
-		(abs(horizontalAngles.back() - 180.0f) <= tolerance) ||
-		(abs(horizontalAngles.back() - 360.0f) <= tolerance);
+		(abs(m_horizontalAngles.back()) <= tolerance) || 
+		(abs(m_horizontalAngles.back() - 90.0f)  <= tolerance) ||
+		(abs(m_horizontalAngles.back() - 180.0f) <= tolerance) ||
+		(abs(m_horizontalAngles.back() - 360.0f) <= tolerance);
 
 	return areValuesCorrect && isSizeCorrect && isArrDataConsistent && areArrsSorted && correctAngles;
 }
@@ -110,21 +92,21 @@ bool IESProcessor::IESLightData::IsValid() const
 bool IESProcessor::IESLightData::IsAxiallySymmetric(void) const
 {
 	const float tolerance = 0.0001f;
-	return (abs(horizontalAngles.back()) <= tolerance);
+	return (abs(m_horizontalAngles.back()) <= tolerance);
 }
 
 // the distribution is symmetric in each quadrant.
 bool IESProcessor::IESLightData::IsQuadrantSymmetric(void) const
 {
 	const float tolerance = 0.0001f;
-	return (abs(horizontalAngles.back() - 90.0f) <= tolerance);
+	return (abs(m_horizontalAngles.back() - 90.0f) <= tolerance);
 }
 
 // the distribution is symmetric about a vertical plane.
 bool IESProcessor::IESLightData::IsPlaneSymmetric(void) const
 {
 	const float tolerance = 0.0001f;
-	return (abs(horizontalAngles.back() - 180.0f) <= tolerance);
+	return (abs(m_horizontalAngles.back() - 180.0f) <= tolerance);
 }
 
 std::string IESProcessor::ToString(const IESLightData& lightData) const
@@ -132,44 +114,44 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 	FASSERT(lightData.IsValid());
 
 	std::string firstLine = string_format("%d %d %d %d %d %d %d %f %f %f"
-		, lightData.CountLamps()
-		, lightData.Lumens()
-		, lightData.Multiplier()
-		, lightData.CountVerticalAngles()
-		, lightData.CountHorizontalAngles()
-		, lightData.PhotometricType()
-		, lightData.Unit()
-		, lightData.Width()
-		, lightData.Length()
-		, lightData.Height()
+		, lightData.m_countLamps
+		, lightData.m_lumens
+		, lightData.m_multiplier
+		, lightData.m_countVerticalAngles
+		, lightData.m_countHorizontalAngles
+		, lightData.m_photometricType
+		, lightData.m_unit
+		, lightData.m_width
+		, lightData.m_length
+		, lightData.m_height
 	);
 
 	std::string secondLine = string_format("%d %d %f"
-		, lightData.Ballast()
-		, lightData.Version()
-		, lightData.Wattage()
+		, lightData.m_ballast
+		, lightData.m_version
+		, lightData.m_wattage
 	);
 
 	std::string thirdLine = "";
-	for (double angle : lightData.VerticalAngles())
+	for (double angle : lightData.m_verticalAngles)
 	{
 		thirdLine.append(std::to_string(angle));
 		thirdLine.append(" ");
 	}
 
 	std::string forthLine = "";
-	for (double angle : lightData.HorizontalAngles())
+	for (double angle : lightData.m_horizontalAngles)
 	{
 		forthLine.append(std::to_string(angle));
 		forthLine.append(" ");
 	}
 
 	std::string outString;
-	outString = lightData.ExtraData() + firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
+	outString = lightData.m_extraData + firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
 
-	size_t valuesPerLine = lightData.VerticalAngles().size(); // verticle angles count is number of columns in candela values table
-	auto it = lightData.CandelaValues().begin();
-	while (it != lightData.CandelaValues().end())
+	size_t valuesPerLine = lightData.m_verticalAngles.size(); // verticle angles count is number of columns in candela values table
+	auto it = lightData.m_candelaValues.begin();
+	while (it != lightData.m_candelaValues.end())
 	{
 		auto endl = it + valuesPerLine;
 		std::string candelaValuesLine = "";
@@ -303,72 +285,72 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseOrder& 
 	// read values from input
 	switch (state) {
 	case ParseOrder::READ_COUNT_LAMPS: {
-		lightData.CountLamps() = ReadInt(value);
+		lightData.m_countLamps = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_LUMENS: {
-		lightData.Lumens() = ReadInt(value);
+		lightData.m_lumens = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_MULTIPLIER: {
-		lightData.Multiplier() = ReadInt(value);
+		lightData.m_multiplier = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_COUNT_VANGLES: {
-		lightData.CountVerticalAngles() = ReadInt(value);
+		lightData.m_countVerticalAngles = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_COUNT_HANGLES: {
-		lightData.CountHorizontalAngles() = ReadInt(value);
+		lightData.m_countHorizontalAngles = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_TYPE: {
-		lightData.PhotometricType() = ReadInt(value);
+		lightData.m_photometricType = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_UNIT: {
-		lightData.Unit() = ReadInt(value);
+		lightData.m_unit = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_WIDTH: {
-		lightData.Width() = ReadDouble(value);
+		lightData.m_width = ReadDouble(value);
 		break;
 	}
 	case ParseOrder::READ_LENGTH: {
-		lightData.Length() = ReadDouble(value);
+		lightData.m_length = ReadDouble(value);
 		break;
 	}
 	case ParseOrder::READ_HEIGHT: {
-		lightData.Height() = ReadDouble(value);
+		lightData.m_height = ReadDouble(value);
 		break;
 	}
 	case ParseOrder::READ_BALLAST: {
-		lightData.Ballast() = ReadInt(value);
+		lightData.m_ballast = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_VERSION: {
-		lightData.Version() = ReadInt(value);
+		lightData.m_version = ReadInt(value);
 		break;
 	}
 	case ParseOrder::READ_WATTAGE: {
-		lightData.Wattage() = ReadDouble(value);
+		lightData.m_wattage = ReadDouble(value);
 		break;
 	}
 	case ParseOrder::READ_VERTICAL_ANGLES: {
-		lightData.VerticalAngles().push_back(ReadDouble(value));
-		if (lightData.VerticalAngles().size() != lightData.CountVerticalAngles())
+		lightData.m_verticalAngles.push_back(ReadDouble(value));
+		if (lightData.m_verticalAngles.size() != lightData.m_countVerticalAngles)
 			return true; // exit function without switching state because we haven't read all angle values yet
 		break;
 	}
 	case ParseOrder::READ_HORIZONTAL_ANGLES: {
-		lightData.HorizontalAngles().push_back(ReadDouble(value));
-		if (lightData.HorizontalAngles().size() != lightData.CountHorizontalAngles())
+		lightData.m_horizontalAngles.push_back(ReadDouble(value));
+		if (lightData.m_horizontalAngles.size() != lightData.m_countHorizontalAngles)
 			return true; // exit function without switching state because we haven't read all angle values yet
 		break;
 	}
 	case ParseOrder::READ_CANDELA_VALUES: {
-		lightData.CandelaValues().push_back(ReadDouble(value));
-		if (lightData.CandelaValues().size() != lightData.CountVerticalAngles()*lightData.CountHorizontalAngles())
+		lightData.m_candelaValues.push_back(ReadDouble(value));
+		if (lightData.m_candelaValues.size() != lightData.m_countVerticalAngles*lightData.m_countHorizontalAngles)
 			return true; // exit function without switching state because we haven't read all angle values yet
 		break;
 	}
@@ -441,7 +423,7 @@ bool IESProcessor::Parse(IESLightData& lightData, const char* filename, TString&
 
 	// read data from file in a way convinient for further parsing
 	std::vector<std::string> tokens;
-	GetTokensFromFile(tokens, lightData.ExtraData(), inputFile);
+	GetTokensFromFile(tokens, lightData.m_extraData, inputFile);
 
 	// read tokens to lightData
 	bool isParseOk = ParseTokens(lightData, tokens, errorMessage);
@@ -465,9 +447,9 @@ bool IESProcessor::Update(IESLightData& lightData, const IESUpdateRequest& req) 
 	// scale photometric web
 	if (std::fabs(req.m_scale - 1.0f) > 0.01f)
 	{
-		lightData.Width() *= req.m_scale;
-		lightData.Length() *= req.m_scale;
-		lightData.Height() *= req.m_scale;
+		lightData.m_width *= req.m_scale;
+		lightData.m_length *= req.m_scale;
+		lightData.m_height *= req.m_scale;
 	}
 
 	return true;

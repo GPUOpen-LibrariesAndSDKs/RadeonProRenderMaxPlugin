@@ -86,55 +86,55 @@ public:
 
 	// getters / setters
 	// Should always be 1 according to Autodesk specification.
-	DECLARE_VAR_AND_GETTERS(int, countLamps, CountLamps)
+	int m_countLamps;
 
 	// The initial rated lumens for the lamp used in the test or -1 if absolute photometry is used
 	// and the intensity values do not depend on different lamp ratings. 
-	DECLARE_VAR_AND_GETTERS(int, lumens, Lumens)
+	int m_lumens;
 
 	// A multiplying factor for all the candela values in the file. 
 	// This makes it possible to easily scale all the candela values in the file 
 	// when the measuring device operates in unusual units—for example, 
 	// when you obtain the photometric values from a catalog using a ruler on a goniometric diagram.
 	// Normally the multiplying factor is 1.
-	DECLARE_VAR_AND_GETTERS(int, multiplier, Multiplier)
+	int m_multiplier;
 
 	// The number of vertical (polar) angles in the photometric web. 
-	DECLARE_VAR_AND_GETTERS(int, countVerticalAngles, CountVerticalAngles)
+	int m_countVerticalAngles;
 
 	// The number of horizontal (azimuth) angles in the photometric web. 
-	DECLARE_VAR_AND_GETTERS(int, countHorizontalAngles, CountHorizontalAngles)
+	int m_countHorizontalAngles;
 
 	// Should always be 1 according to Autodesk specification.
 	// Can be 1, 2 or 3 according to IES specification.
-	DECLARE_VAR_AND_GETTERS(int, photometricType, PhotometricType)
+	int m_photometricType;
 
 	// The type of unit used to measure the dimensions of the luminous opening.
 	// Use 1 for feet or 2 for meters.
-	DECLARE_VAR_AND_GETTERS(int, unit, Unit)
+	int m_unit;
 
 	// The width, length, and height of the luminous opening.
-	DECLARE_VAR_AND_GETTERS(double, width, Width)
-	DECLARE_VAR_AND_GETTERS(double, length, Length)
-	DECLARE_VAR_AND_GETTERS(double, height, Height)
+	double m_width;
+	double m_length;
+	double m_height;
 
 	// Multiplier representing difference between lab mesaurments and real world performance
 	// Should always be 1 according to Autodesk specification.
-	DECLARE_VAR_AND_GETTERS(int, ballast, Ballast)
+	int m_ballast;
 
 	// Standard version
 	// Should always be 1 according to Autodesk specification.
-	DECLARE_VAR_AND_GETTERS(int, version, Version)
+	int m_version;
 
 	// Power of light source
 	// Should always be 0 according to Autodesk specification.
-	DECLARE_VAR_AND_GETTERS(double, wattage, Wattage)
+	double m_wattage;
 
 	// The set of vertical angles (aka polar angles), listed in increasing order. 
 	// If the distribution lies completely in the bottom hemisphere, the first and last angles must be 0° and 90°, respectively.
 	// If the distribution lies completely in the top hemisphere, the first and last angles must be 90° and 180°, respectively.
 	// Otherwise, they must be 0° and 180°, respectively.
-	DECLARE_VAR_AND_GETTERS(std::vector<double>, verticalAngles, VerticalAngles)
+	std::vector<double> m_verticalAngles;
 
 	// The set of horizontal angles (aka azimuth angles), listed in increasing order.
 	// The first angle must be 0°.
@@ -144,7 +144,7 @@ public:
 	// If it is 180°, the distribution is symmetric about a vertical plane.
 	// If it is greater than 180° and less than or equal to 360°, the distribution exhibits no lateral symmetries.
 	// All other values are invalid. 
-	DECLARE_VAR_AND_GETTERS(std::vector<double>, horizontalAngles, HorizontalAngles)
+	std::vector<double> m_horizontalAngles;
 
 	// The set of candela values.
 	// First all the candela values corresponding to the first horizontal angle
@@ -156,10 +156,10 @@ public:
 	// Each vertical slice of values must start on a new line.
 	// Long lines may be broken between values as needed
 	// by following the instructions given earlier. 
-	DECLARE_VAR_AND_GETTERS(std::vector<double>, candelaValues, CandelaValues)
+	std::vector<double> m_candelaValues;
 
 	// this is text data that is written to the IES file before actual data
-	DECLARE_VAR_AND_GETTERS(std::string, extraData, ExtraData)
+	std::string m_extraData;
 
 	// checks if struct holds correct data values
 	// - returns false if data is corrupted
