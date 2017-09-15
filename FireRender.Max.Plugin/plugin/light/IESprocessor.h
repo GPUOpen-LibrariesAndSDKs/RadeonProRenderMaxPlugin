@@ -10,40 +10,38 @@
 
 #include "utils\Utils.h"
 
-using TString = std::basic_string<TCHAR>;
-
 // process data for IES light sources
 class IESProcessor
 {
 public:
 	class IESLightData;
 	struct IESUpdateRequest;
+	enum class ErrorCode;
 	enum class ParseOrder;
 
 	// parse IES file filename and fill lightData with data from this file
 	// - in: filename: name filename of .ies file to be parsed
 	// - out: lightData
-	// - out: error message; in case Parse fails, information about error will be written to errorMessage
-	// - returns: false for error, true if parse successfull 
-	bool Parse (IESLightData& lightData, const char* filename, TString& errorMessage) const;
+	// - returns: code of error, zero if parse successfull 
+	ErrorCode Parse (IESLightData& lightData, const char* filename) const;
 
 	// save IES data in inner format in file (bin file?)
 	// - in: lightData: struct with IES ligh parameters
 	// - in: outfilename: name of file where data in internal representation should be saved
-	// - returns: false for error, true if successfull 
-	bool Save (const IESLightData& lightData, const char* outfilename) const;
+	// - returns: code of error, zero if successfull 
+	ErrorCode Save (const IESLightData& lightData, const char* outfilename) const;
 
 	// load IES data from inner format
 	// - in: name filename of file to be loaded
 	// - out: lightData
-	// - returns: false for error, true if parse successfull 
-	bool Load (IESLightData& lightData, const char* filename) const;
+	// - returns: code of error, zero if successfull 
+	ErrorCode Load (IESLightData& lightData, const char* filename) const;
 
 	// change light data according to request, e.g. intensity is changed and so on
 	// - in: req: struct with values to be updated in lightData
 	// - in/out: lightData: struct with IES data that should be changed according to request req
-	// - returns: false for error, true if successfull 
-	bool Update (IESLightData& lightData, const IESUpdateRequest& req) const;
+	// - returns: code of error, zero if successfull 
+	ErrorCode Update (IESLightData& lightData, const IESUpdateRequest& req) const;
 
 	// returns string representation of IES light source declaration
 	// should be used for call to RPR
@@ -65,8 +63,8 @@ protected:
 	void SplitLine (std::vector<std::string>& tokens, const std::string& lineToParse) const;
 
 	// fills lightData with data read from tokens
-	// - returns false in case of parse failure
-	bool ParseTokens (IESLightData& lightData, std::vector<std::string>& tokens, TString& errorMessage) const;
+	// - returns: code of error in case of parse failure, zero if successfull 
+	ErrorCode ParseTokens (IESLightData& lightData, std::vector<std::string>& tokens) const;
 
 	// auxilary function that hides interaction with enum
 	// - returns first value of ParseOrder enum
@@ -185,4 +183,15 @@ struct IESProcessor::IESUpdateRequest
 	IESUpdateRequest(void);
 
 	float m_scale;
+};
+
+enum class IESProcessor::ErrorCode
+{
+	SUCCESS = 0,
+	NO_FILE, // wrong input
+	NOT_IES_FILE, // wrong file type
+	FAILED_TO_READ_FILE, // failed to open file
+	INVALID_DATA_IN_IES_FILE, // parse OK, but data in IES file is not valid (either data in file was not correct, or something went wrong during the parse)
+	PARSE_FAILED, // error during parse or file too big (file is longer than parser assumed it should)
+	UNEXPECTED_END_OF_FILE, // have reached end of file before parse was completed
 };

@@ -524,6 +524,7 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_volume(this),
 	m_iObjParam(nullptr),
 	m_prevUp(0.0f, 1.0f, 0.0f),
+	m_isPreviewGraph(true),
 	m_bbox(),
 	m_BBoxCalculated(false),
 	m_pblock2(nullptr),
@@ -1214,8 +1215,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 			std::string iesFilename(profilePath.begin(), profilePath.end());
 			IESProcessor parser;
 			IESProcessor::IESLightData data;
-			TString errorMsg;
-			bool parseOK = parser.Parse(data, iesFilename.c_str(), errorMsg);
+			bool parseOK = parser.Parse(data, iesFilename.c_str()) != IESProcessor::ErrorCode::SUCCESS;
 
 			// scale photometric web
 			IESProcessor::IESUpdateRequest req;

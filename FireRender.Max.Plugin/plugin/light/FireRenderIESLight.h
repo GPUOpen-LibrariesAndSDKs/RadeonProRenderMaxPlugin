@@ -184,6 +184,7 @@ private:
 	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
 	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;
+	bool m_isPreviewGraph; // photometric web should be rotated differently when look target is not created yet (during preview) compared to when look at target is reomved/disabled
 
 	// References
 	IParamBlock2* m_pblock2;

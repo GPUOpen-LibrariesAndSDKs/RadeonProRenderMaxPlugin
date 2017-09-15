@@ -18,6 +18,32 @@ FIRERENDER_NAMESPACE_BEGIN
 
 const float DEG2RAD = PI / 180.0;
 
+static TCHAR* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
+{
+	switch (errorCode) {
+	case IESProcessor::ErrorCode::NO_FILE: {
+		return L"empty file";
+	}
+	case IESProcessor::ErrorCode::NOT_IES_FILE: {
+		return L"not .ies file";
+	}
+	case IESProcessor::ErrorCode::FAILED_TO_READ_FILE: {
+		return L"failed to open file";
+	}
+	case IESProcessor::ErrorCode::INVALID_DATA_IN_IES_FILE: {
+		return L"invalid IES data";
+	}
+	case IESProcessor::ErrorCode::PARSE_FAILED: {
+		return L"parse failed";
+	}
+	case IESProcessor::ErrorCode::UNEXPECTED_END_OF_FILE: {
+		return L"have reached end of file before parse was complete";
+	}
+	default:
+		return L"Unknown error";
+	}
+}
+
 void Polar2XYZ(Point3& outPoint, double verticalAngle /*polar*/, double horizontalAngle /*azimuth*/, double dist)
 {
 	double XTheta = cos(verticalAngle * DEG2RAD);
@@ -188,16 +214,16 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	// get .ies light params
 	IESProcessor parser;
 	IESProcessor::IESLightData data;
-	TString errorMsg;
 
 	const TCHAR* failReason = _T("Internal error");
-	TString temp;
+	std::basic_string<TCHAR> temp;
 
-	bool failed = !parser.Parse(data, iesFilename.c_str(), errorMsg);
+	IESProcessor::ErrorCode parseRes = parser.Parse(data, iesFilename.c_str());
+	bool failed = parseRes != IESProcessor::ErrorCode::SUCCESS;
 	if (failed)
 	{
 		temp = _T("Failed to parse IES profile: ");
-		temp += errorMsg;
+		temp += IESErrorCodeToMessage(parseRes);
 		failReason = temp.c_str();
 	}
 
@@ -393,7 +419,10 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	//float scaleFactor = pVprt->NonScalingObjectSize() * pVprt->GetVPWorldWidth(nd->GetObjectTM(0).GetTrans()) / 360.0f;
 	auto scaleFactor = GetAreaWidth(t);
 
-	if ((pLookAtController == nullptr) || (pLookAtController->GetTarget() == nullptr))
+	bool hasLookAtTarget = (pLookAtController != nullptr) && (pLookAtController->GetTarget() != nullptr);
+	bool isPreviewMode = !hasLookAtTarget && m_isPreviewGraph;
+
+	if (isPreviewMode)
 	{
 		// no look at controller => user have not put target yet (have not released mouse buttion yet)
 		dirMesh[1] = dirMesh[1] - dirMesh[0];
@@ -425,11 +454,17 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		// draw web
 		for (auto& pline : preview_plines)
 		{
-			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false /*isClosed*/, NULL);
+			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false, NULL);
 		}
+
+		return true;
 	}
-	else
+
+	m_isPreviewGraph = false;
+
+	if (hasLookAtTarget)
 	{
+		// look at controller is not disabled => draw line from light source to look at target
 		float dist = GetTargetDistance(t);
 		dist = dist / scaleFactor; // to cancel out scaling of graphic window
 
@@ -438,28 +473,26 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 
 		// draw line from light source to target
 		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
-		
-		auto plines = m_plines;
-
-		// transform light web representation by input params
-		{
-			Matrix3 rotationToUpVector;
-			float angles[3] = { GetRotationX(t)*DEG2RAD, GetRotationY(t)*DEG2RAD, GetRotationZ(t)*DEG2RAD };
-			EulerToMatrix(angles, rotationToUpVector, EULERTYPE_XYZ);
-
-			for (auto& pline : plines)
-			{
-				for (Point3& point : pline)
-					point = rotationToUpVector * point;
-			}
-		}
-
-		// draw web
-		for (auto& pline : plines) /*for (auto& pline : m_plines)*/
-		{
-			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false /*isClosed*/, NULL);
-		}
 	}
+
+	auto plines = m_plines;
+
+	// transform light web representation by input params
+	Matrix3 rotationToUpVector;
+	float angles[3] = { GetRotationX(t)*DEG2RAD, GetRotationY(t)*DEG2RAD, GetRotationZ(t)*DEG2RAD };
+	EulerToMatrix(angles, rotationToUpVector, EULERTYPE_XYZ);
+
+	for (auto& pline : plines)
+	{
+		for (Point3& point : pline)
+			point = rotationToUpVector * point;
+	}
+
+	// draw web
+	for (auto& pline : plines)
+	{
+		gw->polyline(pline.size(), &pline.front(), NULL, NULL, false, NULL);
+	}	
 
 	return true;
 }
