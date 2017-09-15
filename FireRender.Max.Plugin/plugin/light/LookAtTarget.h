@@ -7,11 +7,11 @@ class LookAtTarget : public GeomObject
 {
 	class CreateCallBack;
 
-	void GetMat(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm);
+	void GetMatrix(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm);
 
 	//  inherited virtual methods for Reference-management
 	RefResult NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget,
-		PartID& partID, RefMessage message, BOOL propagate);
+		PartID& partID, RefMessage message, BOOL propagate) override;
 
 public:
 	LookAtTarget();
@@ -33,7 +33,6 @@ public:
 	int IsRenderable() override;
 
 	// From GeomObject
-	int IntersectRay(TimeValue t, Ray& r, float& at);
 	void GetWorldBoundBox(TimeValue t, INode *mat, ViewExp *vpt, Box3& box) override;
 	void GetLocalBoundBox(TimeValue t, INode *mat, ViewExp *vpt, Box3& box) override;
 	void GetDeformBBox(TimeValue t, Box3& box, Matrix3 *tm, BOOL useSel) override;
@@ -43,10 +42,9 @@ public:
 
 	// From Animatable 
 	void DeleteThis() override;
-	Class_ID ClassID();
-	void GetClassName(TSTR& s);
-	int IsKeyable();
-	LRESULT CALLBACK TrackViewWinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+	Class_ID ClassID() override;
+	void GetClassName(TSTR& s) override;
+	LRESULT CALLBACK TrackViewWinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 
 	// From ref.h
 	RefTargetHandle Clone(RemapDir& remap) override;
@@ -60,14 +58,13 @@ public:
 		MaxSDK::Graphics::UpdateNodeContext& nodeContext,
 		MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer);
 
-	virtual unsigned long GetObjectDisplayRequirement() const;
+	virtual unsigned long GetObjectDisplayRequirement() const override;
 
 	virtual bool PrepareDisplay(
-		const MaxSDK::Graphics::UpdateDisplayContext& prepareDisplayContext);
+		const MaxSDK::Graphics::UpdateDisplayContext& prepareDisplayContext) override;
 
 	virtual bool UpdatePerNodeItems(
 		const MaxSDK::Graphics::UpdateDisplayContext& updateDisplayContext,
 		MaxSDK::Graphics::UpdateNodeContext& nodeContext,
-		MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer);
-
+		MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer) override;
 };

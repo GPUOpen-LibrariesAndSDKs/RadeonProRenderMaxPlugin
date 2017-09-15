@@ -311,7 +311,7 @@ bool LookAtTarget::UpdatePerNodeItems(
 LookAtTarget::LookAtTarget() = default;
 LookAtTarget::~LookAtTarget() = default;
 
-void LookAtTarget::GetMat(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm)
+void LookAtTarget::GetMatrix(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm)
 {
 	if ( !vpt.IsAlive() )
 	{
@@ -352,11 +352,6 @@ void LookAtTarget::GetClassName(TSTR& s)
 	s = LookAtTargetObjectClassDesc::TargetClassName;
 }
 
-int LookAtTarget::IsKeyable()
-{
-	return 1;
-}
-
 LRESULT CALLBACK LookAtTarget::TrackViewWinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	return 0;
@@ -388,12 +383,12 @@ void LookAtTarget::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box
 
 	int i,nv;
 	Matrix3 m;
-	GetMat(t,inode,*vpt,m);
+	GetMatrix(t,inode,*vpt,m);
 	nv = mesh.getNumVerts();
 	box.Init();
 	
-	for (i=0; i<nv; i++) 
-		box += m*mesh.getVert(i);
+	for (i = 0; i < nv; i++) 
+		box += m * mesh.getVert(i);
 }
 
 int LookAtTarget::HitTest(TimeValue t, INode *inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
@@ -412,7 +407,7 @@ int LookAtTarget::HitTest(TimeValue t, INode *inode, int type, int crossing, int
 	gw->setRndLimits(((savedLimits = gw->getRndLimits()) | GW_PICK) & ~GW_ILLUM);
 
 	Matrix3 m;
-	GetMat(t,inode,*vpt,m);
+	GetMatrix(t,inode,*vpt,m);
 	gw->setTransform(m);
 
 	if (meshCache.GetMesh().select(gw, gw->getMaterial(), &hitRegion, flags & HIT_ABORTONHIT))
@@ -449,7 +444,7 @@ void LookAtTarget::Snap(TimeValue t, INode* inode, SnapInfo *snap, IPoint2 *p, V
 
 		Matrix3 invPlane = Inverse(snap->plane);
 
-		Point2 fp = Point2((float)p->x, (float)p->y);
+		Point2 fp = Point2((float) p->x, (float) p->y);
 		IPoint3 screen3;
 		Point2 screen2;
 
@@ -507,7 +502,7 @@ int LookAtTarget::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 
 	Matrix3 m;
 	auto gw = vpt->getGW();
-	GetMat(t,inode,*vpt,m);
+	GetMatrix(t,inode,*vpt,m);
 	gw->setTransform(m);
 
 	DWORD rlim = gw->getRndLimits();
@@ -537,20 +532,14 @@ int LookAtTarget::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 	return 0;
 }
 
-int LookAtTarget::IntersectRay(TimeValue t, Ray& r, float& at)
-{
-	return 0;
-}
-
 // This is only called if the object MAKES references to other things.
-RefResult LookAtTarget::NotifyRefChanged(
-	const Interval& changeInt, RefTargetHandle hTarget,
-     PartID& partID, RefMessage message, BOOL propagate ) 
+RefResult LookAtTarget::NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget,
+	PartID& partID, RefMessage message, BOOL propagate ) 
 {
 	switch (message)
 	{
 	case REFMSG_NODE_WIRECOLOR_CHANGED:
-		Beep( 1000, 500 );
+		Beep(1000, 500);
 	}
 
 	return REF_SUCCEED;

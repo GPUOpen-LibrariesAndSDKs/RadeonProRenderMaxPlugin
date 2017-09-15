@@ -418,6 +418,7 @@ public:
 
 	MaxEditAndSpinner& operator=(MaxEditAndSpinner&&) = default;
 	MaxEditAndSpinner& operator=(const MaxEditAndSpinner&) = delete;
+
 private:
 	MaxEdit m_edit;
 	MaxSpinner m_spinner;
