@@ -54,6 +54,7 @@ public:
 
 	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
+	using LightRotateSettings = MaxSpinner::DefaultRotationSettings;
 	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
 	using ShadowsTransparencySettings = MaxSpinner::DefaultFloatSettings;
 	using VolumeScaleSettings = MaxSpinner::DefaultFloatSettings;
@@ -128,6 +129,9 @@ public:
 	IES_DECLARE_PARAM(Targeted, bool);
 	IES_DECLARE_PARAM(TargetDistance, float);
 	IES_DECLARE_PARAM(AreaWidth, float);
+	IES_DECLARE_PARAM(RotationX, float);
+	IES_DECLARE_PARAM(RotationY, float);
+	IES_DECLARE_PARAM(RotationZ, float);
 	IES_DECLARE_PARAM(ActiveProfile, const TCHAR*);
 	IES_DECLARE_PARAM(Intensity, float);
 	IES_DECLARE_PARAM(Temperature, float);
@@ -176,7 +180,7 @@ private:
 	IObjParam* m_iObjParam;
 
 	std::vector<std::vector<Point3> > m_plines;
-	Point3 prevUp; // up vector of IES light
+	Point3 m_prevUp; // up vector of IES light
 	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
 	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;

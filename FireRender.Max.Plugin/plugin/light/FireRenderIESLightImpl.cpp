@@ -190,11 +190,10 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	IESProcessor::IESLightData data;
 	TString errorMsg;
 
-	bool failed = false;
 	const TCHAR* failReason = _T("Internal error");
 	TString temp;
 
-	failed = !parser.Parse(data, iesFilename.c_str(), errorMsg);
+	bool failed = !parser.Parse(data, iesFilename.c_str(), errorMsg);
 	if (failed)
 	{
 		temp = _T("Failed to parse IES profile: ");
@@ -305,19 +304,32 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 		// preview graphic (before mouse button is released) should be aligned differently
 		m_preview_plines = m_plines;
 
-		// align light representation to look at controller (-Z axis is up vector)
-		// - rotate around x axis by 90 degrees
-		Matrix3 matrRotateAroundX(
+		// align light representation
+		Matrix3 matrRotateAroundZ(
+			Point3(0.0, -1.0, 0.0),
 			Point3(1.0, 0.0, 0.0),
+			Point3(0.0, 0.0, 1.0),
+			Point3(0.0, 0.0, 0.0)
+		);
+		Matrix3 matrRotateAroundMinusY(
 			Point3(0.0, 0.0, -1.0),
 			Point3(0.0, 1.0, 0.0),
+			Point3(1.0, 0.0, 0.0),
 			Point3(0.0, 0.0, 0.0)
 		);
 
 		for (auto& pline : m_plines)
 		{
 			for (Point3& point : pline)
-				point = point * matrRotateAroundX;
+				point = point * matrRotateAroundZ;
+		}
+		for (auto& pline : m_preview_plines)
+		{
+			for (Point3& point : pline)
+			{
+				point = point * matrRotateAroundMinusY;
+				point = point * matrRotateAroundZ;
+			}
 		}
 	}
 
@@ -335,16 +347,19 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 
 INode* FindNodeRef(ReferenceTarget *rt);
 
-static INode* GetNodeRef(ReferenceMaker *rm) {
+static INode* GetNodeRef(ReferenceMaker *rm) 
+{
 	if (rm->SuperClassID() == BASENODE_CLASS_ID) return (INode *)rm;
 	else return rm->IsRefTarget() ? FindNodeRef((ReferenceTarget *)rm) : NULL;
 }
 
-static INode* FindNodeRef(ReferenceTarget *rt) {
+static INode* FindNodeRef(ReferenceTarget *rt) 
+{
 	DependentIterator di(rt);
 	ReferenceMaker *rm = NULL;
 	INode *nd = NULL;
-	while ((rm = di.Next()) != NULL) {
+	while ((rm = di.Next()) != NULL) 
+	{
 		nd = GetNodeRef(rm);
 		if (nd) return nd;
 	}
@@ -392,9 +407,9 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		// - between prev look at vector and current one (Y axis is up vector for light representation)
 		Point3 normDir = dirMesh[1].Normalize();
 		normDir = normDir.Normalize();
-		Point3 normal = prevUp ^ normDir; // cross product, axis of rotation
+		Point3 normal = m_prevUp ^ normDir; // cross product, axis of rotation
 		normal = normal.Normalize();
-		float dotProduct = prevUp % normDir; // Dot product, for angle between vectors
+		float dotProduct = m_prevUp % normDir; // Dot product, for angle between vectors
 		float cosAngle = dotProduct; // vectors are normalized
 		float angle = acos(cosAngle);
 		Matrix3 rotateMx = RotAngleAxisMatrix(normal, angle);
@@ -423,9 +438,24 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 
 		// draw line from light source to target
 		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+		
+		auto plines = m_plines;
+
+		// transform light web representation by input params
+		{
+			Matrix3 rotationToUpVector;
+			float angles[3] = { GetRotationX(t)*DEG2RAD, GetRotationY(t)*DEG2RAD, GetRotationZ(t)*DEG2RAD };
+			EulerToMatrix(angles, rotationToUpVector, EULERTYPE_XYZ);
+
+			for (auto& pline : plines)
+			{
+				for (Point3& point : pline)
+					point = rotationToUpVector * point;
+			}
+		}
 
 		// draw web
-		for (auto& pline : m_plines)
+		for (auto& pline : plines) /*for (auto& pline : m_plines)*/
 		{
 			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false /*isClosed*/, NULL);
 		}

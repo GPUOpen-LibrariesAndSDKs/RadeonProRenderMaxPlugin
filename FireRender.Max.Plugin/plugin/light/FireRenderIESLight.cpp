@@ -100,6 +100,21 @@ namespace
 			p_default, FireRenderIESLight::AreaWidthSettings::Default,
 			PB_END,
 
+		// X Rotation of IES light parameter
+		IES_PARAM_LIGHT_ROTAION_X, _T("RotationX"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::LightRotateSettings::Default,
+			PB_END,
+
+		// Y Rotation of IES light parameter
+		IES_PARAM_LIGHT_ROTAION_Y, _T("RotationY"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::LightRotateSettings::Default,
+			PB_END,
+
+		// Z Rotation of IES light parameter
+		IES_PARAM_LIGHT_ROTAION_Z, _T("RotationZ"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::LightRotateSettings::Default,
+			PB_END,
+
 		// Targeted parameter
 		IES_PARAM_TARGETED, _T("Targeted"), TYPE_BOOL, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::DefaultTargeted,
@@ -181,6 +196,9 @@ namespace
 	struct GetBlockValueHelper<p,
 		std::enable_if_t<
 			p == IES_PARAM_AREA_WIDTH ||
+			p == IES_PARAM_LIGHT_ROTAION_X ||
+			p == IES_PARAM_LIGHT_ROTAION_Y ||
+			p == IES_PARAM_LIGHT_ROTAION_Z ||
 			p == IES_PARAM_INTENSITY ||
 			p == IES_PARAM_TEMPERATURE ||
 			p == IES_PARAM_SHADOWS_SOFTNESS ||
@@ -311,6 +329,9 @@ namespace
 		InitializeDefaultBlockValue<IES_PARAM_ENABLED>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTAION_X>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTAION_Y>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTAION_Z>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
@@ -502,7 +523,7 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_shadows(this),
 	m_volume(this),
 	m_iObjParam(nullptr),
-	prevUp(0.0f, 1.0f, 0.0f),
+	m_prevUp(0.0f, 1.0f, 0.0f),
 	m_bbox(),
 	m_BBoxCalculated(false),
 	m_pblock2(nullptr),
@@ -635,6 +656,9 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 				case IES_PARAM_ENABLED:
 				case IES_PARAM_PROFILE:
 				case IES_PARAM_AREA_WIDTH:
+				case IES_PARAM_LIGHT_ROTAION_X:
+				case IES_PARAM_LIGHT_ROTAION_Y:
+				case IES_PARAM_LIGHT_ROTAION_Z:
 				case IES_PARAM_TARGETED:
 					m_general.UpdateUI(time);
 					break;
@@ -1151,6 +1175,8 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 	parametersCacheEnabled = false;
 }
 
+const float DEG2RAD = PI / 180.0;
+
 void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
 {
 	if (!ProfileIsSelected(params.t))
@@ -1224,28 +1250,45 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	// setup position
 	Matrix3 tm = node.tm; // INode* inode = FindNodeRef(this); inode->GetObjectTM(0); <= this method doesn't take masterScale into acount, thus returns wrong transform!
 
-	// rotate by 90 degrees around X axis
-	Matrix3 matrRotateAroundX(
-		Point3(1.0, 0.0, 0.0),
-		Point3(0.0, 0.0, -1.0),
-		Point3(0.0, 1.0, 0.0),
-		Point3(0.0, 0.0, 0.0)
-	);
-	tm = matrRotateAroundX * tm;
+	Matrix3 localRot;
+	float angles[3] = { GetRotationX(params.t)*DEG2RAD, GetRotationY(params.t)*DEG2RAD, GetRotationZ(params.t)*DEG2RAD  };
+	EulerToMatrix(angles, localRot, EULERTYPE_XYZ);
 
-	// rotate by -90 degrees around Z axis (to make representation of web in Max align with RPR up-vector)
-	Matrix3 matrRotateAroundZ(
-		Point3(0.0, 1.0, 0.0),
-		Point3(-1.0, 0.0, 0.0),
-		Point3(0.0, 0.0, 1.0),
-		Point3(0.0, 0.0, 0.0)
-	);
-	tm = matrRotateAroundZ * tm;
+	//Matrix3 testRot = RotateYMatrix(90.0f*DEG2RAD);
+	
+	Matrix3 globalRotation = tm;
+	//globalRotation.NoRot();
+	globalRotation.NoTrans();
+	globalRotation.NoScale();
+	Matrix3 globalTranslate = tm;
+	globalTranslate.NoRot();
+	globalTranslate.NoScale();
+	Matrix3 globalScale = tm;
+	globalScale.NoTrans();
+	globalScale.NoRot();
+
+	angles[0] = 0.0f * DEG2RAD;
+	angles[1] = 0.0f * DEG2RAD;
+	angles[2] = 0.0f * DEG2RAD;
+	Matrix3 dbg;
+	EulerToMatrix(angles, dbg, EULERTYPE_XYZ);
+	//globalRotation = dbg;
+	
+	tm = localRot * globalRotation * globalScale * globalTranslate;
+
+	Point3 localX(1.0, 0.0, 0.0);
+	Point3 localY(0.0, 1.0, 0.0);
+	Point3 localZ(0.0, 0.0, 1.0);
+
+	localX = localX * globalRotation;
+	localY = localY * globalRotation;
+	localZ = localZ * globalRotation;
 
 	// create RPR matrix
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
 	
+	// pass this matrix to renderer
 	light.SetTransform(frTm, false);
 
 	// attach to scene
@@ -1472,6 +1515,9 @@ IES_DEFINE_PARAM(Enabled, bool, IES_PARAM_ENABLED)
 IES_DEFINE_PARAM(Targeted, bool, IES_PARAM_TARGETED)
 IES_DEFINE_PARAM(ShadowsEnabled, bool, IES_PARAM_SHADOWS_ENABLED)
 IES_DEFINE_PARAM(AreaWidth, float, IES_PARAM_AREA_WIDTH)
+IES_DEFINE_PARAM(RotationX, float, IES_PARAM_LIGHT_ROTAION_X)
+IES_DEFINE_PARAM(RotationY, float, IES_PARAM_LIGHT_ROTAION_Y)
+IES_DEFINE_PARAM(RotationZ, float, IES_PARAM_LIGHT_ROTAION_Z)
 IES_DEFINE_PARAM(Intensity, float, IES_PARAM_INTENSITY)
 IES_DEFINE_PARAM(Temperature, float, IES_PARAM_TEMPERATURE)
 IES_DEFINE_PARAM(ShadowsSoftness, float, IES_PARAM_SHADOWS_SOFTNESS)

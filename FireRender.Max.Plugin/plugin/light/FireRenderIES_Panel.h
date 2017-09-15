@@ -144,6 +144,14 @@ public:
 		static constexpr float Delta = 0.1;
 	};
 
+	struct DefaultRotationSettings
+	{
+		static constexpr float Min = -180.0f;
+		static constexpr float Max = 180.0f;
+		static constexpr float Default = 0.0f;
+		static constexpr float Delta = 1.0f;
+	};
+
 	template<typename T>
 	void SetLimits(T min, T max, bool limitCurrent = false)
 	{

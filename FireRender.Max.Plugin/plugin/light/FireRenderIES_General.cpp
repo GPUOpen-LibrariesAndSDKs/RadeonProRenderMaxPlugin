@@ -55,6 +55,42 @@ bool IES_General::InitializePage(TimeValue time)
 		spinner.SetValue(m_parent->GetAreaWidth(time));
 	}
 
+	{// Rotation X parameter
+		m_RotateX.Capture(m_panel,
+			IDC_FIRERENDER_IES_LIGHT_ROTAION_X,
+			IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S);
+
+		m_RotateX.Bind(EDITTYPE_FLOAT);
+
+		auto& spinner = m_RotateX.GetSpinner();
+		spinner.SetSettings<FireRenderIESLight::LightRotateSettings>();
+		spinner.SetValue(m_parent->GetRotationX(time));
+	}
+
+	{// Rotation Y parameter
+		m_RotateY.Capture(m_panel,
+			IDC_FIRERENDER_IES_LIGHT_ROTAION_Y,
+			IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S);
+
+		m_RotateY.Bind(EDITTYPE_FLOAT);
+
+		auto& spinner = m_RotateY.GetSpinner();
+		spinner.SetSettings<FireRenderIESLight::LightRotateSettings>();
+		spinner.SetValue(m_parent->GetRotationY(time));
+	}
+
+	{// Rotation Z parameter
+		m_RotateZ.Capture(m_panel,
+			IDC_FIRERENDER_IES_LIGHT_ROTAION_Z,
+			IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S);
+
+		m_RotateZ.Bind(EDITTYPE_FLOAT);
+
+		auto& spinner = m_RotateZ.GetSpinner();
+		spinner.SetSettings<FireRenderIESLight::LightRotateSettings>();
+		spinner.SetValue(m_parent->GetRotationZ(time));
+	}
+
 	return true;
 }
 
@@ -117,6 +153,15 @@ bool IES_General::OnEditChange(TimeValue t, int editId, HWND editHWND)
 
 	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
 		return UpdateTargetDistanceParam(t);
+
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X:
+		return UpdateRotationXParam(t);
+
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y:
+		return UpdateRotationYParam(t);
+
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z:
+		return UpdateRotationZParam(t);
 	}
 
 	return false;
@@ -131,6 +176,15 @@ bool IES_General::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD co
 
 	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
 		return UpdateTargetDistanceParam(t);
+
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S:
+		return UpdateRotationXParam(t);
+
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S:
+		return UpdateRotationYParam(t);
+
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S:
+		return UpdateRotationZParam(t);
 	}
 
 	return false;
@@ -157,6 +211,14 @@ const TCHAR* IES_General::GetAcceptMessage(WORD controlId) const
 	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
 	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
 		return _T("IES light: change area width");
+
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X:
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y:
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z:
+	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S:
+		return _T("IES light: change light source rotation");
 	}
 
 	FASSERT(false);
@@ -251,6 +313,21 @@ bool IES_General::UpdateTargetDistanceParam(TimeValue t)
 bool IES_General::UpdateAreaWidthParam(TimeValue t)
 {
 	return m_parent->SetAreaWidth(m_areaWidthControl.GetValue<float>(), t);
+}
+
+bool IES_General::UpdateRotationXParam(TimeValue t)
+{
+	return m_parent->SetRotationX(m_RotateX.GetValue<float>(), t);
+}
+
+bool IES_General::UpdateRotationYParam(TimeValue t)
+{
+	return m_parent->SetRotationY(m_RotateY.GetValue<float>(), t);
+}
+
+bool IES_General::UpdateRotationZParam(TimeValue t)
+{
+	return m_parent->SetRotationZ(m_RotateZ.GetValue<float>(), t);
 }
 
 void IES_General::ImportProfile()

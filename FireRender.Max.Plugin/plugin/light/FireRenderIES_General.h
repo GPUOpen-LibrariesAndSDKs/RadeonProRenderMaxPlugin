@@ -23,6 +23,9 @@ public:
 	bool UpdateTargetedParam(TimeValue t);
 	bool UpdateTargetDistanceParam(TimeValue t);
 	bool UpdateAreaWidthParam(TimeValue t);
+	bool UpdateRotationXParam(TimeValue t);
+	bool UpdateRotationYParam(TimeValue t);
+	bool UpdateRotationZParam(TimeValue t);
 	void ImportProfile();
 	bool ActivateSelectedProfile(TimeValue t);
 	bool DeleteSelectedProfile(TimeValue t);
@@ -49,6 +52,9 @@ protected:
 	WinButton m_targetedControl;
 	MaxEditAndSpinner m_areaWidthControl;
 	MaxEditAndSpinner m_targetDistanceControl;
+	MaxEditAndSpinner m_RotateX;
+	MaxEditAndSpinner m_RotateY;
+	MaxEditAndSpinner m_RotateZ;
 };
 
 FIRERENDER_NAMESPACE_END
