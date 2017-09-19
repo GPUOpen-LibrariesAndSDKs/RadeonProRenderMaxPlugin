@@ -427,7 +427,6 @@ IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::
 	// parse is not complete => failure
 	if (parseState != ParseState::END_OF_PARSE)
 	{
-		//errorMessage = L"not enough data in .ies file";
 		return IESProcessor::ErrorCode::UNEXPECTED_END_OF_FILE;
 	}
 
