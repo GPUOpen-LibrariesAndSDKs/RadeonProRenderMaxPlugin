@@ -901,21 +901,21 @@ namespace frw
 		}
 #endif
 
-		void SetRadiantPower(float r, float g, float b)
-		{
-			auto res = rprIESLightSetRadiantPower3f(Handle(), r, g, b);
-			FASSERT(RPR_SUCCESS == res);
-		}
-
-		void SetImageFromFile(const rpr_char* path, int nx, int ny)
+		void SetIESFile(const rpr_char* path, int nx, int ny)
 		{
 			auto res = rprIESLightSetImageFromFile(Handle(), path, nx, ny);
 			FASSERT(RPR_SUCCESS == res);
 		}
 
-		void SetImageFromData(const rpr_char* data, int nx, int ny)
+		void SetIESData(const char* data, int nx, int ny)
 		{
 			auto res = rprIESLightSetImageFromIESdata(Handle(), data, nx, ny);
+			FASSERT(RPR_SUCCESS == res);
+		}
+
+		void SetRadiantPower(float r, float g, float b)
+		{
+			auto res = rprIESLightSetRadiantPower3f(Handle(), r, g, b);
 			FASSERT(RPR_SUCCESS == res);
 		}
 	};

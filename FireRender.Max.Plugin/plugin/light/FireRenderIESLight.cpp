@@ -1246,7 +1246,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 			// pass IES data to RPR
 			std::string iesData = parser.ToString(data);
 
-			light.SetImageFromData(iesData.c_str(), 256, 256);
+			light.SetIESData(iesData.c_str(), 256, 256);
 		}
 		else
 		{
@@ -1255,7 +1255,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 				std::istreambuf_iterator<char>());
 
 			// pass IES data to RPR
-			light.SetImageFromData(iesData.c_str(), 256, 256);
+			light.SetIESData(iesData.c_str(), 256, 256);
 		}
 	}
 
