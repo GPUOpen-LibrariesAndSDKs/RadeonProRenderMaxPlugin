@@ -19,24 +19,8 @@
 #include "IESprocessor.h"
 
 IESProcessor::IESLightData::IESLightData()
-	: m_countLamps(0)
-	, m_lumens(0)
-	, m_multiplier(0)
-	, m_countVerticalAngles(0)
-	, m_countHorizontalAngles(0)
-	, m_photometricType(0)
-	, m_unit(0)
-	, m_width(0.0)
-	, m_length(0.0)
-	, m_height(0.0)
-	, m_ballast(0)
-	, m_version(0)
-	, m_wattage(-1)
-	, m_verticalAngles()
-	, m_horizontalAngles()
-	, m_candelaValues()
-	, m_extraData()
-{}
+{
+}
 
 void IESProcessor::IESLightData::Clear()
 {
@@ -185,10 +169,10 @@ bool IESProcessor::IsIESFile(const char* filename) const
 void IESProcessor::SplitLine(std::vector<std::string>& tokens, const std::string& lineToParse) const
 {
 	// split string
-	std::istringstream iss(lineToParse);
+	std::istringstream iss(lineToParse); // will be able to separate string to substrings dividing them by spaces
 	std::vector<std::string> line_tokens
 	(
-		std::istream_iterator<std::string>(iss), {} // iterator iterats through sub strings separated by space values
+		std::istream_iterator<std::string>(iss), {} // iterator iterates through sub strings separated by space values
 	);
 
 	// add splited strings 
@@ -207,11 +191,23 @@ bool LineHaveNumbers(const std::string& lineToParse)
 	return (isdigit(*c) || (*c == '-'));
 }
 
-void IESProcessor::GetTokensFromFile(std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const
+IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const
 {
 	text.clear();
 
 	std::string lineToParse;
+
+	// file is not IES file => return
+	if (!std::getline(inputFile, lineToParse))
+	{
+		return IESProcessor::ErrorCode::NOT_IES_FILE;
+	}
+	
+	text += lineToParse += "\n";
+	if (text.substr(0, 5) != "IESNA")
+	{
+		return IESProcessor::ErrorCode::NOT_IES_FILE;
+	}
 
 	// parse file line after line
 	while (std::getline(inputFile, lineToParse))
@@ -226,6 +222,8 @@ void IESProcessor::GetTokensFromFile(std::vector<std::string>& tokens, std::stri
 		// split line
 		SplitLine(tokens, lineToParse);
 	}
+
+	return IESProcessor::ErrorCode::SUCCESS;
 }
 
 double ReadDouble(const std::string& input)
@@ -446,10 +444,10 @@ IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const char*
 	}
 
 	// file is not IES file => return
-	if (!IsIESFile(filename))
+	/*if (!IsIESFile(filename))
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
-	}
+	}*/
 
 	// try open file
 	std::ifstream inputFile(filename);
@@ -463,7 +461,13 @@ IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const char*
 
 	// read data from file in a way convinient for further parsing
 	std::vector<std::string> tokens;
-	GetTokensFromFile(tokens, lightData.m_extraData, inputFile);
+	IESProcessor::ErrorCode fileRead = GetTokensFromFile(tokens, lightData.m_extraData, inputFile);
+	if (fileRead != IESProcessor::ErrorCode::SUCCESS)
+	{
+		// report failure
+		lightData.Clear(); // function shouldn't return garbage
+		return fileRead;
+	}
 
 	// read tokens to lightData
 	IESProcessor::ErrorCode isParseOk = ParseTokens(lightData, tokens);

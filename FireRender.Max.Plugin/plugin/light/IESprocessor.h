@@ -84,7 +84,7 @@ protected:
 	* read from the file.
 	* Basically makes data more convinient to parse
 	*/
-	void GetTokensFromFile (std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const;
+	ErrorCode GetTokensFromFile (std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const;
 
 	/** 
 	* split line with several values separated by space(s) into array of strings each containing single value
@@ -112,21 +112,33 @@ protected:
 };
 
 // holds data for IES light source
+/**
+* NOTE that we render light according to IES specification
+* There are differences between IES specification and Autodesk IES lights description 
+* That might cause differences in rendered images
+*
+* Differences:
+* number of lamps should always be 1 according to Autodesk specification;
+* photometric type should always be 1 according to Autodesk specification;
+* ballast should always be 1 according to Autodesk specification;
+* version should always be 1 according to Autodesk specification;
+* wattage should always be 0 according to Autodesk specification.
+*/
 class IESProcessor::IESLightData
 {
 public:
 	IESLightData();
 
 	/**
-	* Should always be 1 according to Autodesk specification.
+	* Number of lamps.
 	*/
-	int m_countLamps;
+	int m_countLamps = 0;
 
 	/**
 	* The initial rated lumens for the lamp used in the test or -1 if absolute photometry is used
 	* and the intensity values do not depend on different lamp ratings. 
 	*/
-	int m_lumens;
+	int m_lumens = 0;
 
 	/**
 	* A multiplying factor for all the candela values in the file. 
@@ -135,54 +147,50 @@ public:
 	* when you obtain the photometric values from a catalog using a ruler on a goniometric diagram.
 	* Normally the multiplying factor is 1.
 	*/
-	int m_multiplier;
+	int m_multiplier = 0;
 
 	/**
 	* The number of vertical (polar) angles in the photometric web. 
 	*/
-	int m_countVerticalAngles;
+	int m_countVerticalAngles = 0;
 
 	/**
 	* The number of horizontal (azimuth) angles in the photometric web. 
 	*/
-	int m_countHorizontalAngles;
+	int m_countHorizontalAngles = 0;
 
 	/**
-	* Should always be 1 according to Autodesk specification.
 	* Can be 1, 2 or 3 according to IES specification.
 	*/
-	int m_photometricType;
+	int m_photometricType = 0;
 
 	/**
 	* The type of unit used to measure the dimensions of the luminous opening.
 	* Use 1 for feet or 2 for meters.
 	*/
-	int m_unit;
+	int m_unit = 0;
 
 	/**
 	* The width, length, and height of the luminous opening.
 	*/
-	double m_width;
-	double m_length;
-	double m_height;
+	double m_width = 0.0f;
+	double m_length = 0.0f;
+	double m_height = 0.0f;
 
 	/**
 	* Multiplier representing difference between lab mesaurments and real world performance
-	* Should always be 1 according to Autodesk specification.
 	*/
-	int m_ballast;
+	int m_ballast = 0;
 
 	/**
 	* Standard version
-	* Should always be 1 according to Autodesk specification.
 	*/
-	int m_version;
+	int m_version = 0;
 
 	/**
 	* Power of light source
-	* Should always be 0 according to Autodesk specification.
 	*/
-	double m_wattage;
+	double m_wattage = -1;
 
 	/**
 	* The set of vertical angles (aka polar angles), listed in increasing order. 
