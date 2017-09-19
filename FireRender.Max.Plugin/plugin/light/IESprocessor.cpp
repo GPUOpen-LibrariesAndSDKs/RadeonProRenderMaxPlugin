@@ -47,7 +47,7 @@ bool IESProcessor::IESLightData::IsValid() const
 {
 	// check values correctness (some params could have only one or two values, according to specification)
 	bool areValuesCorrect =
-		(m_countLamps >= 1) &&  // while Autodesk specification says it always should be zero, this is not the case with real files
+		(m_countLamps >= 1) &&  // Should be >= 1 according to IES specification
 		((m_lumens == -1) || (m_lumens > 0)) &&
 		(m_photometricType == 1) &&
 		((m_unit == 1) || (m_unit == 2)) &&
@@ -56,7 +56,7 @@ bool IESProcessor::IESLightData::IsValid() const
 		(m_wattage >= 0.0f); // while Autodesk specification says it always should be zero, this is not the case with real files
 
 	// check table correctness
-	bool isSizeCorrect = ( m_horizontalAngles.size() * m_verticalAngles.size() == m_candelaValues.size() );
+	bool isSizeCorrect = ( (m_horizontalAngles.size() * m_verticalAngles.size()) == m_candelaValues.size() );
 
 	// compare stored array size values with real array sizes (they should match)
 	bool isArrDataConsistent = (m_horizontalAngles.size() == m_countHorizontalAngles) && (m_verticalAngles.size() == m_countVerticalAngles);
@@ -152,20 +152,6 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 	return outString;
 }
 
-bool IESProcessor::IsIESFile(const char* filename) const
-{
-	int length = strlen(filename);
-	if (length == 0)
-		return false;
-
-	if ((tolower(filename[length - 1]) != 's') ||
-		(tolower(filename[length - 2]) != 'e') ||
-		(tolower(filename[length - 3]) != 'i'))
-		return false;
-
-	return true;
-}
-
 void IESProcessor::SplitLine(std::vector<std::string>& tokens, const std::string& lineToParse) const
 {
 	// split string
@@ -179,7 +165,8 @@ void IESProcessor::SplitLine(std::vector<std::string>& tokens, const std::string
 	tokens.insert(tokens.end(), line_tokens.begin(), line_tokens.end());
 }
 
-// if line starts not with a number then this is a line with extra data
+// if line starts not with a number after space character then this is a line with extra data
+// if line has spaces and the numbers than this is a line with data to be parsed
 bool LineHaveNumbers(const std::string& lineToParse)
 {
 	const char* c = lineToParse.c_str();
@@ -204,7 +191,9 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	}
 	
 	text += lineToParse += "\n";
-	if (text.substr(0, 5) != "IESNA")
+
+	const std::string iesFileTag = "IESNA";
+	if (text.substr(0, 5) != iesFileTag)
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
 	}
@@ -233,7 +222,7 @@ double ReadDouble(const std::string& input)
 
 int ReadInt(const std::string& input)
 {
-	return atof(input.c_str());
+	return atoi(input.c_str());
 }
 
 enum IESProcessor::ParseState
@@ -340,34 +329,34 @@ IESProcessor::ParseState ReadWattage(IESProcessor::IESLightData& lightData, cons
 	return IESProcessor::ParseState::READ_VERTICAL_ANGLES;
 }
 
-typedef std::function<IESProcessor::ParseState(IESProcessor::IESLightData&, const std::string&)> parseFunc;
-static const std::map<IESProcessor::ParseState, parseFunc > m_parseImpl = {
-	std::make_pair(IESProcessor::ParseState::READ_COUNT_LAMPS,	parseFunc (ReadCountLamps)	),
-	std::make_pair(IESProcessor::ParseState::READ_LUMENS,		parseFunc (ReadLumens)		),
-	std::make_pair(IESProcessor::ParseState::READ_MULTIPLIER,	parseFunc (ReadMultiplier)	),
-	std::make_pair(IESProcessor::ParseState::READ_COUNT_VANGLES,parseFunc (ReadCountVAngles)),
-	std::make_pair(IESProcessor::ParseState::READ_COUNT_HANGLES,parseFunc (ReadCountHAngles)),
-	std::make_pair(IESProcessor::ParseState::READ_TYPE,			parseFunc (ReadType)		),
-	std::make_pair(IESProcessor::ParseState::READ_UNIT,			parseFunc (ReadUnit)		),
-	std::make_pair(IESProcessor::ParseState::READ_WIDTH,		parseFunc (ReadWidth)		),
-	std::make_pair(IESProcessor::ParseState::READ_LENGTH,		parseFunc (ReadLength)		),
-	std::make_pair(IESProcessor::ParseState::READ_HEIGHT,		parseFunc (ReadHeight)		),
-	std::make_pair(IESProcessor::ParseState::READ_BALLAST,		parseFunc (ReadBallast)		),
-	std::make_pair(IESProcessor::ParseState::READ_VERSION,		parseFunc (ReadVersion)		),
-	std::make_pair(IESProcessor::ParseState::READ_WATTAGE,		parseFunc (ReadWattage)		),
-};
-
 bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& state, const std::string& value) const
 {
+	typedef std::function<IESProcessor::ParseState(IESProcessor::IESLightData&, const std::string&)> parseFunc;
+	static const std::map<IESProcessor::ParseState, parseFunc > m_parseImpl = {
+		std::make_pair(IESProcessor::ParseState::READ_COUNT_LAMPS,	parseFunc(ReadCountLamps)),
+		std::make_pair(IESProcessor::ParseState::READ_LUMENS,		parseFunc(ReadLumens)),
+		std::make_pair(IESProcessor::ParseState::READ_MULTIPLIER,	parseFunc(ReadMultiplier)),
+		std::make_pair(IESProcessor::ParseState::READ_COUNT_VANGLES,parseFunc(ReadCountVAngles)),
+		std::make_pair(IESProcessor::ParseState::READ_COUNT_HANGLES,parseFunc(ReadCountHAngles)),
+		std::make_pair(IESProcessor::ParseState::READ_TYPE,			parseFunc(ReadType)),
+		std::make_pair(IESProcessor::ParseState::READ_UNIT,			parseFunc(ReadUnit)),
+		std::make_pair(IESProcessor::ParseState::READ_WIDTH,		parseFunc(ReadWidth)),
+		std::make_pair(IESProcessor::ParseState::READ_LENGTH,		parseFunc(ReadLength)),
+		std::make_pair(IESProcessor::ParseState::READ_HEIGHT,		parseFunc(ReadHeight)),
+		std::make_pair(IESProcessor::ParseState::READ_BALLAST,		parseFunc(ReadBallast)),
+		std::make_pair(IESProcessor::ParseState::READ_VERSION,		parseFunc(ReadVersion)),
+		std::make_pair(IESProcessor::ParseState::READ_WATTAGE,		parseFunc(ReadWattage)),
+	};
+
 	// back-off
 	if (state == ParseState::END_OF_PARSE)
 		return false;
 
 	// read values from input
-	auto& parseFunc = m_parseImpl.find(state);
-	if (parseFunc != m_parseImpl.end())
+	auto& parseFuncImpl = m_parseImpl.find(state);
+	if (parseFuncImpl != m_parseImpl.end())
 	{
-		state = parseFunc->second(lightData, value);
+		state = parseFuncImpl->second(lightData, value);
 		return true;
 	}
 
@@ -415,9 +404,7 @@ IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::
 	for (const std::string& value : tokens)
 	{
 		// try parse token
-		bool parseOk = ReadValue(lightData, parseState, value);
-
-		if (!parseOk)
+		if (!ReadValue(lightData, parseState, value))
 		{
 			// parse failed
 			return IESProcessor::ErrorCode::PARSE_FAILED;
@@ -441,12 +428,6 @@ IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const char*
 	{
 		return IESProcessor::ErrorCode::NO_FILE;
 	}
-
-	// file is not IES file => return
-	/*if (!IsIESFile(filename))
-	{
-		return IESProcessor::ErrorCode::NOT_IES_FILE;
-	}*/
 
 	// try open file
 	std::ifstream inputFile(filename);
@@ -493,18 +474,6 @@ IESProcessor::ErrorCode IESProcessor::Update(IESLightData& lightData, const IESU
 		lightData.m_height *= req.m_scale;
 	}
 
-	return IESProcessor::ErrorCode::SUCCESS;
-}
-
-IESProcessor::ErrorCode IESProcessor::Save(const IESLightData& lightData, const char* outfilename) const
-{
-	// NIY
-	return IESProcessor::ErrorCode::SUCCESS;
-}
-
-IESProcessor::ErrorCode IESProcessor::Load(IESLightData& lightData, const char* filename) const
-{
-	// NIY
 	return IESProcessor::ErrorCode::SUCCESS;
 }
 

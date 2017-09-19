@@ -38,24 +38,6 @@ public:
 	ErrorCode Parse (IESLightData& lightData, const char* filename) const;
 
 	/**
-	* NIY!
-	* save IES data in inner format in file (bin file?)
-	* @param lightData struct with IES ligh parameters
-	* @param outfilename name of file where data in internal representation should be saved
-	* @return code of error, zero if parse successfull
-	*/
-	ErrorCode Save (const IESLightData& lightData, const char* outfilename) const;
-
-	/**
-	* NIY!
-	* load IES data from inner format
-	* @param filename name of file to be loaded
-	* @param lightData - output lightData
-	* @return code of error, zero if parse successfull 
-	*/
-	ErrorCode Load (IESLightData& lightData, const char* filename) const;
-
-	/**
 	* change light data according to request, e.g. intensity is changed and so on
 	* @param req struct with values to be updated in lightData
 	* @param lightData input and output struct with IES data that should be changed according to request req
@@ -72,13 +54,6 @@ public:
 	std::string ToString (const IESLightData& lightData) const;
 
 protected:
-	/**
-	* checks if filename is .ies file
-	* @param filename name of file to be checked
-	* @return true if file is an ies file
-	*/
-	bool IsIESFile (const char* filename) const;
-
 	/**
 	* Reads file and fills array tokens with numbers (as strings) and text array with data other than numbers
 	* read from the file.
