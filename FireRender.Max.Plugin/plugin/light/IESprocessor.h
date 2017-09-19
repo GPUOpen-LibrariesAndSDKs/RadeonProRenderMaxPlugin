@@ -8,15 +8,13 @@
 
 #pragma once
 
-#include "utils\Utils.h"
-
 // process data for IES light sources
 class IESProcessor
 {
 public:
 	class IESLightData;
 	struct IESUpdateRequest;
-	enum ParseState;
+	enum class ParseState;
 
 	enum class ErrorCode
 	{
