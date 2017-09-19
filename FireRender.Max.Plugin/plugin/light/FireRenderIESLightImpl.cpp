@@ -69,9 +69,7 @@ Color GetEdgeColor(bool isFrozen, bool isSelected)
 	return color;
 }
 
-const float SCALE_WEB = 0.05f;
-
-// clones all edges in edges array, transforms cloned edges them by matrTransform and inserts them to edges array
+// clones all edges in edges array, transforms cloned edges by matrTransform and inserts them to edges array
 void CloneAndTransform(std::vector<std::vector<Point3> >& edges, const Matrix3 &matrTransform)
 {
 	size_t length = edges.size();
@@ -88,7 +86,7 @@ void CloneAndTransform(std::vector<std::vector<Point3> >& edges, const Matrix3 &
 	}
 }
 
-bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::IESLightData &data)
+void MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::IESLightData &data)
 {
 	if (data.IsAxiallySymmetric())
 	{
@@ -109,11 +107,9 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 			Point3(0.0, 0.0, 0.0)
 		);
 		CloneAndTransform(edges, matrRotateAroundX);
-
-		return true;
 	}
 
-	if (data.IsQuadrantSymmetric())
+	else if (data.IsQuadrantSymmetric())
 	{
 		// mirror around xy plane
 		Matrix3 matrMirrorXZ(
@@ -132,11 +128,9 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 			Point3(0.0, 0.0, 0.0)
 		);
 		CloneAndTransform(edges, matrMirrorXY);
-
-		return true;
 	}
 
-	if (data.IsPlaneSymmetric())
+	else if (data.IsPlaneSymmetric())
 	{
 		// mirror around xy plane
 		Matrix3 matrMirrorXY(
@@ -146,11 +140,7 @@ bool MirrorEdges(std::vector<std::vector<Point3> >& edges, const IESProcessor::I
 			Point3(0.0, 0.0, 0.0)
 		);
 		CloneAndTransform(edges, matrMirrorXY);
-
-		return true;
 	}
-
-	return true;
 }
 
 bool FireRenderIESLight::CalculateBBox(void)
@@ -189,11 +179,11 @@ bool FireRenderIESLight::CalculateBBox(void)
 		}
 	}
 
-	m_bbox[0] = Point3(minX, minY, minZ); // minX
+	m_bbox[0] = Point3(minX, minY, minZ);
 	m_bbox[1] = Point3(maxX, minY, minZ);
 	m_bbox[2] = Point3(minX, maxY, minZ);
 	m_bbox[3] = Point3(minX, minY, maxZ);
-	m_bbox[4] = Point3(maxX, maxY, maxZ); // maxX
+	m_bbox[4] = Point3(maxX, maxY, maxZ);
 	m_bbox[5] = Point3(minX, maxY, maxZ);
 	m_bbox[6] = Point3(maxX, minY, maxZ);
 	m_bbox[7] = Point3(maxX, maxY, minZ);
@@ -204,6 +194,8 @@ bool FireRenderIESLight::CalculateBBox(void)
 
 bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 {
+	const float SCALE_WEB = 0.05f;
+
 	m_plines.clear();
 	auto& edges = m_plines;
 
@@ -319,10 +311,9 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	}
 
 	// mirror edges if necessary
-	if (!failed && !MirrorEdges(edges, data))
+	if (!failed)
 	{
-		failed = true;
-		failReason = _T("Failed to mirror edges");
+		MirrorEdges(edges, data);
 	}
 
 	if (!failed)
@@ -397,9 +388,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	if (m_plines.empty())
 	{
 		// try regen web
-		bool webOk = CalculateLightRepresentation(GetActiveProfile(t));
-
-		if (!webOk)
+		if (!CalculateLightRepresentation(GetActiveProfile(t)))
 			return false;
 	}
 
