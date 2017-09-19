@@ -19,12 +19,12 @@ public:
 	enum class ErrorCode
 	{
 		SUCCESS = 0,
-		NO_FILE,					///< wrong input
-		NOT_IES_FILE,				///< wrong file type
-		FAILED_TO_READ_FILE,		///< failed to open file
-		INVALID_DATA_IN_IES_FILE,	///< parse OK, but data in IES file is not valid (either data in the file was not correct, or something went wrong during the parse)
-		PARSE_FAILED,				///< error during parse or file too big (file is longer than parser assumed it should)
-		UNEXPECTED_END_OF_FILE,		///< have reached end of file before parse was completed
+		NO_FILE,                    ///< wrong input
+		NOT_IES_FILE,               ///< wrong file type
+		FAILED_TO_READ_FILE,        ///< failed to open file
+		INVALID_DATA_IN_IES_FILE,   ///< parse OK, but data in IES file is not valid (either data in the file was not correct, or something went wrong during the parse)
+		PARSE_FAILED,               ///< error during parse or file too big (file is longer than parser assumed it should)
+		UNEXPECTED_END_OF_FILE,     ///< have reached end of file before parse was completed
 	};
 
 	/**

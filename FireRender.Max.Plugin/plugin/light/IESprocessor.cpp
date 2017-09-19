@@ -66,12 +66,7 @@ bool IESProcessor::IESLightData::IsValid() const
 		std::is_sorted(m_verticalAngles.begin(), m_verticalAngles.end());
 
 	// ensure correct value for angles
-	const float tolerance = FLT_EPSILON;
-	bool correctAngles = 
-		(abs(m_horizontalAngles.back()) <= tolerance) || 
-		(abs(m_horizontalAngles.back() - 90.0f)  <= tolerance) ||
-		(abs(m_horizontalAngles.back() - 180.0f) <= tolerance) ||
-		(abs(m_horizontalAngles.back() - 360.0f) <= tolerance);
+	bool correctAngles = IsAxiallySymmetric() || IsQuadrantSymmetric() || IsPlaneSymmetric() || (abs(m_horizontalAngles.back() - 360.0f) <= FLT_EPSILON);
 
 	return areValuesCorrect && isSizeCorrect && isArrDataConsistent && areArrsSorted && correctAngles;
 }
@@ -342,23 +337,53 @@ IESProcessor::ParseState ReadWattage(IESProcessor::IESLightData& lightData, cons
 	return IESProcessor::ParseState::READ_VERTICAL_ANGLES;
 }
 
+IESProcessor::ParseState ReadVAngles(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_verticalAngles.push_back(ReadDouble(value));
+	if (lightData.m_verticalAngles.size() == lightData.m_countVerticalAngles)
+		return IESProcessor::ParseState::READ_HORIZONTAL_ANGLES;
+
+	return IESProcessor::ParseState::READ_VERTICAL_ANGLES; // exit function without switching state because we haven't read all angle values yet
+}
+
+IESProcessor::ParseState ReadHAngles(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_horizontalAngles.push_back(ReadDouble(value));
+	if (lightData.m_horizontalAngles.size() == lightData.m_countHorizontalAngles)
+		return IESProcessor::ParseState::READ_CANDELA_VALUES;
+
+	return IESProcessor::ParseState::READ_HORIZONTAL_ANGLES; // exit function without switching state because we haven't read all angle values yet
+}
+
+IESProcessor::ParseState ReadCValues(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_candelaValues.push_back(ReadDouble(value));
+	if (lightData.m_candelaValues.size() == lightData.m_countVerticalAngles*lightData.m_countHorizontalAngles)
+		return IESProcessor::ParseState::END_OF_PARSE;
+
+	return IESProcessor::ParseState::READ_CANDELA_VALUES; // exit function without switching state because we haven't read all candela values yet
+}
+
 bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& state, const std::string& value) const
 {
 	typedef std::function<IESProcessor::ParseState(IESProcessor::IESLightData&, const std::string&)> parseFunc;
 	static const std::map<IESProcessor::ParseState, parseFunc > m_parseImpl = {
-		std::make_pair(IESProcessor::ParseState::READ_COUNT_LAMPS,	parseFunc(ReadCountLamps)),
-		std::make_pair(IESProcessor::ParseState::READ_LUMENS,		parseFunc(ReadLumens)),
-		std::make_pair(IESProcessor::ParseState::READ_MULTIPLIER,	parseFunc(ReadMultiplier)),
-		std::make_pair(IESProcessor::ParseState::READ_COUNT_VANGLES,parseFunc(ReadCountVAngles)),
-		std::make_pair(IESProcessor::ParseState::READ_COUNT_HANGLES,parseFunc(ReadCountHAngles)),
-		std::make_pair(IESProcessor::ParseState::READ_TYPE,			parseFunc(ReadType)),
-		std::make_pair(IESProcessor::ParseState::READ_UNIT,			parseFunc(ReadUnit)),
-		std::make_pair(IESProcessor::ParseState::READ_WIDTH,		parseFunc(ReadWidth)),
-		std::make_pair(IESProcessor::ParseState::READ_LENGTH,		parseFunc(ReadLength)),
-		std::make_pair(IESProcessor::ParseState::READ_HEIGHT,		parseFunc(ReadHeight)),
-		std::make_pair(IESProcessor::ParseState::READ_BALLAST,		parseFunc(ReadBallast)),
-		std::make_pair(IESProcessor::ParseState::READ_VERSION,		parseFunc(ReadVersion)),
-		std::make_pair(IESProcessor::ParseState::READ_WATTAGE,		parseFunc(ReadWattage)),
+		std::make_pair(IESProcessor::ParseState::READ_COUNT_LAMPS,         parseFunc(ReadCountLamps)),
+		std::make_pair(IESProcessor::ParseState::READ_LUMENS,              parseFunc(ReadLumens)),
+		std::make_pair(IESProcessor::ParseState::READ_MULTIPLIER,          parseFunc(ReadMultiplier)),
+		std::make_pair(IESProcessor::ParseState::READ_COUNT_VANGLES,       parseFunc(ReadCountVAngles)),
+		std::make_pair(IESProcessor::ParseState::READ_COUNT_HANGLES,       parseFunc(ReadCountHAngles)),
+		std::make_pair(IESProcessor::ParseState::READ_TYPE,                parseFunc(ReadType)),
+		std::make_pair(IESProcessor::ParseState::READ_UNIT,                parseFunc(ReadUnit)),
+		std::make_pair(IESProcessor::ParseState::READ_WIDTH,               parseFunc(ReadWidth)),
+		std::make_pair(IESProcessor::ParseState::READ_LENGTH,              parseFunc(ReadLength)),
+		std::make_pair(IESProcessor::ParseState::READ_HEIGHT,              parseFunc(ReadHeight)),
+		std::make_pair(IESProcessor::ParseState::READ_BALLAST,             parseFunc(ReadBallast)),
+		std::make_pair(IESProcessor::ParseState::READ_VERSION,             parseFunc(ReadVersion)),
+		std::make_pair(IESProcessor::ParseState::READ_WATTAGE,             parseFunc(ReadWattage)),
+		std::make_pair(IESProcessor::ParseState::READ_VERTICAL_ANGLES,     parseFunc(ReadVAngles)),
+		std::make_pair(IESProcessor::ParseState::READ_HORIZONTAL_ANGLES,   parseFunc(ReadHAngles)),
+		std::make_pair(IESProcessor::ParseState::READ_CANDELA_VALUES,      parseFunc(ReadCValues)),
 	};
 
 	// back-off
@@ -373,39 +398,7 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& 
 		return true;
 	}
 
-	switch (state) 
-	{
-		case ParseState::READ_VERTICAL_ANGLES: 
-		{
-			lightData.m_verticalAngles.push_back(ReadDouble(value));
-			if (lightData.m_verticalAngles.size() != lightData.m_countVerticalAngles)
-				return true; // exit function without switching state because we haven't read all angle values yet
-			state = ParseState::READ_HORIZONTAL_ANGLES;
-			break;
-		}
-
-		case ParseState::READ_HORIZONTAL_ANGLES: 
-		{
-			lightData.m_horizontalAngles.push_back(ReadDouble(value));
-			if (lightData.m_horizontalAngles.size() != lightData.m_countHorizontalAngles)
-				return true; // exit function without switching state because we haven't read all angle values yet
-			state = ParseState::READ_CANDELA_VALUES;
-			break;
-		}
-
-		case ParseState::READ_CANDELA_VALUES: 
-		{
-			lightData.m_candelaValues.push_back(ReadDouble(value));
-			if (lightData.m_candelaValues.size() != lightData.m_countVerticalAngles*lightData.m_countHorizontalAngles)
-				return true; // exit function without switching state because we haven't read all angle values yet
-			state = ParseState::END_OF_PARSE;
-			break;
-		}
-		default:
-			return false;
-	}
-
-	return true;
+	return false;
 }
 
 IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::vector<std::string>& tokens) const
