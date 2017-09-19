@@ -98,8 +98,7 @@ public:
 	void GetClassName(TSTR& s) override;
 	RefTargetHandle Clone(RemapDir& remap) override;
 
-	//********************** can move this to IFace?
-	IParamBlock2* GetParamBlock(int i) override; // override??? function not in the base class
+	IParamBlock2* GetParamBlock(int i) override;
 	const IParamBlock2* GetParamBlock(int i) const;
 
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
@@ -108,11 +107,11 @@ public:
 	RefTargetHandle GetReference(int i) override;
 
 	void DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
-	bool DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected = false, bool isFrozen = false);
-	//***************************************************************************************
+	bool DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected = false, bool isFrozen = false); 
+
 	Color GetViewportMainColor(INode* pNode);
 	Color GetViewportColor(INode* pNode, Color selectedColor);
-	//***************************************************************************************
+	
 	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	void GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box) override;
 	int HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override;
