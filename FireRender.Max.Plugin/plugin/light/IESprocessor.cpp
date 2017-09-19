@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <memory>
 #include <iomanip>
+#include <map>
+#include <functional>
 #include "IESprocessor.h"
 
 IESProcessor::IESLightData::IESLightData()
@@ -69,8 +71,10 @@ bool IESProcessor::IESLightData::IsValid() const
 		(m_version == 1) &&
 		(m_wattage >= 0.0f); // while Autodesk specification says it always should be zero, this is not the case with real files
 
-						   // check table correctness
-	bool isSizeCorrect = m_horizontalAngles.size() * m_verticalAngles.size() == m_candelaValues.size();
+	// check table correctness
+	bool isSizeCorrect = ( m_horizontalAngles.size() * m_verticalAngles.size() == m_candelaValues.size() );
+
+	// compare stored array size values with real array sizes (they should match)
 	bool isArrDataConsistent = (m_horizontalAngles.size() == m_countHorizontalAngles) && (m_verticalAngles.size() == m_countVerticalAngles);
 
 	// check data correctness (both angles arrays should be in ascending order)
@@ -78,7 +82,7 @@ bool IESProcessor::IESLightData::IsValid() const
 		std::is_sorted(m_verticalAngles.begin(), m_verticalAngles.end());
 
 	// ensure correct value for angles
-	const float tolerance = 0.0001f;
+	const float tolerance = FLT_EPSILON;
 	bool correctAngles = 
 		(abs(m_horizontalAngles.back()) <= tolerance) || 
 		(abs(m_horizontalAngles.back() - 90.0f)  <= tolerance) ||
@@ -91,22 +95,19 @@ bool IESProcessor::IESLightData::IsValid() const
 // the distribution is axially symmetric.
 bool IESProcessor::IESLightData::IsAxiallySymmetric(void) const
 {
-	const float tolerance = 0.0001f;
-	return (abs(m_horizontalAngles.back()) <= tolerance);
+	return (abs(m_horizontalAngles.back()) <= FLT_EPSILON);
 }
 
 // the distribution is symmetric in each quadrant.
 bool IESProcessor::IESLightData::IsQuadrantSymmetric(void) const
 {
-	const float tolerance = 0.0001f;
-	return (abs(m_horizontalAngles.back() - 90.0f) <= tolerance);
+	return (abs(m_horizontalAngles.back() - 90.0f) <= FLT_EPSILON);
 }
 
 // the distribution is symmetric about a vertical plane.
 bool IESProcessor::IESLightData::IsPlaneSymmetric(void) const
 {
-	const float tolerance = 0.0001f;
-	return (abs(m_horizontalAngles.back() - 180.0f) <= tolerance);
+	return (abs(m_horizontalAngles.back() - 180.0f) <= FLT_EPSILON);
 }
 
 std::string IESProcessor::ToString(const IESLightData& lightData) const
@@ -187,13 +188,14 @@ void IESProcessor::SplitLine(std::vector<std::string>& tokens, const std::string
 	std::istringstream iss(lineToParse);
 	std::vector<std::string> line_tokens
 	(
-		std::istream_iterator<std::string>(iss), {}
+		std::istream_iterator<std::string>(iss), {} // iterator iterats through sub strings separated by space values
 	);
 
 	// add splited strings 
 	tokens.insert(tokens.end(), line_tokens.begin(), line_tokens.end());
 }
 
+// if line starts not with a number then this is a line with extra data
 bool LineHaveNumbers(const std::string& lineToParse)
 {
 	const char* c = lineToParse.c_str();
@@ -233,10 +235,10 @@ double ReadDouble(const std::string& input)
 
 int ReadInt(const std::string& input)
 {
-	return std::stoi(input.c_str());
+	return atof(input.c_str());
 }
 
-enum class IESProcessor::ParseOrder
+enum IESProcessor::ParseState
 {
 	READ_COUNT_LAMPS = 0,
 	READ_LUMENS,
@@ -257,109 +259,151 @@ enum class IESProcessor::ParseOrder
 	END_OF_PARSE
 };
 
-IESProcessor::ParseOrder& operator++(IESProcessor::ParseOrder &value)
+IESProcessor::ParseState IESProcessor::FirstParseState(void) const
 {
-	if (value == IESProcessor::ParseOrder::END_OF_PARSE)
-	{
-		value = static_cast<IESProcessor::ParseOrder>(0);
-
-		return value;
-	}
-
-	value = static_cast<IESProcessor::ParseOrder>(static_cast<std::underlying_type<IESProcessor::ParseOrder>::type>(value) + 1);
-
-	return value;
+	return ParseState::READ_COUNT_LAMPS;
 }
 
-IESProcessor::ParseOrder IESProcessor::FirstParseState(void) const
+IESProcessor::ParseState ReadCountLamps(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	return ParseOrder::READ_COUNT_LAMPS;
+	lightData.m_countLamps = ReadInt(value);
+	return IESProcessor::ParseState::READ_LUMENS;
 }
 
-bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseOrder& state, const std::string& value) const
+IESProcessor::ParseState ReadLumens(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_lumens = ReadInt(value);
+	return IESProcessor::ParseState::READ_MULTIPLIER;
+}
+
+IESProcessor::ParseState ReadMultiplier(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_multiplier = ReadInt(value);
+	return IESProcessor::ParseState::READ_COUNT_VANGLES;
+}
+
+IESProcessor::ParseState ReadCountVAngles(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_countVerticalAngles = ReadInt(value);
+	return IESProcessor::ParseState::READ_COUNT_HANGLES;
+}
+
+IESProcessor::ParseState ReadCountHAngles(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_countHorizontalAngles = ReadInt(value);
+	return IESProcessor::ParseState::READ_TYPE;
+}
+
+IESProcessor::ParseState ReadType(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_photometricType = ReadInt(value);
+	return IESProcessor::ParseState::READ_UNIT;
+}
+
+IESProcessor::ParseState ReadUnit(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_unit = ReadInt(value);
+	return IESProcessor::ParseState::READ_WIDTH;
+}
+
+IESProcessor::ParseState ReadWidth(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_width = ReadDouble(value);
+	return IESProcessor::ParseState::READ_LENGTH;
+}
+
+IESProcessor::ParseState ReadLength(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_length = ReadDouble(value);
+	return IESProcessor::ParseState::READ_HEIGHT;
+}
+
+IESProcessor::ParseState ReadHeight(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_height = ReadDouble(value);
+	return IESProcessor::ParseState::READ_BALLAST;
+}
+
+IESProcessor::ParseState ReadBallast(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_ballast = ReadInt(value);
+	return IESProcessor::ParseState::READ_VERSION;
+}
+
+IESProcessor::ParseState ReadVersion(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_version = ReadInt(value);
+	return IESProcessor::ParseState::READ_WATTAGE;
+}
+
+IESProcessor::ParseState ReadWattage(IESProcessor::IESLightData& lightData, const std::string& value)
+{
+	lightData.m_wattage = ReadDouble(value);
+	return IESProcessor::ParseState::READ_VERTICAL_ANGLES;
+}
+
+typedef std::function<IESProcessor::ParseState(IESProcessor::IESLightData&, const std::string&)> parseFunc;
+static const std::map<IESProcessor::ParseState, parseFunc > m_parseImpl = {
+	std::make_pair(IESProcessor::ParseState::READ_COUNT_LAMPS,	parseFunc (ReadCountLamps)	),
+	std::make_pair(IESProcessor::ParseState::READ_LUMENS,		parseFunc (ReadLumens)		),
+	std::make_pair(IESProcessor::ParseState::READ_MULTIPLIER,	parseFunc (ReadMultiplier)	),
+	std::make_pair(IESProcessor::ParseState::READ_COUNT_VANGLES,parseFunc (ReadCountVAngles)),
+	std::make_pair(IESProcessor::ParseState::READ_COUNT_HANGLES,parseFunc (ReadCountHAngles)),
+	std::make_pair(IESProcessor::ParseState::READ_TYPE,			parseFunc (ReadType)		),
+	std::make_pair(IESProcessor::ParseState::READ_UNIT,			parseFunc (ReadUnit)		),
+	std::make_pair(IESProcessor::ParseState::READ_WIDTH,		parseFunc (ReadWidth)		),
+	std::make_pair(IESProcessor::ParseState::READ_LENGTH,		parseFunc (ReadLength)		),
+	std::make_pair(IESProcessor::ParseState::READ_HEIGHT,		parseFunc (ReadHeight)		),
+	std::make_pair(IESProcessor::ParseState::READ_BALLAST,		parseFunc (ReadBallast)		),
+	std::make_pair(IESProcessor::ParseState::READ_VERSION,		parseFunc (ReadVersion)		),
+	std::make_pair(IESProcessor::ParseState::READ_WATTAGE,		parseFunc (ReadWattage)		),
+};
+
+bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& state, const std::string& value) const
 {
 	// back-off
-	if (state == ParseOrder::END_OF_PARSE)
+	if (state == ParseState::END_OF_PARSE)
 		return false;
 
 	// read values from input
-	switch (state) {
-	case ParseOrder::READ_COUNT_LAMPS: {
-		lightData.m_countLamps = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_LUMENS: {
-		lightData.m_lumens = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_MULTIPLIER: {
-		lightData.m_multiplier = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_COUNT_VANGLES: {
-		lightData.m_countVerticalAngles = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_COUNT_HANGLES: {
-		lightData.m_countHorizontalAngles = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_TYPE: {
-		lightData.m_photometricType = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_UNIT: {
-		lightData.m_unit = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_WIDTH: {
-		lightData.m_width = ReadDouble(value);
-		break;
-	}
-	case ParseOrder::READ_LENGTH: {
-		lightData.m_length = ReadDouble(value);
-		break;
-	}
-	case ParseOrder::READ_HEIGHT: {
-		lightData.m_height = ReadDouble(value);
-		break;
-	}
-	case ParseOrder::READ_BALLAST: {
-		lightData.m_ballast = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_VERSION: {
-		lightData.m_version = ReadInt(value);
-		break;
-	}
-	case ParseOrder::READ_WATTAGE: {
-		lightData.m_wattage = ReadDouble(value);
-		break;
-	}
-	case ParseOrder::READ_VERTICAL_ANGLES: {
-		lightData.m_verticalAngles.push_back(ReadDouble(value));
-		if (lightData.m_verticalAngles.size() != lightData.m_countVerticalAngles)
-			return true; // exit function without switching state because we haven't read all angle values yet
-		break;
-	}
-	case ParseOrder::READ_HORIZONTAL_ANGLES: {
-		lightData.m_horizontalAngles.push_back(ReadDouble(value));
-		if (lightData.m_horizontalAngles.size() != lightData.m_countHorizontalAngles)
-			return true; // exit function without switching state because we haven't read all angle values yet
-		break;
-	}
-	case ParseOrder::READ_CANDELA_VALUES: {
-		lightData.m_candelaValues.push_back(ReadDouble(value));
-		if (lightData.m_candelaValues.size() != lightData.m_countVerticalAngles*lightData.m_countHorizontalAngles)
-			return true; // exit function without switching state because we haven't read all angle values yet
-		break;
-	}
-	default:
-		return false;
+	auto& parseFunc = m_parseImpl.find(state);
+	if (parseFunc != m_parseImpl.end())
+	{
+		state = parseFunc->second(lightData, value);
+		return true;
 	}
 
-	// update state (to read next value)
-	++state;
+	switch (state) 
+	{
+		case ParseState::READ_VERTICAL_ANGLES: 
+		{
+			lightData.m_verticalAngles.push_back(ReadDouble(value));
+			if (lightData.m_verticalAngles.size() != lightData.m_countVerticalAngles)
+				return true; // exit function without switching state because we haven't read all angle values yet
+			state = ParseState::READ_HORIZONTAL_ANGLES;
+			break;
+		}
+
+		case ParseState::READ_HORIZONTAL_ANGLES: 
+		{
+			lightData.m_horizontalAngles.push_back(ReadDouble(value));
+			if (lightData.m_horizontalAngles.size() != lightData.m_countHorizontalAngles)
+				return true; // exit function without switching state because we haven't read all angle values yet
+			state = ParseState::READ_CANDELA_VALUES;
+			break;
+		}
+
+		case ParseState::READ_CANDELA_VALUES: 
+		{
+			lightData.m_candelaValues.push_back(ReadDouble(value));
+			if (lightData.m_candelaValues.size() != lightData.m_countVerticalAngles*lightData.m_countHorizontalAngles)
+				return true; // exit function without switching state because we haven't read all angle values yet
+			state = ParseState::END_OF_PARSE;
+			break;
+		}
+		default:
+			return false;
+	}
 
 	return true;
 }
@@ -367,7 +411,7 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseOrder& 
 IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::vector<std::string>& tokens) const
 {
 	// initial state to read data
-	IESProcessor::ParseOrder parseState = FirstParseState();
+	IESProcessor::ParseState parseState = FirstParseState();
 
 	// iterate over tokens
 	for (const std::string& value : tokens)
@@ -383,7 +427,7 @@ IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::
 	}
 
 	// parse is not complete => failure
-	if (parseState != ParseOrder::END_OF_PARSE)
+	if (parseState != ParseState::END_OF_PARSE)
 	{
 		//errorMessage = L"not enough data in .ies file";
 		return IESProcessor::ErrorCode::UNEXPECTED_END_OF_FILE;
