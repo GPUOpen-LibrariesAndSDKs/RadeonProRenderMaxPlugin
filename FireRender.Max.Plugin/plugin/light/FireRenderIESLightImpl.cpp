@@ -304,7 +304,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 					{
 						edges.push_back(pline);
 						pline.clear();
-						//--i; // want to view continuous line
+						--i; // want to view continuous line
 					}
 				}
 
@@ -331,13 +331,13 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 		m_preview_plines = m_plines;
 
 		// align light representation
-		Matrix3 matrRotateAroundZ(
+		const Matrix3 matrRotateAroundZ(
 			Point3(0.0, -1.0, 0.0),
 			Point3(1.0, 0.0, 0.0),
 			Point3(0.0, 0.0, 1.0),
 			Point3(0.0, 0.0, 0.0)
 		);
-		Matrix3 matrRotateAroundMinusY(
+		const Matrix3 matrRotateAroundMinusY(
 			Point3(0.0, 0.0, -1.0),
 			Point3(0.0, 1.0, 0.0),
 			Point3(1.0, 0.0, 0.0),
@@ -416,7 +416,6 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	INode *nd = FindNodeRef(this);
 	Control* pLookAtController = nd->GetTMController();
 
-	//float scaleFactor = pVprt->NonScalingObjectSize() * pVprt->GetVPWorldWidth(nd->GetObjectTM(0).GetTrans()) / 360.0f;
 	auto scaleFactor = GetAreaWidth(t);
 
 	bool hasLookAtTarget = (pLookAtController != nullptr) && (pLookAtController->GetTarget() != nullptr);
@@ -436,9 +435,9 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		// - between prev look at vector and current one (Y axis is up vector for light representation)
 		Point3 normDir = dirMesh[1].Normalize();
 		normDir = normDir.Normalize();
-		Point3 normal = m_prevUp ^ normDir; // cross product, axis of rotation
+		Point3 normal = m_defaultUp ^ normDir; // cross product, axis of rotation
 		normal = normal.Normalize();
-		float dotProduct = m_prevUp % normDir; // Dot product, for angle between vectors
+		float dotProduct = m_defaultUp % normDir; // Dot product, for angle between vectors
 		float cosAngle = dotProduct; // vectors are normalized
 		float angle = acos(cosAngle);
 		Matrix3 rotateMx = RotAngleAxisMatrix(normal, angle);

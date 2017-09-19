@@ -523,7 +523,7 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_shadows(this),
 	m_volume(this),
 	m_iObjParam(nullptr),
-	m_prevUp(0.0f, 1.0f, 0.0f),
+	m_defaultUp(0.0f, 1.0f, 0.0f),
 	m_isPreviewGraph(true),
 	m_bbox(),
 	m_BBoxCalculated(false),
@@ -1034,7 +1034,7 @@ void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vp
 	box.pmax.z = bboxMax.z;
 
 	// DEBUG draw BBox
-#ifdef IES_DRAW_LIGHT_BBOX
+#ifdef IES_DEBUG_DRAW_LIGHT_BBOX
 	vpt->getGW()->setColor(LINE_COLOR, Point3(0.0f, 1.0f, 1.0f));
 	Point3 bboxFaces[20]; // 4 faces enough
 	bboxFaces[0] = Point3(bboxMin.x, bboxMin.y, bboxMin.z); // 1-st face
@@ -1215,12 +1215,33 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 			std::string iesFilename(profilePath.begin(), profilePath.end());
 			IESProcessor parser;
 			IESProcessor::IESLightData data;
-			bool parseOK = parser.Parse(data, iesFilename.c_str()) != IESProcessor::ErrorCode::SUCCESS;
+			bool parseOK = parser.Parse(data, iesFilename.c_str()) == IESProcessor::ErrorCode::SUCCESS;
+			if (!parseOK)
+			{
+				// throw?
+				MessageBox(
+					GetCOREInterface()->GetMAXHWnd(),
+					_T("Failed to export IES light source!"),
+					_T("Warning"),
+					MB_ICONWARNING | MB_OK);
+
+				return;
+			}
 
 			// scale photometric web
 			IESProcessor::IESUpdateRequest req;
 			req.m_scale = scaleFactor;
-			parser.Update(data, req);
+			bool updateOK = parser.Update(data, req) == IESProcessor::ErrorCode::SUCCESS;
+			if (!updateOK)
+			{
+				MessageBox(
+					GetCOREInterface()->GetMAXHWnd(),
+					_T("Failed to export IES light source!"),
+					_T("Warning"),
+					MB_ICONWARNING | MB_OK);
+
+				return;
+			}
 
 			// pass IES data to RPR
 			std::string iesData = parser.ToString(data);
@@ -1253,36 +1274,8 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	Matrix3 localRot;
 	float angles[3] = { GetRotationX(params.t)*DEG2RAD, GetRotationY(params.t)*DEG2RAD, GetRotationZ(params.t)*DEG2RAD  };
 	EulerToMatrix(angles, localRot, EULERTYPE_XYZ);
-
-	//Matrix3 testRot = RotateYMatrix(90.0f*DEG2RAD);
-	
-	Matrix3 globalRotation = tm;
-	//globalRotation.NoRot();
-	globalRotation.NoTrans();
-	globalRotation.NoScale();
-	Matrix3 globalTranslate = tm;
-	globalTranslate.NoRot();
-	globalTranslate.NoScale();
-	Matrix3 globalScale = tm;
-	globalScale.NoTrans();
-	globalScale.NoRot();
-
-	angles[0] = 0.0f * DEG2RAD;
-	angles[1] = 0.0f * DEG2RAD;
-	angles[2] = 0.0f * DEG2RAD;
-	Matrix3 dbg;
-	EulerToMatrix(angles, dbg, EULERTYPE_XYZ);
-	//globalRotation = dbg;
-	
-	tm = localRot * globalRotation * globalScale * globalTranslate;
-
-	Point3 localX(1.0, 0.0, 0.0);
-	Point3 localY(0.0, 1.0, 0.0);
-	Point3 localZ(0.0, 0.0, 1.0);
-
-	localX = localX * globalRotation;
-	localY = localY * globalRotation;
-	localZ = localZ * globalRotation;
+		
+	tm = localRot * tm;
 
 	// create RPR matrix
 	float frTm[16];
@@ -1302,7 +1295,7 @@ void FireRenderIESLight::AddTarget(TimeValue t, bool fromCreateCallback)
 	auto core = GetCOREInterface();
 	auto targNode = core->CreateObjectNode(new LookAtTarget);
 	
-	//Make target node name
+	// Make target node name
 	{
 		TSTR targName = thisNode->GetName();
 		targName += _T("IES target");
@@ -1338,7 +1331,6 @@ void FireRenderIESLight::AddTarget(TimeValue t, bool fromCreateCallback)
 		Matrix3 targtm(1);
 		targtm.SetTrans(GetTargetPoint(t));
 		targNode->SetNodeTM(t, targtm);
-		//FASSERT(targtm == targNode->GetNodeTM(t));
 	}
 
 	Color lightWireColor(thisNode->GetWireColor());

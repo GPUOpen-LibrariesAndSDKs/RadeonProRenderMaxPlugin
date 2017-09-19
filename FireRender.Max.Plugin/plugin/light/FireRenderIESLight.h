@@ -52,7 +52,11 @@ public:
 		__last
 	};
 
-	using IntensitySettings = MaxSpinner::DefaultFloatSettings;
+	struct IntensitySettings :
+		public MaxSpinner::DefaultFloatSettings
+	{
+		static constexpr float Default = 100.f;
+	};
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
 	using LightRotateSettings = MaxSpinner::DefaultRotationSettings;
 	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
@@ -180,7 +184,7 @@ private:
 	IObjParam* m_iObjParam;
 
 	std::vector<std::vector<Point3> > m_plines;
-	Point3 m_prevUp; // up vector of IES light
+	Point3 m_defaultUp; // up vector of IES light
 	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
 	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;
