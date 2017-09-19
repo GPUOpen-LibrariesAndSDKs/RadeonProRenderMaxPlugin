@@ -96,8 +96,6 @@ bool IESProcessor::IESLightData::IsPlaneSymmetric(void) const
 
 std::string IESProcessor::ToString(const IESLightData& lightData) const
 {
-	FASSERT(lightData.IsValid());
-
 	std::stringstream stream;
 
 	stream
@@ -251,7 +249,7 @@ int ReadInt(const std::string& input)
 	return atof(input.c_str());
 }
 
-enum IESProcessor::ParseState
+enum class IESProcessor::ParseState
 {
 	READ_COUNT_LAMPS = 0,
 	READ_LUMENS,
