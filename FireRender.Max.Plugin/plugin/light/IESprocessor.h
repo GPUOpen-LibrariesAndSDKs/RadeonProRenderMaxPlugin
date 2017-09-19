@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "utils\Utils.h"
+#include "Common.h"
 
 // process data for IES light sources
 class IESProcessor

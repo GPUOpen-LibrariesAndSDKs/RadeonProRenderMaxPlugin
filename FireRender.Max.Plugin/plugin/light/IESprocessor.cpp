@@ -98,58 +98,73 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 {
 	FASSERT(lightData.IsValid());
 
-	std::string firstLine = string_format("%d %d %d %d %d %d %d %f %f %f"
-		, lightData.m_countLamps
-		, lightData.m_lumens
-		, lightData.m_multiplier
-		, lightData.m_countVerticalAngles
-		, lightData.m_countHorizontalAngles
-		, lightData.m_photometricType
-		, lightData.m_unit
-		, lightData.m_width
-		, lightData.m_length
-		, lightData.m_height
-	);
+	std::stringstream stream;
 
-	std::string secondLine = string_format("%d %d %f"
-		, lightData.m_ballast
-		, lightData.m_version
-		, lightData.m_wattage
-	);
+	stream
+		<< lightData.m_extraData;
 
-	std::string thirdLine = "";
-	for (double angle : lightData.m_verticalAngles)
-	{
-		thirdLine.append(std::to_string(angle));
-		thirdLine.append(" ");
-	}
+	// This lambda exists since we may want to consider
+	// replacing std::endl with "\r\n" or "\n"
+	auto putLine = [&](auto&& fn) {
+		fn();
+		stream << std::endl;
+	};
 
-	std::string forthLine = "";
-	for (double angle : lightData.m_horizontalAngles)
-	{
-		forthLine.append(std::to_string(angle));
-		forthLine.append(" ");
-	}
+	// add first line of IES format
+	putLine([&]() {
+		stream
+			<< lightData.m_countLamps
+			<< lightData.m_lumens
+			<< lightData.m_multiplier
+			<< lightData.m_countVerticalAngles
+			<< lightData.m_countHorizontalAngles
+			<< lightData.m_photometricType
+			<< lightData.m_unit
+			<< lightData.m_width
+			<< lightData.m_length
+			<< lightData.m_height;
+	});
 
-	std::string outString;
-	outString = lightData.m_extraData + firstLine + "\n" + secondLine + "\n" + thirdLine + "\n" + forthLine + "\n";
+	// add second line of IES format
+	putLine([&]() {
+		stream
+			<< lightData.m_ballast
+			<< lightData.m_version
+			<< lightData.m_wattage;
+	});
+
+	// add third line of IES format
+	putLine([&]() {
+		for (double angle : lightData.m_verticalAngles)
+		{
+			stream << std::to_string(angle) << ' ';
+		}
+	});
+
+	// add forth line of IES format
+	putLine([&]() {
+		for (double angle : lightData.m_horizontalAngles)
+		{
+			stream << std::to_string(angle) << ' ';
+		}
+	});
 
 	size_t valuesPerLine = lightData.m_verticalAngles.size(); // verticle angles count is number of columns in candela values table
 	auto it = lightData.m_candelaValues.begin();
 	while (it != lightData.m_candelaValues.end())
 	{
 		auto endl = it + valuesPerLine;
-		std::string candelaValuesLine = "";
 		for (; it != endl; ++it)
 		{
-			candelaValuesLine.append(std::to_string(*it));
-			candelaValuesLine.append(" ");
+			putLine([&]() {
+				stream
+					<< std::to_string(*it)
+					<< ' ';
+			});
 		}
-		candelaValuesLine.append("\n");
-		outString.append(candelaValuesLine);
 	}
 
-	return outString;
+	return stream.str();
 }
 
 bool IESProcessor::IsIESFile(const char* filename) const
