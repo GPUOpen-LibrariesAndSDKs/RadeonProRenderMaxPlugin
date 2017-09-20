@@ -1072,8 +1072,7 @@ void FireRenderParamDlg::CTonemapSettings::InitDialog()
 	controls.fstop = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_PHOTOLINEAR_FSTOP, IDC_FSTOP, IDC_FSTOP_S, 0.f, FLT_MAX);
 	controls.shutterspeed = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, IDC_SHUTTERSPEED, IDC_SHUTTERSPEED_S, 0.f, FLT_MAX);
 
-	float lowestFloat = std::numeric_limits<float>::lowest();
-	controls.exposure = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_SIMPLIFIED_EXPOSURE, IDC_EXPOSURE, IDC_EXPOSURE_S, lowestFloat, FLT_MAX);
+	controls.exposure = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_SIMPLIFIED_EXPOSURE, IDC_EXPOSURE, IDC_EXPOSURE_S, -FLT_MAX, FLT_MAX);
 	controls.contrast = SetupSpinnerFloat(TmManagerMax::TheManager, PARAM_TM_SIMPLIFIED_CONTRAST, IDC_CONTRAST, IDC_CONTRAST_S, 0.f, FLT_MAX);
 	controls.whitebalance = SetupSpinnerInt(TmManagerMax::TheManager, PARAM_TM_SIMPLIFIED_WHITEBALANCE, IDC_WHITEBALANCE, IDC_WHITEBALANCE_S, 1000, 12000);
 
