@@ -91,69 +91,58 @@ bool IESProcessor::IESLightData::IsPlaneSymmetric(void) const
 
 std::string IESProcessor::ToString(const IESLightData& lightData) const
 {
-	std::stringstream stream;
-
-	stream
-		<< lightData.m_extraData;
-
-	// This lambda exists since we may want to consider
-	// replacing std::endl with "\r\n" or "\n"
-	auto putLine = [&](auto&& fn) {
-		fn();
-		stream << std::endl;
-	};
+	std::stringstream stream(lightData.m_extraData);
 
 	// add first line of IES format
-	putLine([&]() {
-		stream
-			<< lightData.m_countLamps
-			<< lightData.m_lumens
-			<< lightData.m_multiplier
-			<< lightData.m_countVerticalAngles
-			<< lightData.m_countHorizontalAngles
-			<< lightData.m_photometricType
-			<< lightData.m_unit
-			<< lightData.m_width
-			<< lightData.m_length
-			<< lightData.m_height;
-	});
+	stream
+		<< lightData.m_countLamps
+		<< lightData.m_lumens
+		<< lightData.m_multiplier
+		<< lightData.m_countVerticalAngles
+		<< lightData.m_countHorizontalAngles
+		<< lightData.m_photometricType
+		<< lightData.m_unit
+		<< lightData.m_width
+		<< lightData.m_length
+		<< lightData.m_height
+		<< std::endl;
 
 	// add second line of IES format
-	putLine([&]() {
-		stream
-			<< lightData.m_ballast
-			<< lightData.m_version
-			<< lightData.m_wattage;
-	});
+	stream
+		<< lightData.m_ballast
+		<< lightData.m_version
+		<< lightData.m_wattage
+		<< std::endl;
 
 	// add third line of IES format
-	putLine([&]() {
-		for (double angle : lightData.m_verticalAngles)
-		{
-			stream << std::to_string(angle) << ' ';
-		}
-	});
+	for (double angle : lightData.m_verticalAngles)
+	{
+		stream << std::to_string(angle) << ' ';
+	}
+
+	stream << std::endl;
 
 	// add forth line of IES format
-	putLine([&]() {
-		for (double angle : lightData.m_horizontalAngles)
-		{
-			stream << std::to_string(angle) << ' ';
-		}
-	});
-
-	size_t valuesPerLine = lightData.m_verticalAngles.size(); // verticle angles count is number of columns in candela values table
-	auto it = lightData.m_candelaValues.begin();
-	while (it != lightData.m_candelaValues.end())
+	for (double angle : lightData.m_horizontalAngles)
 	{
-		auto endl = it + valuesPerLine;
-		for (; it != endl; ++it)
+		stream << std::to_string(angle) << ' ';
+	}
+
+	stream << std::endl;
+
+	// verticle angles count is number of columns in candela values table
+	size_t valuesPerLine = lightData.m_verticalAngles.size();
+	size_t indexInLine = 0;
+
+	for (double candelaValue : lightData.m_candelaValues)
+	{
+		stream << std::to_string(candelaValue) << ' ';
+
+		// Put the end of the line where need
+		if (++indexInLine == valuesPerLine)
 		{
-			putLine([&]() {
-				stream
-					<< std::to_string(*it)
-					<< ' ';
-			});
+			stream << std::endl;
+			indexInLine = 0;
 		}
 	}
 
@@ -200,8 +189,7 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	
 	text += lineToParse += "\n";
 
-	const std::string iesFileTag = "IESNA";
-	if (text.substr(0, 5) != iesFileTag)
+	if (std::strncmp(text.c_str(), iesFileTag, 5) != 0)
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
 	}
@@ -225,12 +213,12 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 
 double ReadDouble(const std::string& input)
 {
-	return atof(input.c_str());
+	return std::stod(input);
 }
 
 int ReadInt(const std::string& input)
 {
-	return atoi(input.c_str());
+	return std::stoi(input);
 }
 
 enum class IESProcessor::ParseState
@@ -368,22 +356,22 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& 
 {
 	typedef std::function<IESProcessor::ParseState(IESProcessor::IESLightData&, const std::string&)> parseFunc;
 	static const std::map<IESProcessor::ParseState, parseFunc > m_parseImpl = {
-		std::make_pair(IESProcessor::ParseState::READ_COUNT_LAMPS,         parseFunc(ReadCountLamps)),
-		std::make_pair(IESProcessor::ParseState::READ_LUMENS,              parseFunc(ReadLumens)),
-		std::make_pair(IESProcessor::ParseState::READ_MULTIPLIER,          parseFunc(ReadMultiplier)),
-		std::make_pair(IESProcessor::ParseState::READ_COUNT_VANGLES,       parseFunc(ReadCountVAngles)),
-		std::make_pair(IESProcessor::ParseState::READ_COUNT_HANGLES,       parseFunc(ReadCountHAngles)),
-		std::make_pair(IESProcessor::ParseState::READ_TYPE,                parseFunc(ReadType)),
-		std::make_pair(IESProcessor::ParseState::READ_UNIT,                parseFunc(ReadUnit)),
-		std::make_pair(IESProcessor::ParseState::READ_WIDTH,               parseFunc(ReadWidth)),
-		std::make_pair(IESProcessor::ParseState::READ_LENGTH,              parseFunc(ReadLength)),
-		std::make_pair(IESProcessor::ParseState::READ_HEIGHT,              parseFunc(ReadHeight)),
-		std::make_pair(IESProcessor::ParseState::READ_BALLAST,             parseFunc(ReadBallast)),
-		std::make_pair(IESProcessor::ParseState::READ_VERSION,             parseFunc(ReadVersion)),
-		std::make_pair(IESProcessor::ParseState::READ_WATTAGE,             parseFunc(ReadWattage)),
-		std::make_pair(IESProcessor::ParseState::READ_VERTICAL_ANGLES,     parseFunc(ReadVAngles)),
-		std::make_pair(IESProcessor::ParseState::READ_HORIZONTAL_ANGLES,   parseFunc(ReadHAngles)),
-		std::make_pair(IESProcessor::ParseState::READ_CANDELA_VALUES,      parseFunc(ReadCValues)),
+		{ IESProcessor::ParseState::READ_COUNT_LAMPS,         parseFunc(ReadCountLamps)},
+		{ IESProcessor::ParseState::READ_LUMENS,              parseFunc(ReadLumens)},
+		{ IESProcessor::ParseState::READ_MULTIPLIER,          parseFunc(ReadMultiplier)},
+		{ IESProcessor::ParseState::READ_COUNT_VANGLES,       parseFunc(ReadCountVAngles)},
+		{ IESProcessor::ParseState::READ_COUNT_HANGLES,       parseFunc(ReadCountHAngles)},
+		{ IESProcessor::ParseState::READ_TYPE,                parseFunc(ReadType)},
+		{ IESProcessor::ParseState::READ_UNIT,                parseFunc(ReadUnit)},
+		{ IESProcessor::ParseState::READ_WIDTH,               parseFunc(ReadWidth)},
+		{ IESProcessor::ParseState::READ_LENGTH,              parseFunc(ReadLength)},
+		{ IESProcessor::ParseState::READ_HEIGHT,              parseFunc(ReadHeight)},
+		{ IESProcessor::ParseState::READ_BALLAST,             parseFunc(ReadBallast)},
+		{ IESProcessor::ParseState::READ_VERSION,             parseFunc(ReadVersion)},
+		{ IESProcessor::ParseState::READ_WATTAGE,             parseFunc(ReadWattage)},
+		{ IESProcessor::ParseState::READ_VERTICAL_ANGLES,     parseFunc(ReadVAngles)},
+		{ IESProcessor::ParseState::READ_HORIZONTAL_ANGLES,   parseFunc(ReadHAngles)},
+		{ IESProcessor::ParseState::READ_CANDELA_VALUES,      parseFunc(ReadCValues)},
 	};
 
 	// back-off
