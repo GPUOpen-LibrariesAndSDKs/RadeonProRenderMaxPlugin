@@ -79,7 +79,7 @@ void CloneAndTransform(std::vector<std::vector<Point3> >& edges, const Matrix3 &
 		edges.emplace_back();
 		std::vector<Point3> &newEdge = edges.back();
 		newEdge.reserve(edges[idx].size());
-		for (auto& point : edges[idx])
+		for (Point3& point : edges[idx])
 		{
 			newEdge.emplace_back(point * matrTransform);
 		}
@@ -155,7 +155,7 @@ bool FireRenderIESLight::CalculateBBox(void)
 	float maxX = -INFINITY;
 	float maxY = -INFINITY;
 	float maxZ = -INFINITY;
-	for (auto& it : m_plines)
+	for (std::vector<Point3>& it : m_plines)
 	{
 		for (Point3& tPoint : it)
 		{
@@ -197,10 +197,10 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	const float SCALE_WEB = 0.05f;
 
 	m_plines.clear();
-	auto& edges = m_plines;
+	std::vector<std::vector<Point3> >& edges = m_plines;
 
 	// load IES data
-	auto profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName);
+	std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName);
 	std::string iesFilename(profilePath.begin(), profilePath.end());
 
 	// get .ies light params
@@ -335,12 +335,12 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 			Point3(0.0, 0.0, 0.0)
 		);
 
-		for (auto& pline : m_plines)
+		for (std::vector<Point3>& pline : m_plines)
 		{
 			for (Point3& point : pline)
 				point = point * matrRotateAroundZ;
 		}
-		for (auto& pline : m_preview_plines)
+		for (std::vector<Point3>& pline : m_preview_plines)
 		{
 			for (Point3& point : pline)
 			{
@@ -405,7 +405,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	INode *nd = FindNodeRef(this);
 	Control* pLookAtController = nd->GetTMController();
 
-	auto scaleFactor = GetAreaWidth(t);
+	float scaleFactor = GetAreaWidth(t);
 
 	bool hasLookAtTarget = (pLookAtController != nullptr) && (pLookAtController->GetTarget() != nullptr);
 	bool isPreviewMode = !hasLookAtTarget && m_isPreviewGraph;
@@ -431,16 +431,16 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		float angle = acos(cosAngle);
 		Matrix3 rotateMx = RotAngleAxisMatrix(normal, angle);
 
-		auto preview_plines = m_preview_plines;
+		std::vector<std::vector<Point3> > preview_plines = m_preview_plines;
 
-		for (auto& pline : preview_plines)
+		for (std::vector<Point3>& pline : preview_plines)
 		{
 			for (Point3& point : pline)
 				point = point * rotateMx;
 		}
 
 		// draw web
-		for (auto& pline : preview_plines)
+		for (std::vector<Point3>& pline : preview_plines)
 		{
 			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false, NULL);
 		}
@@ -463,21 +463,21 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
 	}
 
-	auto plines = m_plines;
+	std::vector<std::vector<Point3> > plines = m_plines;
 
 	// transform light web representation by input params
 	Matrix3 rotationToUpVector;
 	float angles[3] = { GetRotationX(t)*DEG2RAD, GetRotationY(t)*DEG2RAD, GetRotationZ(t)*DEG2RAD };
 	EulerToMatrix(angles, rotationToUpVector, EULERTYPE_XYZ);
 
-	for (auto& pline : plines)
+	for (std::vector<Point3>& pline : plines)
 	{
 		for (Point3& point : pline)
 			point = rotationToUpVector * point;
 	}
 
 	// draw web
-	for (auto& pline : plines)
+	for (std::vector<Point3>& pline : plines)
 	{
 		gw->polyline(pline.size(), &pline.front(), NULL, NULL, false, NULL);
 	}	
