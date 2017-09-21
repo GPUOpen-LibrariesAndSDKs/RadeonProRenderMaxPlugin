@@ -68,7 +68,7 @@ bool IESProcessor::IESLightData::IsValid() const
 		std::is_sorted(m_verticalAngles.begin(), m_verticalAngles.end());
 
 	// ensure correct value for angles
-	bool correctAngles = IsAxiallySymmetric() || IsQuadrantSymmetric() || IsPlaneSymmetric() || (abs(m_horizontalAngles.back() - 360.0f) <= FLT_EPSILON);
+	bool correctAngles = IsAxiallySymmetric() || IsQuadrantSymmetric() || IsPlaneSymmetric() || IsAsymmetric();
 
 	return areValuesCorrect && isSizeCorrect && isArrDataConsistent && areArrsSorted && correctAngles;
 }
@@ -89,6 +89,11 @@ bool IESProcessor::IESLightData::IsQuadrantSymmetric(void) const
 bool IESProcessor::IESLightData::IsPlaneSymmetric(void) const
 {
 	return (abs(m_horizontalAngles.back() - 180.0f) <= FLT_EPSILON);
+}
+
+bool IESProcessor::IESLightData::IsAsymmetric(void) const
+{
+	return (abs(m_horizontalAngles.back() - 360.0f) <= FLT_EPSILON);
 }
 
 std::string IESProcessor::ToString(const IESLightData& lightData) const

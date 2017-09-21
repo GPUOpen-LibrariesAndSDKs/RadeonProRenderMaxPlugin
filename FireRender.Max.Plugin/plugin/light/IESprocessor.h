@@ -232,6 +232,11 @@ public:
 	*/
 	bool IsPlaneSymmetric (void) const;
 
+	/**
+	* the distribution is asymmetric (and complete).
+	*/
+	bool IsAsymmetric(void) const;
+
 protected:
 };
 

@@ -406,6 +406,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	Control* pLookAtController = nd->GetTMController();
 
 	float scaleFactor = GetAreaWidth(t);
+
 	bool hasLookAtTarget = (pLookAtController != nullptr) && (pLookAtController->GetTarget() != nullptr);
 	bool isPreviewMode = !hasLookAtTarget && m_isPreviewGraph;
 
