@@ -61,6 +61,7 @@ void CloneAndTransform(std::vector<std::vector<Point3> >& edges, const Matrix3 &
 {
 	size_t length = edges.size();
 	edges.reserve(length * 2);
+
 	for (size_t idx = 0; idx < length; ++idx)
 	{
 		edges.emplace_back();
@@ -142,6 +143,7 @@ bool FireRenderIESLight::CalculateBBox(void)
 	float maxX = -INFINITY;
 	float maxY = -INFINITY;
 	float maxZ = -INFINITY;
+
 	for (const std::vector<Point3>& it : m_plines)
 	{
 		for (const Point3& tPoint : it)
@@ -198,6 +200,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	std::basic_string<TCHAR> temp;
 
 	IESProcessor::ErrorCode parseRes = parser.Parse(data, iesFilename.c_str());
+
 	bool failed = parseRes != IESProcessor::ErrorCode::SUCCESS;
 	if (failed)
 	{
@@ -214,6 +217,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 		std::vector<Point3> candela_XYZ;
 		candela_XYZ.reserve(data.m_candelaValues.size());
 		auto it_candela = data.m_candelaValues.begin();
+
 		for (double horizontalAngle : data.m_horizontalAngles)
 		{
 			for (double verticleAngle : data.m_verticalAngles)
@@ -230,15 +234,19 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 		// generate edges for each verticle angle (slices)
 		const size_t MAX_POINTS_PER_POLYLINE = 32; // this is 3DMax limitation!
 		size_t valuesPerRow = data.m_verticalAngles.size(); // verticle angles count is number of columns in candela values table
+
 		auto it_points = candela_XYZ.begin();
 		while (it_points != candela_XYZ.end())
 		{
 			auto endRow = it_points + valuesPerRow;
-			std::vector<Point3> pline; pline.reserve(MAX_POINTS_PER_POLYLINE);
+			std::vector<Point3> pline; 
+			pline.reserve(MAX_POINTS_PER_POLYLINE);
 			bool isClosed = true;
+
 			for (; it_points != endRow; ++it_points)
 			{
 				pline.push_back(*it_points);
+
 				if (pline.size() == MAX_POINTS_PER_POLYLINE)
 				{
 					edges.push_back(pline);
@@ -273,6 +281,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 
 			for (size_t idx_column = 0; idx_column < columnCount; idx_column++) // 0 - 180
 			{
+
 				std::vector<Point3> pline; pline.reserve(MAX_POINTS_PER_POLYLINE);
 				for (size_t idx_row = 0; idx_row < rowCount; idx_row++) // 0 - 360
 				{
@@ -327,6 +336,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 			for (Point3& point : pline)
 				point = point * matrRotateAroundZ;
 		}
+
 		for (std::vector<Point3>& pline : m_preview_plines)
 		{
 			for (Point3& point : pline)

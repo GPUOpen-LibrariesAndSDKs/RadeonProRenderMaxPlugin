@@ -418,13 +418,6 @@ int LookAtTarget::HitTest(TimeValue t, INode *inode, int type, int crossing, int
 	graphicsWindow->setRndLimits(savedLimits);
 
 	return FALSE;
-
-#if 0
-	graphicsWindow->setHitRegion(&hitRegion);
-	graphicsWindow->clearHitCode();
-	graphicsWindow->fWinMarker(&pt, HOLLOW_BOX_MRKR);
-	return graphicsWindow->checkHitCode();
-#endif
 }
 
 void LookAtTarget::Snap(TimeValue t, INode* inode, SnapInfo *snap, IPoint2 *p, ViewExp *vpt)
