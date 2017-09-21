@@ -16,8 +16,6 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-const float DEG2RAD = PI / 180.0;
-
 static TCHAR* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
 {
 	switch (errorCode) {
@@ -46,11 +44,11 @@ static TCHAR* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
 
 void Polar2XYZ(Point3& outPoint, double verticalAngle /*polar*/, double horizontalAngle /*azimuth*/, double dist)
 {
-	double XTheta = cos(verticalAngle * DEG2RAD);
-	double YTheta = sin(verticalAngle * DEG2RAD);
+	double XTheta = cos(verticalAngle * DEG_TO_RAD);
+	double YTheta = sin(verticalAngle * DEG_TO_RAD);
 
-	double XPhi = cos(horizontalAngle * DEG2RAD);
-	double YPhi = sin(horizontalAngle * DEG2RAD);
+	double XPhi = cos(horizontalAngle * DEG_TO_RAD);
+	double YPhi = sin(horizontalAngle * DEG_TO_RAD);
 
 	outPoint.x = XTheta * XPhi * dist;
 	outPoint.y = YTheta * XPhi * dist;
@@ -467,7 +465,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 
 	// transform light web representation by input params
 	Matrix3 rotationToUpVector;
-	float angles[3] = { GetRotationX(t)*DEG2RAD, GetRotationY(t)*DEG2RAD, GetRotationZ(t)*DEG2RAD };
+	float angles[3] = { GetRotationX(t)*DEG_TO_RAD, GetRotationY(t)*DEG_TO_RAD, GetRotationZ(t)*DEG_TO_RAD };
 	EulerToMatrix(angles, rotationToUpVector, EULERTYPE_XYZ);
 
 	for (std::vector<Point3>& pline : plines)

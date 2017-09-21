@@ -1122,8 +1122,6 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 	parametersCacheEnabled = false;
 }
 
-const float DEG2RAD = PI / 180.0;
-
 void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
 {
 	if (!ProfileIsSelected(params.t))
@@ -1217,7 +1215,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	Matrix3 tm = node.tm; // INode* inode = FindNodeRef(this); inode->GetObjectTM(0); <= this method doesn't take masterScale into acount, thus returns wrong transform!
 
 	Matrix3 localRot;
-	float angles[3] = { GetRotationX(params.t)*DEG2RAD, GetRotationY(params.t)*DEG2RAD, GetRotationZ(params.t)*DEG2RAD  };
+	float angles[3] = { GetRotationX(params.t)*DEG_TO_RAD, GetRotationY(params.t)*DEG_TO_RAD, GetRotationZ(params.t)*DEG_TO_RAD };
 	EulerToMatrix(angles, localRot, EULERTYPE_XYZ);
 		
 	tm = localRot * tm;
