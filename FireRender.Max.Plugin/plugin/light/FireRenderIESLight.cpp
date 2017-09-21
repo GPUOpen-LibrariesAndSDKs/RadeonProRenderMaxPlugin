@@ -53,6 +53,10 @@ const size_t FireRenderIESLight::SphereCirclePointsCount = 28;
 const size_t FireRenderIESLight::IES_ImageWidth = 256;
 const size_t FireRenderIESLight::IES_ImageHeight = 256;
 
+const Color FireRenderIESLight::FrozenColor = Color(0, 0, 1);
+const Color FireRenderIESLight::WireColor = Color(0, 1, 0);
+const Color FireRenderIESLight::SelectedColor = Color(1, 0, 0);
+
 namespace
 {
 	const int VERSION = 1;
@@ -539,6 +543,11 @@ ClassDesc2* FireRenderIESLight::GetClassDesc()
 	return &desc;
 }
 
+Color FireRenderIESLight::GetWireColor(bool isFrozen, bool isSelected)
+{
+	return isSelected ? WireColor : (isFrozen ? FrozenColor : WireColor);
+}
+
 FireRenderIESLight::FireRenderIESLight() :
 	m_general(this),
 	m_intensity(this),
@@ -861,15 +870,9 @@ RefTargetHandle FireRenderIESLight::GetReference(int i)
 
 void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL frozen)
 {
-	GraphicsWindow* gw = vpt->getGW();
-	Color color = frozen ? Color(0.0f, 0.0f, 1.0f) : Color(0.0f, 1.0f, 0.0f);
+	GraphicsWindow* graphicsWindow = vpt->getGW();
 
-	if (sel)
-	{
-		color = Color(1.0f, 0.0f, 0.0f);
-	}
-
-	gw->setColor(LINE_COLOR, color);
+	graphicsWindow->setColor(LINE_COLOR, GetWireColor(frozen, sel));
 
 	Point3 dirMesh[]
 	{
@@ -894,15 +897,15 @@ void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL fr
 	dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
 
 	// light source
-	DrawSphereArcs<SphereCirclePointsCount>(0, gw, 2.0, dirMesh[0]);
+	DrawSphereArcs<SphereCirclePointsCount>(0, graphicsWindow, 2.0, dirMesh[0]);
 
 	if (GetTargeted(t))
 	{
 		// draw direction
-		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+		graphicsWindow->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
 
 		// light lookAt
-		DrawSphereArcs<SphereCirclePointsCount>(0, gw, 1.0, dirMesh[1]);
+		DrawSphereArcs<SphereCirclePointsCount>(0, graphicsWindow, 1.0, dirMesh[1]);
 	}
 }
 
@@ -955,7 +958,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 
 	if (ProfileIsSelected(t))
 	{
-		GraphicsWindow* gw = vpt->getGW();
+		GraphicsWindow* graphicsWindow = vpt->getGW();
 
 		// apply scaling
 #define IES_IGNORE_SCENE_SCALING
@@ -967,7 +970,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 		float scaleFactor = GetAreaWidth(t);
 		tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
 
-		gw->setTransform(tm);
+		graphicsWindow->setTransform(tm);
 		result = DrawWeb(t, vpt, inode->Selected(), inode->IsFrozen());
 	}
 	else

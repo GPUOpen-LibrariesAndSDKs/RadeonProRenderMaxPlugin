@@ -25,12 +25,12 @@ namespace
 		static const TCHAR* TargetObjectName;
 		static const TCHAR* TargetNodeName;
 
-		int 			IsPublic() override { return 0; }
-		void *			Create(BOOL loading = FALSE) override { return new LookAtTarget; }
-		const TCHAR *	ClassName() override { return TargetClassName; }
-		SClass_ID		SuperClassID() override { return GEOMOBJECT_CLASS_ID; }
-		Class_ID		ClassID() override { return Class_ID(TARGET_CLASS_ID, 0); }
-		const TCHAR* 	Category() override { return _T("PRIMITIVES"); }
+		int IsPublic() override { return 0; }
+		void * Create(BOOL loading = FALSE) override { return new LookAtTarget; }
+		const TCHAR * ClassName() override { return TargetClassName; }
+		SClass_ID SuperClassID() override { return GEOMOBJECT_CLASS_ID; }
+		Class_ID ClassID() override { return Class_ID(TARGET_CLASS_ID, 0); }
+		const TCHAR* Category() override { return _T("PRIMITIVES"); }
 	};
 
 	const TCHAR* LookAtTargetObjectClassDesc::TargetClassName = _T("TARGET");
@@ -68,17 +68,17 @@ namespace
 		template<>
 		void BuildShape<Shape::Pyramid>()
 		{
-			const float h = ShapeSize;
-			const float s = h;
-			const float hs = s / 2;
+			const float height = ShapeSize;
+			const float side = height;
+			const float halfSide = side / 2;
 
 			const std::array<float, 3> verts[]
 			{
 				{   0,   0,  0 },
-				{  hs,  hs,  h },
-				{ -hs,  hs,  h },
-				{ -hs, -hs,  h },
-				{  hs, -hs,  h }
+				{  halfSide,  halfSide,  height },
+				{ -halfSide,  halfSide,  height },
+				{ -halfSide, -halfSide,  height },
+				{  halfSide, -halfSide,  height }
 			};
 
 			const std::array<size_t, 3> sideFaces[]
@@ -138,18 +138,18 @@ namespace
 		template<>
 		void BuildShape<Shape::Cube>()
 		{
-			const float hsz = ShapeSize / 2;
+			const float halfEdge = ShapeSize / 2;
 
 			const std::array<float, 3> verts[]
 			{
-				{ -hsz, -hsz, -hsz },
-				{  hsz, -hsz, -hsz },
-				{ -hsz,  hsz, -hsz },
-				{  hsz,  hsz, -hsz },
-				{ -hsz, -hsz,  hsz },
-				{  hsz, -hsz,  hsz },
-				{ -hsz,  hsz,  hsz },
-				{  hsz,  hsz,  hsz },
+				{ -halfEdge, -halfEdge, -halfEdge },
+				{  halfEdge, -halfEdge, -halfEdge },
+				{ -halfEdge,  halfEdge, -halfEdge },
+				{  halfEdge,  halfEdge, -halfEdge },
+				{ -halfEdge, -halfEdge,  halfEdge },
+				{  halfEdge, -halfEdge,  halfEdge },
+				{ -halfEdge,  halfEdge,  halfEdge },
+				{  halfEdge,  halfEdge,  halfEdge },
 			};
 
 			const std::array<size_t, 3> faces[]
@@ -257,10 +257,10 @@ public:
 
 				switch (point)
 				{
-				case 0:
-					c = vpt->GetPointOnCP(m);
-					mat.SetTrans(c);
-					return CREATE_STOP;
+					case 0:
+						c = vpt->GetPointOnCP(m);
+						mat.SetTrans(c);
+						return CREATE_STOP;
 				}
 			}
 			break;
@@ -325,10 +325,6 @@ void LookAtTarget::GetMatrix(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& t
 	
 	tm = inode->GetObjectTM(t);
 	tm.NoScale();
-	//float scaleFactor = vpt.NonScalingObjectSize() * vpt.GetVPWorldWidth(tm.GetTrans()) / 360.0f;
-	
-	//if (scaleFactor!=(float)1.0)
-		//tm.Scale(Point3(scaleFactor,scaleFactor,scaleFactor));
 }
 
 void LookAtTarget::GetDeformBBox(TimeValue t, Box3& box, Matrix3 *tm, BOOL useSel )
@@ -370,9 +366,7 @@ void LookAtTarget::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box
 	}
 	
 	Matrix3 m = inode->GetObjectTM(t);
-	//float scaleFactor = vpt->NonScalingObjectSize()*vpt->GetVPWorldWidth(m.GetTrans())/(float)360.0;
 	box = meshCache.GetBoundingBox();
-	//box.Scale(scaleFactor);
 }
 
 void LookAtTarget::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
@@ -385,14 +379,16 @@ void LookAtTarget::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box
 
 	Mesh& mesh = meshCache.GetMesh();
 
-	int i,nv;
 	Matrix3 m;
-	GetMatrix(t,inode,*vpt,m);
-	nv = mesh.getNumVerts();
+	GetMatrix(t, inode, *vpt, m);
+
+	int vertsCount = mesh.getNumVerts();
 	box.Init();
 	
-	for (i = 0; i < nv; i++) 
+	for (int i = 0; i < vertsCount; i++)
+	{
 		box += m * mesh.getVert(i);
+	}
 }
 
 int LookAtTarget::HitTest(TimeValue t, INode *inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
@@ -407,27 +403,27 @@ int LookAtTarget::HitTest(TimeValue t, INode *inode, int type, int crossing, int
 	MakeHitRegion(hitRegion,type,crossing,4,p);
 
 	DWORD savedLimits;
-	GraphicsWindow* gw = vpt->getGW();
-	gw->setRndLimits(((savedLimits = gw->getRndLimits()) | GW_PICK) & ~GW_ILLUM);
+	GraphicsWindow* graphicsWindow = vpt->getGW();
+	graphicsWindow->setRndLimits(((savedLimits = graphicsWindow->getRndLimits()) | GW_PICK) & ~GW_ILLUM);
 
 	Matrix3 m;
 	GetMatrix(t,inode,*vpt,m);
-	gw->setTransform(m);
+	graphicsWindow->setTransform(m);
 
-	if (meshCache.GetMesh().select(gw, gw->getMaterial(), &hitRegion, flags & HIT_ABORTONHIT))
+	if (meshCache.GetMesh().select(graphicsWindow, graphicsWindow->getMaterial(), &hitRegion, flags & HIT_ABORTONHIT))
 	{
 		return TRUE;
 	}
 
-	gw->setRndLimits(savedLimits);
+	graphicsWindow->setRndLimits(savedLimits);
 
 	return FALSE;
 
 #if 0
-	gw->setHitRegion(&hitRegion);
-	gw->clearHitCode();
-	gw->fWinMarker(&pt, HOLLOW_BOX_MRKR);
-	return gw->checkHitCode();
+	graphicsWindow->setHitRegion(&hitRegion);
+	graphicsWindow->clearHitCode();
+	graphicsWindow->fWinMarker(&pt, HOLLOW_BOX_MRKR);
+	return graphicsWindow->checkHitCode();
 #endif
 }
 
@@ -505,16 +501,16 @@ int LookAtTarget::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 	}
 
 	Matrix3 m;
-	GraphicsWindow* gw = vpt->getGW();
+	GraphicsWindow* graphicsWindow = vpt->getGW();
 	GetMatrix(t,inode,*vpt,m);
-	gw->setTransform(m);
+	graphicsWindow->setTransform(m);
 
-	DWORD rlim = gw->getRndLimits();
-	gw->setRndLimits(GW_WIREFRAME|GW_EDGES_ONLY|GW_BACKCULL| (rlim&GW_Z_BUFFER) );
+	DWORD rlim = graphicsWindow->getRndLimits();
+	graphicsWindow->setRndLimits(GW_WIREFRAME|GW_EDGES_ONLY|GW_BACKCULL| (rlim&GW_Z_BUFFER) );
 	
 	if (inode->Selected())
 	{
-		gw->setColor(LINE_COLOR, GetSelColor());
+		graphicsWindow->setColor(LINE_COLOR, GetSelColor());
 	}
 	else if (!inode->IsFrozen() && !inode->Dependent() && inode->GetLookatNode())
 	{
@@ -524,14 +520,14 @@ int LookAtTarget::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 		if (ob != nullptr && ( ( ob->SuperClassID() == LIGHT_CLASS_ID ) || ( ob->SuperClassID() == CAMERA_CLASS_ID ) ) )
 		{													
 			Color color(inode->GetWireColor());
-			gw->setColor( LINE_COLOR, color );
+			graphicsWindow->setColor( LINE_COLOR, color );
 		}
 		else
-			gw->setColor( LINE_COLOR, GetUIColor(COLOR_CAMERA_OBJ)); // default target color, just use camera targ color
+			graphicsWindow->setColor( LINE_COLOR, GetUIColor(COLOR_CAMERA_OBJ)); // default target color, just use camera targ color
 	}
 
-	meshCache.GetMesh().render( gw, gw->getMaterial(), NULL, COMP_ALL);	
-	gw->setRndLimits(rlim);
+	meshCache.GetMesh().render(graphicsWindow, graphicsWindow->getMaterial(), NULL, COMP_ALL);
+	graphicsWindow->setRndLimits(rlim);
 	
 	return 0;
 }
@@ -542,8 +538,8 @@ RefResult LookAtTarget::NotifyRefChanged(const Interval& changeInt, RefTargetHan
 {
 	switch (message)
 	{
-	case REFMSG_NODE_WIRECOLOR_CHANGED:
-		Beep(1000, 500);
+		case REFMSG_NODE_WIRECOLOR_CHANGED:
+			Beep(1000, 500);
 	}
 
 	return REF_SUCCEED;

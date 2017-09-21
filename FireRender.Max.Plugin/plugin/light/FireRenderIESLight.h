@@ -60,6 +60,7 @@ public:
 
 	static Class_ID GetClassId();
 	static ClassDesc2* GetClassDesc();
+	static Color GetWireColor(bool isFrozen, bool isSelected);
 
 	static const bool DefaultEnabled;
 	static const bool DefaultTargeted;
@@ -196,6 +197,9 @@ protected:
 
 private:
 	static const Class_ID m_classId;
+	static const Color FrozenColor;
+	static const Color WireColor;
+	static const Color SelectedColor;
 
 	template<typename T_Id>
 	void ReplaceLocalReference(T_Id id, RefTargetHandle handle)

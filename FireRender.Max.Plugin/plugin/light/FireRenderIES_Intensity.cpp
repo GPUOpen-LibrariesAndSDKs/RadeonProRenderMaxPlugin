@@ -98,12 +98,12 @@ bool IES_Intensity::OnEditChange(TimeValue t, int editId, HWND editHWND)
 {
 	switch (editId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_INTENSITY:
-		return UpdateIntensityParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_INTENSITY:
+			return UpdateIntensityParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE:
-		m_temperatureControl.UpdateColor();
-		return UpdateTemperatureParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE:
+			m_temperatureControl.UpdateColor();
+			return UpdateTemperatureParam(t);
 	}
 
 	return false;
@@ -113,12 +113,12 @@ bool IES_Intensity::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD 
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_INTENSITY_S:
-		return UpdateIntensityParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_INTENSITY_S:
+			return UpdateIntensityParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S:
-		m_temperatureControl.UpdateColor();
-		return UpdateTemperatureParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S:
+			m_temperatureControl.UpdateColor();
+			return UpdateTemperatureParam(t);
 	}
 
 	return false;
@@ -128,21 +128,21 @@ const TCHAR* IES_Intensity::GetAcceptMessage(WORD controlId) const
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_INTENSITY:
-	case IDC_FIRERENDER_IES_LIGHT_INTENSITY_S:
-		return _T("IES light: change intensity");
+		case IDC_FIRERENDER_IES_LIGHT_INTENSITY:
+		case IDC_FIRERENDER_IES_LIGHT_INTENSITY_S:
+			return _T("IES light: change intensity");
 
-	case IDC_FIRERENDER_IES_LIGHT_RGB_MODE:
-	case IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE:
-		return _T("IES light: change color mode");
+		case IDC_FIRERENDER_IES_LIGHT_RGB_MODE:
+		case IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE:
+			return _T("IES light: change color mode");
 
-	case IDC_FIRERENDER_IES_LIGHT_COLOR:
-		return _T("IES light: change color");
+		case IDC_FIRERENDER_IES_LIGHT_COLOR:
+			return _T("IES light: change color");
 
-	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE:
-	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_C:
-	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S:
-		return _T("IES light: change temperature");
+		case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE:
+		case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_C:
+		case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S:
+			return _T("IES light: change temperature");
 	}
 
 	FASSERT(false);
@@ -153,16 +153,16 @@ bool IES_Intensity::OnColorSwatchChange(TimeValue t, IColorSwatch* colorSwatch, 
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_COLOR:
-		if (final)
-		{
-			return UpdateColorParam(t);
-		}
-		break;
+		case IDC_FIRERENDER_IES_LIGHT_COLOR:
+			if (final)
+			{
+				return UpdateColorParam(t);
+			}
+			break;
 
-	case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_C:
-		m_temperatureControl.UpdateColor();
-		break;
+		case IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_C:
+			m_temperatureControl.UpdateColor();
+			break;
 	}
 
 	return false;

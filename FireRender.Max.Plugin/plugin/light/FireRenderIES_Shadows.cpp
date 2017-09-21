@@ -61,8 +61,8 @@ bool IES_Shadows::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 	{
 		switch (controlId)
 		{
-		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_ENABLED:
-			return UpdateEnabledParam(t);
+			case IDC_FIRERENDER_IES_LIGHT_SHADOWS_ENABLED:
+				return UpdateEnabledParam(t);
 		}
 	}
 
@@ -73,11 +73,11 @@ bool IES_Shadows::OnEditChange(TimeValue t, int controlId, HWND editHWND)
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS:
-		return UpdateSoftnessParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS:
+			return UpdateSoftnessParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY:
-		return UpdateTransparencyParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY:
+			return UpdateTransparencyParam(t);
 	}
 
 	return false;
@@ -87,11 +87,11 @@ bool IES_Shadows::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD co
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS_S:
-		return UpdateSoftnessParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS_S:
+			return UpdateSoftnessParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY_S:
-		return UpdateTransparencyParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY_S:
+			return UpdateTransparencyParam(t);
 	}
 
 	return false;
@@ -101,16 +101,16 @@ const TCHAR* IES_Shadows::GetAcceptMessage(WORD controlId) const
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_ENABLED:
-		return _T("IES light: change shadows enabled parameter");
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_ENABLED:
+			return _T("IES light: change shadows enabled parameter");
 
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS:
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS_S:
-		return _T("IES light: change shadows softness");
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS:
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_SOFTNESS_S:
+			return _T("IES light: change shadows softness");
 
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY:
-	case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY_S:
-		return _T("IES light: change shadows transparency");
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY:
+		case IDC_FIRERENDER_IES_LIGHT_SHADOWS_TRANSPARENCY_S:
+			return _T("IES light: change shadows transparency");
 	}
 
 	FASSERT(false);

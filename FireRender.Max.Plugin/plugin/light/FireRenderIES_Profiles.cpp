@@ -9,26 +9,32 @@ FIRERENDER_NAMESPACE_BEGIN
 
 namespace
 {
-	bool DoFindSession(const TCHAR* searchRequest,
-		std::function<bool(WIN32_FIND_DATA&)> f)
+	/**
+	* Calls 'perObjectCallback' for each element found by 'searchRequest'
+	* \param 'perObjectCallback'
+	*		Function object that will be called for each object in find result.
+	*		This object returns false to continue iteration and true to stop it.
+	* @return Returns true if 'perObjectCallback' has returned true
+	*/
+	bool DoFindSession(const TCHAR* searchRequest, std::function<bool(WIN32_FIND_DATA&)> perObjectCallback)
 	{
-		WIN32_FIND_DATA ffd;
-		HANDLE hFind = FindFirstFile(searchRequest, &ffd);
+		WIN32_FIND_DATA findData;
+		HANDLE findHandle = FindFirstFile(searchRequest, &findData);
 
-		if (hFind == INVALID_HANDLE_VALUE)
+		if (findHandle == INVALID_HANDLE_VALUE)
 		{
 			return false;
 		}
 
 		do
 		{
-			if (f(ffd))
+			if (perObjectCallback(findData))
 			{
 				return true;
 			}
-		} while (FindNextFile(hFind, &ffd) != 0);
+		} while (FindNextFile(findHandle, &findData) != 0);
 
-		BOOL closeRes = FindClose(hFind);
+		BOOL closeRes = FindClose(findHandle);
 		FASSERT(closeRes);
 
 		return false;

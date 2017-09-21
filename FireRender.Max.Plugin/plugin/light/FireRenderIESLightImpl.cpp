@@ -18,27 +18,28 @@ FIRERENDER_NAMESPACE_BEGIN
 
 static TCHAR* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
 {
-	switch (errorCode) {
-	case IESProcessor::ErrorCode::NO_FILE: {
-		return L"empty file";
-	}
-	case IESProcessor::ErrorCode::NOT_IES_FILE: {
-		return L"not .ies file";
-	}
-	case IESProcessor::ErrorCode::FAILED_TO_READ_FILE: {
-		return L"failed to open file";
-	}
-	case IESProcessor::ErrorCode::INVALID_DATA_IN_IES_FILE: {
-		return L"invalid IES data";
-	}
-	case IESProcessor::ErrorCode::PARSE_FAILED: {
-		return L"parse failed";
-	}
-	case IESProcessor::ErrorCode::UNEXPECTED_END_OF_FILE: {
-		return L"have reached end of file before parse was complete";
-	}
-	default:
-		return L"Unknown error";
+	switch (errorCode)
+	{
+		case IESProcessor::ErrorCode::NO_FILE:
+			return L"empty file";
+
+		case IESProcessor::ErrorCode::NOT_IES_FILE:
+			return L"not .ies file";
+
+		case IESProcessor::ErrorCode::FAILED_TO_READ_FILE:
+			return L"failed to open file";
+
+		case IESProcessor::ErrorCode::INVALID_DATA_IN_IES_FILE:
+			return L"invalid IES data";
+
+		case IESProcessor::ErrorCode::PARSE_FAILED:
+			return L"parse failed";
+
+		case IESProcessor::ErrorCode::UNEXPECTED_END_OF_FILE:
+			return L"have reached end of file before parse was complete";
+
+		default:
+			return L"Unknown error";
 	}
 }
 
@@ -53,18 +54,6 @@ void Polar2XYZ(Point3& outPoint, double verticalAngle /*polar*/, double horizont
 	outPoint.x = XTheta * XPhi * dist;
 	outPoint.y = YTheta * XPhi * dist;
 	outPoint.z = YPhi * dist;
-}
-
-Color GetEdgeColor(bool isFrozen, bool isSelected)
-{
-	// determine color of object to be drawn
-	Color color = isFrozen ? Color(0.0f, 0.0f, 1.0f) : Color(0.0f, 1.0f, 0.0f);
-	if (isSelected)
-	{
-		color = Color(1.0f, 0.0f, 0.0f);
-	}
-
-	return color;
 }
 
 // clones all edges in edges array, transforms cloned edges by matrTransform and inserts them to edges array
@@ -391,7 +380,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	}
 
 	GraphicsWindow* gw = pVprt->getGW();
-	gw->setColor(LINE_COLOR, GetEdgeColor(isFrozen, isSelected));
+	gw->setColor(LINE_COLOR, GetWireColor(isFrozen, isSelected));
 
 	// draw line from light source to target
 	Point3 dirMesh[2]

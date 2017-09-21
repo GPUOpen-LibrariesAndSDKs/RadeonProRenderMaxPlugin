@@ -108,11 +108,11 @@ bool IES_General::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 	{
 		switch (controlId)
 		{
-		case IDC_FIRERENDER_IES_LIGHT_ENABLED:
-			return UpdateEnabledParam(t);
+			case IDC_FIRERENDER_IES_LIGHT_ENABLED:
+				return UpdateEnabledParam(t);
 
-		case IDC_FIRERENDER_IES_LIGHT_TARGETED:
-			return UpdateTargetedParam(t);
+			case IDC_FIRERENDER_IES_LIGHT_TARGETED:
+				return UpdateTargetedParam(t);
 		}
 	}
 
@@ -146,20 +146,20 @@ bool IES_General::OnEditChange(TimeValue t, int editId, HWND editHWND)
 {
 	switch (editId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
-		return UpdateAreaWidthParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
+			return UpdateAreaWidthParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
-		return UpdateTargetDistanceParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
+			return UpdateTargetDistanceParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X:
-		return UpdateRotationXParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_X:
+			return UpdateRotationXParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y:
-		return UpdateRotationYParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y:
+			return UpdateRotationYParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z:
-		return UpdateRotationZParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z:
+			return UpdateRotationZParam(t);
 	}
 
 	return false;
@@ -169,20 +169,20 @@ bool IES_General::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD co
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
-		return UpdateAreaWidthParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
+			return UpdateAreaWidthParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
-		return UpdateTargetDistanceParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
+			return UpdateTargetDistanceParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X_S:
-		return UpdateRotationXParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_X_S:
+			return UpdateRotationXParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y_S:
-		return UpdateRotationYParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y_S:
+			return UpdateRotationYParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z_S:
-		return UpdateRotationZParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z_S:
+			return UpdateRotationZParam(t);
 	}
 
 	return false;
@@ -192,31 +192,31 @@ const TCHAR* IES_General::GetAcceptMessage(WORD controlId) const
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_PROFILE:
-	case IDC_FIRERENDER_IES_LIGHT_DELETE_PROFILE:
-		return _T("IES light: change profile");
+		case IDC_FIRERENDER_IES_LIGHT_PROFILE:
+		case IDC_FIRERENDER_IES_LIGHT_DELETE_PROFILE:
+			return _T("IES light: change profile");
 
-	case IDC_FIRERENDER_IES_LIGHT_ENABLED:
-		return _T("IES light: change enabled parameter");
+		case IDC_FIRERENDER_IES_LIGHT_ENABLED:
+			return _T("IES light: change enabled parameter");
 
-	case IDC_FIRERENDER_IES_LIGHT_TARGETED:
-		return _T("IES light: change targeted parameter");
+		case IDC_FIRERENDER_IES_LIGHT_TARGETED:
+			return _T("IES light: change targeted parameter");
 
-	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
-	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
-		return _T("IES light: move target object");
+		case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
+		case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
+			return _T("IES light: move target object");
 
-	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
-	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
-		return _T("IES light: change area width");
+		case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH:
+		case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
+			return _T("IES light: change area width");
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X:
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X_S:
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y:
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y_S:
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z:
-	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z_S:
-		return _T("IES light: change light source rotation");
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_X:
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_X_S:
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y:
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y_S:
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z:
+		case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z_S:
+			return _T("IES light: change light source rotation");
 	}
 
 	FASSERT(false);
@@ -235,34 +235,32 @@ void IES_General::UpdateUI(TimeValue t)
 	m_areaWidthControl.GetSpinner().SetValue(m_parent->GetAreaWidth(t));
 	m_targetDistanceControl.GetSpinner().SetValue(m_parent->GetTargetDistance(t));
 
-	{// Update profiles list and delete button
-		int activeIndex = -1;
+	int activeIndex = -1;
 
-		if (m_parent->ProfileIsSelected(t))
+	if (m_parent->ProfileIsSelected(t))
+	{
+		const TCHAR* activeProfile = m_parent->GetActiveProfile(t);
+
+		// Compute active profile index in the combo box by it's name
+		bool profileFound =
+			m_profilesComboBox.ForEachItem([&](int index, const std::basic_string<TCHAR>& text)
 		{
-			const TCHAR* activeProfile = m_parent->GetActiveProfile(t);
-
-			// Compute active profile index in the combo box by it's name
-			bool profileFound =
-				m_profilesComboBox.ForEachItem([&](int index, const std::basic_string<TCHAR>& text)
+			if (_tcscmp(text.c_str(), activeProfile) == 0)
 			{
-				if (_tcscmp(text.c_str(), activeProfile) == 0)
-				{
-					// Active profile is found, break the loop
-					activeIndex = index;
-					return true;
-				}
+				// Active profile is found, break the loop
+				activeIndex = index;
+				return true;
+			}
 
-				// Keep searching
-				return false;
-			});
+			// Keep searching
+			return false;
+		});
 
-			FASSERT(profileFound);
-		}
-
-		m_profilesComboBox.SetSelected(activeIndex);
-		UpdateDeleteProfileButtonState();
+		FASSERT(profileFound);
 	}
+
+	m_profilesComboBox.SetSelected(activeIndex);
+	UpdateDeleteProfileButtonState();
 }
 
 void IES_General::Enable()

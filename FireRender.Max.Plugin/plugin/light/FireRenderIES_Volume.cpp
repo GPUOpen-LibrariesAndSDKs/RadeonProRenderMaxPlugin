@@ -33,8 +33,8 @@ bool IES_Volume::OnEditChange(TimeValue t, int controlId, HWND editHWND)
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE:
-		return UpdateVolumeScaleParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE:
+			return UpdateVolumeScaleParam(t);
 	}
 
 	return false;
@@ -44,8 +44,8 @@ bool IES_Volume::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD con
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE_S:
-		return UpdateVolumeScaleParam(t);
+		case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE_S:
+			return UpdateVolumeScaleParam(t);
 	}
 
 	return false;
@@ -55,9 +55,9 @@ const TCHAR* IES_Volume::GetAcceptMessage(WORD controlId) const
 {
 	switch (controlId)
 	{
-	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE:
-	case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE_S:
-		return _T("IES light: change volume scale");
+		case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE:
+		case IDC_FIRERENDER_IES_LIGHT_VOLUME_SCALE_S:
+			return _T("IES light: change volume scale");
 	}
 
 	FASSERT(false);
