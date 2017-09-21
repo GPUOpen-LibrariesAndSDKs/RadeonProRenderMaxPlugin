@@ -87,7 +87,6 @@ public:
 
 	BOOL UsesWireColor() override;
 	int DoOwnSelectHilite() override;
-	void NotifyChanged();
 	RefResult NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate) override;
 
 	void DeleteThis() override;

@@ -618,11 +618,6 @@ int FireRenderIESLight::DoOwnSelectHilite()
 	return 1;
 }
 
-void FireRenderIESLight::NotifyChanged()
-{
-	NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-}
-
 // inherited virtual methods for Reference-management
 
 RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate)
