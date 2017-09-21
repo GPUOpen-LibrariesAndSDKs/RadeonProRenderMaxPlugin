@@ -58,8 +58,8 @@ bool IES_General::InitializePage(TimeValue time)
 
 	// Rotation X parameter
 	m_RotateX.Capture(m_panel,
-		IDC_FIRERENDER_IES_LIGHT_ROTAION_X,
-		IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S);
+		IDC_FIRERENDER_IES_LIGHT_ROTATION_X,
+		IDC_FIRERENDER_IES_LIGHT_ROTATION_X_S);
 
 	m_RotateX.Bind(EDITTYPE_FLOAT);
 
@@ -69,8 +69,8 @@ bool IES_General::InitializePage(TimeValue time)
 
 	// Rotation Y parameter
 	m_RotateY.Capture(m_panel,
-		IDC_FIRERENDER_IES_LIGHT_ROTAION_Y,
-		IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S);
+		IDC_FIRERENDER_IES_LIGHT_ROTATION_Y,
+		IDC_FIRERENDER_IES_LIGHT_ROTATION_Y_S);
 
 	m_RotateY.Bind(EDITTYPE_FLOAT);
 
@@ -80,8 +80,8 @@ bool IES_General::InitializePage(TimeValue time)
 
 	// Rotation Z parameter
 	m_RotateZ.Capture(m_panel,
-		IDC_FIRERENDER_IES_LIGHT_ROTAION_Z,
-		IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S);
+		IDC_FIRERENDER_IES_LIGHT_ROTATION_Z,
+		IDC_FIRERENDER_IES_LIGHT_ROTATION_Z_S);
 
 	m_RotateZ.Bind(EDITTYPE_FLOAT);
 
@@ -152,13 +152,13 @@ bool IES_General::OnEditChange(TimeValue t, int editId, HWND editHWND)
 	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE:
 		return UpdateTargetDistanceParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X:
 		return UpdateRotationXParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y:
 		return UpdateRotationYParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z:
 		return UpdateRotationZParam(t);
 	}
 
@@ -175,13 +175,13 @@ bool IES_General::OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD co
 	case IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S:
 		return UpdateTargetDistanceParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X_S:
 		return UpdateRotationXParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y_S:
 		return UpdateRotationYParam(t);
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z_S:
 		return UpdateRotationZParam(t);
 	}
 
@@ -210,12 +210,12 @@ const TCHAR* IES_General::GetAcceptMessage(WORD controlId) const
 	case IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S:
 		return _T("IES light: change area width");
 
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X:
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S:
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y:
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S:
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z:
-	case IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_X_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Y_S:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z:
+	case IDC_FIRERENDER_IES_LIGHT_ROTATION_Z_S:
 		return _T("IES light: change light source rotation");
 	}
 

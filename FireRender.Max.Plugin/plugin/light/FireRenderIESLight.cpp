@@ -118,17 +118,17 @@ namespace
 			PB_END,
 
 		// X Rotation of IES light parameter
-		IES_PARAM_LIGHT_ROTAION_X, _T("RotationX"), TYPE_FLOAT, P_ANIMATABLE, 0,
+		IES_PARAM_LIGHT_ROTATION_X, _T("RotationX"), TYPE_FLOAT, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::LightRotateSettings::Default,
 			PB_END,
 
 		// Y Rotation of IES light parameter
-		IES_PARAM_LIGHT_ROTAION_Y, _T("RotationY"), TYPE_FLOAT, P_ANIMATABLE, 0,
+		IES_PARAM_LIGHT_ROTATION_Y, _T("RotationY"), TYPE_FLOAT, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::LightRotateSettings::Default,
 			PB_END,
 
 		// Z Rotation of IES light parameter
-		IES_PARAM_LIGHT_ROTAION_Z, _T("RotationZ"), TYPE_FLOAT, P_ANIMATABLE, 0,
+		IES_PARAM_LIGHT_ROTATION_Z, _T("RotationZ"), TYPE_FLOAT, P_ANIMATABLE, 0,
 			p_default, FireRenderIESLight::LightRotateSettings::Default,
 			PB_END,
 
@@ -213,9 +213,9 @@ namespace
 	struct GetBlockValueHelper<p,
 		std::enable_if_t<
 			p == IES_PARAM_AREA_WIDTH ||
-			p == IES_PARAM_LIGHT_ROTAION_X ||
-			p == IES_PARAM_LIGHT_ROTAION_Y ||
-			p == IES_PARAM_LIGHT_ROTAION_Z ||
+			p == IES_PARAM_LIGHT_ROTATION_X ||
+			p == IES_PARAM_LIGHT_ROTATION_Y ||
+			p == IES_PARAM_LIGHT_ROTATION_Z ||
 			p == IES_PARAM_INTENSITY ||
 			p == IES_PARAM_TEMPERATURE ||
 			p == IES_PARAM_SHADOWS_SOFTNESS ||
@@ -346,9 +346,9 @@ namespace
 		InitializeDefaultBlockValue<IES_PARAM_ENABLED>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTAION_X>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTAION_Y>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTAION_Z>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_X>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_Y>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_Z>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
@@ -679,9 +679,9 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 				case IES_PARAM_ENABLED:
 				case IES_PARAM_PROFILE:
 				case IES_PARAM_AREA_WIDTH:
-				case IES_PARAM_LIGHT_ROTAION_X:
-				case IES_PARAM_LIGHT_ROTAION_Y:
-				case IES_PARAM_LIGHT_ROTAION_Z:
+				case IES_PARAM_LIGHT_ROTATION_X:
+				case IES_PARAM_LIGHT_ROTATION_Y:
+				case IES_PARAM_LIGHT_ROTATION_Z:
 				case IES_PARAM_TARGETED:
 					m_general.UpdateUI(time);
 					break;
@@ -755,12 +755,6 @@ IParamBlock2* FireRenderIESLight::GetParamBlock(int i)
 {
     FASSERT(i == 0);
     return m_pblock2;
-}
-
-const IParamBlock2* FireRenderIESLight::GetParamBlock(int i) const
-{
-	return const_cast<const IParamBlock2*>
-		(const_cast<FireRenderIESLight*>(this)->GetParamBlock(i));
 }
 
 IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
@@ -1451,9 +1445,9 @@ IES_DEFINE_PARAM(Enabled, bool, IES_PARAM_ENABLED)
 IES_DEFINE_PARAM(Targeted, bool, IES_PARAM_TARGETED)
 IES_DEFINE_PARAM(ShadowsEnabled, bool, IES_PARAM_SHADOWS_ENABLED)
 IES_DEFINE_PARAM(AreaWidth, float, IES_PARAM_AREA_WIDTH)
-IES_DEFINE_PARAM(RotationX, float, IES_PARAM_LIGHT_ROTAION_X)
-IES_DEFINE_PARAM(RotationY, float, IES_PARAM_LIGHT_ROTAION_Y)
-IES_DEFINE_PARAM(RotationZ, float, IES_PARAM_LIGHT_ROTAION_Z)
+IES_DEFINE_PARAM(RotationX, float, IES_PARAM_LIGHT_ROTATION_X)
+IES_DEFINE_PARAM(RotationY, float, IES_PARAM_LIGHT_ROTATION_Y)
+IES_DEFINE_PARAM(RotationZ, float, IES_PARAM_LIGHT_ROTATION_Z)
 IES_DEFINE_PARAM(Intensity, float, IES_PARAM_INTENSITY)
 IES_DEFINE_PARAM(Temperature, float, IES_PARAM_TEMPERATURE)
 IES_DEFINE_PARAM(ShadowsSoftness, float, IES_PARAM_SHADOWS_SOFTNESS)

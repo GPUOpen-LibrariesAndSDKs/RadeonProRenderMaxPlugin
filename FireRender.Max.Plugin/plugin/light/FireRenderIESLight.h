@@ -95,7 +95,6 @@ public:
 	RefTargetHandle Clone(RemapDir& remap) override;
 
 	IParamBlock2* GetParamBlock(int i) override;
-	const IParamBlock2* GetParamBlock(int i) const;
 
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
 	int NumRefs() override;
