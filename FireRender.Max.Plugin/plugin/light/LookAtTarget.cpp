@@ -21,9 +21,9 @@ namespace
 	class LookAtTargetObjectClassDesc : public ClassDesc
 	{
 	public:
-		static constexpr auto TargetClassName = _T("TARGET");
-		static constexpr auto TargetObjectName = TargetClassName;
-		static constexpr auto TargetNodeName = TargetClassName;
+		static const TCHAR* TargetClassName;
+		static const TCHAR* TargetObjectName;
+		static const TCHAR* TargetNodeName;
 
 		int 			IsPublic() override { return 0; }
 		void *			Create(BOOL loading = FALSE) override { return new LookAtTarget; }
@@ -32,6 +32,10 @@ namespace
 		Class_ID		ClassID() override { return Class_ID(TARGET_CLASS_ID, 0); }
 		const TCHAR* 	Category() override { return _T("PRIMITIVES"); }
 	};
+
+	const TCHAR* LookAtTargetObjectClassDesc::TargetClassName = _T("TARGET");
+	const TCHAR* LookAtTargetObjectClassDesc::TargetObjectName = TargetClassName;
+	const TCHAR* LookAtTargetObjectClassDesc::TargetNodeName = TargetClassName;
 
 	class MeshCache
 	{
@@ -52,7 +56,6 @@ namespace
 		}
 
 	private:
-
 		enum class Shape
 		{
 			Pyramid,
@@ -65,11 +68,11 @@ namespace
 		template<>
 		void BuildShape<Shape::Pyramid>()
 		{
-			constexpr auto h = ShapeSize;
-			constexpr auto s = h;
-			constexpr auto hs = s / 2;
+			const float h = ShapeSize;
+			const float s = h;
+			const float hs = s / 2;
 
-			constexpr std::array<float, 3> verts[]
+			const std::array<float, 3> verts[]
 			{
 				{   0,   0,  0 },
 				{  hs,  hs,  h },
@@ -78,7 +81,7 @@ namespace
 				{  hs, -hs,  h }
 			};
 
-			constexpr std::array<size_t, 3> sideFaces[]
+			const std::array<size_t, 3> sideFaces[]
 			{
 				{ 0, 2, 1 },
 				{ 0, 3, 2 },
@@ -86,15 +89,15 @@ namespace
 				{ 0, 1, 4 }
 			};
 
-			constexpr std::array<size_t, 3> baseFaces[]
+			const std::array<size_t, 3> baseFaces[]
 			{
 				{ 3, 1, 2 },
 				{ 1, 3, 4 }
 			};
 
-			constexpr auto vertsCount = StaticArraySize(verts);
-			constexpr auto sideFacesCount = StaticArraySize(sideFaces);
-			constexpr auto baseFacesCount = StaticArraySize(baseFaces);
+			const size_t vertsCount = StaticArraySize(verts);
+			const size_t sideFacesCount = StaticArraySize(sideFaces);
+			const size_t baseFacesCount = StaticArraySize(baseFaces);
 
 			m_mesh.setNumVerts(vertsCount);
 			m_mesh.setNumFaces(sideFacesCount + baseFacesCount);
@@ -102,7 +105,7 @@ namespace
 			// Set vertices
 			for (size_t i = 0; i < vertsCount; ++i)
 			{
-				auto& v = verts[i];
+				const std::array<float, 3>& v = verts[i];
 				m_mesh.setVert(i, v[0], v[1], v[2]);
 			}
 
@@ -112,8 +115,8 @@ namespace
 			// Set side faces
 			for (size_t i = 0; i < sideFacesCount; ++i)
 			{
-				auto& f = sideFaces[i];
-				auto& meshFace = m_mesh.faces[nextFaceIndex++];
+				const std::array<size_t, 3>& f = sideFaces[i];
+				Face& meshFace = m_mesh.faces[nextFaceIndex++];
 
 				meshFace.setVerts(f[0], f[1], f[2]);
 				meshFace.setSmGroup(1 << (nextSmGroup++));
@@ -123,8 +126,8 @@ namespace
 			// Set base faces
 			for (size_t i = 0; i < baseFacesCount; ++i)
 			{
-				auto& f = baseFaces[i];
-				auto& meshFace = m_mesh.faces[nextFaceIndex++];
+				const std::array<size_t, 3>& f = baseFaces[i];
+				Face& meshFace = m_mesh.faces[nextFaceIndex++];
 
 				meshFace.setVerts(f[0], f[1], f[2]);
 				meshFace.setSmGroup(1 << nextSmGroup);
@@ -135,9 +138,9 @@ namespace
 		template<>
 		void BuildShape<Shape::Cube>()
 		{
-			constexpr auto hsz = ShapeSize / 2;
+			const float hsz = ShapeSize / 2;
 
-			constexpr std::array<float, 3> verts[]
+			const std::array<float, 3> verts[]
 			{
 				{ -hsz, -hsz, -hsz },
 				{  hsz, -hsz, -hsz },
@@ -149,7 +152,7 @@ namespace
 				{  hsz,  hsz,  hsz },
 			};
 
-			constexpr std::array<size_t, 3> faces[]
+			const std::array<size_t, 3> faces[]
 			{
 				// XY FACES (-Z)
 				{ 2, 1, 0 },
@@ -176,22 +179,22 @@ namespace
 				{ 5, 3, 7 }
 			};
 
-			constexpr auto vertsCount = StaticArraySize(verts);
-			constexpr auto facesCount = StaticArraySize(faces);
+			const size_t vertsCount = StaticArraySize(verts);
+			const size_t facesCount = StaticArraySize(faces);
 
 			m_mesh.setNumVerts(vertsCount);
 			m_mesh.setNumFaces(facesCount);
 
 			for (size_t i = 0; i < vertsCount; ++i)
 			{
-				auto& v = verts[i];
+				const std::array<float, 3>& v = verts[i];
 				m_mesh.setVert(i, v[0], v[1], v[2]);
 			}
 
 			for (size_t i = 0; i < facesCount; ++i)
 			{
-				auto& f = faces[i];
-				auto& meshFace = m_mesh.faces[i];
+				const std::array<size_t, 3>& f = faces[i];
+				Face& meshFace = m_mesh.faces[i];
 
 				meshFace.setVerts(f[0], f[1], f[2]);
 				meshFace.setSmGroup(1 << (i / 2));
@@ -199,8 +202,8 @@ namespace
 			}
 		}
 
-		static constexpr auto DefaultMeshShape = Shape::Cube;
-		static constexpr auto ShapeSize = 5.f;
+		static constexpr Shape DefaultMeshShape = Shape::Cube;
+		static const float ShapeSize;
 
 		void Build()
 		{
@@ -221,6 +224,7 @@ namespace
 		bool m_meshBuilt;
 	};
 
+	const float MeshCache::ShapeSize = 5.f;
 
 	static LookAtTargetObjectClassDesc lookAtTargetObjDesc;
 	static MeshCache meshCache;
@@ -279,7 +283,7 @@ public:
 
 CreateMouseCallBack* LookAtTarget::GetCreateMouseCallBack()
 {
-	auto instance = CreateCallBack::GetInstance();
+	CreateCallBack* instance = CreateCallBack::GetInstance();
 	instance->SetObj(this);
 	return instance;
 }
@@ -379,7 +383,7 @@ void LookAtTarget::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box
 		return;
 	}
 
-	auto& mesh = meshCache.GetMesh();
+	Mesh& mesh = meshCache.GetMesh();
 
 	int i,nv;
 	Matrix3 m;
@@ -403,7 +407,7 @@ int LookAtTarget::HitTest(TimeValue t, INode *inode, int type, int crossing, int
 	MakeHitRegion(hitRegion,type,crossing,4,p);
 
 	DWORD savedLimits;
-	auto gw = vpt->getGW();
+	GraphicsWindow* gw = vpt->getGW();
 	gw->setRndLimits(((savedLimits = gw->getRndLimits()) | GW_PICK) & ~GW_ILLUM);
 
 	Matrix3 m;
@@ -501,7 +505,7 @@ int LookAtTarget::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 	}
 
 	Matrix3 m;
-	auto gw = vpt->getGW();
+	GraphicsWindow* gw = vpt->getGW();
 	GetMatrix(t,inode,*vpt,m);
 	gw->setTransform(m);
 

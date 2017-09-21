@@ -55,7 +55,7 @@ public:
 	struct IntensitySettings :
 		public MaxSpinner::DefaultFloatSettings
 	{
-		static constexpr float Default = 100.f;
+		static const float Default;
 	};
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
 	using LightRotateSettings = MaxSpinner::DefaultRotationSettings;
@@ -67,17 +67,17 @@ public:
 	static Class_ID GetClassId();
 	static ClassDesc2* GetClassDesc();
 
-	static constexpr bool DefaultEnabled = true;
-	static constexpr bool DefaultTargeted = true;
-	static constexpr bool DefaultShadowsEnabled = true;
-	static constexpr auto DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
+	static const bool DefaultEnabled;
+	static const bool DefaultTargeted;
+	static const bool DefaultShadowsEnabled;
+	static const IESLightColorMode DefaultColorMode;
 
-	static constexpr bool EnableGeneralPanel = true;
-	static constexpr bool EnableIntensityPanel = true;
-	static constexpr bool EnableShadowsPanel = false;
-	static constexpr bool EnableVolumePanel = false;
+	static const bool EnableGeneralPanel;
+	static const bool EnableIntensityPanel;
+	static const bool EnableShadowsPanel;
+	static const bool EnableVolumePanel;
 
-	static constexpr auto SphereCirclePointsCount = 28u;
+	static const size_t SphereCirclePointsCount;
 
 	FireRenderIESLight();
 	~FireRenderIESLight();
@@ -170,7 +170,7 @@ private:
 	template<typename T_Id>
 	void ReplaceLocalReference(T_Id id, RefTargetHandle handle)
 	{
-		auto ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
+		RefResult ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
 		FASSERT(ret == REF_SUCCEED);
 	}
 

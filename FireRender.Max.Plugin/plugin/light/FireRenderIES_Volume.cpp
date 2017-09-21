@@ -3,6 +3,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+const int IES_Volume::DialogId = IDD_FIRERENDER_IES_LIGHT_VOLUME;
+const TCHAR* IES_Volume::PanelName = _T("Volume");
+
 bool IES_Volume::UpdateVolumeScaleParam(TimeValue t)
 {
 	return m_parent->SetVolumeScale(m_volumeScaleControl.GetValue<float>(), t);

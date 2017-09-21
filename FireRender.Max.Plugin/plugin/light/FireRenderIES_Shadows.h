@@ -11,8 +11,8 @@ class IES_Shadows :
 {
 public:
 	// IES_Panel static interface implementation
-	static constexpr int DialogId = IDD_FIRERENDER_IES_LIGHT_SHADOWS;
-	static constexpr TCHAR* PanelName = _T("Shadows");
+	static const int DialogId;
+	static const TCHAR* PanelName;
 
 	// Use base class constructor
 	using BasePanel::BasePanel;

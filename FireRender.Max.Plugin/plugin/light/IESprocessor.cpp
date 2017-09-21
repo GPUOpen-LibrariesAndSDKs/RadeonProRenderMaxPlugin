@@ -18,6 +18,8 @@
 #include <functional>
 #include "IESprocessor.h"
 
+const char* IESProcessor::IES_FileTag = "IESNA";
+
 IESProcessor::IESLightData::IESLightData()
 {
 }
@@ -189,7 +191,7 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	
 	text += lineToParse += "\n";
 
-	if (std::strncmp(text.c_str(), iesFileTag, 5) != 0)
+	if (std::strncmp(text.c_str(), IES_FileTag, 5) != 0)
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
 	}
@@ -379,7 +381,7 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& 
 		return false;
 
 	// read values from input
-	auto& parseFuncImpl = m_parseImpl.find(state);
+	auto parseFuncImpl = m_parseImpl.find(state);
 	if (parseFuncImpl != m_parseImpl.end())
 	{
 		state = parseFuncImpl->second(lightData, value);

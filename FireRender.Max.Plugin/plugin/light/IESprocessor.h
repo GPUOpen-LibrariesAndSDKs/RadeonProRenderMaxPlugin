@@ -52,7 +52,7 @@ public:
 	std::string ToString (const IESLightData& lightData) const;
 
 protected:
-	static constexpr char* iesFileTag = "IESNA";
+	static const char* IES_FileTag;
 
 	/**
 	* Reads file and fills array tokens with numbers (as strings) and text array with data other than numbers

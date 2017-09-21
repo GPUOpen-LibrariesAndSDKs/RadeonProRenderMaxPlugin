@@ -11,8 +11,8 @@ class IES_Intensity :
 {
 public:
 	// IES_Panel static interface implementation
-	static constexpr int DialogId = IDD_FIRERENDER_IES_LIGHT_INTENSITY;
-	static constexpr TCHAR* PanelName = _T("Intensity");
+	static const int DialogId;
+	static const TCHAR* PanelName;
 
 	// Use base class constructor
 	using BasePanel::BasePanel;

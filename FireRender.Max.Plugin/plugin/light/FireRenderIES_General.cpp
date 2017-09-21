@@ -8,6 +8,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+const int IES_General::DialogId = IDD_FIRERENDER_IES_LIGHT_GENERAL;
+const TCHAR* IES_General::PanelName = _T("General");
+
 bool IES_General::InitializePage(TimeValue time)
 {
 	// Import button
@@ -32,64 +35,59 @@ bool IES_General::InitializePage(TimeValue time)
 	m_targetedControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_TARGETED);
 	m_targetedControl.SetCheck(m_parent->GetTargeted(time));
 
-	{// Target distance parameter
-		m_targetDistanceControl.Capture(m_panel,
-			IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE,
-			IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S);
+	// Target distance parameter
+	m_targetDistanceControl.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE,
+		IDC_FIRERENDER_IES_LIGHT_TARGET_DISTANCE_S);
 
-		m_targetDistanceControl.Bind(EDITTYPE_FLOAT);
-		auto& spinner = m_targetDistanceControl.GetSpinner();
-		spinner.SetSettings<FireRenderIESLight::TargetDistanceSettings>();
-		m_targetDistanceControl.GetSpinner().SetValue(m_parent->GetTargetDistance(time));
-	}
+	m_targetDistanceControl.Bind(EDITTYPE_FLOAT);
+	MaxSpinner& targetDistanceSpinner = m_targetDistanceControl.GetSpinner();
+	targetDistanceSpinner.SetSettings<FireRenderIESLight::TargetDistanceSettings>();
+	m_targetDistanceControl.GetSpinner().SetValue(m_parent->GetTargetDistance(time));
 
-	{// Area width parameter
-		m_areaWidthControl.Capture(m_panel,
-			IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH,
-			IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S);
+	// Area width parameter
+	m_areaWidthControl.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH,
+		IDC_FIRERENDER_IES_LIGHT_AREA_WIDTH_S);
 
-		m_areaWidthControl.Bind(EDITTYPE_FLOAT);
+	m_areaWidthControl.Bind(EDITTYPE_FLOAT);
 
-		auto& spinner = m_areaWidthControl.GetSpinner();
-		spinner.SetSettings<FireRenderIESLight::AreaWidthSettings>();
-		spinner.SetValue(m_parent->GetAreaWidth(time));
-	}
+	MaxSpinner& areaWidthSpinner = m_areaWidthControl.GetSpinner();
+	areaWidthSpinner.SetSettings<FireRenderIESLight::AreaWidthSettings>();
+	areaWidthSpinner.SetValue(m_parent->GetAreaWidth(time));
 
-	{// Rotation X parameter
-		m_RotateX.Capture(m_panel,
-			IDC_FIRERENDER_IES_LIGHT_ROTAION_X,
-			IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S);
+	// Rotation X parameter
+	m_RotateX.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_ROTAION_X,
+		IDC_FIRERENDER_IES_LIGHT_ROTAION_X_S);
 
-		m_RotateX.Bind(EDITTYPE_FLOAT);
+	m_RotateX.Bind(EDITTYPE_FLOAT);
 
-		auto& spinner = m_RotateX.GetSpinner();
-		spinner.SetSettings<FireRenderIESLight::LightRotateSettings>();
-		spinner.SetValue(m_parent->GetRotationX(time));
-	}
+	MaxSpinner& spinnerRotateX = m_RotateX.GetSpinner();
+	spinnerRotateX.SetSettings<FireRenderIESLight::LightRotateSettings>();
+	spinnerRotateX.SetValue(m_parent->GetRotationX(time));
 
-	{// Rotation Y parameter
-		m_RotateY.Capture(m_panel,
-			IDC_FIRERENDER_IES_LIGHT_ROTAION_Y,
-			IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S);
+	// Rotation Y parameter
+	m_RotateY.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_ROTAION_Y,
+		IDC_FIRERENDER_IES_LIGHT_ROTAION_Y_S);
 
-		m_RotateY.Bind(EDITTYPE_FLOAT);
+	m_RotateY.Bind(EDITTYPE_FLOAT);
 
-		auto& spinner = m_RotateY.GetSpinner();
-		spinner.SetSettings<FireRenderIESLight::LightRotateSettings>();
-		spinner.SetValue(m_parent->GetRotationY(time));
-	}
+	MaxSpinner& spinnerRotateY = m_RotateY.GetSpinner();
+	spinnerRotateY.SetSettings<FireRenderIESLight::LightRotateSettings>();
+	spinnerRotateY.SetValue(m_parent->GetRotationY(time));
 
-	{// Rotation Z parameter
-		m_RotateZ.Capture(m_panel,
-			IDC_FIRERENDER_IES_LIGHT_ROTAION_Z,
-			IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S);
+	// Rotation Z parameter
+	m_RotateZ.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_ROTAION_Z,
+		IDC_FIRERENDER_IES_LIGHT_ROTAION_Z_S);
 
-		m_RotateZ.Bind(EDITTYPE_FLOAT);
+	m_RotateZ.Bind(EDITTYPE_FLOAT);
 
-		auto& spinner = m_RotateZ.GetSpinner();
-		spinner.SetSettings<FireRenderIESLight::LightRotateSettings>();
-		spinner.SetValue(m_parent->GetRotationZ(time));
-	}
+	MaxSpinner& spinnerRotateZ = m_RotateZ.GetSpinner();
+	spinnerRotateZ.SetSettings<FireRenderIESLight::LightRotateSettings>();
+	spinnerRotateZ.SetValue(m_parent->GetRotationZ(time));
 
 	return true;
 }
@@ -136,9 +134,9 @@ bool IES_General::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 
 	if (code == CBN_SELCHANGE && controlId == IDC_FIRERENDER_IES_LIGHT_PROFILE)
 	{
-		auto retVal = ActivateSelectedProfile(t);
+		bool profileIsActivated = ActivateSelectedProfile(t);
 		UpdateDeleteProfileButtonState();
-		return retVal;
+		return profileIsActivated;
 	}
 
 	return false;
@@ -242,10 +240,10 @@ void IES_General::UpdateUI(TimeValue t)
 
 		if (m_parent->ProfileIsSelected(t))
 		{
-			auto activeProfile = m_parent->GetActiveProfile(t);
+			const TCHAR* activeProfile = m_parent->GetActiveProfile(t);
 
 			// Compute active profile index in the combo box by it's name
-			auto profileFound =
+			bool profileFound =
 				m_profilesComboBox.ForEachItem([&](int index, const std::basic_string<TCHAR>& text)
 			{
 				if (_tcscmp(text.c_str(), activeProfile) == 0)
@@ -336,8 +334,8 @@ void IES_General::ImportProfile()
 	size_t nameOffset;
 	if (FireRenderIES_Profiles::GetIESFileName(filename, &nameOffset))
 	{
-		auto pathAndName = filename.c_str();
-		auto name = pathAndName + nameOffset;
+		const wchar_t* pathAndName = filename.c_str();
+		const wchar_t* name = pathAndName + nameOffset;
 
 		if (FireRenderIES_Profiles::CopyIES_File(filename.c_str(), nameOffset))
 		{
@@ -349,7 +347,7 @@ void IES_General::ImportProfile()
 
 bool IES_General::ActivateSelectedProfile(TimeValue t)
 {
-	auto index = m_profilesComboBox.GetSelectedIndex();
+	int index = m_profilesComboBox.GetSelectedIndex();
 
 	// Nothing is selected
 	if (index == -1)
@@ -363,7 +361,7 @@ bool IES_General::ActivateSelectedProfile(TimeValue t)
 
 bool IES_General::DeleteSelectedProfile(TimeValue t)
 {
-	auto selIdx = m_profilesComboBox.GetSelectedIndex();
+	int selIdx = m_profilesComboBox.GetSelectedIndex();
 
 	// Nothing is selected
 	if (selIdx < 0)
@@ -371,9 +369,9 @@ bool IES_General::DeleteSelectedProfile(TimeValue t)
 		return false;
 	}
 
-	auto itemText = m_profilesComboBox.GetItemText(selIdx);
-	auto profilesDir = FireRenderIES_Profiles::GetIESProfilesDirectory();
-	auto path = profilesDir + itemText;
+	std::wstring itemText = m_profilesComboBox.GetItemText(selIdx);
+	std::wstring profilesDir = FireRenderIES_Profiles::GetIESProfilesDirectory();
+	std::wstring path = profilesDir + itemText;
 
 	if (FileExists(path.c_str()) && !DeleteFile(path.c_str()))
 	{
@@ -388,20 +386,20 @@ bool IES_General::DeleteSelectedProfile(TimeValue t)
 
 	m_profilesComboBox.DeleteItem(selIdx);
 	m_profilesComboBox.SetSelected(-1);
-	auto retVal = ActivateSelectedProfile(t);
+	bool profileChanged = ActivateSelectedProfile(t);
 	UpdateDeleteProfileButtonState();
 
-	return retVal;
+	return profileChanged;
 }
 
 void IES_General::UpdateProfiles(TimeValue time)
 {
-	auto activeProfile = m_parent->GetActiveProfile(time);
+	const TCHAR* activeProfile = m_parent->GetActiveProfile(time);
 	int activeIndex = -1;
 
 	FireRenderIES_Profiles::ForEachProfile([&](const TCHAR* filename)
 	{
-		auto addIndex = m_profilesComboBox.AddItem(filename);
+		int addIndex = m_profilesComboBox.AddItem(filename);
 
 		if (activeIndex < 0 &&
 			_tcscmp(filename, activeProfile) == 0)

@@ -4,6 +4,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+const int IES_Intensity::DialogId = IDD_FIRERENDER_IES_LIGHT_INTENSITY;
+const TCHAR* IES_Intensity::PanelName = _T("Intensity");
+
 bool IES_Intensity::UpdateIntensityParam(TimeValue t)
 {
 	return m_parent->SetIntensity(m_intensityControl.GetValue<float>(), t);
@@ -30,41 +33,33 @@ bool IES_Intensity::UpdateTemperatureParam(TimeValue t)
 bool IES_Intensity::InitializePage(TimeValue time)
 {
 	// Intensity parameter
-	{
-		m_intensityControl.Capture(m_panel,
-			IDC_FIRERENDER_IES_LIGHT_INTENSITY,
-			IDC_FIRERENDER_IES_LIGHT_INTENSITY_S);
-		m_intensityControl.Bind(EDITTYPE_FLOAT);
+	m_intensityControl.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_INTENSITY,
+		IDC_FIRERENDER_IES_LIGHT_INTENSITY_S);
+	m_intensityControl.Bind(EDITTYPE_FLOAT);
 
-		auto& spinner = m_intensityControl.GetSpinner();
-		spinner.SetSettings<FireRenderIESLight::IntensitySettings>();
-		spinner.SetValue(m_parent->GetIntensity(time));
-	}
+	MaxSpinner& intensitySpinner = m_intensityControl.GetSpinner();
+	intensitySpinner.SetSettings<FireRenderIESLight::IntensitySettings>();
+	intensitySpinner.SetValue(m_parent->GetIntensity(time));
 
 	// Color modes controls
-	{
-		m_rgbModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_RGB_MODE);
-		m_kelvinModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE);
+	m_rgbModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_RGB_MODE);
+	m_kelvinModeControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE);
 
-		m_rgbModeControl.SetCheck(m_parent->GetColorMode(time) == IES_LIGHT_COLOR_MODE_COLOR);
-		m_kelvinModeControl.SetCheck(!m_rgbModeControl.IsChecked());
-	}
+	m_rgbModeControl.SetCheck(m_parent->GetColorMode(time) == IES_LIGHT_COLOR_MODE_COLOR);
+	m_kelvinModeControl.SetCheck(!m_rgbModeControl.IsChecked());
 
 	// Color parameter
-	{
-		m_colorControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_COLOR);
-		m_colorControl.SetColor(m_parent->GetColor(time));
-	}
+	m_colorControl.Capture(m_panel, IDC_FIRERENDER_IES_LIGHT_COLOR);
+	m_colorControl.SetColor(m_parent->GetColor(time));
 
 	// Temperature parameter
-	{
-		m_temperatureControl.Capture(m_panel,
-			IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_C,
-			IDC_FIRERENDER_IES_LIGHT_TEMPERATURE,
-			IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S);
+	m_temperatureControl.Capture(m_panel,
+		IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_C,
+		IDC_FIRERENDER_IES_LIGHT_TEMPERATURE,
+		IDC_FIRERENDER_IES_LIGHT_TEMPERATURE_S);
 
-		m_temperatureControl.SetTemperature(m_parent->GetTemperature(time));
-	}
+	m_temperatureControl.SetTemperature(m_parent->GetTemperature(time));
 
 	UpdateControlsEnabled(time);
 
@@ -89,7 +84,7 @@ bool IES_Intensity::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 			case IDC_FIRERENDER_IES_LIGHT_RGB_MODE:
 			case IDC_FIRERENDER_IES_LIGHT_KELVIN_MODE:
 			{
-				auto ret = UpdateColorModeParam(t);
+				bool ret = UpdateColorModeParam(t);
 				UpdateControlsEnabled(t);
 				return ret;
 			}
