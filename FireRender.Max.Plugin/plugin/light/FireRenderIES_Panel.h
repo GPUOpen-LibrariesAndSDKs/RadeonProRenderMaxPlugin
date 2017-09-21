@@ -41,7 +41,7 @@ public:
 		// Release previous control
 		Release();
 
-		auto controlHwnd = GetDlgItem(dialog, control);
+		HWND controlHwnd = GetDlgItem(dialog, control);
 
 		if (controlHwnd == nullptr)
 		{
@@ -138,18 +138,18 @@ public:
 
 	struct DefaultFloatSettings
 	{
-		static constexpr float Min = 0.0f;
-		static constexpr float Max = FLT_MAX;
-		static constexpr float Default = 1.0f;
-		static constexpr float Delta = 0.1;
+		static const float Min;
+		static const float Max;
+		static const float Default;
+		static const float Delta;
 	};
 
 	struct DefaultRotationSettings
 	{
-		static constexpr float Min = -180.0f;
-		static constexpr float Max = 180.0f;
-		static constexpr float Default = 0.0f;
-		static constexpr float Delta = 1.0f;
+		static const float Min;
+		static const float Max;
+		static const float Default;
+		static const float Delta;
 	};
 
 	template<typename T>
@@ -202,7 +202,7 @@ private:
 	template<typename T>
 	struct GetValueHelper<T, std::enable_if_t<std::is_integral<T>::value>>
 	{
-		static decltype(auto) GetValue(Traits::TControl* pControl)
+		static int GetValue(Traits::TControl* pControl)
 		{
 			return pControl->GetIVal();
 		}
@@ -212,7 +212,7 @@ private:
 	template<typename T>
 	struct GetValueHelper<T, std::enable_if_t<std::is_floating_point<T>::value>>
 	{
-		static decltype(auto) GetValue(Traits::TControl* pControl)
+		static float GetValue(Traits::TControl* pControl)
 		{
 			return pControl->GetFVal();
 		}
@@ -243,7 +243,7 @@ private:
 	template<typename T>
 	struct GetValueHelper<T, std::enable_if_t<std::is_integral<T>::value>>
 	{
-		static decltype(auto) GetValue(Traits::TControl* pControl)
+		static int GetValue(Traits::TControl* pControl)
 		{
 			return pControl->GetInt();
 		}
@@ -253,7 +253,7 @@ private:
 	template<typename T>
 	struct GetValueHelper<T, std::enable_if_t<std::is_floating_point<T>::value>>
 	{
-		static decltype(auto) GetValue(Traits::TControl* pControl)
+		static float GetValue(Traits::TControl* pControl)
 		{
 			return pControl->GetFloat();
 		}
@@ -286,7 +286,7 @@ public:
 		FASSERT(m_ctrl != nullptr);
 
 		RECT rect;
-		auto ret = GetWindowRect(m_ctrl->GetHwnd(), &rect);
+		BOOL ret = GetWindowRect(m_ctrl->GetHwnd(), &rect);
 		FASSERT(ret);
 
 		return rect;
@@ -294,14 +294,14 @@ public:
 
 	bool PointIsOver(POINT pt) const
 	{
-		auto rect = GetRect();
+		RECT rect = GetRect();
 		return PtInRect(&rect, pt);
 	}
 
 	bool CursorIsOver() const
 	{
 		POINT cursorPos;
-		auto ret = GetCursorPos(&cursorPos);
+		BOOL ret = GetCursorPos(&cursorPos);
 		FASSERT(ret);
 
 		return PointIsOver(cursorPos);
@@ -319,7 +319,7 @@ public:
 	Color GetColor() const
 	{
 		FASSERT(m_ctrl != nullptr);
-		auto c = m_ctrl->GetColor();
+		COLORREF c = m_ctrl->GetColor();
 
 		Color result;
 		result.r = GetRValue(c) / 255.f;
@@ -380,8 +380,8 @@ public:
 
 	void Bind(EditSpinnerType editType)
 	{
-		auto pEdit = m_edit.GetControl();
-		auto pSpinner = m_spinner.GetControl();
+		ICustEdit* pEdit = m_edit.GetControl();
+		ISpinnerControl* pSpinner = m_spinner.GetControl();
 
 		pSpinner->LinkToEdit(pEdit->GetHwnd(), editType);
 	}
@@ -438,7 +438,7 @@ public:
 		m_kelvin.Capture(window, edit, spinnerId);
 		m_kelvin.Bind(EditSpinnerType::EDITTYPE_FLOAT);
 
-		auto& spinner = m_kelvin.GetSpinner();
+		MaxSpinner& spinner = m_kelvin.GetSpinner();
 		spinner.SetLimits(MinKelvin, MaxKelvin);
 		spinner.SetResetValue(DefaultKelvin);
 		spinner.SetScale(10.f);
@@ -500,7 +500,7 @@ public:
 	{
 		CheckControl();
 
-		auto result = Button_GetCheck(m_hWnd);
+		int result = Button_GetCheck(m_hWnd);
 		FASSERT(result != BST_INDETERMINATE);
 
 		return result == BST_CHECKED;
@@ -557,12 +557,12 @@ public:
 	{
 		CheckControl();
 
-		auto chars = ComboBox_GetLBTextLen(m_hWnd, index);
+		int chars = ComboBox_GetLBTextLen(m_hWnd, index);
 		FASSERT(chars != CB_ERR && "Index out of range");
 
-		auto len = chars + 1;
+		int len = chars + 1;
 		outText.resize(len);
-		auto getLBText_result = ComboBox_GetLBText(m_hWnd, index, &outText[0]);
+		int getLBText_result = ComboBox_GetLBText(m_hWnd, index, &outText[0]);
 		FASSERT(getLBText_result != CB_ERR && getLBText_result == chars);
 	}
 
@@ -570,7 +570,7 @@ public:
 	{
 		CheckControl();
 
-		auto index = ComboBox_AddString(m_hWnd, name);
+		int index = ComboBox_AddString(m_hWnd, name);
 		FASSERT(index != CB_ERR);
 		FASSERT(index != CB_ERRSPACE);
 
@@ -581,7 +581,7 @@ public:
 	{
 		CheckControl();
 
-		auto res = ComboBox_DeleteString(m_hWnd, index);
+		int res = ComboBox_DeleteString(m_hWnd, index);
 		FASSERT(res != CB_ERR);
 	}
 
@@ -589,7 +589,7 @@ public:
 	{
 		CheckControl();
 
-		auto ret = ComboBox_SetItemData(m_hWnd, index, data);
+		int ret = ComboBox_SetItemData(m_hWnd, index, data);
 		FASSERT(ret != CB_ERR);
 	}
 
@@ -598,7 +598,7 @@ public:
 	{
 		CheckControl();
 
-		auto ret = ComboBox_SetCurSel(m_hWnd, index);
+		int ret = ComboBox_SetCurSel(m_hWnd, index);
 
 		// -1 is valid input but ComboBox_SetCurSel returns CB_ERR in this case
 		FASSERT(ret == -1 || ret != CB_ERR);
@@ -608,7 +608,7 @@ public:
 	{
 		CheckControl();
 
-		auto result = ComboBox_GetCount(m_hWnd);
+		int result = ComboBox_GetCount(m_hWnd);
 		FASSERT(result != CB_ERR);
 
 		return result;
@@ -670,7 +670,7 @@ public:
 	{
 		FASSERT(m_panel == nullptr);
 
-		auto _this = static_cast<Derived*>(this);
+		Derived* _this = static_cast<Derived*>(this);
 
 		m_panel = objParam->AddRollupPage(
 			fireRenderHInstance,
@@ -679,8 +679,8 @@ public:
 			Derived::PanelName,
 			(LPARAM)_this);
 
-		auto wndContext = reinterpret_cast<LONG_PTR>(_this);
-		auto prevLong = SetWindowLongPtr(m_panel, GWLP_USERDATA, wndContext);
+		LONG_PTR wndContext = reinterpret_cast<LONG_PTR>(_this);
+		LONG_PTR prevLong = SetWindowLongPtr(m_panel, GWLP_USERDATA, wndContext);
 
 		_this->InitializePage(objParam->GetTime());
 		objParam->RegisterDlgWnd(m_panel);
@@ -691,7 +691,7 @@ public:
 	void EndEdit(IObjParam* objParam, ULONG flags, Animatable* next)
 	{
 		FASSERT(IsInitialized());
-		auto _this = static_cast<Derived*>(this);
+		Derived* _this = static_cast<Derived*>(this);
 		_this->UninitializePage();
 		objParam->DeleteRollupPage(m_panel);
 		m_panel = nullptr;
@@ -767,13 +767,13 @@ private:
 			{
 				if (lParam != 0)
 				{
-					auto time = GetCOREInterface()->GetTime();
-					auto code = HIWORD(wParam);
-					auto controlId = LOWORD(wParam);
-					auto _this = GetAttachedThis(hWnd);
+					TimeValue time = GetCOREInterface()->GetTime();
+					WORD code = HIWORD(wParam);
+					WORD controlId = LOWORD(wParam);
+					Derived* _this = GetAttachedThis(hWnd);
 
 					BeginUndoDelta();
-					auto accept = _this->HandleControlCommand(time, code, controlId);
+					bool accept = _this->HandleControlCommand(time, code, controlId);
 					EndUndoDelta(accept, _this, controlId);
 				}
 			}
@@ -781,13 +781,13 @@ private:
 
 			case WM_CUSTEDIT_ENTER:
 			{
-				auto customEditId = wParam;
-				auto customEditHWND = reinterpret_cast<HWND>(lParam);
-				auto _this = GetAttachedThis(hWnd);
-				auto time = GetCOREInterface()->GetTime();
+				WPARAM customEditId = wParam;
+				HWND customEditHWND = reinterpret_cast<HWND>(lParam);
+				Derived* _this = GetAttachedThis(hWnd);
+				TimeValue time = GetCOREInterface()->GetTime();
 			
 				BeginUndoDelta();
-				auto accept = _this->OnEditChange(time, customEditId, customEditHWND);
+				bool accept = _this->OnEditChange(time, customEditId, customEditHWND);
 				EndUndoDelta(accept, _this, customEditId);
 			
 				return TRUE;
@@ -802,18 +802,18 @@ private:
 			// on change value in the spinner
 			case CC_SPINNER_CHANGE:
 			{
-				auto spinner = reinterpret_cast<ISpinnerControl*>(lParam);
-				auto spinnerId = LOWORD(wParam);
-				auto isDragging = HIWORD(wParam);
-				auto _this = GetAttachedThis(hWnd);
-				auto time = GetCOREInterface()->GetTime();
+				ISpinnerControl* spinner = reinterpret_cast<ISpinnerControl*>(lParam);
+				WORD spinnerId = LOWORD(wParam);
+				WORD isDragging = HIWORD(wParam);
+				Derived* _this = GetAttachedThis(hWnd);
+				TimeValue time = GetCOREInterface()->GetTime();
 
 				if (!isDragging)
 				{
 					BeginUndoDelta();
 				}
 
-				auto accept = _this->OnSpinnerChange(time, spinner, spinnerId, isDragging);
+				bool accept = _this->OnSpinnerChange(time, spinner, spinnerId, isDragging);
 
 				if (!isDragging)
 				{
@@ -827,12 +827,12 @@ private:
 			// finish spinner editing
 			case CC_SPINNER_BUTTONUP:
 			{
-				auto _this = GetAttachedThis(hWnd);
-				auto spinner = reinterpret_cast<ISpinnerControl*>(lParam);
-				auto spinnerId = LOWORD(wParam);
-				auto accept = HIWORD(wParam);
-				auto time = GetCOREInterface()->GetTime();
-				auto retVal = _this->OnSpinnerChange(time, spinner, spinnerId, false);
+				Derived* _this = GetAttachedThis(hWnd);
+				ISpinnerControl* spinner = reinterpret_cast<ISpinnerControl*>(lParam);
+				WORD spinnerId = LOWORD(wParam);
+				WORD accept = HIWORD(wParam);
+				TimeValue time = GetCOREInterface()->GetTime();
+				bool retVal = _this->OnSpinnerChange(time, spinner, spinnerId, false);
 
 				EndUndoDelta(accept, _this, spinnerId);
 			}
@@ -841,13 +841,13 @@ private:
 			case CC_COLOR_CHANGE:
 			case CC_COLOR_CLOSE:
 			{
-				auto controlPtr = reinterpret_cast<IColorSwatch*>(lParam);
-				auto controlId = LOWORD(wParam);
-				auto _this = GetAttachedThis(hWnd);
-				auto time = GetCOREInterface()->GetTime();
+				IColorSwatch* controlPtr = reinterpret_cast<IColorSwatch*>(lParam);
+				WORD controlId = LOWORD(wParam);
+				Derived* _this = GetAttachedThis(hWnd);
+				TimeValue time = GetCOREInterface()->GetTime();
 
 				BeginUndoDelta();
-				auto accept = _this->OnColorSwatchChange(time, controlPtr, controlId, msg == CC_COLOR_CLOSE);
+				bool accept = _this->OnColorSwatchChange(time, controlPtr, controlId, msg == CC_COLOR_CLOSE);
 				EndUndoDelta(accept, _this, controlId);
 			}
 			break;
@@ -858,8 +858,8 @@ private:
 
 	static Derived* GetAttachedThis(HWND hWnd)
 	{
-		auto wndUserData = GetWindowLongPtr(hWnd, GWLP_USERDATA);
-		auto _this = reinterpret_cast<Derived*>(wndUserData);
+		LONG_PTR wndUserData = GetWindowLongPtr(hWnd, GWLP_USERDATA);
+		Derived* _this = reinterpret_cast<Derived*>(wndUserData);
 		FASSERT(_this != nullptr);
 
 		return _this;

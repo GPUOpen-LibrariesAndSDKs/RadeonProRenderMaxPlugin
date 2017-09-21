@@ -77,7 +77,7 @@ void CloneAndTransform(std::vector<std::vector<Point3> >& edges, const Matrix3 &
 		edges.emplace_back();
 		std::vector<Point3> &newEdge = edges.back();
 		newEdge.reserve(edges[idx].size());
-		for (Point3& point : edges[idx])
+		for (const Point3& point : edges[idx])
 		{
 			newEdge.emplace_back(point * matrTransform);
 		}
@@ -153,9 +153,9 @@ bool FireRenderIESLight::CalculateBBox(void)
 	float maxX = -INFINITY;
 	float maxY = -INFINITY;
 	float maxZ = -INFINITY;
-	for (std::vector<Point3>& it : m_plines)
+	for (const std::vector<Point3>& it : m_plines)
 	{
-		for (Point3& tPoint : it)
+		for (const Point3& tPoint : it)
 		{
 			if (tPoint.x > maxX)
 				maxX = tPoint.x;
@@ -195,7 +195,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	const float SCALE_WEB = 0.05f;
 
 	m_plines.clear();
-	std::vector<std::vector<Point3> >& edges = m_plines;
+	std::vector<std::vector<Point3>>& edges = m_plines;
 
 	// load IES data
 	std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName);
@@ -429,7 +429,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		float angle = acos(cosAngle);
 		Matrix3 rotateMx = RotAngleAxisMatrix(normal, angle);
 
-		std::vector<std::vector<Point3> > preview_plines = m_preview_plines;
+		std::vector<std::vector<Point3>> preview_plines = m_preview_plines;
 
 		for (std::vector<Point3>& pline : preview_plines)
 		{
@@ -461,7 +461,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
 	}
 
-	std::vector<std::vector<Point3> > plines = m_plines;
+	std::vector<std::vector<Point3>> plines = m_plines;
 
 	// transform light web representation by input params
 	Matrix3 rotationToUpVector;

@@ -25,37 +25,31 @@ class LookAtTarget;
 
 FIRERENDER_NAMESPACE_BEGIN
 
-#define IES_DELCARE_PARAM_SET($paramName, $paramType) bool Set##$paramName($paramType value, TimeValue t)
-#define IES_DECLARE_PARAM_GET($paramName, $paramType) $paramType Get##$paramName(TimeValue t, Interval& valid = FOREVER) const
-#define IES_DECLARE_PARAM($paramName, $paramType)  \
-	IES_DELCARE_PARAM_SET($paramName, $paramType); \
-	IES_DECLARE_PARAM_GET($paramName, $paramType)
-
 class FireRenderIESLight :
 	public FireRenderLight
 {
 public:
-	enum class StrongReference
+	enum StrongReference
 	{
 		ParamBlock = 0,
 
 		// This should be always last
-		__last
+		strongRefEnd
 	};
 
-	enum class IndirectReference
+	enum IndirectReference
 	{
-		ThisNode = static_cast<std::underlying_type_t<StrongReference>>(StrongReference::__last),
+		ThisNode = StrongReference::strongRefEnd,
 		TargetNode,
 
 		// This should be always last
-		__last
+		indirectRefEnd
 	};
 
 	struct IntensitySettings :
 		public MaxSpinner::DefaultFloatSettings
 	{
-		static constexpr float Default = 100.f;
+		static const float Default;
 	};
 	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
 	using LightRotateSettings = MaxSpinner::DefaultRotationSettings;
@@ -67,17 +61,19 @@ public:
 	static Class_ID GetClassId();
 	static ClassDesc2* GetClassDesc();
 
-	static constexpr bool DefaultEnabled = true;
-	static constexpr bool DefaultTargeted = true;
-	static constexpr bool DefaultShadowsEnabled = true;
-	static constexpr auto DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
+	static const bool DefaultEnabled;
+	static const bool DefaultTargeted;
+	static const bool DefaultShadowsEnabled;
+	static const IESLightColorMode DefaultColorMode;
 
-	static constexpr bool EnableGeneralPanel = true;
-	static constexpr bool EnableIntensityPanel = true;
-	static constexpr bool EnableShadowsPanel = false;
-	static constexpr bool EnableVolumePanel = false;
+	static const bool EnableGeneralPanel;
+	static const bool EnableIntensityPanel;
+	static const bool EnableShadowsPanel;
+	static const bool EnableVolumePanel;
 
-	static constexpr auto SphereCirclePointsCount = 28u;
+	static const size_t SphereCirclePointsCount;
+	static const size_t IES_ImageWidth;
+	static const size_t IES_ImageHeight;
 
 	FireRenderIESLight();
 	~FireRenderIESLight();
@@ -126,24 +122,59 @@ public:
 	bool CalculateLightRepresentation(const TCHAR* profileName) override;
 	bool CalculateBBox(void) override;
 
-	IES_DECLARE_PARAM(LightPoint, Point3);
-	IES_DECLARE_PARAM(TargetPoint, Point3);
-	IES_DECLARE_PARAM(Enabled, bool);
-	IES_DECLARE_PARAM(Targeted, bool);
-	IES_DECLARE_PARAM(TargetDistance, float);
-	IES_DECLARE_PARAM(AreaWidth, float);
-	IES_DECLARE_PARAM(RotationX, float);
-	IES_DECLARE_PARAM(RotationY, float);
-	IES_DECLARE_PARAM(RotationZ, float);
-	IES_DECLARE_PARAM(ActiveProfile, const TCHAR*);
-	IES_DECLARE_PARAM(Intensity, float);
-	IES_DECLARE_PARAM(Temperature, float);
-	IES_DECLARE_PARAM(Color, Color);
-	IES_DECLARE_PARAM(ColorMode, IESLightColorMode);
-	IES_DECLARE_PARAM(ShadowsEnabled, bool);
-	IES_DECLARE_PARAM(ShadowsSoftness, float);
-	IES_DECLARE_PARAM(ShadowsTransparency, float);
-	IES_DECLARE_PARAM(VolumeScale, float);
+	bool SetLightPoint(Point3 value, TimeValue t);
+	Point3 GetLightPoint(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTargetPoint(Point3 value, TimeValue t);
+	Point3 GetTargetPoint(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetEnabled(bool value, TimeValue t);
+	bool GetEnabled(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTargeted(bool value, TimeValue t);
+	bool GetTargeted(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetShadowsEnabled(bool value, TimeValue t);
+	bool GetShadowsEnabled(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTargetDistance(float value, TimeValue t);
+	float GetTargetDistance(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetAreaWidth(float value, TimeValue t);
+	float GetAreaWidth(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetRotationX(float value, TimeValue t);
+	float GetRotationX(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetRotationY(float value, TimeValue t);
+	float GetRotationY(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetRotationZ(float value, TimeValue t);
+	float GetRotationZ(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetIntensity(float value, TimeValue t);
+	float GetIntensity(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTemperature(float value, TimeValue t);
+	float GetTemperature(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetShadowsSoftness(float value, TimeValue t);
+	float GetShadowsSoftness(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetVolumeScale(float value, TimeValue t);
+	float GetVolumeScale(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetShadowsTransparency(float value, TimeValue t);
+	float GetShadowsTransparency(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetActiveProfile(const TCHAR* value, TimeValue t);
+	const TCHAR* GetActiveProfile(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetColor(Color value, TimeValue t);
+	Color GetColor(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetColorMode(IESLightColorMode value, TimeValue t);
+	IESLightColorMode GetColorMode(TimeValue t, Interval& valid = FOREVER) const;
 
 	bool ProfileIsSelected(TimeValue t) const;
 
@@ -170,7 +201,7 @@ private:
 	template<typename T_Id>
 	void ReplaceLocalReference(T_Id id, RefTargetHandle handle)
 	{
-		auto ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
+		RefResult ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
 		FASSERT(ret == REF_SUCCEED);
 	}
 

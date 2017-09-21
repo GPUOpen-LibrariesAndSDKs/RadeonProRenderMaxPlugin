@@ -37,13 +37,30 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+const float FireRenderIESLight::IntensitySettings::Default = 100.f;
+
+const bool FireRenderIESLight::DefaultEnabled = true;
+const bool FireRenderIESLight::DefaultTargeted = true;
+const bool FireRenderIESLight::DefaultShadowsEnabled = true;
+const IESLightColorMode FireRenderIESLight::DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
+
+const bool FireRenderIESLight::EnableGeneralPanel = true;
+const bool FireRenderIESLight::EnableIntensityPanel = true;
+const bool FireRenderIESLight::EnableShadowsPanel = false;
+const bool FireRenderIESLight::EnableVolumePanel = false;
+
+const size_t FireRenderIESLight::SphereCirclePointsCount = 28;
+const size_t FireRenderIESLight::IES_ImageWidth = 256;
+const size_t FireRenderIESLight::IES_ImageHeight = 256;
+
 namespace
 {
-	constexpr int VERSION = 1;
-	constexpr auto FIRERENDER_IESLIGHT_CATEGORY = _T("Radeon ProRender");
-	constexpr auto FIRERENDER_IESLIGHT_OBJECT_NAME = _T("RPRIESLight");
-	constexpr auto FIRERENDER_IESLIGHT_INTERNAL_NAME = _T("RPRIESLight");
-	constexpr auto FIRERENDER_IESLIGHT_CLASS_NAME = _T("RPRIESLight");
+	const int VERSION = 1;
+	const TCHAR* FIRERENDER_IESLIGHT_CATEGORY = _T("Radeon ProRender");
+	const TCHAR* FIRERENDER_IESLIGHT_OBJECT_NAME = _T("RPRIESLight");
+	const TCHAR* FIRERENDER_IESLIGHT_INTERNAL_NAME = _T("RPRIESLight");
+	const TCHAR* FIRERENDER_IESLIGHT_CLASS_NAME = _T("RPRIESLight");
+	const TCHAR* FIRERENDER_IESLIG_TARGET_NODE_NAME = _T("IES target");
 
 	class FireRenderIESLightClassDesc : public ClassDesc2
 	{
@@ -251,7 +268,7 @@ namespace
 		using Helper = GetBlockValueHelper<parameter>;
 		typename Helper::T1 result;
 
-		auto ok = pBlock->GetValue(parameter, t, result, valid);
+		BOOL ok = pBlock->GetValue(parameter, t, result, valid);
 		FASSERT(ok);
 
 		return static_cast<typename Helper::T2>(result);
@@ -304,7 +321,7 @@ namespace
 		}
 		
 		ParameterCache<parameter>::SetValue(pBlock, value);
-		auto res = pBlock->SetValue(parameter, time, value);
+		BOOL res = pBlock->SetValue(parameter, time, value);
 		FASSERT(res);
 
 		return true;
@@ -323,8 +340,8 @@ namespace
 
 	void* FireRenderIESLightClassDesc::Create(BOOL loading)
 	{
-		auto instance = new FireRenderIESLight();
-		auto pBlock = instance->GetParamBlock(0);
+		FireRenderIESLight* instance = new FireRenderIESLight();
+		IParamBlock2* pBlock = instance->GetParamBlock(0);
 
 		InitializeDefaultBlockValue<IES_PARAM_ENABLED>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
@@ -342,7 +359,7 @@ namespace
 		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
 		InitializeDefaultBlockValue<IES_PARAM_VOLUME_SCALE>(pBlock);
 
-		auto t = GetCOREInterface()->GetTime();
+		TimeValue t = GetCOREInterface()->GetTime();
 		if (instance->ProfileIsSelected(t))
 		{
 			instance->CalculateLightRepresentation(instance->GetActiveProfile(t));
@@ -362,16 +379,16 @@ namespace
 		std::array<std::array<Point3, numCircPts>, 3>& cuts)
 	{
 		// Delta angle
-		constexpr auto da = 2.0f * PI / numCircPts;
+		const float da = 2.0f * PI / numCircPts;
 
 		for (int i = 0; i < numCircPts; i++)
 		{
 			// Angle
-			auto a = i * da;
+			float a = i * da;
 
 			// Cached values
-			auto sn = rad * sin(a);
-			auto cs = rad * cos(a);
+			float sn = rad * sin(a);
+			float cs = rad * cos(a);
 
 			cuts[0][i] = Point3(sn, cs, 0.0f) + center;
 			cuts[1][i] = Point3(sn, 0.0f, cs) + center;
@@ -415,7 +432,7 @@ namespace
 
 		while ((rm = di.Next()) != nullptr)
 		{
-			if (auto nd = GetNodeRef(rm))
+			if (INode* nd = GetNodeRef(rm))
 			{
 				return nd;
 			}
@@ -426,18 +443,19 @@ namespace
 
 	ReferenceTarget* MakeNodeTransformMonitor()
 	{
-		auto ip = GetCOREInterface();
+		Interface* ip = GetCOREInterface();
 		return static_cast<ReferenceTarget*>(ip->CreateInstance(REF_TARGET_CLASS_ID, NODETRANSFORMMONITOR_CLASS_ID));
 	}
 }
 
 class FireRenderIESLight::CreateCallback : public CreateMouseCallBack
 {
-private:
-	FireRenderIESLight *ob = nullptr;
-	IParamBlock2 *pblock = nullptr;
-
 public:
+	CreateCallback() :
+		m_light(nullptr),
+		m_pBlock(nullptr)
+	{}
+
 	int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override
 	{
 		int result = CREATE_CONTINUE;
@@ -446,28 +464,28 @@ public:
 		{
 			case MOUSE_POINT:
 			{
-				auto time = GetCOREInterface()->GetTime();
+				TimeValue time = GetCOREInterface()->GetTime();
 
 				// First click
 				if (point == 0)
 				{
-					auto thisNode = FindNodeRef(ob);
-					ob->SetThisNode(thisNode);
+					INode* thisNode = FindNodeRef(m_light);
+					m_light->SetThisNode(thisNode);
 
 					mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
 
-					auto p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
+					Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
 
-					ob->SetLightPoint(p, time);
+					m_light->SetLightPoint(p, time);
 
-					if (ob->GetTargeted(time))
+					if (m_light->GetTargeted(time))
 					{
-						ob->SetTargetPoint(p, time);
+						m_light->SetTargetPoint(p, time);
 					}
 					else
 					{
 						// Just to avoid zero target distance
-						ob->SetTargetPoint(p + Point3(1, 0, 0), time);
+						m_light->SetTargetPoint(p + Point3(1, 0, 0), time);
 
 						// Don't need to wait for the second point
 						result = CREATE_STOP;
@@ -476,14 +494,14 @@ public:
 				// Second click
 				else
 				{
-					ob->OnTargetedChanged(time, true);
+					m_light->OnTargetedChanged(time, true);
 					result = CREATE_STOP;
 				}
 			}
 			break;
 
 			case MOUSE_MOVE:
-				pblock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
+				m_pBlock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
 				break;
 
 			case MOUSE_ABORT:
@@ -498,11 +516,15 @@ public:
 		return result;
 	}
 
-	void SetObj(FireRenderIESLight* obj)
+	void SetLight(FireRenderIESLight* light)
 	{
-		ob = obj;
-		pblock = ob->GetParamBlock(0);
+		m_light = light;
+		m_pBlock = light->GetParamBlock(0);
 	}
+
+private:
+	FireRenderIESLight* m_light;
+	IParamBlock2* m_pBlock;
 };
 
 const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
@@ -548,7 +570,7 @@ FireRenderIESLight::~FireRenderIESLight()
 CreateMouseCallBack* FireRenderIESLight::GetCreateMouseCallBack()
 {
 	static CreateCallback createCallback;
-	createCallback.SetObj(this);
+	createCallback.SetLight(this);
 	return &createCallback;
 }
 
@@ -602,13 +624,13 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 			INode* (FireRenderIESLight::* nodeGetter)(),
 			bool (FireRenderIESLight::* pointSetter)(Point3, TimeValue))
 		{
-			auto time = GetCOREInterface()->GetTime();
-			auto node = (this->*nodeGetter)();
-			auto nodeController = node->GetTMController();
+			TimeValue time = GetCOREInterface()->GetTime();
+			INode* node = (this->*nodeGetter)();
+			Control* nodeController = node->GetTMController();
 
 			if (!nodeController->TestAFlag(A_HELD))
 			{
-				auto thisTm = node->GetNodeTM(time);
+				Matrix3 thisTm = node->GetNodeTM(time);
 				(this->*pointSetter)(thisTm.GetTrans(), time);
 			}
 		};
@@ -623,8 +645,8 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 		}
 		else if (hTarget == m_pblock2)
 		{
-			auto p = m_pblock2->LastNotifyParamID();
-			auto time = GetCOREInterface()->GetTime();
+			ParamID p = m_pblock2->LastNotifyParamID();
+			TimeValue time = GetCOREInterface()->GetTime();
 
 			switch (p)
 			{
@@ -711,18 +733,18 @@ void FireRenderIESLight::GetClassName(TSTR& s)
 
 RefTargetHandle FireRenderIESLight::Clone(RemapDir& remap)
 {
-    auto newob = new FireRenderIESLight();
+	FireRenderIESLight* newob = new FireRenderIESLight();
 
 	// Clone base class data
 	BaseClone(this, newob, remap);
 
 	// Clone this class references
-	auto baseRefs = BaseMaxType::NumRefs();
+	int baseRefs = BaseMaxType::NumRefs();
 
 	for (int i = 0; i < NumRefs(); ++i)
 	{
 		int refIndex = baseRefs + i;
-		auto ref = GetReference(refIndex);
+		RefTargetHandle ref = GetReference(refIndex);
 		newob->ReplaceReference(refIndex, remap.CloneRef(ref));
 	}
 
@@ -749,12 +771,12 @@ IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 
 int FireRenderIESLight::NumRefs()
 {
-	return BaseMaxType::NumRefs() + static_cast<int>(IndirectReference::__last);
+	return BaseMaxType::NumRefs() + static_cast<int>(IndirectReference::indirectRefEnd);
 }
 
 void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
 {
-	auto baseRefs = BaseMaxType::NumRefs();
+	int baseRefs = BaseMaxType::NumRefs();
 
 	if (i < baseRefs)
 	{
@@ -762,12 +784,11 @@ void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
 		return;
 	}
 
-	auto local_i = i - baseRefs;
-
+	int local_i = i - baseRefs;
 	bool referenceFound = false;
 
 	static_assert(
-		static_cast<int>(IndirectReference::__last) == 3,
+		static_cast<int>(IndirectReference::indirectRefEnd) == 3,
 		"Light references enumeration has been updated. Please, implement here");
 
 	switch (static_cast<StrongReference>(local_i))
@@ -799,20 +820,20 @@ void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
 
 RefTargetHandle FireRenderIESLight::GetReference(int i)
 {
-	auto baseRefs = BaseMaxType::NumRefs();
+	int baseRefs = BaseMaxType::NumRefs();
 
 	if (i < baseRefs)
 	{
 		return BaseMaxType::GetReference(i);
 	}
 
-	auto local_i = i - baseRefs;
+	int local_i = i - baseRefs;
 
 	RefTargetHandle result = nullptr;
 	bool referenceFound = false;
 
 	static_assert(
-		static_cast<int>(IndirectReference::__last) == 3,
+		static_cast<int>(IndirectReference::indirectRefEnd) == 3,
 		"Light references enumeration has been updated. Please, implement here");
 
 	switch (static_cast<StrongReference>(local_i))
@@ -862,8 +883,8 @@ void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL fr
 		GetTargetPoint(t)
 	};
 
-	auto thisNode = FindNodeRef(this);
-	auto targNode = GetTargetNode();
+	INode* thisNode = FindNodeRef(this);
+	INode* targNode = GetTargetNode();
 	
 	if (targNode == nullptr)
 	{
@@ -871,8 +892,8 @@ void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL fr
 	}
 	else
 	{
-		auto targTm = targNode->GetNodeTM(t);
-		auto dist = GetTargetDistance(t);
+		Matrix3 targTm = targNode->GetNodeTM(t);
+		float dist = GetTargetDistance(t);
 		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
 	}
 
@@ -940,7 +961,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 
 	if (ProfileIsSelected(t))
 	{
-		auto gw = vpt->getGW();
+		GraphicsWindow* gw = vpt->getGW();
 
 		// apply scaling
 #define IES_IGNORE_SCENE_SCALING
@@ -1032,81 +1053,12 @@ void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vp
 	box.pmax.x = bboxMax.x;
 	box.pmax.y = bboxMax.y;
 	box.pmax.z = bboxMax.z;
-
-	// DEBUG draw BBox
-#ifdef IES_DEBUG_DRAW_LIGHT_BBOX
-	vpt->getGW()->setColor(LINE_COLOR, Point3(0.0f, 1.0f, 1.0f));
-	Point3 bboxFaces[20]; // 4 faces enough
-	bboxFaces[0] = Point3(bboxMin.x, bboxMin.y, bboxMin.z); // 1-st face
-	bboxFaces[1] = Point3(bboxMax.x, bboxMin.y, bboxMin.z);
-	bboxFaces[2] = Point3(bboxMax.x, bboxMin.y, bboxMax.z);
-	bboxFaces[3] = Point3(bboxMin.x, bboxMin.y, bboxMax.z);
-	bboxFaces[4] = Point3(bboxMin.x, bboxMin.y, bboxMin.z);
-
-	bboxFaces[5] = Point3(bboxMin.x, bboxMin.y, bboxMin.z); // 2-nd face
-	bboxFaces[6] = Point3(bboxMin.x, bboxMax.y, bboxMin.z);
-	bboxFaces[7] = Point3(bboxMin.x, bboxMax.y, bboxMax.z);
-	bboxFaces[8] = Point3(bboxMin.x, bboxMin.y, bboxMax.z);
-	bboxFaces[9] = Point3(bboxMin.x, bboxMin.y, bboxMin.z);
-
-	bboxFaces[10] = Point3(bboxMax.x, bboxMax.y, bboxMax.z); // 3-d face
-	bboxFaces[11] = Point3(bboxMax.x, bboxMax.y, bboxMin.z);
-	bboxFaces[12] = Point3(bboxMax.x, bboxMin.y, bboxMin.z);
-	bboxFaces[13] = Point3(bboxMax.x, bboxMin.y, bboxMax.z);
-	bboxFaces[14] = Point3(bboxMax.x, bboxMax.y, bboxMax.z);
-
-	bboxFaces[15] = Point3(bboxMax.x, bboxMax.y, bboxMax.z); // 4-th face
-	bboxFaces[16] = Point3(bboxMin.x, bboxMax.y, bboxMax.z);
-	bboxFaces[17] = Point3(bboxMin.x, bboxMax.y, bboxMin.z);
-	bboxFaces[18] = Point3(bboxMax.x, bboxMax.y, bboxMin.z);
-	bboxFaces[19] = Point3(bboxMax.x, bboxMax.y, bboxMax.z);
-
-	vpt->getGW()->polyline(5, bboxFaces, NULL, NULL, FALSE, NULL);
-	vpt->getGW()->polyline(5, bboxFaces+5, NULL, NULL, FALSE, NULL);
-	vpt->getGW()->polyline(5, bboxFaces+10, NULL, NULL, FALSE, NULL);
-	vpt->getGW()->polyline(5, bboxFaces+15, NULL, NULL, FALSE, NULL);
-#endif
 }
 
 int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
 {
-#define WEB_ENABLED
-#ifdef WEB_ENABLED
-	// draw web
 	Display(t, inode, vpt, flags);
-#else
-    if (!vpt || !vpt->IsAlive())
-    {
-        // why are we here
-        DbgAssert(!_T("Invalid viewport!"));
-        return FALSE;
-    }
-
-    HitRegion hitRegion;
-    DWORD savedLimits;
-
-    GraphicsWindow *gw = vpt->getGW();
-    Matrix3 prevtm = gw->getTransform();
-
-    gw->setTransform(idTM);
-    MakeHitRegion(hitRegion, type, crossing, 8, p);
-    savedLimits = gw->getRndLimits();
-
-    gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM & ~GW_Z_BUFFER);
-    gw->setHitRegion(&hitRegion);
-    gw->clearHitCode();
-
-    Matrix3 tm = inode->GetObjectTM(t);
-    gw->setTransform(tm);
-
-	DrawGeometry(vpt, GetParamBlock(0));
-
-    int res = gw->checkHitCode();
-
-    gw->setRndLimits(savedLimits);
-    gw->setTransform(prevtm);
-#endif
-    return (1);
+	return 1;
 }
 
 void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
@@ -1198,7 +1150,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 
 	// create light
 	frw::IESLight light = scope.GetContext().CreateIESLight();
-	auto activeProfile = GetActiveProfile(params.t);
+	const TCHAR* activeProfile = GetActiveProfile(params.t);
 
 	// Load profile
 	{
@@ -1208,6 +1160,8 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 		// apply scaling to photometric web if necessary
 		float scaleFactor;
 		GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+
+		std::string iesData;
 
 		if (std::fabs(scaleFactor - 1.0f) > 0.01f)
 		{
@@ -1243,24 +1197,21 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 				return;
 			}
 
-			// pass IES data to RPR
-			std::string iesData = parser.ToString(data);
-
-			light.SetIESData(iesData.c_str(), 256, 256);
+			iesData = parser.ToString(data);
 		}
 		else
 		{
-			std::string iesData(
+			iesData = std::string(
 				(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
 				std::istreambuf_iterator<char>());
-
-			// pass IES data to RPR
-			light.SetIESData(iesData.c_str(), 256, 256);
 		}
+
+		// pass IES data to RPR
+		light.SetIESData(iesData.c_str(), IES_ImageWidth, IES_ImageHeight);
 	}
 
 	// setup color & intensity
-	auto color = GetFinalColor(params.t);
+	Color color = GetFinalColor(params.t);
 	float intensity = GetIntensity(params.t);
 	// - convert physical values
 	intensity *= ((intensity / 682.069f) / 683.f) / 2.5f;
@@ -1291,25 +1242,21 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 
 void FireRenderIESLight::AddTarget(TimeValue t, bool fromCreateCallback)
 {
-	auto thisNode = GetThisNode();
-	auto core = GetCOREInterface();
-	auto targNode = core->CreateObjectNode(new LookAtTarget);
+	INode* thisNode = GetThisNode();
+	Interface* core = GetCOREInterface();
+	INode* targNode = core->CreateObjectNode(new LookAtTarget);
 	
 	// Make target node name
-	{
-		TSTR targName = thisNode->GetName();
-		targName += _T("IES target");
-		targNode->SetName(targName);
-	}
+	TSTR targName = thisNode->GetName();
+	targName += FIRERENDER_IESLIG_TARGET_NODE_NAME;
+	targNode->SetName(targName);
 
 	// Set up look at control
-	{
-		auto laControl = CreateLookatControl();
-		laControl->SetTarget(targNode);
-		laControl->Copy(thisNode->GetTMController());
-		thisNode->SetTMController(laControl);
-		targNode->SetIsTarget(TRUE);
-	}
+	Control* laControl = CreateLookatControl();
+	laControl->SetTarget(targNode);
+	laControl->Copy(thisNode->GetTMController());
+	thisNode->SetTMController(laControl);
+	targNode->SetIsTarget(TRUE);
 
 	// Track target node changes
 	SetTargetNode(targNode);
@@ -1342,30 +1289,30 @@ void FireRenderIESLight::AddTarget(TimeValue t, bool fromCreateCallback)
 
 void FireRenderIESLight::RemoveTarget(TimeValue t)
 {
-	auto thisNode = GetThisNode();
-	auto targNode = GetTargetNode();
+	INode* thisNode = GetThisNode();
+	INode* targNode = GetTargetNode();
 
 	if (!thisNode || !targNode)
 	{
 		return;
 	}
 
-	auto core = GetCOREInterface();
+	Interface* core = GetCOREInterface();
 	DependentIterator di(this);
 
 	// iterate through the instances
-	while (auto rm = di.Next())
+	while (ReferenceMaker* rm = di.Next())
 	{
-		if (auto node = GetNodeRef(rm))
+		if (INode* node = GetNodeRef(rm))
 		{
-			if (auto target = node->GetTarget())
+			if (INode* target = node->GetTarget())
 			{
 				core->DeleteNode(target);
 			}
 
-			auto p0 = GetLightPoint(t);
-			auto p1 = GetTargetPoint(t);
-			auto dir = (p1 - p0).Normalize();
+			Point3 p0 = GetLightPoint(t);
+			Point3 p1 = GetTargetPoint(t);
+			Point3 dir = (p1 - p0).Normalize();
 
 			Matrix3 tm(1);
 			tm.SetAngleAxis(dir, 0);
@@ -1397,11 +1344,8 @@ void FireRenderIESLight::OnTargetedChanged(TimeValue t, bool fromCreateCallback)
 
 bool FireRenderIESLight::ProfileIsSelected(TimeValue t) const
 {
-	auto activeProfile = GetActiveProfile(t);
-
-	return
-		activeProfile != nullptr &&
-		_tcscmp(activeProfile, _T(""));
+	const TCHAR* activeProfile = GetActiveProfile(t);
+	return activeProfile != nullptr && _tcscmp(activeProfile, _T(""));
 }
 
 // Result depends on color mode
@@ -1429,20 +1373,20 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 
 bool FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
 {
-	if (auto thisNode = GetThisNode())
+	if (INode* thisNode = GetThisNode())
 	{
 		if (GetTargetDistance(time) != value)
 		{
 			// Compute offset from light to target
-			auto p0 = GetLightPoint(time);
-			auto p1 = GetTargetPoint(time);
-			auto targetOffset = (p1 - p0).Normalize() * value;
+			Point3 p0 = GetLightPoint(time);
+			Point3 p1 = GetTargetPoint(time);
+			Point3 targetOffset = (p1 - p0).Normalize() * value;
 
 			// Get target node from controller
-			auto targetNode = GetTargetNode();
+			INode* targetNode = GetTargetNode();
 
-			auto thisTm = thisNode->GetNodeTM(time);
-			auto thisTrans = thisTm.GetTrans();
+			Matrix3 thisTm = thisNode->GetNodeTM(time);
+			Point3 thisTrans = thisTm.GetTrans();
 
 			Matrix3 targetTm(true);
 			targetTm.SetTrans(thisTrans + targetOffset);

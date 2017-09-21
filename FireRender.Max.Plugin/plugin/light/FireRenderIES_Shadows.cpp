@@ -3,6 +3,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+const int IES_Shadows::DialogId = IDD_FIRERENDER_IES_LIGHT_SHADOWS;
+const TCHAR* IES_Shadows::PanelName = _T("Shadows");
+
 bool IES_Shadows::UpdateEnabledParam(TimeValue t)
 {
 	return m_parent->SetShadowsEnabled(m_enabledControl.IsChecked(), t);

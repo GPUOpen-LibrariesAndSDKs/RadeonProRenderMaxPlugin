@@ -13,7 +13,7 @@ namespace
 		std::function<bool(WIN32_FIND_DATA&)> f)
 	{
 		WIN32_FIND_DATA ffd;
-		auto hFind = FindFirstFile(searchRequest, &ffd);
+		HANDLE hFind = FindFirstFile(searchRequest, &ffd);
 
 		if (hFind == INVALID_HANDLE_VALUE)
 		{
@@ -28,7 +28,7 @@ namespace
 			}
 		} while (FindNextFile(hFind, &ffd) != 0);
 
-		auto closeRes = FindClose(hFind);
+		BOOL closeRes = FindClose(hFind);
 		FASSERT(closeRes);
 
 		return false;
@@ -43,7 +43,7 @@ std::wstring FireRenderIES_Profiles::GetIESProfilesDirectory()
 bool FireRenderIES_Profiles::GetIESFileName(std::wstring& filename,
 	size_t* nFileOffset, size_t* nExtOffset)
 {
-	constexpr size_t fileBufferSize = MAX_PATH;
+	const size_t fileBufferSize = MAX_PATH;
 	std::array<TCHAR, fileBufferSize> fileBuffer;
 	std::fill(fileBuffer.begin(), fileBuffer.end(), 0);
 
@@ -62,7 +62,7 @@ bool FireRenderIES_Profiles::GetIESFileName(std::wstring& filename,
 
 	if (GetOpenFileName(&ofn) == FALSE)
 	{
-		auto errorCode = CommDlgExtendedError();
+		DWORD errorCode = CommDlgExtendedError();
 		FASSERT(errorCode == 0);
 		return false;
 	}
@@ -77,9 +77,9 @@ bool FireRenderIES_Profiles::GetIESFileName(std::wstring& filename,
 
 bool FireRenderIES_Profiles::CopyIES_File(const TCHAR* from, size_t nameOffset)
 {
-	auto profilesDir = GetIESProfilesDirectory();
-	auto newName = profilesDir + (from + nameOffset);
-	auto rawNewName = newName.c_str();
+	std::wstring profilesDir = GetIESProfilesDirectory();
+	std::wstring newName = profilesDir + (from + nameOffset);
+	const wchar_t* rawNewName = newName.c_str();
 
 	bool replace = false;
 
@@ -88,7 +88,7 @@ bool FireRenderIES_Profiles::CopyIES_File(const TCHAR* from, size_t nameOffset)
 	{
 		replace = true;
 
-		auto result = MessageBox(
+		int result = MessageBox(
 			GetCOREInterface()->GetMAXHWnd(),
 			_T("You are going to replace an existing profile. Continue?"),
 			_T("Warning"),
@@ -105,12 +105,12 @@ bool FireRenderIES_Profiles::CopyIES_File(const TCHAR* from, size_t nameOffset)
 	// Make sure that profiles directory exists
 	if (!FolderExists(profilesDir.c_str()))
 	{
-		auto res = CreateDirectory(profilesDir.c_str(), NULL);
+		BOOL res = CreateDirectory(profilesDir.c_str(), NULL);
 		FASSERT(res && "Failed to create profiles directory");
 	}
 
 	// Copy profile file
-	auto res = CopyFile(from, rawNewName, FALSE);
+	BOOL res = CopyFile(from, rawNewName, FALSE);
 	FASSERT(res);
 
 	return replace ? false : res;
@@ -118,7 +118,7 @@ bool FireRenderIES_Profiles::CopyIES_File(const TCHAR* from, size_t nameOffset)
 
 void FireRenderIES_Profiles::ForEachProfile(std::function<void(const TCHAR* name)> f)
 {
-	auto profilesFolder = GetIESProfilesDirectory() + L'*';
+	std::wstring profilesFolder = GetIESProfilesDirectory() + L'*';
 
 	DoFindSession(profilesFolder.c_str(), [&](WIN32_FIND_DATA& ffd)
 	{
