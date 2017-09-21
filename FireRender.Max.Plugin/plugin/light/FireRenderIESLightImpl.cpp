@@ -413,7 +413,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		normDir = normDir.Normalize();
 		Point3 normal = m_defaultUp ^ normDir; // cross product, axis of rotation
 		normal = normal.Normalize();
-		float dotProduct = m_defaultUp % normDir; // Dot product, for angle between vectors
+		float dotProduct = DotProd(m_defaultUp, normDir);
 		float cosAngle = dotProduct; // vectors are normalized
 		float angle = acos(cosAngle);
 		Matrix3 rotateMx = RotAngleAxisMatrix(normal, angle);
