@@ -909,7 +909,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 		{
 			parseFRPortal(actual, state.obj);
 		}
-		else if (classId == FIRERENDER_IESLIGHT_CLASS_ID)
+		else if (classId == FireRenderIESLight::GetClassId())
 		{
 			FireRenderIESLight* light = dynamic_cast<FireRenderIESLight*>(state.obj);
 			if (light && light->GetUseLight())

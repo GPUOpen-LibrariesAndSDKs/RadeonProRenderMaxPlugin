@@ -736,5 +736,24 @@ void EnableGroupboxControls(HWND dialogWnd, int groupId, bool bEnabled, std::vec
 	}
 }
 
+
+bool FileExists(const TCHAR* name)
+{
+	DWORD dwAttrib = GetFileAttributes(name);
+
+	return
+		dwAttrib != INVALID_FILE_ATTRIBUTES &&
+		(dwAttrib & FILE_ATTRIBUTE_DIRECTORY) == 0;
+}
+
+bool FolderExists(const TCHAR* path)
+{
+	DWORD dwAttrib = GetFileAttributes(path);
+
+	return
+		dwAttrib != INVALID_FILE_ATTRIBUTES &&
+		(dwAttrib & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
 FIRERENDER_NAMESPACE_END;
 

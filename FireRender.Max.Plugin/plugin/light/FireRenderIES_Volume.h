@@ -5,23 +5,31 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+/* This class manages IES lights volume options */
 class IES_Volume :
 	public IES_Panel<IES_Volume>
 {
 public:
-	static constexpr int DialogId = IDD_FIRERENDER_IES_LIGHT_VOLUME;
-	static constexpr TCHAR* PanelName = _T("Volume");
+	// IES_Panel static interface implementation
+	static const int DialogId;
+	static const TCHAR* PanelName;
 
-	static INT_PTR CALLBACK dlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-	{
-		switch (msg)
-		{
-		case WM_INITDIALOG:
-			return TRUE;
-		}
+	// Use base class constructor
+	using BasePanel::BasePanel;
 
-		return FALSE;
-	}
+	bool UpdateVolumeScaleParam(TimeValue t);
+
+	// IES_Panel overrides
+	bool InitializePage(TimeValue t);
+	void UninitializePage();
+	bool OnEditChange(TimeValue t, int editId, HWND editHWND);
+	bool OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	const TCHAR* GetAcceptMessage(WORD controlId) const;
+	void Enable();
+	void Disable();
+
+private:
+	MaxEditAndSpinner m_volumeScaleControl;
 };
 
 FIRERENDER_NAMESPACE_END

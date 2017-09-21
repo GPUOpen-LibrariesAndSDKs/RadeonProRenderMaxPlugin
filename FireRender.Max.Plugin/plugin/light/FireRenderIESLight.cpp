@@ -15,6 +15,7 @@
 
 #include "utils/Utils.h"
 
+#include <array>
 #include <math.h>
 
 #include "../ParamBlock.h"
@@ -27,70 +28,43 @@
 #include <iparamm2.h>
 #include <memory>
 #include <fstream>
+#include <type_traits>
 
 #include "LookAtTarget.h"
+#include "FireRenderIES_Profiles.h"
+
+#include "IESprocessor.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
+const float FireRenderIESLight::IntensitySettings::Default = 100.f;
+
+const bool FireRenderIESLight::DefaultEnabled = true;
+const bool FireRenderIESLight::DefaultTargeted = true;
+const bool FireRenderIESLight::DefaultShadowsEnabled = true;
+const IESLightColorMode FireRenderIESLight::DefaultColorMode = IES_LIGHT_COLOR_MODE_COLOR;
+
+const bool FireRenderIESLight::EnableGeneralPanel = true;
+const bool FireRenderIESLight::EnableIntensityPanel = true;
+const bool FireRenderIESLight::EnableShadowsPanel = false;
+const bool FireRenderIESLight::EnableVolumePanel = false;
+
+const size_t FireRenderIESLight::SphereCirclePointsCount = 28;
+const size_t FireRenderIESLight::IES_ImageWidth = 256;
+const size_t FireRenderIESLight::IES_ImageHeight = 256;
+
+const Color FireRenderIESLight::FrozenColor = Color(0, 0, 1);
+const Color FireRenderIESLight::WireColor = Color(0, 1, 0);
+const Color FireRenderIESLight::SelectedColor = Color(1, 0, 0);
+
 namespace
 {
-	constexpr int VERSION = 1;
-	constexpr int IES_LIGHT_COLOR = 100;
-	constexpr int IDC_IES_LIGHT_COLOR = 1000;
-	constexpr auto FIRERENDER_IESLIGHT_CATEGORY = _T("Radeon ProRender");
-	constexpr auto FIRERENDER_IESLIGHT_OBJECT_NAME = _T("RPRIESLight");
-	constexpr auto FIRERENDER_IESLIGHT_INTERNAL_NAME = _T("RPRIESLight");
-	constexpr auto FIRERENDER_IESLIGHT_CLASS_NAME = _T("RPRIESLight");
-
-	class CreateCallBack : public CreateMouseCallBack
-	{
-	private:
-		FireRenderIESLight *ob = nullptr;
-		IParamBlock2 *pblock = nullptr;
-		Point3 p0;
-		Point3 p1;
-
-	public:
-		int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override
-		{
-			switch (msg)
-			{
-				case MOUSE_POINT:
-					if (point == 0)
-					{
-						p0 = p1 = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-						pblock->SetValue(IES_PARAM_P0, 0, p0);
-						pblock->SetValue(IES_PARAM_P1, 0, p1);
-					}
-					else
-					{
-						ob->AddTarget();
-						return 0;
-					}
-					break;
-
-				case MOUSE_MOVE:
-					p1 = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-					pblock->SetValue(IES_PARAM_P1, 0, p1);
-					break;
-
-				case MOUSE_ABORT:
-					return CREATE_ABORT;
-
-				case MOUSE_FREEMOVE:
-					vpt->SnapPreview(m, m, NULL, SNAP_IN_3D);
-					break;
-			}
-
-			return CREATE_CONTINUE;
-		}
-
-		void SetObj(FireRenderIESLight* obj)
-		{
-			ob = obj;
-			pblock = ob->GetParamBlock(0);
-		}
-	};
+	const int VERSION = 1;
+	const TCHAR* FIRERENDER_IESLIGHT_CATEGORY = _T("Radeon ProRender");
+	const TCHAR* FIRERENDER_IESLIGHT_OBJECT_NAME = _T("RPRIESLight");
+	const TCHAR* FIRERENDER_IESLIGHT_INTERNAL_NAME = _T("RPRIESLight");
+	const TCHAR* FIRERENDER_IESLIGHT_CLASS_NAME = _T("RPRIESLight");
+	const TCHAR* FIRERENDER_IESLIG_TARGET_NODE_NAME = _T("IES target");
 
 	class FireRenderIESLightClassDesc : public ClassDesc2
 	{
@@ -110,45 +84,490 @@ namespace
 		//used as lable in creation UI and in MaxScript to create objects of this class
 		const TCHAR* ClassName() override { return FIRERENDER_IESLIGHT_CLASS_NAME; }
 
-		Class_ID ClassID() override { return FIRERENDER_IESLIGHT_CLASS_ID; }
+		Class_ID ClassID() override { return FireRenderIESLight::GetClassId(); }
 		SClass_ID SuperClassID() override { return LIGHT_CLASS_ID; }
 		const TCHAR* Category() override { return FIRERENDER_IESLIGHT_CATEGORY; }
-		void* Create(BOOL loading) override { return new FireRenderIESLight(); }
+		void* Create(BOOL loading) override;
+
 	};
 
 	static FireRenderIESLightClassDesc desc;
+	static bool parametersCacheEnabled = false;
 
-	static ParamBlockDesc2 paramBlock(0, _T("IESLightPbDesc"), 0, &desc, P_AUTO_CONSTRUCT + P_VERSION + P_AUTO_UI,
+	static ParamBlockDesc2 paramBlock(0, _T("IESLightPbDesc"), 0, &desc, P_AUTO_CONSTRUCT + P_VERSION,
 		VERSION, // for P_VERSION
 		0, //for P_AUTO_CONSTRUCT
-		   //P_AUTO_UI
-		IDD_FIRERENDER_IES_LIGHT, IDS_FR_ENV, 0, 0, NULL,
 
 		IES_PARAM_P0, _T("p0"), TYPE_POINT3, 0, 0,
-		p_default, Point3(0.f, 0.f, 0.f), PB_END,
+			p_default, Point3(0.f, 0.f, 0.f),
+			PB_END,
 
 		IES_PARAM_P1, _T("p1"), TYPE_POINT3, 0, 0,
-		p_default, Point3(0.f, 0.f, 0.f), PB_END,
+			p_default, Point3(0.f, 0.f, 0.f),
+			PB_END,
+
+		// Enabled parameter
+		IES_PARAM_ENABLED, _T("Enabled"), TYPE_BOOL, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::DefaultEnabled,
+			PB_END,
+
+		// Profile name parameter
+		IES_PARAM_PROFILE,  _T("Profile"), TYPE_STRING, 0, 0,
+			p_default, "",
+			PB_END,
+
+		// Area width parameter
+		IES_PARAM_AREA_WIDTH, _T("AreaWidth"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::AreaWidthSettings::Default,
+			PB_END,
+
+		// X Rotation of IES light parameter
+		IES_PARAM_LIGHT_ROTATION_X, _T("RotationX"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::LightRotateSettings::Default,
+			PB_END,
+
+		// Y Rotation of IES light parameter
+		IES_PARAM_LIGHT_ROTATION_Y, _T("RotationY"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::LightRotateSettings::Default,
+			PB_END,
+
+		// Z Rotation of IES light parameter
+		IES_PARAM_LIGHT_ROTATION_Z, _T("RotationZ"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::LightRotateSettings::Default,
+			PB_END,
+
+		// Targeted parameter
+		IES_PARAM_TARGETED, _T("Targeted"), TYPE_BOOL, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::DefaultTargeted,
+			PB_END,
+
+		// Light intensity parameter
+		IES_PARAM_INTENSITY, _T("Intensity"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::IntensitySettings::Default,
+			PB_END,
+
+		// Color mode parameter
+		IES_PARAM_COLOR_MODE, _T("ColorMode"), TYPE_INT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::DefaultColorMode,
+			PB_END,
 
 		// COLOR
-		IES_LIGHT_COLOR, _T("Color"), TYPE_RGBA, P_ANIMATABLE, 0,
-		p_default, Color(1.f, 1.f, 1.f), p_ui, TYPE_COLORSWATCH, IDC_IES_LIGHT_COLOR, PB_END,
+		IES_PARAM_COLOR, _T("Color"), TYPE_RGBA, P_ANIMATABLE, 0,
+			p_default, Color(1.f, 1.f, 1.f),
+			PB_END,
 
-		p_end
+		// Temperature in Kelvin
+		IES_PARAM_TEMPERATURE, _T("Temperature"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, DefaultKelvin,
+			p_range, MinKelvin, MaxKelvin,
+			PB_END,
+
+		// Shadows enabled parameter
+		IES_PARAM_SHADOWS_ENABLED, _T("ShadowsEnabled"), TYPE_BOOL, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::DefaultShadowsEnabled,
+			PB_END,
+
+		// Shadows softness parameter
+		IES_PARAM_SHADOWS_SOFTNESS, _T("ShadowsSoftness"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::ShadowsSoftnessSettings::Default,
+			PB_END,
+
+		// Shadows transparency parameter
+		IES_PARAM_SHADOWS_TRANSPARENCY, _T("ShadowsTransparency"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::ShadowsTransparencySettings::Default,
+			PB_END,
+
+		// Volume scale parameter
+		IES_PARAM_VOLUME_SCALE, _T("VolumeScale"), TYPE_FLOAT, P_ANIMATABLE, 0,
+			p_default, FireRenderIESLight::VolumeScaleSettings::Default,
+			PB_END,
+
+		PB_END
 	);
+
+	// For type inference
+	template<IESLightParameter p, typename Enabled = void>
+	struct GetBlockValueHelper;
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_ENABLED ||
+			p == IES_PARAM_TARGETED ||
+			p == IES_PARAM_SHADOWS_ENABLED
+		>>
+	{
+		using T1 = BOOL;
+		using T2 = bool;
+		using TCache = T2;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_COLOR_MODE
+		>>
+	{
+		using T1 = INT;
+		using T2 = int;
+		using TCache = T2;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_AREA_WIDTH ||
+			p == IES_PARAM_LIGHT_ROTATION_X ||
+			p == IES_PARAM_LIGHT_ROTATION_Y ||
+			p == IES_PARAM_LIGHT_ROTATION_Z ||
+			p == IES_PARAM_INTENSITY ||
+			p == IES_PARAM_TEMPERATURE ||
+			p == IES_PARAM_SHADOWS_SOFTNESS ||
+			p == IES_PARAM_SHADOWS_TRANSPARENCY ||
+			p == IES_PARAM_VOLUME_SCALE
+		>>
+	{
+		using T1 = FLOAT;
+		using T2 = float;
+		using TCache = T2;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_COLOR
+		>>
+	{
+		using T1 = Color;
+		using T2 = T1;
+		using TCache = T2;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_P0 ||
+			p == IES_PARAM_P1
+		>>
+	{
+		using T1 = Point3;
+		using T2 = T1;
+		using TCache = T2;
+	};
+
+	template<IESLightParameter p>
+	struct GetBlockValueHelper<p,
+		std::enable_if_t<
+			p == IES_PARAM_PROFILE
+		>>
+	{
+		using T1 = const TCHAR*;
+		using T2 = T1;
+		using TCache = std::basic_string<TCHAR>;
+	};
+
+	template<IESLightParameter parameter>
+	decltype(auto) GetBlockValue(IParamBlock2* pBlock, TimeValue t = 0, Interval valid = FOREVER)
+	{
+		using Helper = GetBlockValueHelper<parameter>;
+		typename Helper::T1 result;
+
+		BOOL ok = pBlock->GetValue(parameter, t, result, valid);
+		FASSERT(ok);
+
+		return static_cast<typename Helper::T2>(result);
+	}
+
+	template<typename From, typename To>
+	To CastParameter(From& from)
+	{
+		return static_cast<To>(from);
+	}
+
+	template<>
+	const TCHAR* CastParameter(std::basic_string<TCHAR>& from)
+	{
+		return from.c_str();
+	}
+
+	template<IESLightParameter p>
+	struct ParameterCache
+	{
+		using T = typename GetBlockValueHelper<p>::TCache;
+
+		static T& GetValue(IParamBlock2* pBlock)
+		{
+			static T value = GetBlockValue<p>(pBlock);
+			return value;
+		}
+
+		static void SetValue(IParamBlock2* pBlock, T value)
+		{
+			if (parametersCacheEnabled)
+			{
+				GetValue(pBlock) = value;
+			}
+		}
+	};
+
+	// Sets parameter value in the parameter block
+	// Returns 'true' if value is updated
+	// It doesn't change the parameter block value if input is the same
+	// which prevents unnecessary updates
+	template<IESLightParameter parameter>
+	bool SetBlockValue(IParamBlock2* pBlock,
+		typename GetBlockValueHelper<parameter>::T2 value,
+		TimeValue time = 0)
+	{
+		if (GetBlockValue<parameter>(pBlock, time) == value)
+		{
+			return false;
+		}
+		
+		ParameterCache<parameter>::SetValue(pBlock, value);
+		BOOL res = pBlock->SetValue(parameter, time, value);
+		FASSERT(res);
+
+		return true;
+	}
+
+	template<IESLightParameter p>
+	void InitializeDefaultBlockValue(IParamBlock2* pBlock)
+	{
+		using From = typename GetBlockValueHelper<p>::TCache;
+		using To = typename GetBlockValueHelper<p>::T1;
+
+		SetBlockValue<p>(pBlock,
+			CastParameter<From, To>(
+				ParameterCache<p>::GetValue(pBlock)));
+	}
+
+	void* FireRenderIESLightClassDesc::Create(BOOL loading)
+	{
+		FireRenderIESLight* instance = new FireRenderIESLight();
+		IParamBlock2* pBlock = instance->GetParamBlock(0);
+
+		InitializeDefaultBlockValue<IES_PARAM_ENABLED>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_X>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_Y>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_Z>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_COLOR>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_TEMPERATURE>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_ENABLED>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
+		InitializeDefaultBlockValue<IES_PARAM_VOLUME_SCALE>(pBlock);
+
+		TimeValue t = GetCOREInterface()->GetTime();
+		if (instance->ProfileIsSelected(t))
+		{
+			instance->CalculateLightRepresentation(instance->GetActiveProfile(t));
+		}
+
+		return instance;
+	}
+
+	// Computes sphere points for three cuts:
+	//	cuts[0] - XY
+	//	cuts[1] - XZ
+	//	cuts[2] - YZ
+	//	'numCircPts' - number of points in one cut (approximation level)
+	template<size_t numCircPts>
+	void ComputeSphereCutPoints(
+		TimeValue t, float rad, Point3& center,
+		std::array<std::array<Point3, numCircPts>, 3>& cuts)
+	{
+		// Delta angle
+		const float da = 2.0f * PI / numCircPts;
+
+		for (int i = 0; i < numCircPts; i++)
+		{
+			// Angle
+			float a = i * da;
+
+			// Cached values
+			float sn = rad * sin(a);
+			float cs = rad * cos(a);
+
+			cuts[0][i] = Point3(sn, cs, 0.0f) + center;
+			cuts[1][i] = Point3(sn, 0.0f, cs) + center;
+			cuts[2][i] = Point3(0.0f, sn, cs) + center;
+		}
+	}
+
+	// Draws XY, XZ and YZ sphere cuts
+	//	'numCircPts' - number of points in one cut (approximation level)
+	template<size_t numCircPts>
+	void DrawSphereArcs(TimeValue t, GraphicsWindow *gw, float r, Point3& center)
+	{
+		// Compute points
+		using CutPoints = std::array<Point3, numCircPts>;
+		std::array<CutPoints, 3> xyz_cuts;
+		ComputeSphereCutPoints(t, r, center, xyz_cuts);
+
+		// Draw polylines
+		for (size_t i = 0; i < 3; ++i)
+		{
+			gw->polyline(numCircPts, &xyz_cuts[i][0], nullptr, nullptr, true, nullptr);
+		}
+	}
+
+	INode* FindNodeRef(ReferenceTarget *rt);
+
+	INode* GetNodeRef(ReferenceMaker *rm)
+	{
+		if (rm->SuperClassID() == BASENODE_CLASS_ID)
+		{
+			return (INode *)rm;
+		}
+
+		return rm->IsRefTarget() ? FindNodeRef((ReferenceTarget *)rm) : nullptr;
+	}
+
+	INode* FindNodeRef(ReferenceTarget *rt)
+	{
+		DependentIterator di(rt);
+		ReferenceMaker *rm = nullptr;
+
+		while ((rm = di.Next()) != nullptr)
+		{
+			if (INode* nd = GetNodeRef(rm))
+			{
+				return nd;
+			}
+		}
+
+		return nullptr;
+	}
+
+	ReferenceTarget* MakeNodeTransformMonitor()
+	{
+		Interface* ip = GetCOREInterface();
+		return static_cast<ReferenceTarget*>(ip->CreateInstance(REF_TARGET_CLASS_ID, NODETRANSFORMMONITOR_CLASS_ID));
+	}
 }
 
-ClassDesc2* GetFireRenderIESLightDesc()
+class FireRenderIESLight::CreateCallback : public CreateMouseCallBack
 {
-    return &desc; 
+public:
+	CreateCallback() :
+		m_light(nullptr),
+		m_pBlock(nullptr)
+	{}
+
+	int proc(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3& mat) override
+	{
+		int result = CREATE_CONTINUE;
+
+		switch (msg)
+		{
+			case MOUSE_POINT:
+			{
+				TimeValue time = GetCOREInterface()->GetTime();
+
+				// First click
+				if (point == 0)
+				{
+					INode* thisNode = FindNodeRef(m_light);
+					m_light->SetThisNode(thisNode);
+
+					mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
+
+					Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
+
+					m_light->SetLightPoint(p, time);
+
+					if (m_light->GetTargeted(time))
+					{
+						m_light->SetTargetPoint(p, time);
+					}
+					else
+					{
+						// Just to avoid zero target distance
+						m_light->SetTargetPoint(p + Point3(1, 0, 0), time);
+
+						// Don't need to wait for the second point
+						result = CREATE_STOP;
+					}
+				}
+				// Second click
+				else
+				{
+					m_light->OnTargetedChanged(time, true);
+					result = CREATE_STOP;
+				}
+			}
+			break;
+
+			case MOUSE_MOVE:
+				m_pBlock->SetValue(IES_PARAM_P1, 0, vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
+				break;
+
+			case MOUSE_ABORT:
+				result = CREATE_ABORT;
+				break;
+
+			case MOUSE_FREEMOVE:
+				vpt->SnapPreview(m, m, NULL, SNAP_IN_3D);
+				break;
+		}
+
+		return result;
+	}
+
+	void SetLight(FireRenderIESLight* light)
+	{
+		m_light = light;
+		m_pBlock = light->GetParamBlock(0);
+	}
+
+private:
+	FireRenderIESLight* m_light;
+	IParamBlock2* m_pBlock;
+};
+
+const Class_ID FireRenderIESLight::m_classId(0x7ab5467f, 0x1c96049f);
+
+Class_ID FireRenderIESLight::GetClassId()
+{
+	return m_classId;
+}
+
+ClassDesc2* FireRenderIESLight::GetClassDesc()
+{
+	return &desc;
+}
+
+Color FireRenderIESLight::GetWireColor(bool isFrozen, bool isSelected)
+{
+	return isSelected ? WireColor : (isFrozen ? FrozenColor : WireColor);
 }
 
 FireRenderIESLight::FireRenderIESLight() :
+	m_general(this),
+	m_intensity(this),
+	m_shadows(this),
+	m_volume(this),
 	m_iObjParam(nullptr),
+	m_defaultUp(0.0f, 1.0f, 0.0f),
+	m_isPreviewGraph(true),
+	m_bbox(),
+	m_BBoxCalculated(false),
 	m_pblock2(nullptr),
-	m_verticesBuilt(false)
+	m_thisNodeMonitor(MakeNodeTransformMonitor()),
+	m_targNodeMonitor(MakeNodeTransformMonitor())
 {
-    GetFireRenderIESLightDesc()->MakeAutoParamBlocks(this);
+	ReplaceLocalReference(IndirectReference::ThisNode, m_thisNodeMonitor);
+	ReplaceLocalReference(IndirectReference::TargetNode, m_targNodeMonitor);
+
+	GetClassDesc()->MakeAutoParamBlocks(this);
+
+	m_bbox.resize(8, Point3(0.0f, 0.0f, 0.0f));
 }
 
 FireRenderIESLight::~FireRenderIESLight()
@@ -159,14 +578,9 @@ FireRenderIESLight::~FireRenderIESLight()
 
 CreateMouseCallBack* FireRenderIESLight::GetCreateMouseCallBack()
 {
-	static CreateCallBack createCallback;
-	createCallback.SetObj(this);
+	static CreateCallback createCallback;
+	createCallback.SetLight(this);
 	return &createCallback;
-}
-
-GenLight *FireRenderIESLight::NewLight(int type)
-{
-    return new FireRenderIESLight();
 }
 
 // From Object
@@ -204,49 +618,104 @@ int FireRenderIESLight::DoOwnSelectHilite()
 	return 1;
 }
 
-void FireRenderIESLight::NotifyChanged()
-{
-	NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
-}
-
 // inherited virtual methods for Reference-management
-void FireRenderIESLight::BuildVertices(bool force)
-{
-    if (m_verticesBuilt && (!force))
-        return;
-
-    Point3 _p0, _p1, p0, p1;
-
-	m_pblock2->GetValue(IES_PARAM_P0, 0, p0, FOREVER);
-	m_pblock2->GetValue(IES_PARAM_P1, 0, p1, FOREVER);
-
-    _p0.x = std::min(p0.x, p1.x);
-    _p0.y = std::min(p0.y, p1.y);
-    _p0.z = std::min(p0.z, p1.z);
-    _p1.x = std::max(p0.x, p1.x);
-    _p1.y = std::max(p0.y, p1.y);
-    _p1.z = std::max(p0.z, p1.z);
-
-    m_vertices[0] = p0;
-    m_vertices[1] = Point3(p1.x, p0.y, p0.z);
-    m_vertices[2] = p1;
-    m_vertices[3] = Point3(p0.x, p1.y, p0.z);
-
-	m_verticesBuilt = true;
-}
 
 RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate)
 {
-    if ((REFMSG_CHANGE==msg)  && (hTarget == m_pblock2))
-    {
-        auto p = m_pblock2->LastNotifyParamID();
-        if (p == IES_PARAM_P0 || p == IES_PARAM_P1)
-            BuildVertices(true);
+	if (REFMSG_CHANGE == msg)
+	{
+		auto updatePoint = [&](
+			INode* (FireRenderIESLight::* nodeGetter)(),
+			bool (FireRenderIESLight::* pointSetter)(Point3, TimeValue))
+		{
+			TimeValue time = GetCOREInterface()->GetTime();
+			INode* node = (this->*nodeGetter)();
+			Control* nodeController = node->GetTMController();
+
+			if (!nodeController->TestAFlag(A_HELD))
+			{
+				Matrix3 thisTm = node->GetNodeTM(time);
+				(this->*pointSetter)(thisTm.GetTrans(), time);
+			}
+		};
+
+		if (hTarget == m_thisNodeMonitor)
+		{
+			updatePoint(&FireRenderIESLight::GetThisNode, &FireRenderIESLight::SetLightPoint);
+		}
+		else if (hTarget == m_targNodeMonitor)
+		{
+			updatePoint(&FireRenderIESLight::GetTargetNode, &FireRenderIESLight::SetTargetPoint);
+		}
+		else if (hTarget == m_pblock2)
+		{
+			ParamID p = m_pblock2->LastNotifyParamID();
+			TimeValue time = GetCOREInterface()->GetTime();
+
+			switch (p)
+			{
+				case IES_PARAM_PROFILE:
+				{
+					if (ProfileIsSelected(time))
+					{
+						CalculateLightRepresentation(GetActiveProfile(time));
+						CalculateBBox();
+					}
+					else
+					{
+						m_plines.clear();
+						m_preview_plines.clear();
+					}
+				}
+				break;
+
+				case IES_PARAM_TARGETED:
+					if(!theHold.RestoreOrRedoing())
+						OnTargetedChanged(time, false);
+					break;
+			}
+
+			// Update panels
+			switch (p)
+			{
+				case IES_PARAM_P0:
+				case IES_PARAM_P1:
+				case IES_PARAM_ENABLED:
+				case IES_PARAM_PROFILE:
+				case IES_PARAM_AREA_WIDTH:
+				case IES_PARAM_LIGHT_ROTATION_X:
+				case IES_PARAM_LIGHT_ROTATION_Y:
+				case IES_PARAM_LIGHT_ROTATION_Z:
+				case IES_PARAM_TARGETED:
+					m_general.UpdateUI(time);
+					break;
+
+				case IES_PARAM_INTENSITY:
+				case IES_PARAM_COLOR_MODE:
+				case IES_PARAM_COLOR:
+				case IES_PARAM_TEMPERATURE:
+					m_intensity.UpdateUI(time);
+					break;
+
+				case IES_PARAM_SHADOWS_ENABLED:
+				case IES_PARAM_SHADOWS_SOFTNESS:
+				case IES_PARAM_SHADOWS_TRANSPARENCY:
+					m_shadows.UpdateUI(time);
+					break;
+
+				case IES_PARAM_VOLUME_SCALE:
+					m_volume.UpdateUI(time);
+					break;
+			}
+		}
+		
 		//some params have changed - should redraw all
-		if(GetCOREInterface()){
+		if(GetCOREInterface())
+		{
 			GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 		}
-    }
+	}
+
     return REF_SUCCEED;
 }
 
@@ -257,7 +726,7 @@ void FireRenderIESLight::DeleteThis()
 
 Class_ID FireRenderIESLight::ClassID()
 {
-    return FIRERENDER_IESLIGHT_CLASS_ID;
+    return GetClassId();
 }
 
 //
@@ -268,15 +737,22 @@ void FireRenderIESLight::GetClassName(TSTR& s)
 
 RefTargetHandle FireRenderIESLight::Clone(RemapDir& remap)
 {
-    FireRenderIESLight* newob = new FireRenderIESLight();
-    newob->m_verticesBuilt = m_verticesBuilt;
-    newob->m_vertices[0] = m_vertices[0];
-    newob->m_vertices[1] = m_vertices[1];
-    newob->m_vertices[2] = m_vertices[2];
-    newob->m_vertices[3] = m_vertices[3];
-    newob->ReplaceReference(0, remap.CloneRef(m_pblock2));
-    BaseClone(this, newob, remap);
-    return(newob);
+	FireRenderIESLight* newob = new FireRenderIESLight();
+
+	// Clone base class data
+	BaseClone(this, newob, remap);
+
+	// Clone this class references
+	int baseRefs = BaseMaxType::NumRefs();
+
+	for (int i = 0; i < NumRefs(); ++i)
+	{
+		int refIndex = baseRefs + i;
+		RefTargetHandle ref = GetReference(refIndex);
+		newob->ReplaceReference(refIndex, remap.CloneRef(ref));
+	}
+
+	return newob;
 }
 
 IParamBlock2* FireRenderIESLight::GetParamBlock(int i)
@@ -293,87 +769,139 @@ IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 
 int FireRenderIESLight::NumRefs()
 {
-    return 1;
+	return BaseMaxType::NumRefs() + static_cast<int>(IndirectReference::indirectRefEnd);
 }
 
 void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
 {
-    FASSERT(0 == i);
-	m_pblock2 = (IParamBlock2*)rtarg;
+	int baseRefs = BaseMaxType::NumRefs();
+
+	if (i < baseRefs)
+	{
+		BaseMaxType::SetReference(i, rtarg);
+		return;
+	}
+
+	int local_i = i - baseRefs;
+	bool referenceFound = false;
+
+	static_assert(
+		static_cast<int>(IndirectReference::indirectRefEnd) == 3,
+		"Light references enumeration has been updated. Please, implement here");
+
+	switch (static_cast<StrongReference>(local_i))
+	{
+		case StrongReference::ParamBlock:
+			m_pblock2 = dynamic_cast<IParamBlock2*>(rtarg);
+			referenceFound = true;
+			break;
+	}
+
+	switch (static_cast<IndirectReference>(local_i))
+	{
+		case IndirectReference::ThisNode:
+			m_thisNodeMonitor = rtarg;
+			referenceFound = true;
+			break;
+
+		case IndirectReference::TargetNode:
+			m_targNodeMonitor = rtarg;
+			referenceFound = true;
+			break;
+	}
+
+	if (!referenceFound)
+	{
+		FASSERT(!"Invalid reference request");
+	}
 }
 
 RefTargetHandle FireRenderIESLight::GetReference(int i)
 {
-    FASSERT(0 == i);
-    return (RefTargetHandle)m_pblock2;
-}
+	int baseRefs = BaseMaxType::NumRefs();
 
-#define NUM_CIRC_PTS 28
-
-void GetAttenPoints(TimeValue t, float rad, Point3 *q, Point3& center)
-{
-	double a;
-	float sn;
-	float cs;
-
-	for (int i = 0; i < NUM_CIRC_PTS; i++)
+	if (i < baseRefs)
 	{
-		a = (double)i * 2.0 * 3.1415926 / (double) NUM_CIRC_PTS;
-		sn = rad * (float)sin(a);
-		cs = rad * (float)cos(a);
-		q[i + 0 * NUM_CIRC_PTS] = Point3(sn, cs, 0.0f) + center;
-		q[i + 1 * NUM_CIRC_PTS] = Point3(sn, 0.0f, cs) + center;
-		q[i + 2 * NUM_CIRC_PTS] = Point3(0.0f, sn, cs) + center;
+		return BaseMaxType::GetReference(i);
 	}
+
+	int local_i = i - baseRefs;
+
+	RefTargetHandle result = nullptr;
+	bool referenceFound = false;
+
+	static_assert(
+		static_cast<int>(IndirectReference::indirectRefEnd) == 3,
+		"Light references enumeration has been updated. Please, implement here");
+
+	switch (static_cast<StrongReference>(local_i))
+	{
+		case StrongReference::ParamBlock:
+			result = m_pblock2;
+			referenceFound = true;
+			break;
+	}
+
+	switch (static_cast<IndirectReference>(local_i))
+	{
+		case IndirectReference::ThisNode:
+			result = m_thisNodeMonitor;
+			referenceFound = true;
+			break;
+
+		case IndirectReference::TargetNode:
+			result = m_targNodeMonitor;
+			referenceFound = true;
+			break;
+	}
+
+	if (!referenceFound)
+	{
+		FASSERT(!"Invalid reference request");
+	}
+
+	return result;
 }
 
-void DrawSphereArcs(TimeValue t, GraphicsWindow *gw, float r, Point3 *q, Point3& center)
+void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL frozen)
 {
-	GetAttenPoints(t, r, q, center);
-	gw->polyline(NUM_CIRC_PTS, q, NULL, NULL, TRUE, NULL);
-	gw->polyline(NUM_CIRC_PTS, q + NUM_CIRC_PTS, NULL, NULL, TRUE, NULL);
-	gw->polyline(NUM_CIRC_PTS, q + 2 * NUM_CIRC_PTS, NULL, NULL, TRUE, NULL);
-}
+	GraphicsWindow* graphicsWindow = vpt->getGW();
 
-void FireRenderIESLight::DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel, BOOL frozen)
-{
-	GraphicsWindow* gw = vpt->getGW();
+	graphicsWindow->setColor(LINE_COLOR, GetWireColor(frozen, sel));
+
+	Point3 dirMesh[]
+	{
+		GetLightPoint(t),
+		GetTargetPoint(t)
+	};
+
+	INode* thisNode = FindNodeRef(this);
+	INode* targNode = GetTargetNode();
 	
-	BuildVertices();
+	if (targNode == nullptr)
+	{
+		dirMesh[1] -= dirMesh[0];
+	}
+	else
+	{
+		Matrix3 targTm = targNode->GetNodeTM(t);
+		float dist = GetTargetDistance(t);
+		dirMesh[1] = Point3(0.0f, 0.0f, -dist);
+	}
 
-	Color color = frozen ? Color(0.0f, 0.0f, 1.0f) : Color(0.0f, 1.0f, 0.0f);
-
-    if (sel)
-    {
-        color =  Color(1.0f, 0.0f, 0.0f);
-    }
-
-	gw->setColor(LINE_COLOR, color);
-        
-	Point3 sphereMesh[3 * NUM_CIRC_PTS];
-	Point3 dirMesh[2];
-
-	pblock->GetValue(IES_PARAM_P0, 0, dirMesh[0], FOREVER);
-	pblock->GetValue(IES_PARAM_P1, 0, dirMesh[1], FOREVER);
+	dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
 
 	// light source
-	DrawSphereArcs(0, gw, 2.0, sphereMesh, dirMesh[0]);
+	DrawSphereArcs<SphereCirclePointsCount>(0, graphicsWindow, 2.0, dirMesh[0]);
 
-	// draw direction
-	gw->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
+	if (GetTargeted(t))
+	{
+		// draw direction
+		graphicsWindow->polyline(2, dirMesh, NULL, NULL, FALSE, NULL);
 
-	// light lookAt
-	DrawSphereArcs(0, gw, 1.0, sphereMesh, dirMesh[1]);
-
-
-	// marker
-	//gw->marker(const_cast<Point3*>(&Point3::Origin), X_MRKR);
-}
-
-Matrix3 FireRenderIESLight::GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt)
-{
-    Matrix3 tm = inode->GetObjectTM(t);
-    return tm;
+		// light lookAt
+		DrawSphereArcs<SphereCirclePointsCount>(0, graphicsWindow, 1.0, dirMesh[1]);
+	}
 }
 
 Color FireRenderIESLight::GetViewportMainColor(INode* pNode)
@@ -410,133 +938,125 @@ Color FireRenderIESLight::GetViewportColor(INode* pNode, Color selectedColor)
     return selectedColor * 0.5f;
 }
 
+bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags)
+{
+	if (!vpt || !vpt->IsAlive())
+	{
+		// why are we here
+		DbgAssert(!_T("Invalid viewport!"));
+		return FALSE;
+	}
+
+	Matrix3 prevtm = vpt->getGW()->getTransform();
+	Matrix3 tm = prevtm;
+	BOOL result = TRUE;
+
+	if (ProfileIsSelected(t))
+	{
+		GraphicsWindow* graphicsWindow = vpt->getGW();
+
+		// apply scaling
+#define IES_IGNORE_SCENE_SCALING
+#ifndef IES_IGNORE_SCENE_SCALING
+		float scaleFactor = vpt->NonScalingObjectSize() * vpt->GetVPWorldWidth(tm.GetTrans()) / 360.0f;
+		if (scaleFactor != (float)1.0)
+			tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
+#endif
+		float scaleFactor = GetAreaWidth(t);
+		tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
+
+		graphicsWindow->setTransform(tm);
+		result = DrawWeb(t, vpt, inode->Selected(), inode->IsFrozen());
+	}
+	else
+	{
+		vpt->getGW()->setTransform(tm);
+		DrawSphere(t, vpt, inode->Selected(), inode->IsFrozen());
+	}
+
+	vpt->getGW()->setTransform(prevtm);
+
+	return result;
+}
+
 int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
-    if (!vpt || !vpt->IsAlive())
-    {
-        // why are we here
-        DbgAssert(!_T("Invalid viewport!"));
-        return FALSE;
-    }
-
-    Matrix3 prevtm = vpt->getGW()->getTransform();
-    Matrix3 tm = inode->GetObjectTM(t);
-    vpt->getGW()->setTransform(tm);
-    DrawGeometry(vpt, GetParamBlock(0), inode->Selected(), inode->IsFrozen());
-    vpt->getGW()->setTransform(prevtm);
-
-    return(0);
+	return DisplayLight(t, inode, vpt, flags);
 }
-    
+
 void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
+	//set default output result
+	box.Init();
+
+	// back-off
     if (!vpt || !vpt->IsAlive())
     {
-        box.Init();
         return;
     }
 
-    Matrix3 worldTM = inode->GetNodeTM(t);
-    Point3 _Vertices[4];
-    for (int i = 0; i < 4; i++)
-        _Vertices[i] = m_vertices[i] * worldTM;
+	// calculate BBox for web
+	if (!m_BBoxCalculated)
+		bool haveBBox = CalculateBBox();
 
-    box.Init();
-    for (int i = 0; i < 4; i++)
-    {
-        box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
-        box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
-        box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
-        box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
-        box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
-        box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
-    }
+	if (!m_BBoxCalculated)
+		return;
+
+	// transform BBox with current web transformation
+	// - node transform
+	Matrix3 tm = inode->GetObjectTM(t);
+	// - scale
+	float scaleFactor;
+	GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
+	tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
+	// - apply transformation
+	std::vector<Point3> bbox(m_bbox);
+	for (Point3& it : bbox)
+		it = it * tm;
+
+	// re-calculate BBox to form that 3DMax can accept (Xmin < Xmax, Ymin < Ymax, Zmin < Zmax)
+	Point3 bboxMin (INFINITY, INFINITY, INFINITY);
+	Point3 bboxMax (-INFINITY, -INFINITY, -INFINITY);
+	for (Point3& tPoint : bbox)
+	{
+		if (tPoint.x > bboxMax.x)
+			bboxMax.x = tPoint.x;
+
+		if (tPoint.y > bboxMax.y)
+			bboxMax.y = tPoint.y;
+
+		if (tPoint.z > bboxMax.z)
+			bboxMax.z = tPoint.z;
+
+		if (tPoint.x < bboxMin.x)
+			bboxMin.x = tPoint.x;
+
+		if (tPoint.y < bboxMin.y)
+			bboxMin.y = tPoint.y;
+
+		if (tPoint.z < bboxMin.z)
+			bboxMin.z = tPoint.z;
+	}
+
+	// output result
+	box.pmin.x = bboxMin.x;
+	box.pmin.y = bboxMin.y;
+	box.pmin.z = bboxMin.z;
+	box.pmax.x = bboxMax.x;
+	box.pmax.y = bboxMax.y;
+	box.pmax.z = bboxMax.z;
 }
 
 int FireRenderIESLight::HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt)
 {
-    if (!vpt || !vpt->IsAlive())
-    {
-        // why are we here
-        DbgAssert(!_T("Invalid viewport!"));
-        return FALSE;
-    }
-
-    HitRegion hitRegion;
-    DWORD savedLimits;
-
-    GraphicsWindow *gw = vpt->getGW();
-    Matrix3 prevtm = gw->getTransform();
-
-    gw->setTransform(idTM);
-    MakeHitRegion(hitRegion, type, crossing, 8, p);
-    savedLimits = gw->getRndLimits();
-
-    gw->setRndLimits((savedLimits | GW_PICK) & ~GW_ILLUM & ~GW_Z_BUFFER);
-    gw->setHitRegion(&hitRegion);
-    gw->clearHitCode();
-
-    Matrix3 tm = inode->GetObjectTM(t);
-    gw->setTransform(tm);
-
-    DrawGeometry(vpt, GetParamBlock(0));
-
-    int res = gw->checkHitCode();
-
-    gw->setRndLimits(savedLimits);
-    gw->setTransform(prevtm);
-
-    return res;
+	Display(t, inode, vpt, flags);
+	return 1;
 }
 
 void FireRenderIESLight::GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
 {
-    Matrix3 nodeTM = inode->GetNodeTM(t);
-    Matrix3 parentTM = inode->GetParentNode()->GetNodeTM(t);
-    Matrix3 localTM = nodeTM*Inverse(parentTM);
-
-    Point3 _Vertices[4];
-    for (int i = 0; i < 4; i++)
-        _Vertices[i] = m_vertices[i] * localTM;
-
-    box.Init();
-    for (int i = 0; i < 4; i++)
-    {
-        box.pmin.x = std::min(box.pmin.x, _Vertices[i].x);
-        box.pmin.y = std::min(box.pmin.y, _Vertices[i].y);
-        box.pmin.z = std::min(box.pmin.z, _Vertices[i].z);
-        box.pmax.x = std::max(box.pmin.x, _Vertices[i].x);
-        box.pmax.y = std::max(box.pmin.y, _Vertices[i].y);
-        box.pmax.z = std::max(box.pmin.z, _Vertices[i].z);
-    }
+	box.Init();
 }
-
-// LightObject methods
-
-Point3 FireRenderIESLight::GetRGBColor(TimeValue t, Interval &valid) { return Point3(1.0f, 1.0f, 1.0f); }
-void FireRenderIESLight::SetRGBColor(TimeValue t, Point3 &color)  { /* empty */ }
-void FireRenderIESLight::SetUseLight(int onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetUseLight()  { return TRUE; }
-void FireRenderIESLight::SetHotspot(TimeValue time, float f)  { /* empty */ }
-float FireRenderIESLight::GetHotspot(TimeValue t, Interval& valid)  { return -1.0f; }
-void FireRenderIESLight::SetFallsize(TimeValue time, float f)  { /* empty */ }
-float FireRenderIESLight::GetFallsize(TimeValue t, Interval& valid)  { return -1.0f; }
-void FireRenderIESLight::SetAtten(TimeValue time, int which, float f)  { /* empty */ }
-float FireRenderIESLight::GetAtten(TimeValue t, int which, Interval& valid)  { return 0.0f; }
-void FireRenderIESLight::SetTDist(TimeValue time, float f)  { /* empty */ }
-float FireRenderIESLight::GetTDist(TimeValue t, Interval& valid)  { return 0.0f; }
-void FireRenderIESLight::SetConeDisplay(int s, int notify)  { /* empty */ }
-BOOL FireRenderIESLight::GetConeDisplay()  { return FALSE; }
-void FireRenderIESLight::SetIntensity(TimeValue time, float f)  { /* empty */ }
-float FireRenderIESLight::GetIntensity(TimeValue t, Interval& valid)  { return 1.0f; }
-void FireRenderIESLight::SetUseAtten(int s)  { /* empty */ }
-BOOL FireRenderIESLight::GetUseAtten()  { return FALSE; }
-void FireRenderIESLight::SetAspect(TimeValue t, float f)  { /* empty */ }
-float FireRenderIESLight::GetAspect(TimeValue t, Interval& valid)  { return -1.0f; }
-void FireRenderIESLight::SetOvershoot(int a)  { /* empty */ }
-int FireRenderIESLight::GetOvershoot()  { return 0; }
-void FireRenderIESLight::SetShadow(int a)  { /* empty */ }
-int FireRenderIESLight::GetShadow()  { return 0; }
 
 // From Light
 RefResult FireRenderIESLight::EvalLightState(TimeValue t, Interval& valid, LightState* cs)
@@ -556,85 +1076,17 @@ RefResult FireRenderIESLight::EvalLightState(TimeValue t, Interval& valid, Light
     cs->overshoot = GetOvershoot();
     cs->shadow = GetShadow();
     cs->shape = CIRCLE_LIGHT;
-    cs->ambientOnly = GetAmbientOnly();
-    cs->affectDiffuse = GetAffectDiffuse();
-    cs->affectSpecular = GetAffectSpecular();
     cs->type = OMNI_LGT;
 
     return REF_SUCCEED;
 }
 
-ObjLightDesc* FireRenderIESLight::CreateLightDesc(INode *inode, BOOL forceShadowBuf)  { return NULL; }
-
-int FireRenderIESLight::Type()  { return OMNI_LIGHT; }
-
-void FireRenderIESLight::SetHSVColor(TimeValue, Point3 &)
-{
-}
-
-Point3 FireRenderIESLight::GetHSVColor(TimeValue t, Interval &valid)
-{
-    int h, s, v;
-    Point3 rgbf = GetRGBColor(t, valid);
-    DWORD rgb = RGB((int)(rgbf[0] * 255.0f), (int)(rgbf[1] * 255.0f), (int)(rgbf[2] * 255.0f));
-    RGBtoHSV(rgb, &h, &s, &v);
-    return Point3(h / 255.0f, s / 255.0f, v / 255.0f);
-}
-
-
-void FireRenderIESLight::SetAttenDisplay(int)  { /* empty */ }
-BOOL FireRenderIESLight::GetAttenDisplay()  { return FALSE; }
-void FireRenderIESLight::Enable(int)  {}
-void FireRenderIESLight::SetMapBias(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetMapBias(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetMapRange(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetMapRange(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetMapSize(TimeValue, int)  { /* empty */ }
-int  FireRenderIESLight::GetMapSize(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetRayBias(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetRayBias(TimeValue, Interval &)  { return 0; }
-int FireRenderIESLight::GetUseGlobal()  { return FALSE; }
-void FireRenderIESLight::SetUseGlobal(int)  { /* empty */ }
-int FireRenderIESLight::GetShadowType()  { return -1; }
-void FireRenderIESLight::SetShadowType(int)  { /* empty */ }
-int FireRenderIESLight::GetAbsMapBias()  { return FALSE; }
-void FireRenderIESLight::SetAbsMapBias(int)  { /* empty */ }
-BOOL FireRenderIESLight::IsSpot()  { return FALSE; }
-BOOL FireRenderIESLight::IsDir()  { return FALSE; }
-void FireRenderIESLight::SetSpotShape(int)  { /* empty */ }
-int FireRenderIESLight::GetSpotShape()  { return CIRCLE_LIGHT; }
-void FireRenderIESLight::SetContrast(TimeValue, float)  { /* empty */ }
-float FireRenderIESLight::GetContrast(TimeValue, Interval &)  { return 0; }
-void FireRenderIESLight::SetUseAttenNear(int)  { /* empty */ }
-BOOL FireRenderIESLight::GetUseAttenNear()  { return FALSE; }
-void FireRenderIESLight::SetAttenNearDisplay(int)  { /* empty */ }
-BOOL FireRenderIESLight::GetAttenNearDisplay()  { return FALSE; }
-ExclList & FireRenderIESLight::GetExclusionList()  { return m_exclList; }
-void FireRenderIESLight::SetExclusionList(ExclList &)  { /* empty */ }
-
-BOOL FireRenderIESLight::SetHotSpotControl(Control *)  { return FALSE; }
-BOOL FireRenderIESLight::SetFalloffControl(Control *)  { return FALSE; }
-BOOL FireRenderIESLight::SetColorControl(Control *)  { return FALSE; }
-Control * FireRenderIESLight::GetHotSpotControl()  { return NULL; }
-Control * FireRenderIESLight::GetFalloffControl()  { return NULL; }
-Control * FireRenderIESLight::GetColorControl()  { return NULL; }
-
-void FireRenderIESLight::SetAffectDiffuse(BOOL onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetAffectDiffuse()  { return TRUE; }
-void FireRenderIESLight::SetAffectSpecular(BOOL onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetAffectSpecular()  { return TRUE; }
-void FireRenderIESLight::SetAmbientOnly(BOOL onOff)  { /* empty */ }
-BOOL FireRenderIESLight::GetAmbientOnly()  { return FALSE; }
-
-void FireRenderIESLight::SetDecayType(BOOL onOff)  {}
-BOOL FireRenderIESLight::GetDecayType()  { return 1; }
-void FireRenderIESLight::SetDecayRadius(TimeValue time, float f)  {}
-float FireRenderIESLight::GetDecayRadius(TimeValue t, Interval& valid)  { return 40.0f; } //! check different values
-
 void FireRenderIESLight::BeginEditParams(IObjParam* objParam, ULONG flags, Animatable* prev)
 {
 	m_iObjParam = objParam;
-	bool inCreate = (flags & BEGIN_EDIT_CREATE) ? 1 : 0;
+
+	// Enable parameters caching when we are in the 'Create' tab
+	parametersCacheEnabled = (flags & BEGIN_EDIT_CREATE) != 0;
 
 	auto beginEdit = [&](auto& panel)
 	{
@@ -645,6 +1097,12 @@ void FireRenderIESLight::BeginEditParams(IObjParam* objParam, ULONG flags, Anima
 	beginEdit(m_intensity);
 	beginEdit(m_shadows);
 	beginEdit(m_volume);
+
+	using namespace ies_panel_utils;
+	EnableControl<EnableGeneralPanel>(m_general);
+	EnableControl<EnableIntensityPanel>(m_intensity);
+	EnableControl<EnableShadowsPanel>(m_shadows);
+	EnableControl<EnableVolumePanel>(m_volume);
 }
 
 void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animatable* next)
@@ -658,100 +1116,341 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 	endEdit(m_intensity);
 	endEdit(m_shadows);
 	endEdit(m_volume);
-}
 
-INode* FindNodeRef(ReferenceTarget *rt);
-
-static INode* GetNodeRef(ReferenceMaker *rm) {
-	if (rm->SuperClassID() == BASENODE_CLASS_ID) return (INode *)rm;
-	else return rm->IsRefTarget() ? FindNodeRef((ReferenceTarget *)rm) : NULL;
-}
-
-static INode* FindNodeRef(ReferenceTarget *rt) {
-	DependentIterator di(rt);
-	ReferenceMaker *rm = NULL;
-	INode *nd = NULL;
-	while ((rm = di.Next()) != NULL) {
-		nd = GetNodeRef(rm);
-		if (nd) return nd;
-	}
-	return NULL;
+	parametersCacheEnabled = false;
 }
 
 void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
 {
+	if (!ProfileIsSelected(params.t))
+	{
+		MessageBox(
+			GetCOREInterface()->GetMAXHWnd(),
+			_T("No profile is selected!"),
+			_T("Warning"),
+			MB_ICONWARNING | MB_OK);
+
+		return;
+	}
+
+	if (!GetEnabled(params.t))
+	{
+		return;
+	}
+
 	// create light
-	rpr_light light = 0;
-	rpr_int res = rprContextCreateIESLight(scope.GetContext().Handle(), &light);
-	FASSERT(res == RPR_SUCCESS);
+	frw::IESLight light = scope.GetContext().CreateIESLight();
+	const TCHAR* activeProfile = GetActiveProfile(params.t);
 
-	// load IES data
-	std::string iesFile("D:\\download\\IES light\\10817_AWF.ies");
+	// Load profile
+	{
+		// profile is ok, load IES data
+		std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(activeProfile);
 
-	std::string iesData((std::istreambuf_iterator<char>(std::ifstream(iesFile))),
-		std::istreambuf_iterator<char>());
+		// apply scaling to photometric web if necessary
+		float scaleFactor;
+		GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
 
-	res = rprIESLightSetImageFromIESdata(light, iesData.c_str(), 256, 256);
-	FASSERT(res == RPR_SUCCESS);
+		std::string iesData;
+
+		if (std::fabs(scaleFactor - 1.0f) > 0.01f)
+		{
+			// parse IES file
+			std::string iesFilename(profilePath.begin(), profilePath.end());
+			IESProcessor parser;
+			IESProcessor::IESLightData data;
+			bool parseOK = parser.Parse(data, iesFilename.c_str()) == IESProcessor::ErrorCode::SUCCESS;
+			if (!parseOK)
+			{
+				// throw?
+				MessageBox(
+					GetCOREInterface()->GetMAXHWnd(),
+					_T("Failed to export IES light source!"),
+					_T("Warning"),
+					MB_ICONWARNING | MB_OK);
+
+				return;
+			}
+
+			// scale photometric web
+			IESProcessor::IESUpdateRequest req;
+			req.m_scale = scaleFactor;
+			bool updateOK = parser.Update(data, req) == IESProcessor::ErrorCode::SUCCESS;
+			if (!updateOK)
+			{
+				MessageBox(
+					GetCOREInterface()->GetMAXHWnd(),
+					_T("Failed to export IES light source!"),
+					_T("Warning"),
+					MB_ICONWARNING | MB_OK);
+
+				return;
+			}
+
+			iesData = parser.ToString(data);
+		}
+		else
+		{
+			iesData = std::string(
+				(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
+				std::istreambuf_iterator<char>());
+		}
+
+		// pass IES data to RPR
+		light.SetIESData(iesData.c_str(), IES_ImageWidth, IES_ImageHeight);
+	}
 
 	// setup color & intensity
-	Point3 color = GetRGBColor(params.t);
+	Color color = GetFinalColor(params.t);
 	float intensity = GetIntensity(params.t);
+	// - convert physical values
+	intensity *= ((intensity / 682.069f) / 683.f) / 2.5f;
+	color *= intensity;
 
-	color *= intensity * 100;
-
-	res = rprIESLightSetRadiantPower3f(light, color.x, color.y, color.z);
-	FASSERT(res == RPR_SUCCESS);
+	light.SetRadiantPower(color);
 
 	// setup position
-	Matrix3 tm;
-	tm.IdentityMatrix();
+	Matrix3 tm = node.tm; // INode* inode = FindNodeRef(this); inode->GetObjectTM(0); <= this method doesn't take masterScale into acount, thus returns wrong transform!
 
+	Matrix3 localRot;
+	float angles[3] = { GetRotationX(params.t)*DEG_TO_RAD, GetRotationY(params.t)*DEG_TO_RAD, GetRotationZ(params.t)*DEG_TO_RAD };
+	EulerToMatrix(angles, localRot, EULERTYPE_XYZ);
+		
+	tm = localRot * tm;
+
+	// create RPR matrix
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
 	
-	res = rprLightSetTransform(light, false, frTm);
-	FASSERT(res == RPR_SUCCESS);
+	// pass this matrix to renderer
+	light.SetTransform(frTm, false);
 
-	// attach to scene	
-	auto fireLight = frw::Light(light, scope.GetContext());
-	fireLight.SetUserData(node.id);
-	scope.GetScene().Attach(fireLight);
+	// attach to scene
+	light.SetUserData(node.id);
+	scope.GetScene().Attach(light);
 }
 
-void FireRenderIESLight::AddTarget()
+void FireRenderIESLight::AddTarget(TimeValue t, bool fromCreateCallback)
 {
-	INode *nd = FindNodeRef(this);
-
-	Interface *iface = GetCOREInterface();
-	TimeValue t = iface->GetTime();
-
-	Point3 p;
-	m_pblock2->GetValue(IES_PARAM_P1, 0, p, FOREVER);
-
-	Matrix3 tm = nd->GetNodeTM(t);
-	Matrix3 targtm = tm;
+	INode* thisNode = GetThisNode();
+	Interface* core = GetCOREInterface();
+	INode* targNode = core->CreateObjectNode(new LookAtTarget);
 	
-	targtm.PreTranslate(p);
-
-	Object *targObject = new LookAtTarget;
-	INode *targNode = iface->CreateObjectNode(targObject);
-	
-	TSTR targName;
-	targName = nd->GetName();
-	targName += _T("DOT_TARGET");
+	// Make target node name
+	TSTR targName = thisNode->GetName();
+	targName += FIRERENDER_IESLIG_TARGET_NODE_NAME;
 	targNode->SetName(targName);
-	
-	Control *laControl = CreateLookatControl();
-	targNode->SetNodeTM(0, targtm);
-	laControl->SetTarget(targNode);
-	laControl->Copy(nd->GetTMController());
-	nd->SetTMController(laControl);
 
+	// Set up look at control
+	Control* laControl = CreateLookatControl();
+	laControl->SetTarget(targNode);
+	laControl->Copy(thisNode->GetTMController());
+	thisNode->SetTMController(laControl);
 	targNode->SetIsTarget(TRUE);
 
-	Color lightWireColor(nd->GetWireColor());
+	// Track target node changes
+	SetTargetNode(targNode);
+
+	// Set target node transform
+	if (fromCreateCallback)
+	{
+		Point3 p1 = GetTargetPoint(t);
+		Point3 p0 = GetLightPoint(t);
+		Point3 r = p1 - p0;
+
+		Matrix3 targtm = thisNode->GetNodeTM(t);
+		targtm.PreTranslate(r);
+
+		targNode->SetNodeTM(t, targtm);
+	}
+	else
+	{
+		Matrix3 targtm(1);
+		targtm.SetTrans(GetTargetPoint(t));
+		targNode->SetNodeTM(t, targtm);
+	}
+
+	Color lightWireColor(thisNode->GetWireColor());
 	targNode->SetWireColor(lightWireColor.toRGB());
+
+	targNode->NotifyDependents(FOREVER, PART_OBJ, REFMSG_CHANGE);
+	targNode->NotifyDependents(FOREVER, PART_OBJ, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
 }
+
+void FireRenderIESLight::RemoveTarget(TimeValue t)
+{
+	INode* thisNode = GetThisNode();
+	INode* targNode = GetTargetNode();
+
+	if (!thisNode || !targNode)
+	{
+		return;
+	}
+
+	Interface* core = GetCOREInterface();
+	DependentIterator di(this);
+
+	// iterate through the instances
+	while (ReferenceMaker* rm = di.Next())
+	{
+		if (INode* node = GetNodeRef(rm))
+		{
+			if (INode* target = node->GetTarget())
+			{
+				core->DeleteNode(target);
+			}
+
+			Point3 p0 = GetLightPoint(t);
+			Point3 p1 = GetTargetPoint(t);
+			Point3 dir = (p1 - p0).Normalize();
+
+			Matrix3 tm(1);
+			tm.SetAngleAxis(dir, 0);
+			tm.SetTrans(p0);
+
+			node->SetTMController(NewDefaultMatrix3Controller());
+			node->SetNodeTM(t, tm);
+		}
+	}
+
+	SetTargetNode(nullptr);
+}
+
+void FireRenderIESLight::OnTargetedChanged(TimeValue t, bool fromCreateCallback)
+{
+	if (GetTargeted(t))
+	{
+		AddTarget(t, fromCreateCallback);
+	}
+	else
+	{
+		RemoveTarget(t);
+	}
+
+	NotifyDependents(FOREVER, PART_OBJ, REFMSG_CHANGE);
+	NotifyDependents(FOREVER, PART_OBJ, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
+	GetCOREInterface()->RedrawViews(t);
+}
+
+bool FireRenderIESLight::ProfileIsSelected(TimeValue t) const
+{
+	const TCHAR* activeProfile = GetActiveProfile(t);
+	return activeProfile != nullptr && _tcscmp(activeProfile, _T(""));
+}
+
+// Result depends on color mode
+Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
+{
+	Color result(1.f, 1.f, 1.f);
+
+	switch (GetColorMode(t))
+	{
+		case IES_LIGHT_COLOR_MODE_COLOR:
+			result = GetBlockValue<IES_PARAM_COLOR>(m_pblock2, t, i);
+			break;
+
+		case IES_LIGHT_COLOR_MODE_TEMPERATURE:
+			result = KelvinToColor(GetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2, t, i));
+			break;
+
+		default:
+			FASSERT(!"Not implemented!");
+			break;
+	}
+
+	return result;
+}
+
+bool FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
+{
+	if (INode* thisNode = GetThisNode())
+	{
+		if (GetTargetDistance(time) != value)
+		{
+			// Compute offset from light to target
+			Point3 p0 = GetLightPoint(time);
+			Point3 p1 = GetTargetPoint(time);
+			Point3 targetOffset = (p1 - p0).Normalize() * value;
+
+			// Get target node from controller
+			INode* targetNode = GetTargetNode();
+
+			Matrix3 thisTm = thisNode->GetNodeTM(time);
+			Point3 thisTrans = thisTm.GetTrans();
+
+			Matrix3 targetTm(true);
+			targetTm.SetTrans(thisTrans + targetOffset);
+
+			// Update target node position
+			targetNode->SetNodeTM(time, targetTm);
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+float FireRenderIESLight::GetTargetDistance(TimeValue t, Interval& valid) const
+{
+	return (GetTargetPoint(t, valid) - GetLightPoint(t, valid)).Length();
+}
+
+INode* FireRenderIESLight::GetThisNode()
+{
+	return dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
+}
+
+INode* FireRenderIESLight::GetTargetNode()
+{
+	return dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
+}
+
+void FireRenderIESLight::SetThisNode(INode* node)
+{
+	dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->SetNode(node);
+}
+
+void FireRenderIESLight::SetTargetNode(INode* node)
+{
+	dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->SetNode(node);
+}
+
+// Makes default implementation for parameter setter
+#define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)				\
+bool FireRenderIESLight::Set##$paramName($paramType value, TimeValue t)	\
+{																		\
+	return SetBlockValue<$enum>(m_pblock2, value, t);					\
+}
+
+// Makes default implementation for parameter getter
+#define IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)							\
+$paramType FireRenderIESLight::Get##$paramName(TimeValue t, Interval& valid) const	\
+{																					\
+	return static_cast<$paramType>(GetBlockValue<$enum>(m_pblock2, t, valid));		\
+}
+
+// Makes default implementations for parameter setter and getter
+#define IES_DEFINE_PARAM($paramName, $paramType, $enum)\
+	IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)\
+	IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)
+
+IES_DEFINE_PARAM(LightPoint, Point3, IES_PARAM_P0)
+IES_DEFINE_PARAM(TargetPoint, Point3, IES_PARAM_P1)
+IES_DEFINE_PARAM(Enabled, bool, IES_PARAM_ENABLED)
+IES_DEFINE_PARAM(Targeted, bool, IES_PARAM_TARGETED)
+IES_DEFINE_PARAM(ShadowsEnabled, bool, IES_PARAM_SHADOWS_ENABLED)
+IES_DEFINE_PARAM(AreaWidth, float, IES_PARAM_AREA_WIDTH)
+IES_DEFINE_PARAM(RotationX, float, IES_PARAM_LIGHT_ROTATION_X)
+IES_DEFINE_PARAM(RotationY, float, IES_PARAM_LIGHT_ROTATION_Y)
+IES_DEFINE_PARAM(RotationZ, float, IES_PARAM_LIGHT_ROTATION_Z)
+IES_DEFINE_PARAM(Intensity, float, IES_PARAM_INTENSITY)
+IES_DEFINE_PARAM(Temperature, float, IES_PARAM_TEMPERATURE)
+IES_DEFINE_PARAM(ShadowsSoftness, float, IES_PARAM_SHADOWS_SOFTNESS)
+IES_DEFINE_PARAM(ShadowsTransparency, float, IES_PARAM_SHADOWS_TRANSPARENCY)
+IES_DEFINE_PARAM(VolumeScale, float, IES_PARAM_VOLUME_SCALE)
+IES_DEFINE_PARAM(Color, Color, IES_PARAM_COLOR)
+IES_DEFINE_PARAM(ColorMode, IESLightColorMode, IES_PARAM_COLOR_MODE)
+IES_DEFINE_PARAM(ActiveProfile, const TCHAR*, IES_PARAM_PROFILE)
 
 FIRERENDER_NAMESPACE_END

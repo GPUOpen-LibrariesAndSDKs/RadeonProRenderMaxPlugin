@@ -5,23 +5,36 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+/* This class manages IES lights shadows options */
 class IES_Shadows :
 	public IES_Panel<IES_Shadows>
 {
 public:
-	static constexpr int DialogId = IDD_FIRERENDER_IES_LIGHT_SHADOWS;
-	static constexpr TCHAR* PanelName = _T("Shadows");
+	// IES_Panel static interface implementation
+	static const int DialogId;
+	static const TCHAR* PanelName;
 
-	static INT_PTR CALLBACK dlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-	{
-		switch (msg)
-		{
-		case WM_INITDIALOG:
-			return TRUE;
-		}
+	// Use base class constructor
+	using BasePanel::BasePanel;
 
-		return FALSE;
-	}
+	bool UpdateEnabledParam(TimeValue t);
+	bool UpdateSoftnessParam(TimeValue t);
+	bool UpdateTransparencyParam(TimeValue t);
+
+	// IES_Panel overrides
+	bool InitializePage(TimeValue t);
+	void UninitializePage();
+	bool HandleControlCommand(TimeValue t, WORD code, WORD controlId);
+	bool OnEditChange(TimeValue t, int editId, HWND editHWND);
+	bool OnSpinnerChange(TimeValue t, ISpinnerControl* spinner, WORD controlId, bool isDragging);
+	const TCHAR* GetAcceptMessage(WORD controlId) const;
+	void Enable();
+	void Disable();
+
+private:
+	WinButton m_enabledControl;
+	MaxEditAndSpinner m_softnessControl;
+	MaxEditAndSpinner m_transparencyControl;
 };
 
 FIRERENDER_NAMESPACE_END

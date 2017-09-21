@@ -381,7 +381,7 @@ void IFireRender::OnNotify(NotifyInfo* info)
 
 		case NOTIFY_POST_RENDERER_CHANGE:
 		{
-			int id = reinterpret_cast<int>(info->callParam);
+			size_t id = reinterpret_cast<size_t>(info->callParam);
 			if (id == 2)
 			{
 				auto renderer = GetCOREInterface()->GetRenderer((RenderSettingID)id, false);

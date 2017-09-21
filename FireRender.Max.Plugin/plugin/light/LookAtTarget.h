@@ -1,85 +1,70 @@
 #pragma once
 
+#include "Common.h"
 #include <object.h>
 
 class LookAtTarget : public GeomObject
 {
-	friend class TargetObjectCreateCallBack;
+	class CreateCallBack;
 
-	friend INT_PTR CALLBACK TargetParamDialogProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-
-	// Mesh cache
-	static HWND hSimpleCamParams;
-	static IObjParam* iObjParams;
-	static Mesh mesh;
-	static int meshBuilt;
-
-	void GetMat(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm);
-	void BuildMesh();
+	void GetMatrix(TimeValue t, INode* inode, ViewExp& vpt, Matrix3& tm);
 
 	//  inherited virtual methods for Reference-management
 	RefResult NotifyRefChanged(const Interval& changeInt, RefTargetHandle hTarget,
-		PartID& partID, RefMessage message, BOOL propagate);
+		PartID& partID, RefMessage message, BOOL propagate) override;
 
 public:
 	LookAtTarget();
 	virtual ~LookAtTarget();
 
 	// From BaseObject
-	int HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt);
-	void Snap(TimeValue t, INode* inode, SnapInfo *snap, IPoint2 *p, ViewExp *vpt);
-	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags);
-	CreateMouseCallBack* GetCreateMouseCallBack();
-	void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev);
-	void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next);
-	const TCHAR *GetObjectName() { return _T("TARGET"); }
+	int HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override;
+	void Snap(TimeValue t, INode* inode, SnapInfo *snap, IPoint2 *p, ViewExp *vpt) override;
+	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
+	CreateMouseCallBack* GetCreateMouseCallBack() override;
+	void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev) override;
+	void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) override;
+	const TCHAR *GetObjectName() override;
 
 	// From Object
-	ObjectState Eval(TimeValue time);
-	void InitNodeName(TSTR& s) { s = _T("TARGET"); }
-	int UsesWireColor(){ return 1; }
-	int IsRenderable() { return 0; }
+	ObjectState Eval(TimeValue time) override;
+	void InitNodeName(TSTR& s) override;
+	int UsesWireColor() override;
+	int IsRenderable() override;
 
 	// From GeomObject
-	int IntersectRay(TimeValue t, Ray& r, float& at);
-	void GetWorldBoundBox(TimeValue t, INode *mat, ViewExp *vpt, Box3& box);
-	void GetLocalBoundBox(TimeValue t, INode *mat, ViewExp *vpt, Box3& box);
-	void GetDeformBBox(TimeValue t, Box3& box, Matrix3 *tm, BOOL useSel);
+	void GetWorldBoundBox(TimeValue t, INode *mat, ViewExp *vpt, Box3& box) override;
+	void GetLocalBoundBox(TimeValue t, INode *mat, ViewExp *vpt, Box3& box) override;
+	void GetDeformBBox(TimeValue t, Box3& box, Matrix3 *tm, BOOL useSel) override;
 
-	BOOL HasViewDependentBoundingBox() { return true; }
+	// From BaseObject
+	BOOL HasViewDependentBoundingBox() override;
 
 	// From Animatable 
-	void DeleteThis() {
-		delete this;
-	}
-	Class_ID ClassID() { return Class_ID(TARGET_CLASS_ID, 0); }
-	void GetClassName(TSTR& s) { s = _T("TARGET"); }
-	int IsKeyable() { return 1; }
-	LRESULT CALLBACK TrackViewWinProc(HWND hwnd, UINT message,
-		WPARAM wParam, LPARAM lParam) {
-		return(0);
-	}
+	void DeleteThis() override;
+	Class_ID ClassID() override;
+	void GetClassName(TSTR& s) override;
+	LRESULT CALLBACK TrackViewWinProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) override;
 
 	// From ref.h
-	RefTargetHandle Clone(RemapDir& remap);
+	RefTargetHandle Clone(RemapDir& remap) override;
 
 	// IO
-	IOResult Save(ISave *isave);
-	IOResult Load(ILoad *iload);
+	IOResult Save(ISave *isave) override;
+	IOResult Load(ILoad *iload) override;
 
 	void AddRenderitem(
 		const MaxSDK::Graphics::UpdateDisplayContext& updateDisplayContext,
 		MaxSDK::Graphics::UpdateNodeContext& nodeContext,
 		MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer);
 
-	virtual unsigned long GetObjectDisplayRequirement() const;
+	virtual unsigned long GetObjectDisplayRequirement() const override;
 
 	virtual bool PrepareDisplay(
-		const MaxSDK::Graphics::UpdateDisplayContext& prepareDisplayContext);
+		const MaxSDK::Graphics::UpdateDisplayContext& prepareDisplayContext) override;
 
 	virtual bool UpdatePerNodeItems(
 		const MaxSDK::Graphics::UpdateDisplayContext& updateDisplayContext,
 		MaxSDK::Graphics::UpdateNodeContext& nodeContext,
-		MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer);
-
+		MaxSDK::Graphics::IRenderItemContainer& targetRenderItemContainer) override;
 };

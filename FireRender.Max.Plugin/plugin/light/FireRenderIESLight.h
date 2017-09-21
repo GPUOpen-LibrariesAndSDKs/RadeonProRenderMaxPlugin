@@ -10,33 +10,76 @@
 #pragma once
 
 #include "FireRenderIES_General.h"
+#include "IFireRenderLight.h"
 #include "FireRenderIES_Intensity.h"
 #include "FireRenderIES_Shadows.h"
 #include "FireRenderIES_Volume.h"
+#include "FireRenderLight.h"
+#include "IESLightParameter.h"
 #include "parser/SceneParser.h"
 #include "parser/RenderParameters.h"
 #include "frScope.h"
+#include "INodeTransformMonitor.h"
+
+class LookAtTarget;
 
 FIRERENDER_NAMESPACE_BEGIN
 
-enum IESLightParameter : ParamID
+class FireRenderIESLight :
+	public FireRenderLight
 {
-	IES_PARAM_P0 = 101,
-	IES_PARAM_P1 = 102
-};
-
-ClassDesc2* GetFireRenderIESLightDesc();
-const Class_ID FIRERENDER_IESLIGHT_CLASS_ID(0x7ab5467f, 0x1c96049f);
-
-class FireRenderIESLight : public GenLight
-{
-
 public:
+	enum StrongReference
+	{
+		ParamBlock = 0,
+
+		// This should be always last
+		strongRefEnd
+	};
+
+	enum IndirectReference
+	{
+		ThisNode = StrongReference::strongRefEnd,
+		TargetNode,
+
+		// This should be always last
+		indirectRefEnd
+	};
+
+	struct IntensitySettings :
+		public MaxSpinner::DefaultFloatSettings
+	{
+		static const float Default;
+	};
+	using AreaWidthSettings = MaxSpinner::DefaultFloatSettings;
+	using LightRotateSettings = MaxSpinner::DefaultRotationSettings;
+	using ShadowsSoftnessSettings = MaxSpinner::DefaultFloatSettings;
+	using ShadowsTransparencySettings = MaxSpinner::DefaultFloatSettings;
+	using VolumeScaleSettings = MaxSpinner::DefaultFloatSettings;
+	using TargetDistanceSettings = MaxSpinner::DefaultFloatSettings;
+
+	static Class_ID GetClassId();
+	static ClassDesc2* GetClassDesc();
+	static Color GetWireColor(bool isFrozen, bool isSelected);
+
+	static const bool DefaultEnabled;
+	static const bool DefaultTargeted;
+	static const bool DefaultShadowsEnabled;
+	static const IESLightColorMode DefaultColorMode;
+
+	static const bool EnableGeneralPanel;
+	static const bool EnableIntensityPanel;
+	static const bool EnableShadowsPanel;
+	static const bool EnableVolumePanel;
+
+	static const size_t SphereCirclePointsCount;
+	static const size_t IES_ImageWidth;
+	static const size_t IES_ImageHeight;
+
 	FireRenderIESLight();
 	~FireRenderIESLight();
 
 	CreateMouseCallBack* GetCreateMouseCallBack() override;
-	GenLight* NewLight(int type) override;
 	ObjectState Eval(TimeValue time) override;
 	void InitNodeName(TSTR& s) override;
 	const MCHAR *GetObjectName() override;
@@ -44,119 +87,126 @@ public:
 
 	BOOL UsesWireColor() override;
 	int DoOwnSelectHilite() override;
-	void NotifyChanged();
-	void BuildVertices(bool force = false);
 	RefResult NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate) override;
 
 	void DeleteThis() override;
 	Class_ID ClassID() override;
 	void GetClassName(TSTR& s) override;
 	RefTargetHandle Clone(RemapDir& remap) override;
+
 	IParamBlock2* GetParamBlock(int i) override;
+
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
 	int NumRefs() override;
 	void SetReference(int i, RefTargetHandle rtarg) override;
 	RefTargetHandle GetReference(int i) override;
-	void DrawGeometry(ViewExp *vpt, IParamBlock2 *pblock, BOOL sel = FALSE, BOOL frozen = FALSE);
-	Matrix3 GetTransformMatrix(TimeValue t, INode* inode, ViewExp* vpt);
+
+	void DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
+	bool DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected = false, bool isFrozen = false); 
+
 	Color GetViewportMainColor(INode* pNode);
 	Color GetViewportColor(INode* pNode, Color selectedColor);
+	
 	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	void GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box) override;
 	int HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override;
 	void GetLocalBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box) override;
-
-	// LightObject methods
-	Point3 GetRGBColor(TimeValue t, Interval& valid = Interval(0, 0)) override;
-	void SetRGBColor(TimeValue t, Point3 &color) override;
-	void SetUseLight(int onOff) override;
-	BOOL GetUseLight() override;
-	void SetHotspot(TimeValue time, float f) override;
-	float GetHotspot(TimeValue t, Interval& valid) override;
-	void SetFallsize(TimeValue time, float f) override;
-	float GetFallsize(TimeValue t, Interval& valid) override;
-	void SetAtten(TimeValue time, int which, float f) override;
-	float GetAtten(TimeValue t, int which, Interval& valid) override;
-	void SetTDist(TimeValue time, float f) override;
-	float GetTDist(TimeValue t, Interval& valid) override;
-	void SetConeDisplay(int s, int notify) override;
-	BOOL GetConeDisplay() override;
-	void SetIntensity(TimeValue time, float f) override;
-	float GetIntensity(TimeValue t, Interval& valid = Interval(0, 0)) override;
-	void SetUseAtten(int s) override;
-	BOOL GetUseAtten() override;
-	void SetAspect(TimeValue t, float f) override;
-	float GetAspect(TimeValue t, Interval& valid = Interval(0, 0)) override;
-	void SetOvershoot(int a) override;
-	int GetOvershoot() override;
-	void SetShadow(int a) override;
-	int GetShadow() override;
-
-	// From Light
 	RefResult EvalLightState(TimeValue t, Interval& valid, LightState* cs) override;
 
-	ObjLightDesc* CreateLightDesc(INode *inode, BOOL forceShadowBuf) override;
-	int Type() override;
-	void SetHSVColor(TimeValue, Point3 &) override;
-	Point3 GetHSVColor(TimeValue t, Interval &valid) override;
-
-	void SetAttenDisplay(int) override;
-	BOOL GetAttenDisplay() override;
-	void Enable(int) override;
-	void SetMapBias(TimeValue, float) override;
-	float GetMapBias(TimeValue, Interval &) override;
-	void SetMapRange(TimeValue, float) override;
-	float GetMapRange(TimeValue, Interval &) override;
-	void SetMapSize(TimeValue, int) override;
-	int  GetMapSize(TimeValue, Interval &) override;
-	void SetRayBias(TimeValue, float) override;
-	float GetRayBias(TimeValue, Interval &) override;
-	int GetUseGlobal() override;
-	void SetUseGlobal(int) override;
-	int GetShadowType() override;
-	void SetShadowType(int) override;
-	int GetAbsMapBias() override;
-	void SetAbsMapBias(int) override;
-	BOOL IsSpot() override;
-	BOOL IsDir() override;
-	void SetSpotShape(int) override;
-	int GetSpotShape() override;
-	void SetContrast(TimeValue, float) override;
-	float GetContrast(TimeValue, Interval &) override;
-	void SetUseAttenNear(int) override;
-	BOOL GetUseAttenNear() override;
-	void SetAttenNearDisplay(int) override;
-	BOOL GetAttenNearDisplay() override;
-	ExclList &GetExclusionList() override;
-	void SetExclusionList(ExclList &) override;
-	BOOL SetHotSpotControl(Control *) override;
-	BOOL SetFalloffControl(Control *) override;
-	BOOL SetColorControl(Control *) override;
-	Control *GetHotSpotControl() override;
-	Control *GetFalloffControl() override;
-	Control *GetColorControl() override;
-
-	void SetAffectDiffuse(BOOL onOff) override;
-	BOOL GetAffectDiffuse() override;
-	void SetAffectSpecular(BOOL onOff) override;
-	BOOL GetAffectSpecular() override;
-	void SetAmbientOnly(BOOL onOff) override;
-	BOOL GetAmbientOnly() override;
-	void SetDecayType(BOOL onOff) override;
-	BOOL GetDecayType() override;
-	void SetDecayRadius(TimeValue time, float f) override;
-	float GetDecayRadius(TimeValue t, Interval& valid) override;
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
 
-	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params);
+	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params) override;
+	bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
+	bool CalculateLightRepresentation(const TCHAR* profileName) override;
+	bool CalculateBBox(void) override;
 
-	void FireRenderIESLight::AddTarget();
+	bool SetLightPoint(Point3 value, TimeValue t);
+	Point3 GetLightPoint(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTargetPoint(Point3 value, TimeValue t);
+	Point3 GetTargetPoint(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetEnabled(bool value, TimeValue t);
+	bool GetEnabled(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTargeted(bool value, TimeValue t);
+	bool GetTargeted(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetShadowsEnabled(bool value, TimeValue t);
+	bool GetShadowsEnabled(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTargetDistance(float value, TimeValue t);
+	float GetTargetDistance(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetAreaWidth(float value, TimeValue t);
+	float GetAreaWidth(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetRotationX(float value, TimeValue t);
+	float GetRotationX(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetRotationY(float value, TimeValue t);
+	float GetRotationY(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetRotationZ(float value, TimeValue t);
+	float GetRotationZ(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetIntensity(float value, TimeValue t);
+	float GetIntensity(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetTemperature(float value, TimeValue t);
+	float GetTemperature(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetShadowsSoftness(float value, TimeValue t);
+	float GetShadowsSoftness(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetVolumeScale(float value, TimeValue t);
+	float GetVolumeScale(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetShadowsTransparency(float value, TimeValue t);
+	float GetShadowsTransparency(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetActiveProfile(const TCHAR* value, TimeValue t);
+	const TCHAR* GetActiveProfile(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetColor(Color value, TimeValue t);
+	Color GetColor(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool SetColorMode(IESLightColorMode value, TimeValue t);
+	IESLightColorMode GetColorMode(TimeValue t, Interval& valid = FOREVER) const;
+
+	bool ProfileIsSelected(TimeValue t) const;
+
+	// Result depends on color mode (but without intensity)
+	Color GetFinalColor(TimeValue t = 0, Interval& valid = FOREVER) const;
 
 protected:
+	class CreateCallback;
+
+	void AddTarget(TimeValue t, bool fromCreateCallback);
+	void RemoveTarget(TimeValue t);
+	void OnTargetedChanged(TimeValue t, bool fromCreateCallback);
+
+	void SetThisNode(INode*);
+	void SetTargetNode(INode*);
+	INode* GetThisNode();
+	INode* GetTargetNode();
+
 	ExclList m_exclList;
 
 private:
+	static const Class_ID m_classId;
+	static const Color FrozenColor;
+	static const Color WireColor;
+	static const Color SelectedColor;
+
+	template<typename T_Id>
+	void ReplaceLocalReference(T_Id id, RefTargetHandle handle)
+	{
+		RefResult ret = ReplaceReference(static_cast<int>(id) + BaseMaxType::NumRefs(), handle);
+		FASSERT(ret == REF_SUCCEED);
+	}
+
 	// Panels
 	IES_General m_general;
 	IES_Intensity m_intensity;
@@ -164,10 +214,22 @@ private:
 	IES_Volume m_volume;
 
 	IObjParam* m_iObjParam;
-	IParamBlock2* m_pblock2;
 
-	Point3 m_vertices[4];
-	bool m_verticesBuilt;
+	std::vector<std::vector<Point3> > m_plines;
+	Point3 m_defaultUp; // up vector of IES light
+	std::vector<Point3> m_bbox; // need all 8 points to support proper transformation
+	bool m_BBoxCalculated;
+	std::vector<std::vector<Point3> > m_preview_plines;
+	bool m_isPreviewGraph; // photometric web should be rotated differently when look target is not created yet (during preview) compared to when look at target is reomved/disabled
+
+	// References
+	IParamBlock2* m_pblock2;
+	ReferenceTarget* m_thisNodeMonitor;
+	ReferenceTarget* m_targNodeMonitor;
 };
+
+#undef IES_DELCARE_PARAM_SET
+#undef IES_DELCARE_PARAM_GET
+#undef IES_DECLARE_PARAM
 
 FIRERENDER_NAMESPACE_END
