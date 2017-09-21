@@ -903,19 +903,19 @@ namespace frw
 
 		void SetIESFile(const rpr_char* path, int nx, int ny)
 		{
-			auto res = rprIESLightSetImageFromFile(Handle(), path, nx, ny);
+			rpr_int res = rprIESLightSetImageFromFile(Handle(), path, nx, ny);
 			FASSERT(RPR_SUCCESS == res);
 		}
 
 		void SetIESData(const char* data, int nx, int ny)
 		{
-			auto res = rprIESLightSetImageFromIESdata(Handle(), data, nx, ny);
+			rpr_int res = rprIESLightSetImageFromIESdata(Handle(), data, nx, ny);
 			FASSERT(RPR_SUCCESS == res);
 		}
 
 		void SetRadiantPower(float r, float g, float b)
 		{
-			auto res = rprIESLightSetRadiantPower3f(Handle(), r, g, b);
+			rpr_int res = rprIESLightSetRadiantPower3f(Handle(), r, g, b);
 			FASSERT(RPR_SUCCESS == res);
 		}
 	};
