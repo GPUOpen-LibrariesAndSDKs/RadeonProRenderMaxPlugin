@@ -42,7 +42,7 @@ namespace
 	static constexpr float OpacityMulDefault = 1.0f;
 
 	static constexpr float EmissiveMulMin = 0.0f;
-	static constexpr float EmissiveMulMax = FLT_MAX;
+	static constexpr float EmissiveMulMax = 1.0;
 	static constexpr float EmissiveMulDefault = 0.0f;
 }
 
