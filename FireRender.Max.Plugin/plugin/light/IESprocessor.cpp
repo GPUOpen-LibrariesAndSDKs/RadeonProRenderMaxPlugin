@@ -220,12 +220,28 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 
 double ReadDouble(const std::string& input)
 {
-	return std::stod(input);
+	try
+	{
+		return std::stod(input);
+	}
+	catch (...)
+	{
+
+	}
+	return 1.0f;
 }
 
 int ReadInt(const std::string& input)
 {
-	return std::stoi(input);
+	try 
+	{
+		return std::stoi(input);
+	}
+	catch(...)
+	{
+
+	}
+	return 1;
 }
 
 enum class IESProcessor::ParseState
@@ -262,13 +278,13 @@ IESProcessor::ParseState ReadCountLamps(IESProcessor::IESLightData& lightData, c
 
 IESProcessor::ParseState ReadLumens(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_lumens = ReadInt(value);
+	lightData.m_lumens = ReadDouble(value);
 	return IESProcessor::ParseState::READ_MULTIPLIER;
 }
 
 IESProcessor::ParseState ReadMultiplier(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_multiplier = ReadInt(value);
+	lightData.m_multiplier = ReadDouble(value);
 	return IESProcessor::ParseState::READ_COUNT_VANGLES;
 }
 

@@ -545,7 +545,7 @@ ClassDesc2* FireRenderIESLight::GetClassDesc()
 
 Color FireRenderIESLight::GetWireColor(bool isFrozen, bool isSelected)
 {
-	return isSelected ? WireColor : (isFrozen ? FrozenColor : WireColor);
+	return isSelected ? SelectedColor : (isFrozen ? FrozenColor : WireColor);
 }
 
 FireRenderIESLight::FireRenderIESLight() :
