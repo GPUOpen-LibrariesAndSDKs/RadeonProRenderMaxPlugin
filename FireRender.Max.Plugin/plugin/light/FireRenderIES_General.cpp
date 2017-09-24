@@ -234,7 +234,6 @@ void IES_General::UpdateUI(TimeValue t)
 
 	bool targeted = m_parent->GetTargeted(t);
 	m_targetedControl.SetCheck(targeted);
-	m_areaWidthControl.GetSpinner().SetValue(m_parent->GetAreaWidth(t));
 
 	if (targeted)
 	{
@@ -246,6 +245,8 @@ void IES_General::UpdateUI(TimeValue t)
 	}
 
 	m_targetDistanceControl.GetSpinner().SetValue(m_parent->GetTargetDistance(t));
+
+	m_areaWidthControl.GetSpinner().SetValue(m_parent->GetAreaWidth(t));
 
 	int activeIndex = -1;
 
