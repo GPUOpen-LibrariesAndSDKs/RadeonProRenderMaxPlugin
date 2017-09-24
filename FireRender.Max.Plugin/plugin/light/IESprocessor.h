@@ -83,7 +83,7 @@ protected:
 	* value is supposed to string with one value, double or integer
 	* @return false in case of error
 	*/
-	bool ReadValue (IESLightData& lightData, IESProcessor::ParseState& state, const std::string& value) const;
+	bool TryReadValue (IESLightData& lightData, IESProcessor::ParseState& state, const std::string& value) const;
 };
 
 // holds data for IES light source

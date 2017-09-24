@@ -220,28 +220,12 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 
 double ReadDouble(const std::string& input)
 {
-	try
-	{
-		return std::stod(input);
-	}
-	catch (...)
-	{
-
-	}
-	return 1.0f;
+	return std::stod(input);
 }
 
 int ReadInt(const std::string& input)
 {
-	try 
-	{
-		return std::stoi(input);
-	}
-	catch(...)
-	{
-
-	}
-	return 1;
+	return std::stoi(input);
 }
 
 enum class IESProcessor::ParseState
@@ -375,7 +359,7 @@ IESProcessor::ParseState ReadCValues(IESProcessor::IESLightData& lightData, cons
 	return IESProcessor::ParseState::READ_CANDELA_VALUES; // exit function without switching state because we haven't read all candela values yet
 }
 
-bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& state, const std::string& value) const
+bool IESProcessor::TryReadValue(IESLightData& lightData, IESProcessor::ParseState& state, const std::string& value) const
 {
 	typedef std::function<IESProcessor::ParseState(IESProcessor::IESLightData&, const std::string&)> parseFunc;
 	static const std::map<IESProcessor::ParseState, parseFunc > m_parseImpl = {
@@ -405,7 +389,14 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& 
 	auto parseFuncImpl = m_parseImpl.find(state);
 	if (parseFuncImpl != m_parseImpl.end())
 	{
-		state = parseFuncImpl->second(lightData, value);
+		try
+		{
+			state = parseFuncImpl->second(lightData, value);
+		}
+		catch (...)
+		{
+			return false;
+		}
 		return true;
 	}
 
@@ -421,7 +412,7 @@ IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::
 	for (const std::string& value : tokens)
 	{
 		// try parse token
-		if (!ReadValue(lightData, parseState, value))
+		if (!TryReadValue(lightData, parseState, value))
 		{
 			// parse failed
 			return IESProcessor::ErrorCode::PARSE_FAILED;
