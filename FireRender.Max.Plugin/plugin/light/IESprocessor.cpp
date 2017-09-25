@@ -16,6 +16,7 @@
 #include <iomanip>
 #include <map>
 #include <functional>
+#include <clocale>
 #include "IESprocessor.h"
 
 const char* IESProcessor::IES_FileTag = "IESNA";
@@ -201,7 +202,7 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	
 	text += lineToParse += "\n";
 
-	if (std::strncmp(text.c_str(), IES_FileTag, 5) != 0)
+	if (std::strncmp(text.c_str(), IES_FileTag, IES_TagSize) != 0)
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
 	}
@@ -223,14 +224,21 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	return IESProcessor::ErrorCode::SUCCESS;
 }
 
-double ReadDouble(const std::string& input)
+bool ReadDouble(const std::string& input, double& output)
 {
-	return std::stod(input);
+	char* pEnd;
+	const char* pStr = input.c_str();
+	output = strtod(pStr, &pEnd);
+	return (pStr != pEnd);
 }
 
-int ReadInt(const std::string& input)
+bool ReadInt(const std::string& input, int& output)
 {
-	return std::stoi(input);
+	int Base = 10;
+	char* pEnd;
+	const char* pStr = input.c_str();
+	output = strtol(pStr, &pEnd, Base);
+	return (pStr != pEnd);
 }
 
 enum class IESProcessor::ParseState
@@ -251,7 +259,8 @@ enum class IESProcessor::ParseState
 	READ_VERTICAL_ANGLES,
 	READ_HORIZONTAL_ANGLES,
 	READ_CANDELA_VALUES,
-	END_OF_PARSE
+	END_OF_PARSE,
+	PARSE_FAILED
 };
 
 IESProcessor::ParseState IESProcessor::FirstParseState(void) const
@@ -261,85 +270,141 @@ IESProcessor::ParseState IESProcessor::FirstParseState(void) const
 
 IESProcessor::ParseState ReadCountLamps(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_countLamps = ReadInt(value);
+	int data;
+	if (!ReadInt(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_countLamps = data;
 	return IESProcessor::ParseState::READ_LUMENS;
 }
 
 IESProcessor::ParseState ReadLumens(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_lumens = ReadInt(value);
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_lumens = data;
 	return IESProcessor::ParseState::READ_MULTIPLIER;
 }
 
 IESProcessor::ParseState ReadMultiplier(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_multiplier = ReadInt(value);
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_multiplier = data;
 	return IESProcessor::ParseState::READ_COUNT_VANGLES;
 }
 
 IESProcessor::ParseState ReadCountVAngles(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_countVerticalAngles = ReadInt(value);
+	int data;
+	if (!ReadInt(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_countVerticalAngles = data;
 	return IESProcessor::ParseState::READ_COUNT_HANGLES;
 }
 
 IESProcessor::ParseState ReadCountHAngles(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_countHorizontalAngles = ReadInt(value);
+	int data;
+	if (!ReadInt(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_countHorizontalAngles = data;
 	return IESProcessor::ParseState::READ_TYPE;
 }
 
 IESProcessor::ParseState ReadType(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_photometricType = ReadInt(value);
+	int data;
+	if (!ReadInt(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_photometricType = data;
 	return IESProcessor::ParseState::READ_UNIT;
 }
 
 IESProcessor::ParseState ReadUnit(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_unit = ReadInt(value);
+	int data;
+	if (!ReadInt(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_unit = data;
 	return IESProcessor::ParseState::READ_WIDTH;
 }
 
 IESProcessor::ParseState ReadWidth(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_width = ReadDouble(value);
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_width = data;
 	return IESProcessor::ParseState::READ_LENGTH;
 }
 
 IESProcessor::ParseState ReadLength(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_length = ReadDouble(value);
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_length = data;
 	return IESProcessor::ParseState::READ_HEIGHT;
 }
 
 IESProcessor::ParseState ReadHeight(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_height = ReadDouble(value);
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_height = data;
 	return IESProcessor::ParseState::READ_BALLAST;
 }
 
 IESProcessor::ParseState ReadBallast(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_ballast = ReadInt(value);
+	int data;
+	if (!ReadInt(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_ballast = data;
 	return IESProcessor::ParseState::READ_VERSION;
 }
 
 IESProcessor::ParseState ReadVersion(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_version = ReadInt(value);
+	int data;
+	if (!ReadInt(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_version = data;
 	return IESProcessor::ParseState::READ_WATTAGE;
 }
 
 IESProcessor::ParseState ReadWattage(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_wattage = ReadDouble(value);
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_wattage = data;
 	return IESProcessor::ParseState::READ_VERTICAL_ANGLES;
 }
 
 IESProcessor::ParseState ReadVAngles(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_verticalAngles.push_back(ReadDouble(value));
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_verticalAngles.push_back(data);
 	if (lightData.m_verticalAngles.size() == lightData.m_countVerticalAngles)
 		return IESProcessor::ParseState::READ_HORIZONTAL_ANGLES;
 
@@ -348,7 +413,11 @@ IESProcessor::ParseState ReadVAngles(IESProcessor::IESLightData& lightData, cons
 
 IESProcessor::ParseState ReadHAngles(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_horizontalAngles.push_back(ReadDouble(value));
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_horizontalAngles.push_back(data);
 	if (lightData.m_horizontalAngles.size() == lightData.m_countHorizontalAngles)
 		return IESProcessor::ParseState::READ_CANDELA_VALUES;
 
@@ -357,7 +426,11 @@ IESProcessor::ParseState ReadHAngles(IESProcessor::IESLightData& lightData, cons
 
 IESProcessor::ParseState ReadCValues(IESProcessor::IESLightData& lightData, const std::string& value)
 {
-	lightData.m_candelaValues.push_back(ReadDouble(value));
+	double data;
+	if (!ReadDouble(value, data))
+		return IESProcessor::ParseState::PARSE_FAILED;
+
+	lightData.m_candelaValues.push_back(data);
 	if (lightData.m_candelaValues.size() == lightData.m_countVerticalAngles*lightData.m_countHorizontalAngles)
 		return IESProcessor::ParseState::END_OF_PARSE;
 
@@ -388,6 +461,9 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& 
 
 	// back-off
 	if (state == ParseState::END_OF_PARSE)
+		return false;
+
+	if (state == ParseState::PARSE_FAILED)
 		return false;
 
 	// read values from input
@@ -456,7 +532,12 @@ IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const wchar
 	}
 
 	// read tokens to lightData
+	char* currLocale = std::setlocale(LC_NUMERIC, "");
+	std::setlocale(LC_NUMERIC, "en-US");
+
 	IESProcessor::ErrorCode isParseOk = ParseTokens(lightData, tokens);
+
+	std::setlocale(LC_NUMERIC, currLocale);
 
 	// ensure correct parse results
 	if ((isParseOk != IESProcessor::ErrorCode::SUCCESS) || !lightData.IsValid())
@@ -482,7 +563,3 @@ IESProcessor::ErrorCode IESProcessor::Update(IESLightData& lightData, const IESU
 
 	return IESProcessor::ErrorCode::SUCCESS;
 }
-
-IESProcessor::IESUpdateRequest::IESUpdateRequest()
-	: m_scale (1.0f)
-{}

@@ -545,7 +545,7 @@ ClassDesc2* FireRenderIESLight::GetClassDesc()
 
 Color FireRenderIESLight::GetWireColor(bool isFrozen, bool isSelected)
 {
-	return isSelected ? WireColor : (isFrozen ? FrozenColor : WireColor);
+	return isSelected ? SelectedColor : (isFrozen ? FrozenColor : WireColor);
 }
 
 FireRenderIESLight::FireRenderIESLight() :
@@ -1157,47 +1157,41 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 
 		std::string iesData;
 
-		if (std::fabs(scaleFactor - 1.0f) > 0.01f)
+		// parse IES file
+		IESProcessor parser;
+		IESProcessor::IESLightData data;
+		bool parseOK = parser.Parse(data, profilePath.c_str()) == IESProcessor::ErrorCode::SUCCESS;
+		
+		if (!parseOK)
 		{
-			// parse IES file
-			IESProcessor parser;
-			IESProcessor::IESLightData data;
-			bool parseOK = parser.Parse(data, profilePath.c_str()) == IESProcessor::ErrorCode::SUCCESS;
-			if (!parseOK)
-			{
-				// throw?
-				MessageBox(
-					GetCOREInterface()->GetMAXHWnd(),
-					_T("Failed to export IES light source!"),
-					_T("Warning"),
-					MB_ICONWARNING | MB_OK);
+			// throw?
+			MessageBox(
+				GetCOREInterface()->GetMAXHWnd(),
+				_T("Failed to export IES light source!"),
+				_T("Warning"),
+				MB_ICONWARNING | MB_OK);
 
-				return;
-			}
-
-			// scale photometric web
-			IESProcessor::IESUpdateRequest req;
-			req.m_scale = scaleFactor;
-			bool updateOK = parser.Update(data, req) == IESProcessor::ErrorCode::SUCCESS;
-			if (!updateOK)
-			{
-				MessageBox(
-					GetCOREInterface()->GetMAXHWnd(),
-					_T("Failed to export IES light source!"),
-					_T("Warning"),
-					MB_ICONWARNING | MB_OK);
-
-				return;
-			}
-
-			iesData = parser.ToString(data);
+			return;
 		}
-		else
+
+		// scale photometric web
+		IESProcessor::IESUpdateRequest req;
+		req.m_scale = scaleFactor;
+
+		bool updateOK = parser.Update(data, req) == IESProcessor::ErrorCode::SUCCESS;
+
+		if (!updateOK)
 		{
-			iesData = std::string(
-				(std::istreambuf_iterator<char>(std::ifstream(profilePath))),
-				std::istreambuf_iterator<char>());
+			MessageBox(
+				GetCOREInterface()->GetMAXHWnd(),
+				_T("Failed to export IES light source!"),
+				_T("Warning"),
+				MB_ICONWARNING | MB_OK);
+
+			return;
 		}
+
+		iesData = parser.ToString(data);
 
 		// pass IES data to RPR
 		light.SetIESData(iesData.c_str(), IES_ImageWidth, IES_ImageHeight);
