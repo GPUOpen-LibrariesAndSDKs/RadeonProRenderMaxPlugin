@@ -231,9 +231,22 @@ void IES_General::UpdateUI(TimeValue t)
 	}
 
 	m_enabledControl.SetCheck(m_parent->GetEnabled(t));
-	m_targetedControl.SetCheck(m_parent->GetTargeted(t));
-	m_areaWidthControl.GetSpinner().SetValue(m_parent->GetAreaWidth(t));
+
+	bool targeted = m_parent->GetTargeted(t);
+	m_targetedControl.SetCheck(targeted);
+
+	if (targeted)
+	{
+		m_targetDistanceControl.Enable();
+	}
+	else
+	{
+		m_targetDistanceControl.Disable();
+	}
+
 	m_targetDistanceControl.GetSpinner().SetValue(m_parent->GetTargetDistance(t));
+
+	m_areaWidthControl.GetSpinner().SetValue(m_parent->GetAreaWidth(t));
 
 	int activeIndex = -1;
 

@@ -1357,32 +1357,30 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 
 bool FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
 {
-	if (INode* thisNode = GetThisNode())
+	INode* thisNode = GetThisNode();
+	INode* targetNode = GetTargetNode();
+
+	if (thisNode == nullptr || targetNode == nullptr ||
+		std::abs(GetTargetDistance(time) - value) < std::numeric_limits<float>::epsilon())
 	{
-		if (GetTargetDistance(time) != value)
-		{
-			// Compute offset from light to target
-			Point3 p0 = GetLightPoint(time);
-			Point3 p1 = GetTargetPoint(time);
-			Point3 targetOffset = (p1 - p0).Normalize() * value;
-
-			// Get target node from controller
-			INode* targetNode = GetTargetNode();
-
-			Matrix3 thisTm = thisNode->GetNodeTM(time);
-			Point3 thisTrans = thisTm.GetTrans();
-
-			Matrix3 targetTm(true);
-			targetTm.SetTrans(thisTrans + targetOffset);
-
-			// Update target node position
-			targetNode->SetNodeTM(time, targetTm);
-
-			return true;
-		}
+		return false;
 	}
 
-	return false;
+	// Compute offset from light to target
+	Point3 p0 = GetLightPoint(time);
+	Point3 p1 = GetTargetPoint(time);
+	Point3 targetOffset = (p1 - p0).Normalize() * value;
+
+	Matrix3 thisTm = thisNode->GetNodeTM(time);
+	Point3 thisTrans = thisTm.GetTrans();
+
+	Matrix3 targetTm(true);
+	targetTm.SetTrans(thisTrans + targetOffset);
+
+	// Update target node position
+	targetNode->SetNodeTM(time, targetTm);
+
+	return true;
 }
 
 float FireRenderIESLight::GetTargetDistance(TimeValue t, Interval& valid) const
