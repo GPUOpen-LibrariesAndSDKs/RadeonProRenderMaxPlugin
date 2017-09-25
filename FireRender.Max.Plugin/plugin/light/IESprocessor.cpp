@@ -197,7 +197,7 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	
 	text += lineToParse += "\n";
 
-	if (std::strncmp(text.c_str(), IES_FileTag, 5) != 0)
+	if (std::strncmp(text.c_str(), IES_FileTag, IES_TagSize) != 0)
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
 	}
