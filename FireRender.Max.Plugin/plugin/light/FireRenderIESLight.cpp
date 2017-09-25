@@ -1366,9 +1366,8 @@ bool FireRenderIESLight::SetTargetDistance(float value, TimeValue time)
 	INode* thisNode = GetThisNode();
 	INode* targetNode = GetTargetNode();
 
-	if (thisNode == nullptr ||
-		targetNode == nullptr ||
-		GetTargetDistance(time) == value)
+	if (thisNode == nullptr || targetNode == nullptr ||
+		std::abs(GetTargetDistance(time) - value) < std::numeric_limits<float>::epsilon())
 	{
 		return false;
 	}
