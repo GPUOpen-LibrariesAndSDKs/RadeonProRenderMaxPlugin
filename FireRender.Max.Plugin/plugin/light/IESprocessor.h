@@ -53,6 +53,7 @@ public:
 
 protected:
 	static const char* IES_FileTag;
+	static const int IES_TagSize = 5;
 
 	/**
 	* Reads file and fills array tokens with numbers (as strings) and text array with data other than numbers
@@ -113,7 +114,7 @@ public:
 	* The initial rated lumens for the lamp used in the test or -1 if absolute photometry is used
 	* and the intensity values do not depend on different lamp ratings. 
 	*/
-	int m_lumens = 0;
+	double m_lumens = 0;
 
 	/**
 	* A multiplying factor for all the candela values in the file. 
@@ -122,7 +123,7 @@ public:
 	* when you obtain the photometric values from a catalog using a ruler on a goniometric diagram.
 	* Normally the multiplying factor is 1.
 	*/
-	int m_multiplier = 0;
+	double m_multiplier = 0;
 
 	/**
 	* The number of vertical (polar) angles in the photometric web. 
