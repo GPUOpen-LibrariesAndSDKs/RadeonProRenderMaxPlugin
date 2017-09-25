@@ -658,7 +658,11 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 				{
 					if (ProfileIsSelected(time))
 					{
-						CalculateLightRepresentation(GetActiveProfile(time));
+						if (!CalculateLightRepresentation(GetActiveProfile(time)))
+						{
+							SetActiveProfile(_T(""), time);
+						}
+
 						CalculateBBox();
 					}
 					else
@@ -1156,10 +1160,9 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 		if (std::fabs(scaleFactor - 1.0f) > 0.01f)
 		{
 			// parse IES file
-			std::string iesFilename(profilePath.begin(), profilePath.end());
 			IESProcessor parser;
 			IESProcessor::IESLightData data;
-			bool parseOK = parser.Parse(data, iesFilename.c_str()) == IESProcessor::ErrorCode::SUCCESS;
+			bool parseOK = parser.Parse(data, profilePath.c_str()) == IESProcessor::ErrorCode::SUCCESS;
 			if (!parseOK)
 			{
 				// throw?

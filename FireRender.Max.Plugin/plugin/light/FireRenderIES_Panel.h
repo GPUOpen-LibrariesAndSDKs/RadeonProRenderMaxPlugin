@@ -593,6 +593,20 @@ public:
 		FASSERT(ret != CB_ERR);
 	}
 
+	bool SetSelected(const TCHAR* text)
+	{
+		return ForEachItem([&](int index, const TString& str)
+		{
+			if (_tcscmp(text, str.c_str()) == 0)
+			{
+				SetSelected(index);
+				return true;
+			}
+
+			return false;
+		});
+	}
+
 	// -1 to clear selection
 	void SetSelected(int index)
 	{
