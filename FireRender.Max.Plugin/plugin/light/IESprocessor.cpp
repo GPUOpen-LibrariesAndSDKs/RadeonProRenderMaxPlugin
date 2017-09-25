@@ -98,28 +98,29 @@ bool IESProcessor::IESLightData::IsAsymmetric(void) const
 
 std::string IESProcessor::ToString(const IESLightData& lightData) const
 {
-	std::stringstream stream(lightData.m_extraData);
+	std::stringstream stream;
+
+	// Write IES header
+	stream << lightData.m_extraData;
 
 	// add first line of IES format
 	stream
-		<< lightData.m_countLamps
-		<< lightData.m_lumens
-		<< lightData.m_multiplier
-		<< lightData.m_countVerticalAngles
-		<< lightData.m_countHorizontalAngles
-		<< lightData.m_photometricType
-		<< lightData.m_unit
-		<< lightData.m_width
-		<< lightData.m_length
-		<< lightData.m_height
-		<< std::endl;
+		<< lightData.m_countLamps << ' '
+		<< lightData.m_lumens << ' '
+		<< lightData.m_multiplier << ' '
+		<< lightData.m_countVerticalAngles << ' '
+		<< lightData.m_countHorizontalAngles << ' '
+		<< lightData.m_photometricType << ' '
+		<< lightData.m_unit << ' '
+		<< (float)lightData.m_width << ' '
+		<< (float)lightData.m_length << ' '
+		<< (float)lightData.m_height << std::endl;
 
 	// add second line of IES format
 	stream
-		<< lightData.m_ballast
-		<< lightData.m_version
-		<< lightData.m_wattage
-		<< std::endl;
+		<< lightData.m_ballast << ' '
+		<< lightData.m_version << ' '
+		<< (float)lightData.m_wattage << std::endl;
 
 	// add third line of IES format
 	for (double angle : lightData.m_verticalAngles)
@@ -143,13 +144,17 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 
 	for (double candelaValue : lightData.m_candelaValues)
 	{
-		stream << std::to_string(candelaValue) << ' ';
+		stream << std::to_string(candelaValue);
 
 		// Put the end of the line where need
 		if (++indexInLine == valuesPerLine)
 		{
 			stream << std::endl;
 			indexInLine = 0;
+		}
+		else
+		{
+			stream << ' ';
 		}
 	}
 
