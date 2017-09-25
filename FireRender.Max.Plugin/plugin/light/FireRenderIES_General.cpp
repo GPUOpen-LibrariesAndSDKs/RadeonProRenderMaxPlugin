@@ -21,13 +21,16 @@ namespace
 			return true;
 		}
 
+		return false;
+	}
+
+	void ShowInvalidProfileWarning()
+	{
 		MessageBox(
 			GetCOREInterface()->GetMAXHWnd(),
 			_T("Failed to export IES light source!"),
 			_T("Warning"),
 			MB_ICONWARNING | MB_OK);
-
-		return false;
 	}
 }
 
@@ -167,9 +170,18 @@ bool IES_General::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 			
 			if (!ProfileIsValid(profilePath.c_str()))
 			{
-				const TCHAR* activeProfile = m_parent->GetActiveProfile(t);
-				bool setSelectedOk = m_profilesComboBox.SetSelected(activeProfile);
-				FASSERT(setSelectedOk); // This seems to be impossible
+				ShowInvalidProfileWarning();
+
+				if (m_parent->ProfileIsSelected(t))
+				{
+					const TCHAR* activeProfile = m_parent->GetActiveProfile(t);
+					m_profilesComboBox.SetSelected(activeProfile);
+				}
+				else
+				{
+					m_profilesComboBox.SetSelected(-1);
+				}
+
 				return false;
 			}
 		}
@@ -375,11 +387,17 @@ void IES_General::ImportProfile()
 		const wchar_t* pathAndName = filename.c_str();
 		const wchar_t* name = pathAndName + nameOffset;
 
-		if (FireRenderIES_Profiles::CopyIES_File(filename.c_str(), nameOffset) &&
-			ProfileIsValid(pathAndName))
+		if (FireRenderIES_Profiles::CopyIES_File(filename.c_str(), nameOffset))
 		{
-			m_profilesComboBox.AddItem(name);
-			UpdateDeleteProfileButtonState();
+			if (!ProfileIsValid(pathAndName))
+			{
+				ShowInvalidProfileWarning();
+			}
+			else
+			{
+				m_profilesComboBox.AddItem(name);
+				UpdateDeleteProfileButtonState();
+			}
 		}
 	}
 }

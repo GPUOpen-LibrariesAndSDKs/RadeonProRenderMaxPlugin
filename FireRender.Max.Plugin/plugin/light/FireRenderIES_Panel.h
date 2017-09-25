@@ -595,6 +595,8 @@ public:
 
 	bool SetSelected(const TCHAR* text)
 	{
+		FASSERT(text != nullptr);
+
 		return ForEachItem([&](int index, const TString& str)
 		{
 			if (_tcscmp(text, str.c_str()) == 0)
