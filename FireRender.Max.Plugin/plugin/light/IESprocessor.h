@@ -243,8 +243,5 @@ protected:
 
 struct IESProcessor::IESUpdateRequest
 {
-	IESUpdateRequest(void);
-
-	float m_scale;
+	float m_scale = 1.0f;
 };
-

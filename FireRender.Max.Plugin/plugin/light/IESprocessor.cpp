@@ -563,7 +563,3 @@ IESProcessor::ErrorCode IESProcessor::Update(IESLightData& lightData, const IESU
 
 	return IESProcessor::ErrorCode::SUCCESS;
 }
-
-IESProcessor::IESUpdateRequest::IESUpdateRequest()
-	: m_scale (1.0f)
-{}
