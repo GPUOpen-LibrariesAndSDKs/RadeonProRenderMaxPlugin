@@ -28,7 +28,7 @@ namespace
 	{
 		MessageBox(
 			GetCOREInterface()->GetMAXHWnd(),
-			_T("Failed to export IES light source!"),
+			_T("Failed to import IES light source!"),
 			_T("Warning"),
 			MB_ICONWARNING | MB_OK);
 	}

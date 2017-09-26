@@ -658,12 +658,14 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 				{
 					if (ProfileIsSelected(time))
 					{
-						if (!CalculateLightRepresentation(GetActiveProfile(time)))
+						if (CalculateLightRepresentation(GetActiveProfile(time)))
+						{
+							CalculateBBox();
+						}
+						else
 						{
 							SetActiveProfile(_T(""), time);
 						}
-
-						CalculateBBox();
 					}
 					else
 					{
