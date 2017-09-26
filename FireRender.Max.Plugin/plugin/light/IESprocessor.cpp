@@ -503,7 +503,7 @@ IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::
 	return IESProcessor::ErrorCode::SUCCESS;
 }
 
-IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const char* filename) const
+IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const wchar_t* filename) const
 {
 	// back-off
 	if (filename == nullptr)

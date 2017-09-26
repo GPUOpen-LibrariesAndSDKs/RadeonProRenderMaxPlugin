@@ -3,10 +3,36 @@
 
 #include "FireRenderIESLight.h"
 #include "FireRenderIES_Profiles.h"
+#include "IESprocessor.h"
 
 #include "FireRenderIES_General.h"
 
 FIRERENDER_NAMESPACE_BEGIN
+
+namespace
+{
+	bool ProfileIsValid(const wchar_t* profilePath)
+	{
+		IESProcessor processor;
+		IESProcessor::IESLightData lightData;
+
+		if (processor.Parse(lightData, profilePath) == IESProcessor::ErrorCode::SUCCESS)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	void ShowInvalidProfileWarning()
+	{
+		MessageBox(
+			GetCOREInterface()->GetMAXHWnd(),
+			_T("Failed to import IES light source!"),
+			_T("Warning"),
+			MB_ICONWARNING | MB_OK);
+	}
+}
 
 const int IES_General::DialogId = IDD_FIRERENDER_IES_LIGHT_GENERAL;
 const TCHAR* IES_General::PanelName = _T("General");
@@ -134,6 +160,32 @@ bool IES_General::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 
 	if (code == CBN_SELCHANGE && controlId == IDC_FIRERENDER_IES_LIGHT_PROFILE)
 	{
+		int index = m_profilesComboBox.GetSelectedIndex();
+
+		// Nothing is selected
+		if (index != -1)
+		{
+			std::wstring profileName = m_profilesComboBox.GetItemText(index);
+			std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName.c_str());
+			
+			if (!ProfileIsValid(profilePath.c_str()))
+			{
+				ShowInvalidProfileWarning();
+
+				if (m_parent->ProfileIsSelected(t))
+				{
+					const TCHAR* activeProfile = m_parent->GetActiveProfile(t);
+					m_profilesComboBox.SetSelected(activeProfile);
+				}
+				else
+				{
+					m_profilesComboBox.SetSelected(-1);
+				}
+
+				return false;
+			}
+		}
+
 		bool profileIsActivated = ActivateSelectedProfile(t);
 		UpdateDeleteProfileButtonState();
 		return profileIsActivated;
@@ -350,8 +402,15 @@ void IES_General::ImportProfile()
 
 		if (FireRenderIES_Profiles::CopyIES_File(filename.c_str(), nameOffset))
 		{
-			m_profilesComboBox.AddItem(name);
-			UpdateDeleteProfileButtonState();
+			if (!ProfileIsValid(pathAndName))
+			{
+				ShowInvalidProfileWarning();
+			}
+			else
+			{
+				m_profilesComboBox.AddItem(name);
+				UpdateDeleteProfileButtonState();
+			}
 		}
 	}
 }

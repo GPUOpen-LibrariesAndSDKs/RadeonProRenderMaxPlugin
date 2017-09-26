@@ -33,7 +33,7 @@ public:
 	* @param lightData - output lightData
 	* @return code of error, zero if parse successfull 
 	*/
-	ErrorCode Parse (IESLightData& lightData, const char* filename) const;
+	ErrorCode Parse (IESLightData& lightData, const wchar_t* filename) const;
 
 	/**
 	* change light data according to request, e.g. intensity is changed and so on

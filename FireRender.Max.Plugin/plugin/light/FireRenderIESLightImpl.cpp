@@ -190,7 +190,6 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 
 	// load IES data
 	std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName);
-	std::string iesFilename(profilePath.begin(), profilePath.end());
 
 	// get .ies light params
 	IESProcessor parser;
@@ -199,7 +198,7 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	const TCHAR* failReason = _T("Internal error");
 	std::basic_string<TCHAR> temp;
 
-	IESProcessor::ErrorCode parseRes = parser.Parse(data, iesFilename.c_str());
+	IESProcessor::ErrorCode parseRes = parser.Parse(data, profilePath.c_str());
 
 	bool failed = parseRes != IESProcessor::ErrorCode::SUCCESS;
 	if (failed)
