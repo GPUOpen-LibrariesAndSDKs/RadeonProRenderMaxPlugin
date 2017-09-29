@@ -669,6 +669,7 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 					}
 					else
 					{
+						m_BBoxCalculated = false;
 						m_plines.clear();
 						m_preview_plines.clear();
 					}
@@ -869,6 +870,8 @@ RefTargetHandle FireRenderIESLight::GetReference(int i)
 	return result;
 }
 
+const float IES_DEFAULT_LIGHT_RADIUS = 2.0f;
+
 void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL frozen)
 {
 	GraphicsWindow* graphicsWindow = vpt->getGW();
@@ -898,7 +901,7 @@ void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL fr
 	dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
 
 	// light source
-	DrawSphereArcs<SphereCirclePointsCount>(0, graphicsWindow, 2.0, dirMesh[0]);
+	DrawSphereArcs<SphereCirclePointsCount>(0, graphicsWindow, IES_DEFAULT_LIGHT_RADIUS, dirMesh[0]);
 
 	if (GetTargeted(t))
 	{
@@ -1005,12 +1008,33 @@ void FireRenderIESLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vp
 	if (!m_BBoxCalculated)
 		bool haveBBox = CalculateBBox();
 
-	if (!m_BBoxCalculated)
-		return;
-
-	// transform BBox with current web transformation
 	// - node transform
 	Matrix3 tm = inode->GetObjectTM(t);
+
+	if (!m_BBoxCalculated)
+	{
+		// create default bbox
+		// - default light representation is sphere with radius = IES_DEFAULT_LIGHT_RADIUS
+		tm.NoRot();
+		tm.NoScale();
+
+		Point3 bboxMin = {-IES_DEFAULT_LIGHT_RADIUS, -IES_DEFAULT_LIGHT_RADIUS, -IES_DEFAULT_LIGHT_RADIUS };
+		Point3 bboxMax = { IES_DEFAULT_LIGHT_RADIUS, IES_DEFAULT_LIGHT_RADIUS, IES_DEFAULT_LIGHT_RADIUS };
+		bboxMin = bboxMin * tm;
+		bboxMax = bboxMax * tm;
+
+		// output result
+		box.pmin.x = bboxMin.x;
+		box.pmin.y = bboxMin.y;
+		box.pmin.z = bboxMin.z;
+		box.pmax.x = bboxMax.x;
+		box.pmax.y = bboxMax.y;
+		box.pmax.z = bboxMax.z;
+
+		return;
+	}
+
+	// transform BBox with current web transformation
 	// - scale
 	float scaleFactor;
 	GetParamBlock(0)->GetValue(IES_PARAM_AREA_WIDTH, 0, scaleFactor, FOREVER);
