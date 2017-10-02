@@ -1388,31 +1388,27 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 				// process action
 				if (wcscmp(id, _T("doc")) == 0)
 				{
-					url = _T("https://radeon-prorender.github.io/max/UserGuide");
+					url = _T("https://www2.ati.com/relnotes/radeonprorender_3dsmax_user_guide_v1.0.pdf");
 				}
-				else if (wcscmp(id, _T("forum")) == 0)
+				else if (wcscmp(id, _T("discuss")) == 0)
 				{
 					url = _T("http://max.radeonprorender.com/support/discussions");
 				}
-				else if (wcscmp(id, _T("report")) == 0)
+				else if (wcscmp(id, _T("main_site")) == 0)
 				{
-					url = _T("http://max.radeonprorender.com/support/tickets");
+					url = _T("https://pro.radeon.com/en/software/prorender/3ds-max/");
 				}
-				else if (wcscmp(id, _T("home")) == 0)
+				else if (wcscmp(id, _T("knowledgebase")) == 0)
 				{
-					url = _T("https://github.com/Radeon-ProRender/Max");
+					url = _T("http://max.radeonprorender.com/support/home");
 				}
-				else if (wcscmp(id, _T("update")) == 0)
+				else if (wcscmp(id, _T("downloads")) == 0)
 				{
-					url = _T("https://github.com/Radeon-ProRender/max/releases");
+					url = _T("https://pro.radeon.com/en/software/prorender/3ds-max/");
 				}
-				else if (wcscmp(id, _T("materials")) == 0)
+				else if (wcscmp(id, _T("bugs")) == 0)
 				{
-					url = _T("https://github.com/Radeon-ProRender/max/releases");
-				}
-				else if (wcscmp(id, _T("tutorials")) == 0)
-				{
-					url = _T("https://radeon-prorender.github.io/max/#tutorials");
+					url = _T("http://max.radeonprorender.com/support/login");
 				}
 				// execute URL
 				if (url != NULL)
