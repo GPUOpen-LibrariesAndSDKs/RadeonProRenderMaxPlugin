@@ -48,12 +48,12 @@ namespace
 
 IMPLEMENT_FRMTLCLASSDESC(PbrMtl)
 
-FRMTLCLASSDESCNAME(PbrMtl) FRMTLCLASSNAME(PbrMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(PbrMtl) FireRenderPbrMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc
 (
-	0, _T("PbrMtlPbdesc"), 0, &FRMTLCLASSNAME(PbrMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("PbrMtlPbdesc"), 0, &FireRenderPbrMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_PBRMTL, IDS_FR_MTL_PBR, 0, 0, NULL,
 
@@ -167,7 +167,7 @@ static ParamBlockDesc2 pbDesc
 	PB_END
 );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(PbrMtl)::TEXMAP_MAPPING =
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderPbrMtl::TEXMAP_MAPPING =
 {
 	{ FRPBRMTL_MAP_DIFFUSE_COLOR, { FRPBRMTL_DIFFUSE_COLOR_MAP, _T("Diffuse Color") } },
 	{ FRPBRMTL_MAP_ROUGHNESS,     { FRPBRMTL_ROUGHNESS_MAP,     _T("Roughness") } },
@@ -178,17 +178,17 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(PbrMtl)::TEXMAP_MAPPING
 	{ FRPBRMTL_MAP_EMISSIVE,      { FRPBRMTL_EMISSIVE_MAP,      _T("Emissive") } },
 };
 
-Color FRMTLCLASSNAME(PbrMtl)::GetDiffuse(int mtlNum, BOOL backFace)
+Color FireRenderPbrMtl::GetDiffuse(int mtlNum, BOOL backFace)
 {
 	return GetFromPb<Color>(pblock, FRPBRMTL_DIFFUSE_COLOR);
 }
 
-frw::Shader FRMTLCLASSNAME(PbrMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderPbrMtl::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	return frw::Shader();
 }
 
-frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderPbrMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	const frw::MaterialSystem& materialSystem = mtlParser.materialSystem;
 	const frw::Scope& scope = mtlParser.GetScope();
@@ -291,7 +291,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	return shader;
 }
 
-std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(PbrMtl)::GetParameters(FRPbrMtl_ParamID useMapId,
+std::tuple<bool, Texmap*, Color, float> FireRenderPbrMtl::GetParameters(FRPbrMtl_ParamID useMapId,
 	FRPbrMtl_ParamID mapId, FRPbrMtl_ParamID colorId, FRPbrMtl_ParamID mulId)
 {
 	bool useMap = GetFromPb<bool>(pblock, useMapId);

@@ -59,17 +59,24 @@ enum FRPbrMtl_ParamID : ParamID
 BEGIN_DECLARE_FRMTLCLASSDESC(PbrMtl, L"RPR PBR Material", FIRERENDER_PBRMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(PbrMtl)
-
+class FireRenderPbrMtlTraits
+{
 public:
-	virtual Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	using ClassDesc = FireRenderClassDescPbrMtl;
+};
+
+class FireRenderPbrMtl :
+	public FireRenderMtl<FireRenderPbrMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
 
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
 
 private:
 	std::tuple<bool, Texmap*, Color, float> GetParameters(FRPbrMtl_ParamID useMapId,
 		FRPbrMtl_ParamID mapId, FRPbrMtl_ParamID colorId, FRPbrMtl_ParamID mulId);
-
-END_DECLARE_FRMTL(PbrMtl)
+};
 
 FIRERENDER_NAMESPACE_END;
