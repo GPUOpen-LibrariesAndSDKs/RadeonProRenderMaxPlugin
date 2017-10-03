@@ -21,12 +21,18 @@ enum FROrenNayarMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(OrenNayarMtl, L"RPR Oren-Nayar Material", FIRERENDER_ORENNAYARMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(OrenNayarMtl)
+class FireRenderOrenNayarMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescOrenNayarMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FROrenNayarMtl_COLOR);
-}
-
-END_DECLARE_FRMTL(OrenNayarMtl)
+class FireRenderOrenNayarMtl :
+	public FireRenderMtl<FireRenderOrenNayarMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;

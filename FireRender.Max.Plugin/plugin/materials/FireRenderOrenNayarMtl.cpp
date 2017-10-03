@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(OrenNayarMtl)
 
-FRMTLCLASSDESCNAME(OrenNayarMtl) FRMTLCLASSNAME(OrenNayarMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(OrenNayarMtl) FireRenderOrenNayarMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("OrenNayarMtlPbdesc"), 0, &FRMTLCLASSNAME(OrenNayarMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("OrenNayarMtlPbdesc"), 0, &FireRenderOrenNayarMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_ORENNAYARMTL, IDS_FR_MTL_ORENNAYAR, 0, 0, NULL,
 
@@ -41,13 +41,18 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(OrenNayarMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderOrenNayarMtl::TEXMAP_MAPPING = {
 	{ FROrenNayarMtl_TEXMAP_DIFFUSE, { FROrenNayarMtl_COLOR_TEXMAP, _T("Color Map") } },
 	{ FROrenNayarMtl_TEXMAP_ROUGHNESS, { FROrenNayarMtl_ROUGHNESS_TEXMAP, _T("Roughness Map") } },
 	{ FROrenNayarMtl_TEXMAP_NORMAL, { FROrenNayarMtl_NORMALMAP, _T("Normal map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(OrenNayarMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderOrenNayarMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FROrenNayarMtl_COLOR);
+}
+
+frw::Shader FireRenderOrenNayarMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
