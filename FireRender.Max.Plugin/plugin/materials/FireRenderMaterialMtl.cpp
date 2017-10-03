@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(MaterialMtl)
 
-FRMTLCLASSDESCNAME(MaterialMtl) FRMTLCLASSNAME(MaterialMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(MaterialMtl) FireRenderMaterialMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("MaterialMtlPbdesc"), 0, &FRMTLCLASSNAME(MaterialMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("MaterialMtlPbdesc"), 0, &FireRenderMaterialMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_MATERIALMTL, IDS_FR_MTL_MATERIAL, 0, 0, NULL,
 
@@ -46,11 +46,11 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(MaterialMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderMaterialMtl::TEXMAP_MAPPING = {
 	{ 0,{ FRMaterialMtl_DISPLACEMENT, _T("Displacement") } }
 };
 
-frw::Shader FRMTLCLASSNAME(MaterialMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderMaterialMtl::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
     Mtl* volume = GetFromPb<Mtl*>(pblock, FRMaterialMtl_VOLUME);
     if (!volume)
@@ -59,7 +59,7 @@ frw::Shader FRMTLCLASSNAME(MaterialMtl)::getVolumeShader(const TimeValue t, Mate
     return mtlParser.createVolumeShader(volume, node);
 }
 
-frw::Shader FRMTLCLASSNAME(MaterialMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderMaterialMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 	
@@ -84,8 +84,22 @@ frw::Shader FRMTLCLASSNAME(MaterialMtl)::getShader(const TimeValue t, MaterialPa
 
 	return mat;
 }
+void FireRenderMaterialMtl::NotifyChanged()
+{
+	NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE);
+}
 
-void FRMTLCLASSNAME(MaterialMtl)::SetSubMtl(int i, Mtl *m)
+int FireRenderMaterialMtl::NumSubMtls()
+{
+	return 2;
+}
+
+Mtl* FireRenderMaterialMtl::GetSubMtl(int i)
+{
+	return i ? sub2 : sub1;
+}
+
+void FireRenderMaterialMtl::SetSubMtl(int i, Mtl *m)
 {
 	ReplaceReference(i + 1, m);
 	if (i == 0)
@@ -98,7 +112,22 @@ void FRMTLCLASSNAME(MaterialMtl)::SetSubMtl(int i, Mtl *m)
 	}
 }
 
-RefTargetHandle FRMTLCLASSNAME(MaterialMtl)::GetReference(int i)
+TSTR FireRenderMaterialMtl::GetSubMtlSlotName(int i)
+{
+	return i ? L"Volume" : L"Surface";
+}
+
+int FireRenderMaterialMtl::NumSubs()
+{
+	return 4;
+}
+
+int FireRenderMaterialMtl::NumRefs()
+{
+	return 4;
+}
+
+RefTargetHandle FireRenderMaterialMtl::GetReference(int i)
 {
 	switch (i) {
 		case 0: return pblock;
@@ -109,7 +138,7 @@ RefTargetHandle FRMTLCLASSNAME(MaterialMtl)::GetReference(int i)
 	return NULL;
 }
 
-void FRMTLCLASSNAME(MaterialMtl)::SetReference(int i, RefTargetHandle rtarg)
+void FireRenderMaterialMtl::SetReference(int i, RefTargetHandle rtarg)
 {
 	switch (i) {
 		case 0: pblock = (IParamBlock2*)rtarg; break;

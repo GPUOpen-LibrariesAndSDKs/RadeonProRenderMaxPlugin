@@ -19,24 +19,34 @@ END_DECLARE_FRMTLCLASSDESC()
 #define SUB2_REF	2
 #define SUB3_REF	3
 
-BEGIN_DECLARE_FRMTL(MaterialMtl)
+class FireRenderMaterialMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescMaterialMtl;
+};
+
+class FireRenderMaterialMtl :
+	public FireRenderMtl<FireRenderMaterialMtlTraits>
+{
 public:
 	Mtl *sub1, *sub2;
 	Texmap *sub3;
-	void NotifyChanged() { NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE); }
-	int NumSubMtls() { return 2; }
-	Mtl* GetSubMtl(int i) { return i ? sub2 : sub1; }
-	void SetSubMtl(int i, Mtl *m);
-	TSTR GetSubMtlSlotName(int i) { return i ? L"Volume" : L"Surface"; }
-	int NumSubs() { return 4; }
-	int NumRefs() { return 4; }
-	RefTargetHandle GetReference(int i);
 
+	int NumSubMtls() override;
+	Mtl* GetSubMtl(int i) override;
+	void SetSubMtl(int i, Mtl *m) override;
+	TSTR GetSubMtlSlotName(int i) override;
+	int NumSubs() override;
+	int NumRefs() override;
+	RefTargetHandle GetReference(int i) override;
+
+	void NotifyChanged();
 	frw::Shader getVolumeShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
 
 private:
-	virtual void SetReference(int i, RefTargetHandle rtarg);
-END_DECLARE_FRMTL(MaterialMtl)
+	void SetReference(int i, RefTargetHandle rtarg) override;
+};
 
 
 FIRERENDER_NAMESPACE_END;
