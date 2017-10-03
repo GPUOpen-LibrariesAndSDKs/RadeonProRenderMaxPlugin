@@ -526,10 +526,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(UberMtlv2)::TEXMAP_MAPP
 	{ FRUBERMTLV2_MAP_MAT_BUMP,{ FRUBERMTLV2_MAT_BUMP_MAP, _T("Material Bump") } },
 };
 
-FRMTLCLASSNAME(UberMtlv2)::~FRMTLCLASSNAME(UberMtlv2)()
-{
-}
-
 frw::Shader FRMTLCLASSNAME(UberMtlv2)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	return frw::Shader();

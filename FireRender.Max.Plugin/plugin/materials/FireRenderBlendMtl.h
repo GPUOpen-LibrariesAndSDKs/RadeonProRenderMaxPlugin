@@ -29,8 +29,6 @@ class FireRenderBlendMtl :
 	public FireRenderMtl<FireRenderBlendMtlTraits>
 {
 public:
-	~FireRenderBlendMtl();
-
 	Mtl *sub1, *sub2;
 	Texmap *sub3;
 	void NotifyChanged() { NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE); }

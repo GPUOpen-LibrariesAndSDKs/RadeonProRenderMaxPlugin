@@ -43,11 +43,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(RefractionMtl)::TEXMAP_
 	{ FRRefractionMtl_TEXMAP_NORMAL, { FRRefractionMtl_NORMALMAP, _T("Normal Map") } }
 };
 
-FRMTLCLASSNAME(RefractionMtl)::~FRMTLCLASSNAME(RefractionMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(RefractionMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

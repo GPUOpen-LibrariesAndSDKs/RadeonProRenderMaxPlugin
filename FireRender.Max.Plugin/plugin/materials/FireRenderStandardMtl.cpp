@@ -129,11 +129,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(StandardMtl)::TEXMAP_MA
 	{ FRStandardMtl_TEXMAP_EMISSION_WEIGHT, { FRStandardMtl_EMISSION_WEIGHT_TEXMAP, _T("Emission Weight Map") } }
 };
 
-FRMTLCLASSNAME(StandardMtl)::~FRMTLCLASSNAME(StandardMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(StandardMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

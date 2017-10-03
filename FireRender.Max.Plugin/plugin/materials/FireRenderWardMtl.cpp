@@ -61,11 +61,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(WardMtl)::TEXMAP_MAPPIN
 	{ FRWardMtl_TEXMAP_ROTATION, { FRWardMtl_ROTATION_TEXMAP, _T("Rotation Map") } }
 };
 
-FRMTLCLASSNAME(WardMtl)::~FRMTLCLASSNAME(WardMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(WardMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

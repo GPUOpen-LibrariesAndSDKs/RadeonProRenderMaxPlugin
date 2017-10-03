@@ -302,8 +302,6 @@ public:\
 		ClassDescInstance.MakeAutoParamBlocks(this);\
 		FASSERT(pblock != NULL);\
 	}\
-	~FireRender##NAME();\
-\
 	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node); \
 \
 	virtual IOResult Save(ISave *isave) override {\

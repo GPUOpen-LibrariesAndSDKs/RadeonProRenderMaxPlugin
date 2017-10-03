@@ -83,11 +83,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(EmissiveMtl)::TEXMAP_MA
 	{ FREmissiveMtl_TEXMAP_COLOR, { FREmissiveMtl_COLOR_TEXMAP, _T("Color Map") } },
 };
 
-FRMTLCLASSNAME(EmissiveMtl)::~FRMTLCLASSNAME(EmissiveMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(EmissiveMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

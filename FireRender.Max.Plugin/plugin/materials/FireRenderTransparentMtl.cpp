@@ -35,11 +35,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(TransparentMtl)::TEXMAP
 	{ FRTransparentMtl_TEXMAP_COLOR, { FRTransparentMtl_COLOR_TEXMAP, _T("Color map") } }
 };
 
-FRMTLCLASSNAME(TransparentMtl)::~FRMTLCLASSNAME(TransparentMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(TransparentMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

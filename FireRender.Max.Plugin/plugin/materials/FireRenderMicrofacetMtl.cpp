@@ -50,11 +50,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(MicrofacetMtl)::TEXMAP_
 	{ FRMicrofacetMtl_TEXMAP_NORMAL, { FRMicrofacetMtl_NORMALMAP, _T("Normal Map") } }
 };
 
-FRMTLCLASSNAME(MicrofacetMtl)::~FRMTLCLASSNAME(MicrofacetMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(MicrofacetMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

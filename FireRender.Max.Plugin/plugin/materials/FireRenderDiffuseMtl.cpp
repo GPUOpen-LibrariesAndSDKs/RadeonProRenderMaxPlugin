@@ -15,12 +15,12 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(DiffuseMtl)
 
-FRMTLCLASSDESCNAME(DiffuseMtl) FRMTLCLASSNAME(DiffuseMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(DiffuseMtl) FireRenderDiffuseMtl::ClassDescInstance;
 
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("DiffuseMtlPbdesc"), 0, &FRMTLCLASSNAME(DiffuseMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("DiffuseMtlPbdesc"), 0, &FireRenderDiffuseMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_DIFFUSEMTL, IDS_FR_MTL_DIFFUSE, 0, 0, NULL,
 
@@ -36,17 +36,13 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(DiffuseMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderDiffuseMtl::TEXMAP_MAPPING = {
 	{ FRDiffuseMtl_TEXMAP_DIFFUSE, { FRDiffuseMtl_COLOR_TEXMAP, _T("Color Map") } },
 	{ FRDiffuseMtl_TEXMAP_NORMAL, { FRDiffuseMtl_NORMALMAP, _T("Normal map") } }
 };
 
-FRMTLCLASSNAME(DiffuseMtl)::~FRMTLCLASSNAME(DiffuseMtl)()
-{
-}
 
-
-frw::Shader FRMTLCLASSNAME(DiffuseMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderDiffuseMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -66,6 +62,11 @@ frw::Shader FRMTLCLASSNAME(DiffuseMtl)::getShader(const TimeValue t, MaterialPar
 		material.SetNormal(FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
+}
+
+Color FireRenderDiffuseMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRDiffuseMtl_COLOR);
 }
 
 FIRERENDER_NAMESPACE_END;

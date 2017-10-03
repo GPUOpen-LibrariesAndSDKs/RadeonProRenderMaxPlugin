@@ -50,10 +50,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(MaterialMtl)::TEXMAP_MA
 	{ 0,{ FRMaterialMtl_DISPLACEMENT, _T("Displacement") } }
 };
 
-FRMTLCLASSNAME(MaterialMtl)::~FRMTLCLASSNAME(MaterialMtl)()
-{
-}
-
 frw::Shader FRMTLCLASSNAME(MaterialMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
     Mtl* volume = GetFromPb<Mtl*>(pblock, FRMaterialMtl_VOLUME);

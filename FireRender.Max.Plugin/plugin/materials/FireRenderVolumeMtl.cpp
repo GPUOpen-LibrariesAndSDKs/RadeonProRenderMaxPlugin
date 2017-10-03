@@ -67,10 +67,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(VolumeMtl)::TEXMAP_MAPP
 	{ FRVolumeMtl_TEXMAP_EMISSION,{ FRVolumeMtl_EmissionColorTexmap, _T("Emission Map") } },
 };
 
-FRMTLCLASSNAME(VolumeMtl)::~FRMTLCLASSNAME(VolumeMtl)()
-{
-}
-
 frw::Shader FRMTLCLASSNAME(VolumeMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

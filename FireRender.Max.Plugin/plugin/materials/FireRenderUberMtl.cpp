@@ -209,10 +209,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(UberMtl)::TEXMAP_MAPPIN
 	{ FRUBERMTL_TEXMAP_EMISSION,{ FRUBERMTL_EMISSIONCOLORTEXMAP, _T("Emission Map") } }
 };
 
-FRMTLCLASSNAME(UberMtl)::~FRMTLCLASSNAME(UberMtl)()
-{
-}
-
 frw::Shader FRMTLCLASSNAME(UberMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

@@ -37,8 +37,6 @@ static ParamBlockDesc2 pbDesc(
 
 std::map<int, std::pair<ParamID, MCHAR*>> FireRenderAddMtl::TEXMAP_MAPPING;
 
-FireRenderAddMtl::~FireRenderAddMtl() = default;
-
 frw::Shader FireRenderAddMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

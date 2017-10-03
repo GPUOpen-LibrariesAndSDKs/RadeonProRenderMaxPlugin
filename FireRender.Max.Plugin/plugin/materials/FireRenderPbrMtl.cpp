@@ -178,10 +178,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(PbrMtl)::TEXMAP_MAPPING
 	{ FRPBRMTL_MAP_EMISSIVE,      { FRPBRMTL_EMISSIVE_MAP,      _T("Emissive") } },
 };
 
-FRMTLCLASSNAME(PbrMtl)::~FRMTLCLASSNAME(PbrMtl)()
-{
-}
-
 Color FRMTLCLASSNAME(PbrMtl)::GetDiffuse(int mtlNum, BOOL backFace)
 {
 	return GetFromPb<Color>(pblock, FRPBRMTL_DIFFUSE_COLOR);

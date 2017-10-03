@@ -26,8 +26,6 @@ class FireRenderAddMtl :
 	public FireRenderMtl<FireRenderAddMtlTraits>
 {
 public:
-	~FireRenderAddMtl();
-
 	Mtl *sub1, *sub2;
 	void NotifyChanged() { NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE); }
 	int NumSubMtls() { return 2; }

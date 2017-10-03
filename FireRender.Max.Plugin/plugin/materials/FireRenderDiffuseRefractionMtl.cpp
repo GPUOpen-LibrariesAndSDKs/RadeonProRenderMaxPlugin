@@ -47,11 +47,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(DiffuseRefractionMtl)::
 	{ FRDiffuseRefractionMtl_TEXMAP_NORMAL, { FRDiffuseRefractionMtl_NORMALMAP, _T("Normal map") } }
 };
 
-FRMTLCLASSNAME(DiffuseRefractionMtl)::~FRMTLCLASSNAME(DiffuseRefractionMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(DiffuseRefractionMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

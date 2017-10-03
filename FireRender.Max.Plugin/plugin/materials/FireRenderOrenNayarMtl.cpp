@@ -47,11 +47,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(OrenNayarMtl)::TEXMAP_M
 	{ FROrenNayarMtl_TEXMAP_NORMAL, { FROrenNayarMtl_NORMALMAP, _T("Normal map") } }
 };
 
-FRMTLCLASSNAME(OrenNayarMtl)::~FRMTLCLASSNAME(OrenNayarMtl)()
-{
-}
-
-
 frw::Shader FRMTLCLASSNAME(OrenNayarMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;

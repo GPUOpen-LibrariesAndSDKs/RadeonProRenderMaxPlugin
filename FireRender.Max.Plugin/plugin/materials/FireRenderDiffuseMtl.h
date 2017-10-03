@@ -18,11 +18,18 @@ enum FRDiffuseMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(DiffuseMtl, L"RPR Diffuse Material", FIRERENDER_DIFFUSEMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(DiffuseMtl)
+class FireRenderDiffuseMtlTraits
+{
 public:
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRDiffuseMtl_COLOR);
-}
-END_DECLARE_FRMTL(DiffuseMtl)
+	using ClassDesc = FireRenderClassDescDiffuseMtl;
+};
+
+class FireRenderDiffuseMtl :
+	public FireRenderMtl<FireRenderDiffuseMtlTraits>
+{
+public:
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+};
 
 FIRERENDER_NAMESPACE_END;
