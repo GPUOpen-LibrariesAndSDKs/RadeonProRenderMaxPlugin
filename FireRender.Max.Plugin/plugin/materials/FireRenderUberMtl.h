@@ -87,13 +87,19 @@ enum FRUberMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(UberMtl, L"RPR Uber Material", FIRERENDER_UBERMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(UberMtl)
+class FireRenderUberMtlTraits
+{
 public:
-	virtual Color GetDiffuse(int mtlNum, BOOL backFace) override
-	{
-		return GetFromPb<Color>(pblock, FRUBERMTL_DIFFCOLOR);
-	}
+	using ClassDesc = FireRenderClassDescUberMtl;
+};
+
+class FireRenderUberMtl :
+	public FireRenderMtl<FireRenderUberMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
-END_DECLARE_FRMTL(UberMtl)
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;

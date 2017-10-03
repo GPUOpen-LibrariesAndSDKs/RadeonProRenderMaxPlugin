@@ -21,11 +21,11 @@ namespace
 
 IMPLEMENT_FRMTLCLASSDESC(UberMtl)
 
-FRMTLCLASSDESCNAME(UberMtl) FRMTLCLASSNAME(UberMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(UberMtl) FireRenderUberMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("UberMtlPbdesc"), 0, &FRMTLCLASSNAME(UberMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("UberMtlPbdesc"), 0, &FireRenderUberMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_UBERMTL, IDS_FR_MTL_UBER, 0, 0, NULL,
 
@@ -187,7 +187,7 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(UberMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderUberMtl::TEXMAP_MAPPING = {
 	{ FRUBERMTL_TEXMAP_DIFFCOLOR, { FRUBERMTL_DIFFCOLOR_TEXMAP, _T("Diffuse Color Map") } },
 	{ FRUBERMTL_TEXMAP_DIFFNORMAL, { FRUBERMTL_DIFFNORMAL, _T("Diffuse Normal Map") } },
 	{ FRUBERMTL_TEXMAP_GLOSSYCOLOR, { FRUBERMTL_GLOSSYCOLOR_TEXMAP, _T("Refl Color Map") } },
@@ -209,7 +209,12 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(UberMtl)::TEXMAP_MAPPIN
 	{ FRUBERMTL_TEXMAP_EMISSION,{ FRUBERMTL_EMISSIONCOLORTEXMAP, _T("Emission Map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(UberMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderUberMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRUBERMTL_DIFFCOLOR);
+}
+
+frw::Shader FireRenderUberMtl::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -263,7 +268,7 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getVolumeShader(const TimeValue t, Material
 	return frw::Shader(mtlParser.materialSystem, frw::ShaderTypeVolume);
 }
 
-frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderUberMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
