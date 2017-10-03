@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(WardMtl)
 
-FRMTLCLASSDESCNAME(WardMtl) FRMTLCLASSNAME(WardMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(WardMtl) FireRenderWardMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("WardMtlPbdesc"), 0, &FRMTLCLASSNAME(WardMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("WardMtlPbdesc"), 0, &FireRenderWardMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_WARDMTL, IDS_FR_MTL_WARD, 0, 0, NULL,
 
@@ -53,7 +53,7 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(WardMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderWardMtl::TEXMAP_MAPPING = {
 	{ FRWardMtl_TEXMAP_COLOR, { FRWardMtl_COLOR_TEXMAP, _T("Color Map") } },
 	{ FRWardMtl_TEXMAP_ROUGHNESSX, { FRWardMtl_ROUGHNESSX_TEXMAP, _T("Roughness X Map") } },
 	{ FRWardMtl_TEXMAP_ROUGHNESSY, { FRWardMtl_ROUGHNESSY_TEXMAP, _T("Roughness Y Map") } },
@@ -61,7 +61,12 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(WardMtl)::TEXMAP_MAPPIN
 	{ FRWardMtl_TEXMAP_ROTATION, { FRWardMtl_ROTATION_TEXMAP, _T("Rotation Map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(WardMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderWardMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRWardMtl_COLOR);
+}
+
+frw::Shader FireRenderWardMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 

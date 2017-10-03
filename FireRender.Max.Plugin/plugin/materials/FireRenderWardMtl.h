@@ -27,12 +27,18 @@ enum FRWardMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(WardMtl, L"RPR Ward Material", FIRERENDER_WARDMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(WardMtl)
+class FireRenderWardMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescWardMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRWardMtl_COLOR);
-}
-
-END_DECLARE_FRMTL(WardMtl)
+class FireRenderWardMtl :
+	public FireRenderMtl<FireRenderWardMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;
