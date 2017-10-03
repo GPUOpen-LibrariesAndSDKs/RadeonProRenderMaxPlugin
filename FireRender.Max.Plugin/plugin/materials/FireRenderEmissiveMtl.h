@@ -32,20 +32,20 @@ enum FREmissiveMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(EmissiveMtl, L"RPR Emissive Material", FIRERENDER_EMISSIVEMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(EmissiveMtl)
+class FireRenderEmissiveMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescEmissiveMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FREmissiveMtl_COLOR);
-}
-
-virtual float GetSelfIllum(int mtlNum, BOOL backFace) override {
-	return 1.f;
-}
-
-virtual Color GetSelfIllumColor(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FREmissiveMtl_COLOR);
-}
-
-END_DECLARE_FRMTL(EmissiveMtl)
+class FireRenderEmissiveMtl :
+	public FireRenderMtl<FireRenderEmissiveMtlTraits>
+{
+public:
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	float GetSelfIllum(int mtlNum, BOOL backFace) override;
+	Color GetSelfIllumColor(int mtlNum, BOOL backFace) override;
+};
 
 FIRERENDER_NAMESPACE_END;

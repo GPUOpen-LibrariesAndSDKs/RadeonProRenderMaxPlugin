@@ -15,7 +15,7 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(EmissiveMtl)
 
-FRMTLCLASSDESCNAME(EmissiveMtl) FRMTLCLASSNAME(EmissiveMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(EmissiveMtl) FireRenderEmissiveMtl::ClassDescInstance;
 
 namespace
 {
@@ -41,7 +41,7 @@ namespace
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("EmissiveMtlPbdesc"), 0, &FRMTLCLASSNAME(EmissiveMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("EmissiveMtlPbdesc"), 0, &FireRenderEmissiveMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_EMISSIVEMTL, IDS_FR_MTL_EMISSIVE, 0, 0, NULL,
 
@@ -79,11 +79,11 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(EmissiveMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderEmissiveMtl::TEXMAP_MAPPING = {
 	{ FREmissiveMtl_TEXMAP_COLOR, { FREmissiveMtl_COLOR_TEXMAP, _T("Color Map") } },
 };
 
-frw::Shader FRMTLCLASSNAME(EmissiveMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderEmissiveMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -135,6 +135,21 @@ frw::Shader FRMTLCLASSNAME(EmissiveMtl)::getShader(const TimeValue t, MaterialPa
 	material.SetColor(mtlParser.materialSystem.ValueMul(color, mult));
 		
     return material;
+}
+
+Color FireRenderEmissiveMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FREmissiveMtl_COLOR);
+}
+
+float FireRenderEmissiveMtl::GetSelfIllum(int mtlNum, BOOL backFace)
+{
+	return 1.f;
+}
+
+Color FireRenderEmissiveMtl::GetSelfIllumColor(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FREmissiveMtl_COLOR);
 }
 
 FIRERENDER_NAMESPACE_END;
