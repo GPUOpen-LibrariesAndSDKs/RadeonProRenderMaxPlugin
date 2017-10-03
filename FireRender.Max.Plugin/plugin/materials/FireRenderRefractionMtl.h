@@ -19,16 +19,19 @@ enum FRRefractionMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(RefractionMtl, L"RPR Refraction Material", FIRERENDER_REFRACTIONMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(RefractionMtl)
+class FireRenderRefractionMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescRefractionMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRRefractionMtl_COLOR);
-}
-
-virtual float GetXParency(int mtlNum, BOOL backFace) override {
-	return 0.5f;
-}
-
-END_DECLARE_FRMTL(RefractionMtl)
+class FireRenderRefractionMtl :
+	public FireRenderMtl<FireRenderRefractionMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace);
+	float GetXParency(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;
