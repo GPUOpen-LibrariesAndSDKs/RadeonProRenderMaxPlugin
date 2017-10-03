@@ -21,12 +21,18 @@ enum FRDiffuseRefractionMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(DiffuseRefractionMtl, L"RPR Diffuse Refraction Material", FIRERENDER_DIFFUSEREFRACTIONMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(DiffuseRefractionMtl)
+class FireRenderDiffuseRefractionMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescDiffuseRefractionMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRDiffuseRefractionMtl_COLOR);
-}
-
-END_DECLARE_FRMTL(DiffuseRefractionMtl)
+class FireRenderDiffuseRefractionMtl :
+	public FireRenderMtl<FireRenderDiffuseRefractionMtlTraits>
+{
+public:
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+};
 
 FIRERENDER_NAMESPACE_END;

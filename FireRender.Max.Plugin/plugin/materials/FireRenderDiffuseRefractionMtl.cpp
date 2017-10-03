@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(DiffuseRefractionMtl)
 
-FRMTLCLASSDESCNAME(DiffuseRefractionMtl) FRMTLCLASSNAME(DiffuseRefractionMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(DiffuseRefractionMtl) FireRenderDiffuseRefractionMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("DiffuseRefractionMtlPbdesc"), 0, &FRMTLCLASSNAME(DiffuseRefractionMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("DiffuseRefractionMtlPbdesc"), 0, &FireRenderDiffuseRefractionMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_DIFFUSEREFRACTIONMTL, IDS_FR_MTL_DIFFUSEREFRACTION, 0, 0, NULL,
 
@@ -41,13 +41,13 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(DiffuseRefractionMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderDiffuseRefractionMtl::TEXMAP_MAPPING = {
 	{ FRDiffuseRefractionMtl_TEXMAP_DIFFUSE, { FRDiffuseRefractionMtl_COLOR_TEXMAP, _T("Color Map") } },
 	{ FRDiffuseRefractionMtl_TEXMAP_ROUGHNESS, { FRDiffuseRefractionMtl_ROUGHNESS_TEXMAP, _T("Roughness Map") } },
 	{ FRDiffuseRefractionMtl_TEXMAP_NORMAL, { FRDiffuseRefractionMtl_NORMALMAP, _T("Normal map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(DiffuseRefractionMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderDiffuseRefractionMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -74,6 +74,11 @@ frw::Shader FRMTLCLASSNAME(DiffuseRefractionMtl)::getShader(const TimeValue t, M
 		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
+}
+
+Color FireRenderDiffuseRefractionMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRDiffuseRefractionMtl_COLOR);
 }
 
 FIRERENDER_NAMESPACE_END;
