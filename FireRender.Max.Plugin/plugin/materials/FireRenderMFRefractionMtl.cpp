@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(MFRefractionMtl)
 
-FRMTLCLASSDESCNAME(MFRefractionMtl) FRMTLCLASSNAME(MFRefractionMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(MFRefractionMtl) FireRenderMFRefractionMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("MFRefractionMtlPbdesc"), 0, &FRMTLCLASSNAME(MFRefractionMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("MFRefractionMtlPbdesc"), 0, &FireRenderMFRefractionMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_MFREFRACTIONMTL, IDS_FR_MTL_MFREFRACTION, 0, 0, NULL,
 
@@ -44,13 +44,13 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(MFRefractionMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderMFRefractionMtl::TEXMAP_MAPPING = {
 	{ FRMFRefractionMtl_TEXMAP_COLOR, { FRMFRefractionMtl_COLOR_TEXMAP, _T("Color Map") } },
 	{ FRMFRefractionMtl_TEXMAP_ROUGHNESS, { FRMFRefractionMtl_ROUGHNESS_TEXMAP, _T("Roughness Map") } },
 	{ FRMFRefractionMtl_TEXMAP_NORMAL, { FRMFRefractionMtl_NORMALMAP, _T("Normal Map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(MFRefractionMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderMFRefractionMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -80,6 +80,16 @@ frw::Shader FRMTLCLASSNAME(MFRefractionMtl)::getShader(const TimeValue t, Materi
 		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
+}
+
+Color FireRenderMFRefractionMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRMFRefractionMtl_COLOR);
+}
+
+float FireRenderMFRefractionMtl::GetXParency(int mtlNum, BOOL backFace)
+{
+	return 0.5f;
 }
 
 FIRERENDER_NAMESPACE_END;

@@ -22,16 +22,19 @@ enum FRMFRefractionMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(MFRefractionMtl, L"RPR Microfacet Refraction Material", FIRERENDER_MFREFRACTIONMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(MFRefractionMtl)
+class FireRenderMFRefractionMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescMFRefractionMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRMFRefractionMtl_COLOR);
-}
-
-virtual float GetXParency(int mtlNum, BOOL backFace) override {
-	return 0.5f;
-}
-
-END_DECLARE_FRMTL(MFRefractionMtl)
+class FireRenderMFRefractionMtl :
+	public FireRenderMtl<FireRenderMFRefractionMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	float GetXParency(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;
