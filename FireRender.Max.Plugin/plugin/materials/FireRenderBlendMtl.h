@@ -19,8 +19,18 @@ END_DECLARE_FRMTLCLASSDESC()
 #define SUB2_REF	2
 #define SUB3_REF	3
 
-BEGIN_DECLARE_FRMTL(BlendMtl)
+class FireRenderBlendMtlTraits
+{
 public:
+	using ClassDesc = FireRenderClassDescBlendMtl;
+};
+
+class FireRenderBlendMtl :
+	public FireRenderMtl<FireRenderBlendMtlTraits>
+{
+public:
+	~FireRenderBlendMtl();
+
 	Mtl *sub1, *sub2;
 	Texmap *sub3;
 	void NotifyChanged() { NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE); }
@@ -31,42 +41,12 @@ public:
 	int NumSubs() { return 4; }
 	int NumRefs() { return 4; }
 	RefTargetHandle GetReference(int i);
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	float GetXParency(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+
 private:
 	virtual void SetReference(int i, RefTargetHandle rtarg);
-public:
-	virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-		Mtl* m0 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR0);
-		Mtl* m1 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR1);
-		if (m0 && m1)
-		{
-		Color c0 = m0->GetDiffuse(0, backFace);
-		Color c1 = m1->GetDiffuse(0, backFace);
-		float w = GetFromPb<float>(pblock, FRBlendMtl_WEIGHT);
-		return ((c0 * w) + (c1 * (1.f - w)));
-	}
-		if (m0 && !m1)
-			return m0->GetDiffuse(0, backFace);
-		if (m1 && !m0)
-			return m1->GetDiffuse(0, backFace);
-		return Color(0.8, 0.8, 0.8);
-	}
-	virtual float GetXParency(int mtlNum, BOOL backFace) override {
-		Mtl* m0 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR0);
-		Mtl* m1 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR1);
-		if (m0 && m1)
-		{
-		float t0 = m0->GetXParency(0, backFace);
-		float t1 = m1->GetXParency(0, backFace);
-		float w = GetFromPb<float>(pblock, FRBlendMtl_WEIGHT);
-		return ((t0 * w) + (t1 * (1.f - w)));
-	}
-		if (m0 && !m1)
-			return m0->GetXParency(0, backFace);
-		if (m1 && !m0)
-			return m1->GetXParency(0, backFace);
-		return 0.f;
-	}
-END_DECLARE_FRMTL(BlendMtl)
-
+};
 
 FIRERENDER_NAMESPACE_END;

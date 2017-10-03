@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(BlendMtl)
 
-FRMTLCLASSDESCNAME(BlendMtl) FRMTLCLASSNAME(BlendMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(BlendMtl) FireRenderBlendMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("BlendMtlPbdesc"), 0, &FRMTLCLASSNAME(BlendMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("BlendMtlPbdesc"), 0, &FireRenderBlendMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_BLENDMTL, IDS_FR_MTL_BLEND, 0, 0, NULL,
 
@@ -45,16 +45,14 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(BlendMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderBlendMtl::TEXMAP_MAPPING = {
 	{ 0, { FRBlendMtl_WEIGHT_TEXMAP, _T("Weight Map") } }
 };
 
-FRMTLCLASSNAME(BlendMtl)::~FRMTLCLASSNAME(BlendMtl)()
-{
-}
+FireRenderBlendMtl::~FireRenderBlendMtl() = default;
 
 
-frw::Shader FRMTLCLASSNAME(BlendMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderBlendMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -79,7 +77,7 @@ frw::Shader FRMTLCLASSNAME(BlendMtl)::getShader(const TimeValue t, MaterialParse
 	return mtlParser.materialSystem.ShaderBlend(mat0, mat1, weightv);
 }
 
-void FRMTLCLASSNAME(BlendMtl)::SetSubMtl(int i, Mtl *m)
+void FireRenderBlendMtl::SetSubMtl(int i, Mtl *m)
 {
 	ReplaceReference(i + 1, m);
 	if (i == 0)
@@ -93,7 +91,7 @@ void FRMTLCLASSNAME(BlendMtl)::SetSubMtl(int i, Mtl *m)
 
 }
 
-RefTargetHandle FRMTLCLASSNAME(BlendMtl)::GetReference(int i)
+RefTargetHandle FireRenderBlendMtl::GetReference(int i)
 {
 	switch (i) {
 		case 0: return pblock;
@@ -104,7 +102,43 @@ RefTargetHandle FRMTLCLASSNAME(BlendMtl)::GetReference(int i)
 	}
 }
 
-void FRMTLCLASSNAME(BlendMtl)::SetReference(int i, RefTargetHandle rtarg)
+Color FireRenderBlendMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	Mtl* m0 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR0);
+	Mtl* m1 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR1);
+	if (m0 && m1)
+	{
+		Color c0 = m0->GetDiffuse(0, backFace);
+		Color c1 = m1->GetDiffuse(0, backFace);
+		float w = GetFromPb<float>(pblock, FRBlendMtl_WEIGHT);
+		return ((c0 * w) + (c1 * (1.f - w)));
+	}
+	if (m0 && !m1)
+		return m0->GetDiffuse(0, backFace);
+	if (m1 && !m0)
+		return m1->GetDiffuse(0, backFace);
+	return Color(0.8, 0.8, 0.8);
+}
+
+float FireRenderBlendMtl::GetXParency(int mtlNum, BOOL backFace)
+{
+	Mtl* m0 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR0);
+	Mtl* m1 = GetFromPb<Mtl*>(pblock, FRBlendMtl_COLOR1);
+	if (m0 && m1)
+	{
+		float t0 = m0->GetXParency(0, backFace);
+		float t1 = m1->GetXParency(0, backFace);
+		float w = GetFromPb<float>(pblock, FRBlendMtl_WEIGHT);
+		return ((t0 * w) + (t1 * (1.f - w)));
+	}
+	if (m0 && !m1)
+		return m0->GetXParency(0, backFace);
+	if (m1 && !m0)
+		return m1->GetXParency(0, backFace);
+	return 0.f;
+}
+
+void FireRenderBlendMtl::SetReference(int i, RefTargetHandle rtarg)
 {
 	switch (i) {
 		case 0: pblock = (IParamBlock2*)rtarg; break;
