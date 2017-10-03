@@ -14,11 +14,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(StandardMtl)
 
-FRMTLCLASSDESCNAME(StandardMtl) FRMTLCLASSNAME(StandardMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(StandardMtl) FireRenderStandardMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("StandardMtlPbdesc"), 0, &FRMTLCLASSNAME(StandardMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("StandardMtlPbdesc"), 0, &FireRenderStandardMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_STANDARDMTL, IDS_FR_MTL_STANDARD, 0, 0, NULL,
 
@@ -114,7 +114,7 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(StandardMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderStandardMtl::TEXMAP_MAPPING = {
 	{ FRStandardMtl_TEXMAP_DIFFUSE_COLOR, { FRStandardMtl_DIFFUSE_COLOR_TEXMAP, _T("Diffuse Color Map") } },
 	{ FRStandardMtl_TEXMAP_DIFFUSE_ROUGHNESS, { FRStandardMtl_DIFFUSE_ROUGHNESS_TEXMAP, _T("Diffuse Roughness Map") } },
 	{ FRStandardMtl_TEXMAP_DIFFUSE_WEIGHT, { FRStandardMtl_DIFFUSE_WEIGHT_TEXMAP, _T("Diffuse Weight Map") } },
@@ -129,7 +129,38 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(StandardMtl)::TEXMAP_MA
 	{ FRStandardMtl_TEXMAP_EMISSION_WEIGHT, { FRStandardMtl_EMISSION_WEIGHT_TEXMAP, _T("Emission Weight Map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(StandardMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderStandardMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRStandardMtl_DIFFUSE_COLOR);
+}
+
+Color FireRenderStandardMtl::GetSpecular(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRStandardMtl_REFLECT_COLOR);
+}
+
+float FireRenderStandardMtl::GetShininess(int mtlNum, BOOL backFace)
+{
+	float roughness = 1.0f - GetFromPb<float>(pblock, FRStandardMtl_REFLECT_ROUGHNESS);
+	return roughness * roughness * roughness; // rough approximation
+}
+
+float FireRenderStandardMtl::GetSelfIllum(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<float>(pblock, FRStandardMtl_EMISSION_INTENSITY);
+}
+
+Color FireRenderStandardMtl::GetSelfIllumColor(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRStandardMtl_EMISSION_COLOR);
+}
+
+float FireRenderStandardMtl::GetXParency(int mtlNum, BOOL backFace)
+{
+	return avg(GetFromPb<Color>(pblock, FRStandardMtl_EMISSION_COLOR));
+}
+
+frw::Shader FireRenderStandardMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 

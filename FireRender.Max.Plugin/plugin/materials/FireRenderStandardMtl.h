@@ -56,33 +56,23 @@ enum FRStandardMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(StandardMtl, L"RPR Legacy Material", FIRERENDER_STANDARDMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(StandardMtl)
+class FireRenderStandardMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescStandardMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRStandardMtl_DIFFUSE_COLOR);
-}
-
-virtual Color GetSpecular(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRStandardMtl_REFLECT_COLOR);
-}
-
-virtual float GetShininess(int mtlNum, BOOL backFace) override {
-	float roughness = 1.0f - GetFromPb<float>(pblock, FRStandardMtl_REFLECT_ROUGHNESS);
-	return roughness * roughness * roughness; // rough approximation
-}
-
-virtual float GetSelfIllum(int mtlNum, BOOL backFace) override {
-	return GetFromPb<float>(pblock, FRStandardMtl_EMISSION_INTENSITY);
-}
-
-virtual Color GetSelfIllumColor(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRStandardMtl_EMISSION_COLOR);
-}
-
-virtual float GetXParency(int mtlNum, BOOL backFace) override {
-	return avg(GetFromPb<Color>(pblock, FRStandardMtl_EMISSION_COLOR));
-}
-
-END_DECLARE_FRMTL(StandardMtl)
+class FireRenderStandardMtl :
+	public FireRenderMtl<FireRenderStandardMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	Color GetSpecular(int mtlNum, BOOL backFace) override;
+	float GetShininess(int mtlNum, BOOL backFace) override;
+	float GetSelfIllum(int mtlNum, BOOL backFace) override;
+	Color GetSelfIllumColor(int mtlNum, BOOL backFace) override;
+	float GetXParency(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;
