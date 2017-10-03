@@ -16,8 +16,18 @@ enum FRAddMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(AddMtl, L"RPR Add Material", FIRERENDER_ADDMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(AddMtl)
+class FireRenderAddMtlTraits
+{
 public:
+	using ClassDesc = FireRenderClassDescAddMtl;
+};
+
+class FireRenderAddMtl :
+	public FireRenderMtl<FireRenderAddMtlTraits>
+{
+public:
+	~FireRenderAddMtl();
+
 	Mtl *sub1, *sub2;
 	void NotifyChanged() { NotifyDependents(FOREVER, PART_ALL, REFMSG_CHANGE); }
 	int NumSubMtls() { return 2; }
@@ -27,8 +37,11 @@ public:
 	int NumSubs() { return 3; }
 	int NumRefs() { return 3; }
 	RefTargetHandle GetReference(int i);
+
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+
 private:
 	virtual void SetReference(int i, RefTargetHandle rtarg);
-END_DECLARE_FRMTL(AddMtl)
+};
 
 FIRERENDER_NAMESPACE_END;

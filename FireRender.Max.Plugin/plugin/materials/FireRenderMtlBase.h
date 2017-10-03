@@ -39,6 +39,10 @@ protected:
 	IParamBlock2* pblock;
 	TimeValue currentTime = 0;
 public:
+	FireRenderMtlBase(IParamBlock2* block = nullptr) :
+		pblock(block)
+	{}
+
 	void SetCurrentTime(TimeValue t){	
 		currentTime = t;
 	}
@@ -111,6 +115,177 @@ public:
 	
 	virtual void Shade(::ShadeContext & context) override {
 	}
+};
+
+template<typename Traits>
+class FireRenderMtl :
+	public FireRenderMtlBase
+{
+public:
+	using ClassDesc = typename Traits::ClassDesc;
+	static ClassDesc ClassDescInstance;
+
+	FireRenderMtl() :
+		FireRenderMtlBase(nullptr)
+	{
+		ClassDescInstance.MakeAutoParamBlocks(this);
+		FASSERT(pblock != NULL);
+	}
+
+	IOResult Save(ISave *isave) override
+	{
+		IOResult res;
+		isave->BeginChunk(BASECLASS_CHUNK);
+		res = Mtl::Save(isave);
+		if (res != IO_OK) return res;
+		isave->EndChunk();
+		return IO_OK;
+	}
+
+	IOResult Load(ILoad* iload) override
+	{
+		IOResult res;
+		int id;
+
+		while (IO_OK == (res = iload->OpenChunk()))
+		{
+			switch (id = iload->CurChunkID())
+			{
+				case BASECLASS_CHUNK:
+					res = Mtl::Load(iload);
+					break;
+			}
+
+			iload->CloseChunk();
+
+			if (res != IO_OK)
+			{
+				return res;
+			}
+		}
+
+		return IO_OK;
+	}
+
+	RefTargetHandle Clone(RemapDir &remap) override
+	{
+		FireRenderMtl* newCopy = new FireRenderMtl();
+		*static_cast<Mtl*>(newCopy) = *static_cast<Mtl*>(this);
+
+		for (int i = 0; i < NumRefs(); i++)
+		{
+			if (this->GetReference(i) && this->IsRealDependency(this->GetReference(i)))
+			{
+				newCopy->ReplaceReference(i, remap.CloneRef(this->GetReference(i)));
+			}
+		}
+
+		BaseClone(this, newCopy, remap);
+
+		return newCopy;
+	}
+
+	void Reset() override
+	{
+		ClassDescInstance.Reset(this, TRUE);
+	}
+
+	ParamDlg* CreateParamDlg(HWND hwMtlEdit, IMtlParams* imp) override
+	{
+		IAutoMParamDlg* dlg = ClassDescInstance.CreateParamDlgs(hwMtlEdit, imp, this);
+		ClassDescInstance.RestoreRolloutState();
+		return dlg;
+	}
+
+	Class_ID ClassID() override
+	{
+		return ClassDescInstance.ClassID();
+	}
+
+	void GetClassName(TSTR& s) override
+	{
+		s = ClassDescInstance.ClassName();
+	}
+
+	int NumParamBlocks() override
+	{
+		return 1;
+	}
+
+	IParamBlock2* GetParamBlock(int i) override
+	{
+		FASSERT(i == 0);
+		return pblock;
+	}
+
+	IParamBlock2* GetParamBlockByID(BlockID id) override
+	{
+		FASSERT(id == 0);
+		return pblock;
+	}
+
+	Interval Validity(TimeValue t) override
+	{
+		Interval res = FOREVER;
+		pblock->GetValidity(t, res);
+		return res;
+	}
+
+	void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev) override
+	{
+		ClassDescInstance.BeginEditParams(ip, this, flags, prev);
+	}
+
+	void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) override
+	{
+		ClassDescInstance.EndEditParams(ip, this, flags, next);
+	}
+
+	int NumSubTexmaps() override
+	{
+		return int(TEXMAP_MAPPING.size());
+	}
+
+	Texmap* GetSubTexmap(int i) override
+	{
+		FASSERT(this->TEXMAP_MAPPING.find(i) != this->TEXMAP_MAPPING.end());
+		return GetFromPb<Texmap*>(this->pblock, this->TEXMAP_MAPPING[i].first);
+	}
+
+	void SetSubTexmap(int i, Texmap* m) override
+	{
+		FASSERT(this->TEXMAP_MAPPING.find(i) != this->TEXMAP_MAPPING.end());
+		SetInPb(this->pblock, this->TEXMAP_MAPPING[i].first, m);
+		pblock->GetDesc()->InvalidateUI();
+	}
+
+	MSTR GetSubTexmapSlotName(int i) override
+	{
+		FASSERT(this->TEXMAP_MAPPING.find(i) != this->TEXMAP_MAPPING.end());
+		return this->TEXMAP_MAPPING[i].second;
+	}
+
+	void Update(TimeValue t, Interval& valid)
+	{
+		for (int i = 0; i < NumSubTexmaps(); ++i)
+		{
+			Texmap* map = GetSubTexmap(i);
+
+			if (map != NULL)
+			{
+				map->Update(t, valid);
+			}
+		}
+
+		this->pblock->GetValidity(t, valid);
+	}
+
+protected:
+	static std::map<int, std::pair<ParamID, MCHAR*>> TEXMAP_MAPPING;
+	static const int BASECLASS_CHUNK = 4000;
+
+	FireRenderMtl& operator=(const FireRenderMtl&) = delete;
+	FireRenderMtl(FireRenderMtl&) = delete;
 };
 
 #define BEGIN_DECLARE_FRMTL(NAME)\

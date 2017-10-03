@@ -35,14 +35,11 @@ static ParamBlockDesc2 pbDesc(
 	PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(AddMtl)::TEXMAP_MAPPING;
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderAddMtl::TEXMAP_MAPPING;
 
-FRMTLCLASSNAME(AddMtl)::~FRMTLCLASSNAME(AddMtl)()
-{
-}
+FireRenderAddMtl::~FireRenderAddMtl() = default;
 
-
-frw::Shader FRMTLCLASSNAME(AddMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderAddMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -61,7 +58,7 @@ frw::Shader FRMTLCLASSNAME(AddMtl)::getShader(const TimeValue t, MaterialParser&
 	return mtlParser.materialSystem.ShaderAdd(mat0, mat1);
 }
 
-void FRMTLCLASSNAME(AddMtl)::SetSubMtl(int i, Mtl *m)
+void FireRenderAddMtl::SetSubMtl(int i, Mtl *m)
 {
 	ReplaceReference(i + 1, m);
 	if (i == 0)
@@ -75,7 +72,7 @@ void FRMTLCLASSNAME(AddMtl)::SetSubMtl(int i, Mtl *m)
 
 }
 
-RefTargetHandle FRMTLCLASSNAME(AddMtl)::GetReference(int i)
+RefTargetHandle FireRenderAddMtl::GetReference(int i)
 {
 	switch (i) {
 		case 0: return pblock;
@@ -85,7 +82,7 @@ RefTargetHandle FRMTLCLASSNAME(AddMtl)::GetReference(int i)
 	}
 }
 
-void FRMTLCLASSNAME(AddMtl)::SetReference(int i, RefTargetHandle rtarg)
+void FireRenderAddMtl::SetReference(int i, RefTargetHandle rtarg)
 {
 	switch (i) {
 		case 0: pblock = (IParamBlock2*)rtarg; break;
