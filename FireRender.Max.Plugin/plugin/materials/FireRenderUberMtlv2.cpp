@@ -22,11 +22,11 @@ namespace
 
 IMPLEMENT_FRMTLCLASSDESC(UberMtlv2)
 
-FRMTLCLASSDESCNAME(UberMtlv2) FRMTLCLASSNAME(UberMtlv2)::ClassDescInstance;
+FRMTLCLASSDESCNAME(UberMtlv2) FireRenderUberMtlv2::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("UberMtlv2Pbdesc"), 0, &FRMTLCLASSNAME(UberMtlv2)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("UberMtlv2Pbdesc"), 0, &FireRenderUberMtlv2::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
 	//rollout
 	IDD_FIRERENDER_UBERMTLV2, IDS_FR_MTL_UBERV2, 0, 0, NULL,
 
@@ -486,7 +486,7 @@ static ParamBlockDesc2 pbDesc(
 	PB_END
 );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(UberMtlv2)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderUberMtlv2::TEXMAP_MAPPING = {
 	{ FRUBERMTLV2_MAP_DIFFUSE_COLOR,{ FRUBERMTLV2_DIFFUSE_COLOR_MAP, _T("Diffuse Color") } },
 	{ FRUBERMTLV2_MAP_DIFFUSE_WEIGHT,{ FRUBERMTLV2_DIFFUSE_WEIGHT_MAP, _T("Diffuse Weight") } },
 	{ FRUBERMTLV2_MAP_DIFFUSE_ROUGHNESS,{ FRUBERMTLV2_DIFFUSE_ROUGHNESS_MAP, _T("Diffuse Roughness") } },
@@ -526,12 +526,17 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(UberMtlv2)::TEXMAP_MAPP
 	{ FRUBERMTLV2_MAP_MAT_BUMP,{ FRUBERMTLV2_MAT_BUMP_MAP, _T("Material Bump") } },
 };
 
-frw::Shader FRMTLCLASSNAME(UberMtlv2)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderUberMtlv2::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRUBERMTLV2_DIFFUSE_COLOR);
+}
+
+frw::Shader FireRenderUberMtlv2::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	return frw::Shader();
 }
 
-frw::Shader FRMTLCLASSNAME(UberMtlv2)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderUberMtlv2::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 	frw::Scope& scope = mtlParser.GetScope();
@@ -549,7 +554,7 @@ frw::Shader FRMTLCLASSNAME(UberMtlv2)::getShader(const TimeValue t, MaterialPars
 	return shader;
 }
 
-std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(UberMtlv2)::GetParameters(FRUberMtlV2_ParamID useMapId,
+std::tuple<bool, Texmap*, Color, float> FireRenderUberMtlv2::GetParameters(FRUberMtlV2_ParamID useMapId,
 	FRUberMtlV2_ParamID mapId, FRUberMtlV2_ParamID colorId, FRUberMtlV2_ParamID mulId)
 {
 	bool useMap = GetFromPb<bool>(pblock, useMapId);
@@ -560,7 +565,7 @@ std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(UberMtlv2)::GetParameters
 	return std::make_tuple(useMap, map, color, mul);
 }
 
-std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(UberMtlv2)::GetParametersNoColor(FRUberMtlV2_ParamID useMapId,
+std::tuple<bool, Texmap*, Color, float> FireRenderUberMtlv2::GetParametersNoColor(FRUberMtlV2_ParamID useMapId,
 	FRUberMtlV2_ParamID mapId, FRUberMtlV2_ParamID mulId)
 {
 	bool useMap = GetFromPb<bool>(pblock, useMapId);
@@ -571,7 +576,7 @@ std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(UberMtlv2)::GetParameters
 	return std::make_tuple(useMap, map, color, mul);
 }
 
-frw::Value FRMTLCLASSNAME(UberMtlv2)::SetupShaderOrdinary(MaterialParser& mtlParser,
+frw::Value FireRenderUberMtlv2::SetupShaderOrdinary(MaterialParser& mtlParser,
 	std::tuple<bool, Texmap*, Color, float> parameters, int mapFlags)
 {
 	bool useMap = std::get<0>(parameters);
@@ -591,7 +596,7 @@ frw::Value FRMTLCLASSNAME(UberMtlv2)::SetupShaderOrdinary(MaterialParser& mtlPar
 	return std::move(value);
 }
 
-void FRMTLCLASSNAME(UberMtlv2)::SetupDiffuse(MaterialParser& mtlParser, frw::Shader& shader)
+void FireRenderUberMtlv2::SetupDiffuse(MaterialParser& mtlParser, frw::Shader& shader)
 {
 	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
 	frw::Value value;
@@ -618,7 +623,7 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupDiffuse(MaterialParser& mtlParser, frw::Sha
 	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, value);
 }
 
-void FRMTLCLASSNAME(UberMtlv2)::SetupReflection(MaterialParser& mtlParser, frw::Shader& shader)
+void FireRenderUberMtlv2::SetupReflection(MaterialParser& mtlParser, frw::Shader& shader)
 {
 	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
 	frw::Value value;
@@ -689,7 +694,7 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupReflection(MaterialParser& mtlParser, frw::
 	shader.xSetValue(rprxParameter, value);
 }
 
-void FRMTLCLASSNAME(UberMtlv2)::SetupRefraction(MaterialParser& mtlParser, frw::Shader& shader)
+void FireRenderUberMtlv2::SetupRefraction(MaterialParser& mtlParser, frw::Shader& shader)
 {
 	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
 	frw::Value value;
@@ -733,7 +738,7 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupRefraction(MaterialParser& mtlParser, frw::
 	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFRACTION_IOR_MODE, paramValue);
 }
 
-void FRMTLCLASSNAME(UberMtlv2)::SetupCoating(MaterialParser& mtlParser, frw::Shader& shader)
+void FireRenderUberMtlv2::SetupCoating(MaterialParser& mtlParser, frw::Shader& shader)
 {
 	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
 	frw::Value value;
@@ -789,7 +794,7 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupCoating(MaterialParser& mtlParser, frw::Sha
 	shader.xSetValue(rprxParameter, value);
 }
 
-void FRMTLCLASSNAME(UberMtlv2)::SetupSSS(MaterialParser& mtlParser, frw::Shader& shader)
+void FireRenderUberMtlv2::SetupSSS(MaterialParser& mtlParser, frw::Shader& shader)
 {
 	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
 	frw::Value value;
@@ -854,7 +859,7 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupSSS(MaterialParser& mtlParser, frw::Shader&
 	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_ABSORPTION_DISTANCE, value);
 }
 
-void FRMTLCLASSNAME(UberMtlv2)::SetupEmissive(MaterialParser& mtlParser, frw::Shader& shader)
+void FireRenderUberMtlv2::SetupEmissive(MaterialParser& mtlParser, frw::Shader& shader)
 {
 	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
 	frw::Value value;
@@ -879,7 +884,7 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupEmissive(MaterialParser& mtlParser, frw::Sh
 	shader.xSetParameterU(RPRX_UBER_MATERIAL_EMISSION_MODE, paramValue);
 }
 
-void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Shader& shader)
+void FireRenderUberMtlv2::SetupMaterial(MaterialParser& mtlParser, frw::Shader& shader)
 {
 	std::tuple<bool, Texmap*, Color, float> parameters = { false, nullptr, Color(0.0f, 0.0f, 0.0f), 0.0f };
 	frw::Value value;

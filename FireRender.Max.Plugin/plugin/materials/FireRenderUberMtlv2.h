@@ -238,15 +238,19 @@ enum FRUberMtlV2_ParamID : ParamID
 BEGIN_DECLARE_FRMTLCLASSDESC(UberMtlv2, L"RPR Uber Material V2", FIRERENDER_UBERMTLV2_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(UberMtlv2)
-
+class FireRenderUberMtlv2Traits
+{
 public:
-	virtual Color GetDiffuse(int mtlNum, BOOL backFace) override
-	{
-		return GetFromPb<Color>(pblock, FRUBERMTLV2_DIFFUSE_COLOR);
-	}
+	using ClassDesc = FireRenderClassDescUberMtlv2;
+};
 
+class FireRenderUberMtlv2 :
+	public FireRenderMtl<FireRenderUberMtlv2Traits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
 
 private:
 	std::tuple<bool, Texmap*, Color, float> GetParameters(FRUberMtlV2_ParamID, FRUberMtlV2_ParamID, FRUberMtlV2_ParamID, FRUberMtlV2_ParamID);
@@ -261,7 +265,6 @@ private:
 	void SetupSSS(MaterialParser& mtlParser, frw::Shader& shader);
 	void SetupEmissive(MaterialParser& mtlParser, frw::Shader& shader);
 	void SetupMaterial(MaterialParser& mtlParser, frw::Shader& shader);
-
-END_DECLARE_FRMTL(UberMtlv2)
+};
 
 FIRERENDER_NAMESPACE_END;
