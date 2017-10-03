@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(MicrofacetMtl)
 
-FRMTLCLASSDESCNAME(MicrofacetMtl) FRMTLCLASSNAME(MicrofacetMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(MicrofacetMtl) FireRenderMicrofacetMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("MicrofacetMtlPbdesc"), 0, &FRMTLCLASSNAME(MicrofacetMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("MicrofacetMtlPbdesc"), 0, &FireRenderMicrofacetMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_MICROFACETMTL, IDS_FR_MTL_MICROFACET, 0, 0, NULL,
 
@@ -44,13 +44,18 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(MicrofacetMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderMicrofacetMtl::TEXMAP_MAPPING = {
 	{ FRMicrofacetMtl_TEXMAP_COLOR, { FRMicrofacetMtl_COLOR_TEXMAP, _T("Color Map") } },
 	{ FRMicrofacetMtl_TEXMAP_ROUGHNESS, { FRMicrofacetMtl_ROUGHNESS_TEXMAP, _T("Roughness Map") } },
 	{ FRMicrofacetMtl_TEXMAP_NORMAL, { FRMicrofacetMtl_NORMALMAP, _T("Normal Map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(MicrofacetMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderMicrofacetMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRMicrofacetMtl_COLOR);
+}
+
+frw::Shader FireRenderMicrofacetMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 

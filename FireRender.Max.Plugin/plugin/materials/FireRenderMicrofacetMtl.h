@@ -22,12 +22,18 @@ enum FRMicrofacetMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(MicrofacetMtl, L"RPR Microfacet Material", FIRERENDER_MICROFACETMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(MicrofacetMtl)
+class FireRenderMicrofacetMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescMicrofacetMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRMicrofacetMtl_COLOR);
-}
-
-END_DECLARE_FRMTL(MicrofacetMtl)
+class FireRenderMicrofacetMtl :
+	public FireRenderMtl<FireRenderMicrofacetMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;
