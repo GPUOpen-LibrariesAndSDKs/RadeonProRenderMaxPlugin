@@ -25,9 +25,18 @@ enum FRVolumeMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(VolumeMtl, L"RPR Volume Material", FIRERENDER_VOLUMEMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(VolumeMtl)
+class FireRenderVolumeMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescVolumeMtl;
+};
+
+class FireRenderVolumeMtl :
+	public FireRenderMtl<FireRenderVolumeMtlTraits>
+{
 public:
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
-END_DECLARE_FRMTL(VolumeMtl)
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;
