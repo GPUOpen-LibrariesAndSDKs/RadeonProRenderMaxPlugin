@@ -18,12 +18,18 @@ enum FRReflectionMtl_ParamID : ParamID {
 BEGIN_DECLARE_FRMTLCLASSDESC(ReflectionMtl, L"RPR Reflection Material", FIRERENDER_REFLECTIONMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(ReflectionMtl)
+class FireRenderReflectionMtlTraits
+{
+public:
+	using ClassDesc = FireRenderClassDescReflectionMtl;
+};
 
-virtual Color GetDiffuse(int mtlNum, BOOL backFace) override {
-	return GetFromPb<Color>(pblock, FRReflectionMtl_COLOR);
-}
-
-END_DECLARE_FRMTL(ReflectionMtl)
+class FireRenderReflectionMtl :
+	public FireRenderMtl<FireRenderReflectionMtlTraits>
+{
+public:
+	Color GetDiffuse(int mtlNum, BOOL backFace) override;
+	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+};
 
 FIRERENDER_NAMESPACE_END;

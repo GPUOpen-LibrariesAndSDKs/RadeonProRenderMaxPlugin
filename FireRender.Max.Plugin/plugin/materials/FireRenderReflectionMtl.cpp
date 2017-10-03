@@ -15,11 +15,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(ReflectionMtl)
 
-FRMTLCLASSDESCNAME(ReflectionMtl) FRMTLCLASSNAME(ReflectionMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(ReflectionMtl) FireRenderReflectionMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("ReflectionMtlPbdesc"), 0, &FRMTLCLASSNAME(ReflectionMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("ReflectionMtlPbdesc"), 0, &FireRenderReflectionMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_REFLECTIONMTL, IDS_FR_MTL_REFLECTION, 0, 0, NULL,
 
@@ -35,12 +35,17 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(ReflectionMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderReflectionMtl::TEXMAP_MAPPING = {
 	{ FRReflectionMtl_TEXMAP_COLOR, { FRReflectionMtl_COLOR_TEXMAP, _T("Color map") } },
 	{ FRReflectionMtl_TEXMAP_NORMAL, { FRReflectionMtl_NORMALMAP, _T("Normal map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(ReflectionMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderReflectionMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRReflectionMtl_COLOR);
+}
+
+frw::Shader FireRenderReflectionMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
