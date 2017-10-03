@@ -53,17 +53,15 @@ enum FRStandardMtl_ParamID : ParamID {
 	FRStandardMtl_CASTS_SHADOWS
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(StandardMtl, L"RPR Legacy Material", FIRERENDER_STANDARDMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderStandardMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescStandardMtl;
+	static const TCHAR* InternalName() { return _T("RPR Legacy Material"); }
+	static Class_ID ClassId() { return FIRERENDER_STANDARDMTL_CID; }
 };
 
 class FireRenderStandardMtl :
-	public FireRenderMtl<FireRenderStandardMtlTraits>
+	public FireRenderMtl<FireRenderStandardMtlTraits, FireRenderStandardMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;

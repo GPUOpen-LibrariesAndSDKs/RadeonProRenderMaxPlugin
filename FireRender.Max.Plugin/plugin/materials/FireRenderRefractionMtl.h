@@ -16,17 +16,15 @@ enum FRRefractionMtl_ParamID : ParamID {
 	FRRefractionMtl_NORMALMAP = 1003
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(RefractionMtl, L"RPR Refraction Material", FIRERENDER_REFRACTIONMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderRefractionMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescRefractionMtl;
+	static const TCHAR* InternalName() { return _T("RPR Refraction Material"); }
+	static Class_ID ClassId() { return FIRERENDER_REFRACTIONMTL_CID; }
 };
 
 class FireRenderRefractionMtl :
-	public FireRenderMtl<FireRenderRefractionMtlTraits>
+	public FireRenderMtl<FireRenderRefractionMtlTraits, FireRenderRefractionMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace);

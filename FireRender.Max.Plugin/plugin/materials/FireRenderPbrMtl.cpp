@@ -46,14 +46,10 @@ namespace
 	static constexpr float EmissiveMulDefault = 0.0f;
 }
 
-IMPLEMENT_FRMTLCLASSDESC(PbrMtl)
-
-FRMTLCLASSDESCNAME(PbrMtl) FireRenderPbrMtl::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc
 (
-	0, _T("PbrMtlPbdesc"), 0, &FireRenderPbrMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("PbrMtlPbdesc"), 0, &FireRenderPbrMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_PBRMTL, IDS_FR_MTL_PBR, 0, 0, NULL,
 

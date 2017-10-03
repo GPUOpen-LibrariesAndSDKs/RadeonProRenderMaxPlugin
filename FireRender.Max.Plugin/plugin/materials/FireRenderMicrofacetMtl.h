@@ -19,17 +19,15 @@ enum FRMicrofacetMtl_ParamID : ParamID {
 	FRMicrofacetMtl_NORMALMAP = 1005
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(MicrofacetMtl, L"RPR Microfacet Material", FIRERENDER_MICROFACETMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderMicrofacetMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescMicrofacetMtl;
+	static const TCHAR* InternalName() { return _T("RPR Microfacet Material"); }
+	static Class_ID ClassId() { return FIRERENDER_MICROFACETMTL_CID; }
 };
 
 class FireRenderMicrofacetMtl :
-	public FireRenderMtl<FireRenderMicrofacetMtlTraits>
+	public FireRenderMtl<FireRenderMicrofacetMtlTraits, FireRenderMicrofacetMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;

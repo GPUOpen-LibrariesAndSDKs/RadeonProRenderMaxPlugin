@@ -12,13 +12,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(TransparentMtl)
-
-FRMTLCLASSDESCNAME(TransparentMtl) FireRenderTransparentMtl::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("TransparentMtlPbdesc"), 0, &FireRenderTransparentMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("TransparentMtlPbdesc"), 0, &FireRenderTransparentMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_TRANSPARENTMTL, IDS_FR_MTL_TRANSPARENT, 0, 0, NULL,
 

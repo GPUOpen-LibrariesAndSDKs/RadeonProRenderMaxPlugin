@@ -235,17 +235,15 @@ enum FRUberMtlV2_ParamID : ParamID
 	FRUBERMTLV2_MAT_BUMP_USEMAP,
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(UberMtlv2, L"RPR Uber Material V2", FIRERENDER_UBERMTLV2_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderUberMtlv2Traits
 {
 public:
-	using ClassDesc = FireRenderClassDescUberMtlv2;
+	static const TCHAR* InternalName() { return _T("RPR Uber Material V2"); }
+	static Class_ID ClassId() { return FIRERENDER_UBERMTLV2_CID; }
 };
 
 class FireRenderUberMtlv2 :
-	public FireRenderMtl<FireRenderUberMtlv2Traits>
+	public FireRenderMtl<FireRenderUberMtlv2Traits, FireRenderUberMtlv2>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;

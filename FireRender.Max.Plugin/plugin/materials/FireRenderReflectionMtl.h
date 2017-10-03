@@ -15,17 +15,15 @@ enum FRReflectionMtl_ParamID : ParamID {
 	FRReflectionMtl_NORMALMAP = 1003
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(ReflectionMtl, L"RPR Reflection Material", FIRERENDER_REFLECTIONMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderReflectionMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescReflectionMtl;
+	static const TCHAR* InternalName() { return _T("RPR Reflection Material"); }
+	static Class_ID ClassId() { return FIRERENDER_REFLECTIONMTL_CID; }
 };
 
 class FireRenderReflectionMtl :
-	public FireRenderMtl<FireRenderReflectionMtlTraits>
+	public FireRenderMtl<FireRenderReflectionMtlTraits, FireRenderReflectionMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;

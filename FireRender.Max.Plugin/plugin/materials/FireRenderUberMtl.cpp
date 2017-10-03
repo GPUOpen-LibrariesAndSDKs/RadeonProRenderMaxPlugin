@@ -19,13 +19,9 @@ namespace
 	static constexpr float RoughnessMax = 1.f;
 }
 
-IMPLEMENT_FRMTLCLASSDESC(UberMtl)
-
-FRMTLCLASSDESCNAME(UberMtl) FireRenderUberMtl::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("UberMtlPbdesc"), 0, &FireRenderUberMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("UberMtlPbdesc"), 0, &FireRenderUberMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_UBERMTL, IDS_FR_MTL_UBER, 0, 0, NULL,
 

@@ -56,17 +56,15 @@ enum FRPbrMtl_ParamID : ParamID
 	FRPBRMTL_EMISSIVE_USEMAP       = 1063,
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(PbrMtl, L"RPR PBR Material", FIRERENDER_PBRMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderPbrMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescPbrMtl;
+	static const TCHAR* InternalName() { return _T("RPR PBR Material"); }
+	static Class_ID ClassId() { return FIRERENDER_PBRMTL_CID; }
 };
 
 class FireRenderPbrMtl :
-	public FireRenderMtl<FireRenderPbrMtlTraits>
+	public FireRenderMtl<FireRenderPbrMtlTraits, FireRenderPbrMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;

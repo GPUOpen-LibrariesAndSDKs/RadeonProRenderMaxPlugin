@@ -24,17 +24,15 @@ enum FRWardMtl_ParamID : ParamID {
 	FRWardMtl_ROTATION_TEXMAP = 1008,
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(WardMtl, L"RPR Ward Material", FIRERENDER_WARDMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderWardMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescWardMtl;
+	static const TCHAR* InternalName() { return _T("RPR Ward Material"); }
+	static Class_ID ClassId() { return FIRERENDER_WARDMTL_CID; }
 };
 
 class FireRenderWardMtl :
-	public FireRenderMtl<FireRenderWardMtlTraits>
+	public FireRenderMtl<FireRenderWardMtlTraits, FireRenderWardMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;

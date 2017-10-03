@@ -207,36 +207,36 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.clear();
 	gClassInstances.push_back(&FireRender::fireRenderClassDesc);
 	gClassInstances.push_back(&FireRender::autoTestingClassDesc);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DiffuseMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(BlendMtl)::ClassDescInstance);
-	//gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(AddMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MicrofacetMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ReflectionMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DiffuseMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(BlendMtl)::GetClassDesc());
+	//gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(AddMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MicrofacetMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ReflectionMtl)::GetClassDesc());
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ArithmMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(InputLUMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(BlendValueMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(RefractionMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MFRefractionMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(TransparentMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(WardMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(EmissiveMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(RefractionMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MFRefractionMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(TransparentMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(WardMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(EmissiveMtl)::GetClassDesc());
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(FresnelMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::fireRenderMaterialImporterClassDesc);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ColorMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(AvgMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(OrenNayarMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DiffuseRefractionMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(OrenNayarMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DiffuseRefractionMtl)::GetClassDesc());
 	
 	if (RPR_API_VERSION > 0x010000094)
 		gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(FresnelSchlickMtl)::ClassDescInstance);
 	
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DisplacementMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(NormalMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MaterialMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MaterialMtl)::GetClassDesc());
     //gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtlv2)::ClassDescInstance);
-    gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(VolumeMtl)::ClassDescInstance);
-	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(PbrMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtlv2)::GetClassDesc());
+    gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(VolumeMtl)::GetClassDesc());
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(PbrMtl)::GetClassDesc());
 
 	gClassInstances.push_back(FireRender::GetFireRenderEnvironmentDesc());
 

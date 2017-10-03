@@ -13,14 +13,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(DiffuseMtl)
-
-FRMTLCLASSDESCNAME(DiffuseMtl) FireRenderDiffuseMtl::ClassDescInstance;
-
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("DiffuseMtlPbdesc"), 0, &FireRenderDiffuseMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("DiffuseMtlPbdesc"), 0, &FireRenderDiffuseMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_DIFFUSEMTL, IDS_FR_MTL_DIFFUSE, 0, 0, NULL,
 

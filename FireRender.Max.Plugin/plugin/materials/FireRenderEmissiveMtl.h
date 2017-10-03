@@ -29,17 +29,15 @@ enum FREmissiveMtl_ParamID : ParamID {
 	FREmissiveMtl_COLOR_TEXMAP = 1008,
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(EmissiveMtl, L"RPR Emissive Material", FIRERENDER_EMISSIVEMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderEmissiveMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescEmissiveMtl;
+	static const TCHAR* InternalName() { return _T("RPR Emissive Material"); }
+	static Class_ID ClassId() { return FIRERENDER_EMISSIVEMTL_CID; }
 };
 
 class FireRenderEmissiveMtl :
-	public FireRenderMtl<FireRenderEmissiveMtlTraits>
+	public FireRenderMtl<FireRenderEmissiveMtlTraits, FireRenderEmissiveMtl>
 {
 public:
 	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);

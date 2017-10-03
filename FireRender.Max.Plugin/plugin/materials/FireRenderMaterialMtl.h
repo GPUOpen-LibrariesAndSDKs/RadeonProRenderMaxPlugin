@@ -12,9 +12,6 @@ enum FRMaterialMtl_ParamID : ParamID {
 	FRMaterialMtl_SHADOWCATCHER = 1004
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(MaterialMtl, L"RPR Material", FIRERENDER_MATERIALMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 #define SUB1_REF	1
 #define SUB2_REF	2
 #define SUB3_REF	3
@@ -22,11 +19,12 @@ END_DECLARE_FRMTLCLASSDESC()
 class FireRenderMaterialMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescMaterialMtl;
+	static const TCHAR* InternalName() { return _T("RPR Material"); }
+	static Class_ID ClassId() { return FIRERENDER_MATERIALMTL_CID; }
 };
 
 class FireRenderMaterialMtl :
-	public FireRenderMtl<FireRenderMaterialMtlTraits>
+	public FireRenderMtl<FireRenderMaterialMtlTraits, FireRenderMaterialMtl>
 {
 public:
 	Mtl *sub1, *sub2;

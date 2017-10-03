@@ -13,17 +13,15 @@ enum FRAddMtl_ParamID : ParamID {
 #define SUB1_REF	1
 #define SUB2_REF	2
 
-BEGIN_DECLARE_FRMTLCLASSDESC(AddMtl, L"RPR Add Material", FIRERENDER_ADDMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderAddMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescAddMtl;
+	static const TCHAR* InternalName() { return _T("RPR Add Material"); }
+	static Class_ID ClassId() { return FIRERENDER_ADDMTL_CID; }
 };
 
 class FireRenderAddMtl :
-	public FireRenderMtl<FireRenderAddMtlTraits>
+	public FireRenderMtl<FireRenderAddMtlTraits, FireRenderAddMtl>
 {
 public:
 	Mtl *sub1, *sub2;

@@ -11,9 +11,6 @@ enum FRBlendMtl_ParamID : ParamID {
 	FRBlendMtl_WEIGHT_TEXMAP = 1003
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(BlendMtl, L"RPR Blend Material", FIRERENDER_BLENDMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 #define NSUBMTL 2
 #define SUB1_REF	1
 #define SUB2_REF	2
@@ -22,11 +19,12 @@ END_DECLARE_FRMTLCLASSDESC()
 class FireRenderBlendMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescBlendMtl;
+	static const TCHAR* InternalName() { return _T("RPR Blend Material"); }
+	static Class_ID ClassId() { return FIRERENDER_BLENDMTL_CID; }
 };
 
 class FireRenderBlendMtl :
-	public FireRenderMtl<FireRenderBlendMtlTraits>
+	public FireRenderMtl<FireRenderBlendMtlTraits, FireRenderBlendMtl>
 {
 public:
 	Mtl *sub1, *sub2;

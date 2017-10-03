@@ -22,17 +22,15 @@ enum FRVolumeMtl_ParamID : ParamID {
 	FRVolumeMtl_MultiScattering
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(VolumeMtl, L"RPR Volume Material", FIRERENDER_VOLUMEMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderVolumeMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescVolumeMtl;
+	static const TCHAR* InternalName() { return _T("RPR Volume Material"); }
+	static Class_ID ClassId() { return FIRERENDER_VOLUMEMTL_CID; }
 };
 
 class FireRenderVolumeMtl :
-	public FireRenderMtl<FireRenderVolumeMtlTraits>
+	public FireRenderMtl<FireRenderVolumeMtlTraits, FireRenderVolumeMtl>
 {
 public:
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);

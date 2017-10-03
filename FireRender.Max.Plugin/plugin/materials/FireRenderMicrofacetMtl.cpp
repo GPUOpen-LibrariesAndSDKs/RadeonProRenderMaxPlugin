@@ -13,13 +13,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(MicrofacetMtl)
-
-FRMTLCLASSDESCNAME(MicrofacetMtl) FireRenderMicrofacetMtl::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("MicrofacetMtlPbdesc"), 0, &FireRenderMicrofacetMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("MicrofacetMtlPbdesc"), 0, &FireRenderMicrofacetMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_MICROFACETMTL, IDS_FR_MTL_MICROFACET, 0, 0, NULL,
 

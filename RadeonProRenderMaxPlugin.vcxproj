@@ -391,6 +391,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderMaterialMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderMFRefractionMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderMicrofacetMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderMtlBase.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderNormalMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderOrenNayarMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.cpp" />

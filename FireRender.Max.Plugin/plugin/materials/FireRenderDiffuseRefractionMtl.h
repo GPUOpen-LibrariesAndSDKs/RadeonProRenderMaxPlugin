@@ -18,17 +18,15 @@ enum FRDiffuseRefractionMtl_ParamID : ParamID {
 	FRDiffuseRefractionMtl_NORMALMAP = 1004
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(DiffuseRefractionMtl, L"RPR Diffuse Refraction Material", FIRERENDER_DIFFUSEREFRACTIONMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderDiffuseRefractionMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescDiffuseRefractionMtl;
+	static const TCHAR* InternalName() { return _T("RPR Diffuse Refraction Material"); }
+	static Class_ID ClassId() { return FIRERENDER_DIFFUSEREFRACTIONMTL_CID; }
 };
 
 class FireRenderDiffuseRefractionMtl :
-	public FireRenderMtl<FireRenderDiffuseRefractionMtlTraits>
+	public FireRenderMtl<FireRenderDiffuseRefractionMtlTraits, FireRenderDiffuseRefractionMtl>
 {
 public:
 	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);

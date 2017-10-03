@@ -18,17 +18,15 @@ enum FROrenNayarMtl_ParamID : ParamID {
 	FROrenNayarMtl_NORMALMAP = 1004
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(OrenNayarMtl, L"RPR Oren-Nayar Material", FIRERENDER_ORENNAYARMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderOrenNayarMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescOrenNayarMtl;
+	static const TCHAR* InternalName() { return _T("RPR Oren-Nayar Material"); }
+	static Class_ID ClassId() { return FIRERENDER_ORENNAYARMTL_CID; }
 };
 
 class FireRenderOrenNayarMtl :
-	public FireRenderMtl<FireRenderOrenNayarMtlTraits>
+	public FireRenderMtl<FireRenderOrenNayarMtlTraits, FireRenderOrenNayarMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;

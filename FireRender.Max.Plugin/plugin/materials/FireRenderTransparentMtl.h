@@ -13,17 +13,15 @@ enum FRTransparentMtl_ParamID : ParamID {
 	FRTransparentMtl_COLOR_TEXMAP = 1001
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(TransparentMtl, L"RPR Transparent Material", FIRERENDER_TRANSPARENTMTL_CID)
-END_DECLARE_FRMTLCLASSDESC()
-
 class FireRenderTransparentMtlTraits
 {
 public:
-	using ClassDesc = FireRenderClassDescTransparentMtl;
+	static const TCHAR* InternalName() { return _T("RPR Transparent Material"); }
+	static Class_ID ClassId() { return FIRERENDER_TRANSPARENTMTL_CID; }
 };
 
 class FireRenderTransparentMtl :
-	public FireRenderMtl<FireRenderTransparentMtlTraits>
+	public FireRenderMtl<FireRenderTransparentMtlTraits, FireRenderTransparentMtl>
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;
