@@ -14,11 +14,11 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 IMPLEMENT_FRMTLCLASSDESC(TransparentMtl)
 
-FRMTLCLASSDESCNAME(TransparentMtl) FRMTLCLASSNAME(TransparentMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(TransparentMtl) FireRenderTransparentMtl::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("TransparentMtlPbdesc"), 0, &FRMTLCLASSNAME(TransparentMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("TransparentMtlPbdesc"), 0, &FireRenderTransparentMtl::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_TRANSPARENTMTL, IDS_FR_MTL_TRANSPARENT, 0, 0, NULL,
 
@@ -31,11 +31,22 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(TransparentMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderTransparentMtl::TEXMAP_MAPPING = {
 	{ FRTransparentMtl_TEXMAP_COLOR, { FRTransparentMtl_COLOR_TEXMAP, _T("Color map") } }
 };
 
-frw::Shader FRMTLCLASSNAME(TransparentMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+Color FireRenderTransparentMtl::GetDiffuse(int mtlNum, BOOL backFace)
+{
+	return GetFromPb<Color>(pblock, FRTransparentMtl_COLOR);
+}
+
+float FireRenderTransparentMtl::GetXParency(int mtlNum, BOOL backFace)
+{
+	Color c = GetFromPb<Color>(pblock, FRTransparentMtl_COLOR);
+	return (c.r + c.b + c.g) * (1.f / 3.f);
+}
+
+frw::Shader FireRenderTransparentMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
