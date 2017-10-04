@@ -46,7 +46,7 @@ std::map<int, std::pair<ParamID, MCHAR*>> FireRenderMaterialMtl::TEXMAP_MAPPING 
 	{ 0,{ FRMaterialMtl_DISPLACEMENT, _T("Displacement") } }
 };
 
-frw::Shader FireRenderMaterialMtl::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderMaterialMtl::GetVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
     Mtl* volume = GetFromPb<Mtl*>(pblock, FRMaterialMtl_VOLUME);
     if (!volume)
@@ -55,7 +55,7 @@ frw::Shader FireRenderMaterialMtl::getVolumeShader(const TimeValue t, MaterialPa
     return mtlParser.createVolumeShader(volume, node);
 }
 
-frw::Shader FireRenderMaterialMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderMaterialMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 	

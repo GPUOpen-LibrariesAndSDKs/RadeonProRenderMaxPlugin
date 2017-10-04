@@ -2,7 +2,7 @@
 
 #include "FireRenderMtlBase.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN;;
 
 enum FRFresnelMtl_TexmapId {
 	FRFresnelMtl_TEXMAP_INVEC = 0,
@@ -17,11 +17,19 @@ enum FRFresnelMtl_ParamID : ParamID {
 	FRFresnelMtl_IOR_TEXMAP = 1005
 };
 
-BEGIN_DECLARE_FRTEXCLASSDESC(FresnelMtl, L"RPR Fresnel", FIRERENDER_FRESNELMTL_CID)
-END_DECLARE_FRTEXCLASSDESC()
+class FireRenderFresnelMtlTraits
+{
+public:
+	static const TCHAR* InternalName() { return _T("RPR Fresnel"); }
+	static Class_ID ClassId() { return FIRERENDER_FRESNELMTL_CID; }
+};
 
-BEGIN_DECLARE_FRTEX(FresnelMtl)
-END_DECLARE_FRTEX(FresnelMtl)
-
+class FireRenderFresnelMtl :
+	public FireRenderTex<FireRenderFresnelMtlTraits, FireRenderFresnelMtl>
+{
+public:
+	void Update(TimeValue t, Interval& valid) override;
+	frw::Value GetShader(const TimeValue t, class MaterialParser& mtlParser) override;
+};
 
 FIRERENDER_NAMESPACE_END;

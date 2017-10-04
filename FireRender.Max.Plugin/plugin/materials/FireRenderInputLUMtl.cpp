@@ -13,13 +13,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(InputLUMtl)
-
-FRMTLCLASSDESCNAME(InputLUMtl) FRMTLCLASSNAME(InputLUMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("InputLUMtlPbdesc"), 0, &FRMTLCLASSNAME(InputLUMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("InputLUMtlPbdesc"), 0, &FireRenderInputLUMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_INPUTLUMTL, IDS_FR_MTL_INPUTLU, 0, 0, NULL,
 
@@ -32,14 +28,9 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(InputLUMtl)::TEXMAP_MAPPING;
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderInputLUMtl::TEXMAP_MAPPING;
 
-FRMTLCLASSNAME(InputLUMtl)::~FRMTLCLASSNAME(InputLUMtl)()
-{
-}
-
-
-frw::Value FRMTLCLASSNAME(InputLUMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderInputLUMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	auto ms = mtlParser.materialSystem;
 		
@@ -62,7 +53,7 @@ frw::Value FRMTLCLASSNAME(InputLUMtl)::getShader(const TimeValue t, MaterialPars
 	return mtlParser.materialSystem.ValueLookupUV(0); // dummy
 }
 
-void FRMTLCLASSNAME(InputLUMtl)::Update(TimeValue t, Interval& valid) {
+void FireRenderInputLUMtl::Update(TimeValue t, Interval& valid) {
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);

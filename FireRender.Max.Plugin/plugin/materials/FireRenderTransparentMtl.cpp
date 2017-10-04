@@ -42,7 +42,7 @@ float FireRenderTransparentMtl::GetXParency(int mtlNum, BOOL backFace)
 	return (c.r + c.b + c.g) * (1.f / 3.f);
 }
 
-frw::Shader FireRenderTransparentMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderTransparentMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 

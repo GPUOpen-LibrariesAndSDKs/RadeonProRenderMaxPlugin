@@ -39,8 +39,8 @@ public:
 	RefTargetHandle GetReference(int i) override;
 
 	void NotifyChanged();
-	frw::Shader getVolumeShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
-	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	frw::Shader GetVolumeShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	frw::Shader GetShader(const TimeValue t, class MaterialParser& mtlParser, INode* node) override;
 
 private:
 	void SetReference(int i, RefTargetHandle rtarg) override;

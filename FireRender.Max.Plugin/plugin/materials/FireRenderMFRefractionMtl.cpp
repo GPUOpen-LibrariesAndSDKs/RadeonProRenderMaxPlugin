@@ -46,7 +46,7 @@ std::map<int, std::pair<ParamID, MCHAR*>> FireRenderMFRefractionMtl::TEXMAP_MAPP
 	{ FRMFRefractionMtl_TEXMAP_NORMAL, { FRMFRefractionMtl_NORMALMAP, _T("Normal Map") } }
 };
 
-frw::Shader FireRenderMFRefractionMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderMFRefractionMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -73,7 +73,7 @@ frw::Shader FireRenderMFRefractionMtl::getShader(const TimeValue t, MaterialPars
 	material.SetValue("ior", iorv);
 	
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue("normal", FireRenderNormalMtl::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

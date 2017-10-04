@@ -26,7 +26,7 @@ class FireRenderDiffuseMtl :
 	public FireRenderMtl<FireRenderDiffuseMtlTraits, FireRenderDiffuseMtl>
 {
 public:
-	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	frw::Shader GetShader(const TimeValue t, class MaterialParser& mtlParser, INode* node) override;
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;
 };
 

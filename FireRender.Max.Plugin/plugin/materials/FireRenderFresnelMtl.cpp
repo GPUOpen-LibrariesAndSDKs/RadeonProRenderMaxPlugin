@@ -12,13 +12,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(FresnelMtl)
-
-FRMTLCLASSDESCNAME(FresnelMtl) FRMTLCLASSNAME(FresnelMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("FresnelMtlPbdesc"), 0, &FRMTLCLASSNAME(FresnelMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("FresnelMtlPbdesc"), 0, &FireRenderFresnelMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_FRESNELMTL, IDS_FR_MTL_FRESNEL, 0, 0, NULL,
 
@@ -37,18 +33,14 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(FresnelMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderFresnelMtl::TEXMAP_MAPPING = {
 	{ FRFresnelMtl_TEXMAP_INVEC,{ FRFresnelMtl_INVEC_TEXMAP, _T("Invec map") } },
 	{ FRFresnelMtl_TEXMAP_N,{ FRFresnelMtl_N_TEXMAP, _T("N map") } },
 	{ FRFresnelMtl_TEXMAP_IOR,{ FRFresnelMtl_IOR_TEXMAP, _T("Ior map") } }
 };
 
-FRMTLCLASSNAME(FresnelMtl)::~FRMTLCLASSNAME(FresnelMtl)()
-{
-}
 
-
-frw::Value FRMTLCLASSNAME(FresnelMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderFresnelMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	const float ior = GetFromPb<float>(pblock, FRFresnelMtl_IOR);
 	Texmap* invecMap = GetFromPb<Texmap*>(pblock, FRFresnelMtl_INVEC_TEXMAP);
@@ -65,7 +57,7 @@ frw::Value FRMTLCLASSNAME(FresnelMtl)::getShader(const TimeValue t, MaterialPars
 	return mtlParser.materialSystem.ValueFresnel(iorValue, nValue, invecValue);
 }
 
-void FRMTLCLASSNAME(FresnelMtl)::Update(TimeValue t, Interval& valid) {
+void FireRenderFresnelMtl::Update(TimeValue t, Interval& valid) {
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);

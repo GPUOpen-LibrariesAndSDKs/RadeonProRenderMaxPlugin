@@ -18,13 +18,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(DisplacementMtl)
-
-FRMTLCLASSDESCNAME(DisplacementMtl) FRMTLCLASSNAME(DisplacementMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("DisplacementMtlPbdesc"), 0, &FRMTLCLASSNAME(DisplacementMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("DisplacementMtlPbdesc"), 0, &FireRenderDisplacementMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_DISPLACEMENTMTL, IDS_FR_MTL_DISPLACEMENT, 0, 0, NULL,
 
@@ -50,16 +46,11 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(DisplacementMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderDisplacementMtl::TEXMAP_MAPPING = {
 	{ FRDisplacementMtl_TEXMAP_COLOR,{ FRDisplacementMtl_COLOR_TEXMAP, _T("Map") } }
 };
 
-FRMTLCLASSNAME(DisplacementMtl)::~FRMTLCLASSNAME(DisplacementMtl)()
-{
-}
-
-
-frw::Value FRMTLCLASSNAME(DisplacementMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderDisplacementMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	Texmap* texmap = GetFromPb<Texmap*>(pblock, FRDisplacementMtl_COLOR_TEXMAP);
 
@@ -70,7 +61,16 @@ frw::Value FRMTLCLASSNAME(DisplacementMtl)::getShader(const TimeValue t, Materia
 	return color;
 }
 
-void FRMTLCLASSNAME(DisplacementMtl)::Update(TimeValue t, Interval& valid) {
+AColor FireRenderDisplacementMtl::EvalColor(ShadeContext& sc)
+{
+	Color color(0.f, 0.f, 0.f);
+	Texmap* colorTexmap = GetFromPb<Texmap*>(pblock, FRDisplacementMtl_COLOR_TEXMAP);
+	if (colorTexmap)
+		color = colorTexmap->EvalColor(sc);
+	return AColor(color.r, color.g, color.b);
+}
+
+void FireRenderDisplacementMtl::Update(TimeValue t, Interval& valid) {
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);
@@ -81,8 +81,7 @@ void FRMTLCLASSNAME(DisplacementMtl)::Update(TimeValue t, Interval& valid) {
     this->pblock->GetValidity(t, valid);
 }
 
-
-Texmap *FRMTLCLASSNAME(DisplacementMtl)::findDisplacementMap(const TimeValue t, MaterialParser& mtlParser, Mtl* material,
+Texmap *FireRenderDisplacementMtl::findDisplacementMap(const TimeValue t, MaterialParser& mtlParser, Mtl* material,
 	float &minHeight, float &maxHeight, float &subdivision, float &creaseWeight, int &boundary, bool &notAccurate)
 {
 	IParamBlock2* pb = material->GetParamBlock(0);
@@ -180,7 +179,7 @@ Texmap *FRMTLCLASSNAME(DisplacementMtl)::findDisplacementMap(const TimeValue t, 
 	return 0;
 }
 
-frw::Value FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(const TimeValue t, MaterialParser& mtlParser, Mtl* material,
+frw::Value FireRenderDisplacementMtl::translateDisplacement(const TimeValue t, MaterialParser& mtlParser, Mtl* material,
 	float &minHeight, float &maxHeight, float &subdivision, float &creaseWeight, int &boundary, bool &notAccurate)
 {
 	if (!material)

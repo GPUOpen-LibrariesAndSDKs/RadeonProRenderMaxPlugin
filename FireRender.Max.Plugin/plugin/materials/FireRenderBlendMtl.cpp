@@ -45,7 +45,7 @@ std::map<int, std::pair<ParamID, MCHAR*>> FireRenderBlendMtl::TEXMAP_MAPPING = {
 	{ 0, { FRBlendMtl_WEIGHT_TEXMAP, _T("Weight Map") } }
 };
 
-frw::Shader FireRenderBlendMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderBlendMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 

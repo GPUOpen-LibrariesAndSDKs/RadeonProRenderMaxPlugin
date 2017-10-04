@@ -1,15 +1,72 @@
 #include "FireRenderMtlBase.h"
 
-FIRERENDER_NAMESPACE_BEGIN
+FIRERENDER_NAMESPACE_BEGIN;
+
+
+FireRenderTexBase::FireRenderTexBase(IParamBlock2* block) :
+	pblock(block)
+{}
+
+void FireRenderTexBase::DeleteThis()
+{
+	delete this;
+}
+
+RefResult FireRenderTexBase::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS)
+{
+	return REF_SUCCEED;
+}
+
+int FireRenderTexBase::NumRefs()
+{
+	return 1;
+}
+RefTargetHandle FireRenderTexBase::GetReference(int i)
+{
+	FASSERT(unsigned(i) < unsigned(NumRefs()));
+	return pblock;
+}
+
+void FireRenderTexBase::SetReference(int i, RefTargetHandle rtarg)
+{
+	FASSERT(unsigned(i) < unsigned(NumRefs()));
+	pblock = dynamic_cast<IParamBlock2*>(rtarg);
+}
+
+int FireRenderTexBase::NumSubs()
+{
+	return NumRefs();
+}
+
+Animatable* FireRenderTexBase::SubAnim(int i)
+{
+	return GetReference(i);
+}
+TSTR FireRenderTexBase::SubAnimName(int i)
+{
+	FASSERT(unsigned(i) < unsigned(NumRefs()));
+	return _T("Pblock");
+}
+
+int FireRenderTexBase::SubNumToRefNum(int subNum)
+{
+	return subNum;
+}
+
+AColor FireRenderTexBase::EvalColor(ShadeContext &)
+{
+	return AColor(0.0, 0.0, 0.0);
+}
+
+Point3 FireRenderTexBase::EvalNormalPerturb(ShadeContext& sc)
+{
+	return Point3(0.0, 0.0, 0.0);
+}
+
 
 FireRenderMtlBase::FireRenderMtlBase(IParamBlock2* block) :
 	pblock(block)
 {
-}
-
-void FireRenderMtlBase::SetCurrentTime(TimeValue t)
-{
-	currentTime = t;
 }
 
 void FireRenderMtlBase::DeleteThis()
@@ -121,4 +178,19 @@ void FireRenderMtlBase::Shade(::ShadeContext& context)
 {
 }
 
-FIRERENDER_NAMESPACE_END
+void FireRenderMtlBase::Update(TimeValue t, Interval& valid)
+{
+	for (int i = 0; i < NumSubTexmaps(); ++i)
+	{
+		Texmap* map = GetSubTexmap(i);
+
+		if (map != NULL)
+		{
+			map->Update(t, valid);
+		}
+	}
+
+	pblock->GetValidity(t, valid);
+}
+
+FIRERENDER_NAMESPACE_END;

@@ -12,13 +12,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(ColorMtl)
-
-FRMTLCLASSDESCNAME(ColorMtl) FRMTLCLASSNAME(ColorMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("ColorMtlPbdesc"), 0, &FRMTLCLASSNAME(ColorMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("ColorMtlPbdesc"), 0, &FireRenderColorMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_COLORMTL, IDS_FR_MTL_COLOR, 0, 0, NULL,
 
@@ -31,16 +27,11 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(ColorMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderColorMtl::TEXMAP_MAPPING = {
 	{ FRColorMtl_TEXMAP_COLOR, { FRColorMtl_COLOR_TEXMAP, _T("Color Map") } }
 };
 
-FRMTLCLASSNAME(ColorMtl)::~FRMTLCLASSNAME(ColorMtl)()
-{
-}
-
-
-frw::Value FRMTLCLASSNAME(ColorMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderColorMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	auto ms = mtlParser.materialSystem;
 		
@@ -54,7 +45,16 @@ frw::Value FRMTLCLASSNAME(ColorMtl)::getShader(const TimeValue t, MaterialParser
 	return color;
 }
 
-void FRMTLCLASSNAME(ColorMtl)::Update(TimeValue t, Interval& valid) {
+AColor FireRenderColorMtl::EvalColor(ShadeContext& sc)
+{
+	Color color = GetFromPb<Color>(pblock, FRColorMtl_COLOR);
+	Texmap* colorTexmap = GetFromPb<Texmap*>(pblock, FRColorMtl_COLOR_TEXMAP);
+	if (colorTexmap)
+		color = colorTexmap->EvalColor(sc);
+	return color;
+}
+
+void FireRenderColorMtl::Update(TimeValue t, Interval& valid) {
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);

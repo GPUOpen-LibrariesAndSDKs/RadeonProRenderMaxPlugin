@@ -527,12 +527,12 @@ Color FireRenderUberMtlv2::GetDiffuse(int mtlNum, BOOL backFace)
 	return GetFromPb<Color>(pblock, FRUBERMTLV2_DIFFUSE_COLOR);
 }
 
-frw::Shader FireRenderUberMtlv2::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderUberMtlv2::GetVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	return frw::Shader();
 }
 
-frw::Shader FireRenderUberMtlv2::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderUberMtlv2::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 	frw::Scope& scope = mtlParser.GetScope();

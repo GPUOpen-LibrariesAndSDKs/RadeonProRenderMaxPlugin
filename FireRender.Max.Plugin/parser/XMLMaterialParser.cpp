@@ -220,13 +220,13 @@ public:
 
 #define CREATE_MAX_MATERIAL(CID, CNAME)\
 	Object* obj = static_cast<Object*>(CreateInstance(MATERIAL_CLASS_ID, CID));\
-	FireRender::FRMTLCLASSNAME(CNAME)* maxMat = (FireRender::FRMTLCLASSNAME(CNAME)*)(obj); \
+	FireRender::FireRender##CNAME* maxMat = (FireRender::FireRender##CNAME*)(obj); \
 	maxMat->SetName(MSTR(name.c_str())); \
 	loadedMaterials.insert(std::make_pair(name, maxMat));
 
 #define CREATE_MAX_TEXMAP(CID, CNAME)\
 	Object* obj = static_cast<Object*>(CreateInstance(TEXMAP_CLASS_ID, CID)); \
-	FireRender::FRMTLCLASSNAME(CNAME)* maxMat = (FireRender::FRMTLCLASSNAME(CNAME)*)(obj); \
+	FireRender::FireRender##CNAME* maxMat = (FireRender::FireRender##CNAME*)(obj); \
 	maxMat->SetName(MSTR(name.c_str())); \
 	loadedMaterials.insert(std::make_pair(name, maxMat));
 

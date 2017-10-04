@@ -179,12 +179,12 @@ Color FireRenderPbrMtl::GetDiffuse(int mtlNum, BOOL backFace)
 	return GetFromPb<Color>(pblock, FRPBRMTL_DIFFUSE_COLOR);
 }
 
-frw::Shader FireRenderPbrMtl::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderPbrMtl::GetVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	return frw::Shader();
 }
 
-frw::Shader FireRenderPbrMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderPbrMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	const frw::MaterialSystem& materialSystem = mtlParser.materialSystem;
 	const frw::Scope& scope = mtlParser.GetScope();

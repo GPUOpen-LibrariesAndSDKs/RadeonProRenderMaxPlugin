@@ -12,13 +12,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(BlendValueMtl)
-
-FRMTLCLASSDESCNAME(BlendValueMtl) FRMTLCLASSNAME(BlendValueMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("BlendValueMtlPbdesc"), 0, &FRMTLCLASSNAME(BlendValueMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("BlendValueMtlPbdesc"), 0, &FireRenderBlendValueMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_BLENDVALUEMTL, IDS_FR_MTL_BLENDVALUE, 0, 0, NULL,
 
@@ -43,18 +39,13 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(BlendValueMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderBlendValueMtl::TEXMAP_MAPPING = {
 	{ FRBlendValueMtl_TEXMAP_COLOR0, { FRBlendValueMtl_COLOR0_TEXMAP, _T("Color 1 map") } },
 	{ FRBlendValueMtl_TEXMAP_COLOR1, { FRBlendValueMtl_COLOR1_TEXMAP, _T("Color 2 map") } },
 	{ FRBlendValueMtl_TEXMAP_WEIGHT, { FRBlendValueMtl_WEIGHT_TEXMAP, _T("Weight map") } }
 };
 
-FRMTLCLASSNAME(BlendValueMtl)::~FRMTLCLASSNAME(BlendValueMtl)()
-{
-}
-
-
-frw::Value FRMTLCLASSNAME(BlendValueMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderBlendValueMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	auto ms = mtlParser.materialSystem;
 		
@@ -80,7 +71,27 @@ frw::Value FRMTLCLASSNAME(BlendValueMtl)::getShader(const TimeValue t, MaterialP
 	return mtlParser.materialSystem.ValueBlend(color0v, color1v, weightv);
 }
 
-void FRMTLCLASSNAME(BlendValueMtl)::Update(TimeValue t, Interval& valid) {
+AColor FireRenderBlendValueMtl::EvalColor(ShadeContext& sc)
+{
+	Color color0 = GetFromPb<Color>(pblock, FRBlendValueMtl_COLOR0);
+	Texmap* color0Texmap = GetFromPb<Texmap*>(pblock, FRBlendValueMtl_COLOR0_TEXMAP);
+	if (color0Texmap)
+		color0 = color0Texmap->EvalColor(sc);
+
+	Color color1 = GetFromPb<Color>(pblock, FRBlendValueMtl_COLOR1);
+	Texmap* color1Texmap = GetFromPb<Texmap*>(pblock, FRBlendValueMtl_COLOR1_TEXMAP);
+	if (color1Texmap)
+		color1 = color1Texmap->EvalColor(sc);
+
+	float w = GetFromPb<float>(pblock, FRBlendValueMtl_WEIGHT);
+	Texmap* wTexmap = GetFromPb<Texmap*>(pblock, FRBlendValueMtl_WEIGHT_TEXMAP);
+	if (wTexmap)
+		w = wTexmap->EvalColor(sc).r;
+
+	return ((color0 * w) + (color1 * (1.f - w)));
+}
+
+void FireRenderBlendValueMtl::Update(TimeValue t, Interval& valid) {
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);

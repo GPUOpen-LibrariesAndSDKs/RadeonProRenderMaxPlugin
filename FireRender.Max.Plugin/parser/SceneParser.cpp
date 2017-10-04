@@ -1058,7 +1058,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					frw::Value displImageNode;
 					bool notAccurate;
 					if (currentMtl != DISABLED_MATERIAL)
-						displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(this->params.t, mtlParser, currentMtl,
+						displImageNode = FireRenderDisplacementMtl::translateDisplacement(this->params.t, mtlParser, currentMtl,
 							minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
 
 					if (displImageNode)

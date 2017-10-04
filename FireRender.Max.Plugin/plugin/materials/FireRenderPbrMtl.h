@@ -68,9 +68,8 @@ class FireRenderPbrMtl :
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;
-
-	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
-	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+	frw::Shader GetVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+	frw::Shader GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node) override;
 
 private:
 	std::tuple<bool, Texmap*, Color, float> GetParameters(FRPbrMtl_ParamID useMapId,

@@ -297,7 +297,7 @@ void MPManagerMax::UpdateMaterial()
 	int boundary;
 	bool notAccurate;
 
-	frw::Value displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(parameters.t, parser.mtlParser, material,
+	frw::Value displImageNode = FireRenderDisplacementMtl::translateDisplacement(parameters.t, parser.mtlParser, material,
 		minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
 
 	SetMaterial(parser, volumeShader, surfaceShader, castShadows, parameters.rendParams.envMap != nullptr);

@@ -19,30 +19,20 @@ enum FRBlendValueMtl_ParamID : ParamID {
 	FRBlendValueMtl_WEIGHT_TEXMAP = 1005
 };
 
-BEGIN_DECLARE_FRTEXCLASSDESC(BlendValueMtl, L"RPR Blend Value", FIRERENDER_BLENDVALUEMTL_CID)
-END_DECLARE_FRTEXCLASSDESC()
-
-BEGIN_DECLARE_FRTEX(BlendValueMtl)
-virtual  AColor EvalColor(ShadeContext& sc) override
+class FireRenderBlendValueMtlTraits
 {
-	Color color0 = GetFromPb<Color>(pblock, FRBlendValueMtl_COLOR0);
-	Texmap* color0Texmap = GetFromPb<Texmap*>(pblock, FRBlendValueMtl_COLOR0_TEXMAP);
-	if (color0Texmap)
-		color0 = color0Texmap->EvalColor(sc);
+public:
+	static const TCHAR* InternalName() { return _T("RPR Blend Value"); }
+	static Class_ID ClassId() { return FIRERENDER_BLENDVALUEMTL_CID; }
+};
 
-	Color color1 = GetFromPb<Color>(pblock, FRBlendValueMtl_COLOR1);
-	Texmap* color1Texmap = GetFromPb<Texmap*>(pblock, FRBlendValueMtl_COLOR1_TEXMAP);
-	if (color1Texmap)
-		color1 = color1Texmap->EvalColor(sc);
-
-	float w = GetFromPb<float>(pblock, FRBlendValueMtl_WEIGHT);
-	Texmap* wTexmap = GetFromPb<Texmap*>(pblock, FRBlendValueMtl_WEIGHT_TEXMAP);
-	if (wTexmap)
-		w = wTexmap->EvalColor(sc).r;
-
-	return ((color0 * w) + (color1 * (1.f - w)));
-}
-END_DECLARE_FRTEX(BlendValueMtl)
-
+class FireRenderBlendValueMtl :
+	public FireRenderTex<FireRenderBlendValueMtlTraits, FireRenderBlendValueMtl>
+{
+public:
+	AColor EvalColor(ShadeContext& sc) override;
+	void Update(TimeValue t, Interval& valid) override;
+	frw::Value GetShader(const TimeValue t, class MaterialParser& mtlParser) override;
+};
 
 FIRERENDER_NAMESPACE_END;

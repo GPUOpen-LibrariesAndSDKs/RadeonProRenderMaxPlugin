@@ -19,31 +19,30 @@
 #include <iparamm2.h>
 #include <map>
 
-FIRERENDER_NAMESPACE_BEGIN
+FIRERENDER_NAMESPACE_BEGIN;
+
+class MaterialParser;
 
 /// IDs of different versions of the plugin. The ID is written in the saved files and can be read later during loading to
 /// potentially run a legacy-porting script.
-enum FireRenderMtlPbVersions {
+enum FireRenderMtlPbVersions
+{
 	FIRERENDERMTLVER_DELIVERABLE3 = 4567,
 	FIRERENDERMTLVER_LATEST = FIRERENDERMTLVER_DELIVERABLE3,
 };
 
-class MaterialParser;
-
-#define FRMTLCLASSNAME(NAME) FireRender##NAME
-#define FRMTLCLASSDESCNAME(NAME) FireRenderClassDesc##NAME
-#define FRMTLCLASSBROWSERENTRYNAME(NAME) FireRenderBrowserEntry##NAME
-
-class FireRenderMtlBase : public Mtl
+// Material base class
+class FireRenderMtlBase :
+	public Mtl
 {
 protected:
 	IParamBlock2* pblock;
-	TimeValue currentTime = 0;
 
 public:
 	FireRenderMtlBase(IParamBlock2* block = nullptr);
 
-	void SetCurrentTime(TimeValue t);
+	virtual frw::Shader GetShader(const TimeValue t, class MaterialParser& mtlParser, INode* node) = 0;
+
 	void DeleteThis() override;
 	RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override;
 	RefTargetHandle GetReference(int i) override;
@@ -66,21 +65,32 @@ public:
 	void SetSpecular(Color c, TimeValue t) override;
 	void SetShininess(float v, TimeValue t) override;
 	void Shade(::ShadeContext& context) override;
+	void Update(TimeValue t, Interval& valid);
+};
 
-	void Update(TimeValue t, Interval& valid)
-	{
-		for (int i = 0; i < NumSubTexmaps(); ++i)
-		{
-			Texmap* map = GetSubTexmap(i);
+// Texture map base class
+class FireRenderTexBase :
+	public Texmap
+{
+public:
+	FireRenderTexBase(IParamBlock2* block = nullptr);
 
-			if (map != NULL)
-			{
-				map->Update(t, valid);
-			}
-		}
+	virtual frw::Value GetShader(const TimeValue t, class MaterialParser& mtlParser) = 0;
 
-		pblock->GetValidity(t, valid);
-	}
+	void DeleteThis() override;
+	RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override;
+	int NumRefs() override;
+	RefTargetHandle GetReference(int i) override;
+	void SetReference(int i, RefTargetHandle rtarg) override;
+	int NumSubs() override;
+	Animatable* SubAnim(int i) override;
+	TSTR SubAnimName(int i) override;
+	int SubNumToRefNum(int subNum) override;
+	AColor EvalColor(ShadeContext &) override;
+	Point3 EvalNormalPerturb(ShadeContext& sc) override;
+
+protected:
+	IParamBlock2* pblock;
 };
 
 template<typename Traits, typename Derived>
@@ -95,7 +105,7 @@ public:
 
 	const MCHAR* GetEntryCategory() const override
 	{
-		return _T("MaterialsRadeon ProRender"); 
+		return _T("Materials\\Radeon ProRender"); 
 	}
 
 	Bitmap* GetEntryThumbnail() const override
@@ -191,6 +201,7 @@ class FireRenderMtl :
 {
 public:
 	using ClassDesc = FireRenderMtlClassDesc<Traits, Derived>;
+
 	static ClassDesc& GetClassDesc()
 	{
 		return ClassDesc::Instance();
@@ -343,179 +354,161 @@ protected:
 	FireRenderMtl(FireRenderMtl&) = delete;
 };
 
-class FireRenderTexBase : public Texmap
+template<typename Traits, typename Derived>
+class FireRenderTex :
+	public FireRenderTexBase
 {
 protected:
-	IParamBlock2* pblock;
+	FireRenderTex& operator= (const FireRenderTex&) = delete;
+	static std::map<int, std::pair<ParamID, MCHAR*>> TEXMAP_MAPPING;
+	static const int BASECLASS_CHUNK = 4000;
+
 public:
-	virtual void DeleteThis() override {
-		delete this;
-	}
-	virtual RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override {
-		return REF_SUCCEED;
-	}
-	virtual int NumRefs() override {
-		return 1;
-	}
-	virtual RefTargetHandle GetReference(int i) override {
-		FASSERT(unsigned(i) < unsigned(NumRefs()));
-		return pblock;
-	}
-	virtual void SetReference(int i, RefTargetHandle rtarg) override {
-		FASSERT(unsigned(i) < unsigned(NumRefs()));
-		pblock = dynamic_cast<IParamBlock2*>(rtarg);
-	}
-	virtual int NumSubs() override {
-		return NumRefs();
-	}
-	virtual Animatable* SubAnim(int i) override {
-		return GetReference(i);
-	}
-	virtual TSTR SubAnimName(int i) override {
-		FASSERT(unsigned(i) < unsigned(NumRefs()));
-		return _T("Pblock");
-	}
-	virtual int SubNumToRefNum(int subNum) override {
-		return subNum;
-	}
+	using ClassDesc = FireRenderMtlClassDesc<Traits, Derived>;
 
-	virtual AColor Texmap::EvalColor(ShadeContext &) override {
-		return AColor(0.0, 0.0, 0.0);
+	static ClassDesc& GetClassDesc()
+	{
+		return ClassDesc::Instance();
 	}
+	
+	FireRenderTex()
+	{
+		GetClassDesc().MakeAutoParamBlocks(this);
+		FASSERT(pblock != NULL); 
+	}
+	
+	IOResult Save(ISave *isave) override
+	{
+		IOResult res; 
+		isave->BeginChunk(BASECLASS_CHUNK); 
+		res = Texmap::Save(isave); 
+		if (res != IO_OK) return res; 
+			isave->EndChunk(); 
+		return IO_OK; 
+	}
+	
+	IOResult Load(ILoad* iload) override
+	{
+		IOResult res; 
+		int id; 
+		while (IO_OK == (res = iload->OpenChunk()))
+		{
+			switch (id = iload->CurChunkID())
+			{
+				case BASECLASS_CHUNK:
+					res = Texmap::Load(iload); 
+					break; 
+			}
 
-	virtual  Point3 EvalNormalPerturb(ShadeContext& sc) override {
-		return Point3(0.0, 0.0, 0.0);
+			iload->CloseChunk();
+
+			if (res != IO_OK)
+			{
+				return res; 
+			}
+		}
+
+		return IO_OK; 
+	}
+	
+	RefTargetHandle Clone(RemapDir &remap) override
+	{
+		Derived* newCopy = new Derived();
+		*static_cast<Texmap*>(newCopy) = *static_cast<Texmap*>(this);
+
+		for (int i = 0; i < NumRefs(); i++)
+		{
+			if (GetReference(i) && IsRealDependency(GetReference(i)))
+			{
+				newCopy->ReplaceReference(i, remap.CloneRef(GetReference(i))); 
+			}
+		}
+
+		BaseClone(this, newCopy, remap);
+
+		return newCopy; 
+	}
+	
+	void Reset() override
+	{
+		GetClassDesc().Reset(this, TRUE);
+	}
+	
+	ParamDlg* CreateParamDlg(HWND hwMtlEdit, IMtlParams* imp) override
+	{
+		IAutoMParamDlg* dlg = GetClassDesc().CreateParamDlgs(hwMtlEdit, imp, this);
+		GetClassDesc().RestoreRolloutState();
+		return dlg; 
+	}
+	
+	Class_ID ClassID() override
+	{
+		return GetClassDesc().ClassID();
+	}
+	
+	void GetClassName(TSTR& s) override
+	{
+		s = GetClassDesc().ClassName();
+	}
+	
+	int NumParamBlocks() override
+	{
+		return 1; 
+	}
+	
+	IParamBlock2* GetParamBlock(int i) override
+	{
+		FASSERT(i == 0); 
+		return pblock; 
+	}
+	
+	IParamBlock2* GetParamBlockByID(BlockID id) override
+	{
+		FASSERT(id == 0); 
+		return pblock; 
+	}
+	
+	Interval Validity(TimeValue t) override
+	{
+		Interval res = FOREVER; 
+		pblock->GetValidity(t, res); 
+		return res; 
+	}
+	
+	void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev) override
+	{
+		GetClassDesc().BeginEditParams(ip, this, flags, prev); 
+	}
+	
+	void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) override
+	{
+		GetClassDesc().EndEditParams(ip, this, flags, next);
+	}
+	
+	int NumSubTexmaps() override
+	{
+		return int(TEXMAP_MAPPING.size());
+	}
+	
+	Texmap* GetSubTexmap(int i) override
+	{
+		FASSERT(TEXMAP_MAPPING.find(i) != TEXMAP_MAPPING.end()); 
+		return GetFromPb<Texmap*>(pblock, TEXMAP_MAPPING[i].first); 
+	}
+	
+	void SetSubTexmap(int i, Texmap* m) override
+	{
+		FASSERT(TEXMAP_MAPPING.find(i) != TEXMAP_MAPPING.end()); 
+		SetInPb(pblock, TEXMAP_MAPPING[i].first, m); 
+		pblock->GetDesc()->InvalidateUI(); 
+	}
+	
+	MSTR GetSubTexmapSlotName(int i) override
+	{
+		FASSERT(TEXMAP_MAPPING.find(i) != TEXMAP_MAPPING.end()); 
+		return TEXMAP_MAPPING[i].second; 
 	}
 };
-
-
-#define BEGIN_DECLARE_FRTEX(NAME)\
-class FireRender##NAME : public FireRenderTexBase { \
-protected:\
-	void operator=(const FireRender##NAME&) = delete; \
-	FireRender##NAME(FireRender##NAME&) = delete; \
-	static std::map<int, std::pair<ParamID, MCHAR*>> TEXMAP_MAPPING; \
-	static const int BASECLASS_CHUNK = 4000; \
-public:\
-	static FireRenderClassDesc##NAME ClassDescInstance; \
-	FireRender##NAME() {\
-	pblock = NULL; \
-	ClassDescInstance.MakeAutoParamBlocks(this); \
-	FASSERT(pblock != NULL); \
-	}\
-	~FireRender##NAME(); \
-	\
-	frw::Value getShader(const TimeValue t, class MaterialParser& mtlParser); \
-	\
-	virtual IOResult Save(ISave *isave) override {\
-		IOResult res; \
-		isave->BeginChunk(BASECLASS_CHUNK); \
-		res = Texmap::Save(isave); \
-		if (res != IO_OK) return res; \
-			isave->EndChunk(); \
-		return IO_OK; \
-	}\
-	\
-	virtual IOResult Load(ILoad* iload) override {\
-		IOResult res; \
-		int id; \
-		while (IO_OK == (res = iload->OpenChunk())) {\
-			switch (id = iload->CurChunkID()) {\
-			case BASECLASS_CHUNK:\
-			res = Texmap::Load(iload); \
-			break; \
-		}\
-		iload->CloseChunk(); \
-		if (res != IO_OK) {\
-			return res; \
-		}\
-	}\
-	return IO_OK; \
-	}\
-	\
-	virtual RefTargetHandle Clone(RemapDir &remap) override {\
-	FireRender##NAME* newCopy = new FireRender##NAME(); \
-	*((Mtl*)newCopy) = *((Mtl*)this); \
-			for (int i = 0; i < NumRefs(); i++) {\
-			if (GetReference(i) && IsRealDependency(GetReference(i))) {\
-				newCopy->ReplaceReference(i, remap.CloneRef(GetReference(i))); \
-			}\
-			}\
-			BaseClone(this, newCopy, remap); \
-			return newCopy; \
-	}\
-	\
-	virtual void Reset() override {\
-		ClassDescInstance.Reset(this, TRUE); \
-	}\
-	\
-	virtual ParamDlg* CreateParamDlg(HWND hwMtlEdit, IMtlParams* imp) override {\
-		IAutoMParamDlg* dlg = ClassDescInstance.CreateParamDlgs(hwMtlEdit, imp, this); \
-		ClassDescInstance.RestoreRolloutState(); \
-		return dlg; \
-	}\
-	\
-	virtual Class_ID ClassID() override {\
-		return ClassDescInstance.ClassID(); \
-	}\
-	\
-	virtual void GetClassName(TSTR& s) override {\
-		s = ClassDescInstance.ClassName(); \
-	}\
-	\
-	virtual int NumParamBlocks() override {\
-		return 1; \
-	}\
-	\
-	virtual IParamBlock2* GetParamBlock(int i) override {\
-		FASSERT(i == 0); \
-		return pblock; \
-	}\
-	\
-	virtual IParamBlock2* GetParamBlockByID(BlockID id) override {\
-		FASSERT(id == 0); \
-		return pblock; \
-	}\
-	\
-	virtual Interval Validity(TimeValue t) override {\
-		Interval res = FOREVER; \
-		pblock->GetValidity(t, res); \
-		return res; \
-	}\
-	\
-	void BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev) override {\
-		ClassDescInstance.BeginEditParams(ip, this, flags, prev); \
-	}\
-	\
-	void EndEditParams(IObjParam *ip, ULONG flags, Animatable *next) override {\
-		ClassDescInstance.EndEditParams(ip, this, flags, next); \
-	}\
-	\
-	virtual void Update(TimeValue t, Interval& valid) override; \
-	\
-	virtual int NumSubTexmaps() override {\
-		return int(TEXMAP_MAPPING.size()); \
-	}\
-	\
-	virtual Texmap* GetSubTexmap(int i) override {\
-		FASSERT(TEXMAP_MAPPING.find(i) != TEXMAP_MAPPING.end()); \
-		return GetFromPb<Texmap*>(pblock, TEXMAP_MAPPING[i].first); \
-	}\
-	\
-	virtual void SetSubTexmap(int i, Texmap* m) override {\
-		FASSERT(TEXMAP_MAPPING.find(i) != TEXMAP_MAPPING.end()); \
-		SetInPb(pblock, TEXMAP_MAPPING[i].first, m); \
-		pblock->GetDesc()->InvalidateUI(); \
-	}\
-	\
-	virtual MSTR GetSubTexmapSlotName(int i) override {\
-		FASSERT(TEXMAP_MAPPING.find(i) != TEXMAP_MAPPING.end()); \
-		return TEXMAP_MAPPING[i].second; \
-	}
-
-#define END_DECLARE_FRTEX(NAME)\
-};
-
 
 #define GETSHADERCOLOR_USE_AMOUNT(NAME, DIRECT, USEMAP, TEXMAP, MAPAMOPUNT)\
 	const Color NAME##_direct = FireRender::GetFromPb<Color>(pb, DIRECT, this->mT); \

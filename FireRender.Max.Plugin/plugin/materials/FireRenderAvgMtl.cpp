@@ -13,13 +13,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(AvgMtl)
-
-FRMTLCLASSDESCNAME(AvgMtl) FRMTLCLASSNAME(AvgMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("AvgMtlPbdesc"), 0, &FRMTLCLASSNAME(AvgMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("AvgMtlPbdesc"), 0, &FireRenderAvgMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_COLORMTL, IDS_FR_MTLAVG, 0, 0, NULL,
 
@@ -32,16 +28,11 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(AvgMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderAvgMtl::TEXMAP_MAPPING = {
 	{ FRAvgMtlMtl_TEXMAP_COLOR, { FRAvgMtl_COLOR_TEXMAP, _T("Color Map") } }
 };
 
-FRMTLCLASSNAME(AvgMtl)::~FRMTLCLASSNAME(AvgMtl)()
-{
-}
-
-
-frw::Value FRMTLCLASSNAME(AvgMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderAvgMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	auto ms = mtlParser.materialSystem;
 		
@@ -55,7 +46,17 @@ frw::Value FRMTLCLASSNAME(AvgMtl)::getShader(const TimeValue t, MaterialParser& 
 	return mtlParser.materialSystem.ValueDot(colorv, 1.0 / 3);
 }
 
-void FRMTLCLASSNAME(AvgMtl)::Update(TimeValue t, Interval& valid) {
+AColor FireRenderAvgMtl::EvalColor(ShadeContext& sc)
+{
+	Color color = GetFromPb<Color>(pblock, FRAvgMtl_COLOR);
+	Texmap* colorTexmap = GetFromPb<Texmap*>(pblock, FRAvgMtl_COLOR_TEXMAP);
+	if (colorTexmap)
+		color = colorTexmap->EvalColor(sc);
+	double avg = (color.r + color.g + color.b) * 0.33333333333333333333333333333333;
+	return AColor(avg, avg, avg, 1.0);
+}
+
+void FireRenderAvgMtl::Update(TimeValue t, Interval& valid) {
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);

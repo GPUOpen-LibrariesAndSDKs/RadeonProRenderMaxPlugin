@@ -63,7 +63,7 @@ std::map<int, std::pair<ParamID, MCHAR*>> FireRenderVolumeMtl::TEXMAP_MAPPING = 
 	{ FRVolumeMtl_TEXMAP_EMISSION,{ FRVolumeMtl_EmissionColorTexmap, _T("Emission Map") } },
 };
 
-frw::Shader FireRenderVolumeMtl::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderVolumeMtl::GetVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -104,7 +104,7 @@ frw::Shader FireRenderVolumeMtl::getVolumeShader(const TimeValue t, MaterialPars
     return material;
 }
 
-frw::Shader FireRenderVolumeMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderVolumeMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 

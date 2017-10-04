@@ -2,7 +2,7 @@
 
 #include "FireRenderMtlBase.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN;;
 
 enum FRNormalMtl_TexmapId {
 	FRNormalMtl_TEXMAP_COLOR = 0,
@@ -20,25 +20,25 @@ enum FRNormalMtl_ParamID : ParamID {
 	FRNormalMtl_BUMPSTRENGTH
 };
 
-BEGIN_DECLARE_FRTEXCLASSDESC(NormalMtl, L"RPR Normal", FIRERENDER_NORMALMTL_CID)
-END_DECLARE_FRTEXCLASSDESC()
 
-BEGIN_DECLARE_FRTEX(NormalMtl)
-	virtual  AColor EvalColor(ShadeContext& sc) override
-	{
-		Color color(0.f, 0.f, 0.f);
-		Texmap* colorTexmap = GetFromPb<Texmap*>(pblock, FRNormalMtl_COLOR_TEXMAP);
-		if (colorTexmap)
-			color = colorTexmap->EvalColor(sc);
-		return AColor(color.r, color.g, color.b);
-	}
+class FireRenderNormalMtlTraits
+{
+public:
+	static const TCHAR* InternalName() { return _T("RPR Normal"); }
+	static Class_ID ClassId() { return FIRERENDER_NORMALMTL_CID; }
+};
+
+class FireRenderNormalMtl :
+	public FireRenderTex<FireRenderNormalMtlTraits, FireRenderNormalMtl>
+{
+public:
 
 	static frw::Value translateGenericBump(const TimeValue t, Texmap *bump, const float& strength, MaterialParser& mtlParser);
-	
+
 	static frw::Image bitmap2image(Bitmap *bmp, MaterialParser& mtlParser);
-	
+
 	static Bitmap *createImageFromMap(const TimeValue t, Texmap* input, MaterialParser& mtlParser, bool &deleteAfterwards);
-	
+
 	static inline BMM_Color_fl SampleBitmap(Bitmap *bmp, float u, float v);
 	static inline BMM_Color_fl SampleBitmap(Bitmap *bmp, int u, int v);
 
@@ -49,7 +49,9 @@ BEGIN_DECLARE_FRTEX(NormalMtl)
 
 	static Bitmap *findBitmap(const TimeValue t, MtlBase *mat);
 
-END_DECLARE_FRTEX(NormalMtl)
-
+	AColor EvalColor(ShadeContext& sc) override;
+	void Update(TimeValue t, Interval& valid) override;
+	frw::Value GetShader(const TimeValue t, class MaterialParser& mtlParser) override;
+};
 
 FIRERENDER_NAMESPACE_END;

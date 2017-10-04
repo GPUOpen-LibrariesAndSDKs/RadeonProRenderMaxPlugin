@@ -79,7 +79,7 @@ std::map<int, std::pair<ParamID, MCHAR*>> FireRenderEmissiveMtl::TEXMAP_MAPPING 
 	{ FREmissiveMtl_TEXMAP_COLOR, { FREmissiveMtl_COLOR_TEXMAP, _T("Color Map") } },
 };
 
-frw::Shader FireRenderEmissiveMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderEmissiveMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 

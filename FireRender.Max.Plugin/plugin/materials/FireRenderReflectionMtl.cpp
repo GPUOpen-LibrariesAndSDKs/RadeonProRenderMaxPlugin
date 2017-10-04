@@ -41,7 +41,7 @@ Color FireRenderReflectionMtl::GetDiffuse(int mtlNum, BOOL backFace)
 	return GetFromPb<Color>(pblock, FRReflectionMtl_COLOR);
 }
 
-frw::Shader FireRenderReflectionMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderReflectionMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -57,7 +57,7 @@ frw::Shader FireRenderReflectionMtl::getShader(const TimeValue t, MaterialParser
 
 	material.SetValue("color", color);
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue("normal", FireRenderNormalMtl::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 		
     return material;
 }

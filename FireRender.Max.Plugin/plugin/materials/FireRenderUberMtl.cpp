@@ -210,7 +210,7 @@ Color FireRenderUberMtl::GetDiffuse(int mtlNum, BOOL backFace)
 	return GetFromPb<Color>(pblock, FRUBERMTL_DIFFCOLOR);
 }
 
-frw::Shader FireRenderUberMtl::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderUberMtl::GetVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -264,7 +264,7 @@ frw::Shader FireRenderUberMtl::getVolumeShader(const TimeValue t, MaterialParser
 	return frw::Shader(mtlParser.materialSystem, frw::ShaderTypeVolume);
 }
 
-frw::Shader FireRenderUberMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderUberMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -320,7 +320,7 @@ frw::Shader FireRenderUberMtl::getShader(const TimeValue t, MaterialParser& mtlP
 		material.SetValue("diffuse.color", color);
 
 		if (diffuseNormalTexmap)
-			material.SetValue("diffuse.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, diffuseNormalTexmap, 1.f, mtlParser));
+			material.SetValue("diffuse.normal", FireRenderNormalMtl::translateGenericBump(t, diffuseNormalTexmap, 1.f, mtlParser));
 	}
 
 	// GLOSSY (uses microfacet for now, will use ward)
@@ -345,7 +345,7 @@ frw::Shader FireRenderUberMtl::getShader(const TimeValue t, MaterialParser& mtlP
 			material.SetValue("roughness_y", ms.ValueAdd(roughy, 0.000001f));
 
 			if (reflNormalTexmap)
-				material.SetValue("glossy.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, reflNormalTexmap, 1.f, mtlParser));
+				material.SetValue("glossy.normal", FireRenderNormalMtl::translateGenericBump(t, reflNormalTexmap, 1.f, mtlParser));
 
 			material.SetValue("weights.glossy2diffuse", ms.ValueFresnel(reflIOR));
 		}
@@ -363,7 +363,7 @@ frw::Shader FireRenderUberMtl::getShader(const TimeValue t, MaterialParser& mtlP
 			material.SetValue("clearcoat.color", color);
 
 			if (ccNormalTexmap)
-				material.SetValue("clearcoat.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, ccNormalTexmap, 1.f, mtlParser));
+				material.SetValue("clearcoat.normal", FireRenderNormalMtl::translateGenericBump(t, ccNormalTexmap, 1.f, mtlParser));
 
 			material.SetValue("weights.clearcoat2glossy", ms.ValueFresnel(ccIOR));
 		}
@@ -377,7 +377,7 @@ frw::Shader FireRenderUberMtl::getShader(const TimeValue t, MaterialParser& mtlP
 		material.SetValue("refraction.color", color);
 				
 		if (refrNormalTexmap)
-			material.SetValue("refraction.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, refrNormalTexmap, 1.f, mtlParser));
+			material.SetValue("refraction.normal", FireRenderNormalMtl::translateGenericBump(t, refrNormalTexmap, 1.f, mtlParser));
 
 		material.SetValue("refraction.ior", frw::Value(refrIOR));
 

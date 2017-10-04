@@ -17,11 +17,19 @@ enum FRFresnelSchlickMtl_ParamID : ParamID {
 	FRFresnelSchlickMtl_REFLECTANCE_TEXMAP = 1005
 };
 
-BEGIN_DECLARE_FRTEXCLASSDESC(FresnelSchlickMtl, L"RPR Fresnel-Schlick", FIRERENDER_FRESNELSCHLICKMTL_CID)
-END_DECLARE_FRTEXCLASSDESC()
+class FireRenderFresnelSchlickMtlTraits
+{
+public:
+	static const TCHAR* InternalName() { return _T("RPR Fresnel-Schlick"); }
+	static Class_ID ClassId() { return FIRERENDER_FRESNELSCHLICKMTL_CID; }
+};
 
-BEGIN_DECLARE_FRTEX(FresnelSchlickMtl)
-END_DECLARE_FRTEX(FresnelSchlickMtl)
-
+class FireRenderFresnelSchlickMtl :
+	public FireRenderTex<FireRenderFresnelSchlickMtlTraits, FireRenderFresnelSchlickMtl>
+{
+public:
+	void Update(TimeValue t, Interval& valid) override;
+	frw::Value GetShader(const TimeValue t, class MaterialParser& mtlParser) override;
+};
 
 FIRERENDER_NAMESPACE_END;

@@ -13,13 +13,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(ArithmMtl)
-
-FRMTLCLASSDESCNAME(ArithmMtl) FRMTLCLASSNAME(ArithmMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("ArithmMtlPbdesc"), 0, &FRMTLCLASSNAME(ArithmMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("ArithmMtlPbdesc"), 0, &FireRenderArithmMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_ARITHMMTL, IDS_FR_MTL_ARITHM, 0, 0, NULL,
 
@@ -54,17 +50,12 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(ArithmMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderArithmMtl::TEXMAP_MAPPING = {
 	{ FRDiffuseMtl_TEXMAP_COLOR0, { FRArithmMtl_COLOR0_TEXMAP, _T("Color 1 map") } },
 	{ FRDiffuseMtl_TEXMAP_COLOR1, { FRArithmMtl_COLOR1_TEXMAP, _T("Color 2 map") } }
 };
 
-FRMTLCLASSNAME(ArithmMtl)::~FRMTLCLASSNAME(ArithmMtl)()
-{
-}
-
-
-frw::Value FRMTLCLASSNAME(ArithmMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderArithmMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	auto ms = mtlParser.materialSystem;
 		
@@ -84,7 +75,6 @@ frw::Value FRMTLCLASSNAME(ArithmMtl)::getShader(const TimeValue t, MaterialParse
 
 	switch (op)
 	{
-
 		case OperatorId_Add: // add
 			return mtlParser.materialSystem.ValueAdd(color0v, color1v);
 		case OperatorId_Sub: // sub
@@ -142,7 +132,122 @@ frw::Value FRMTLCLASSNAME(ArithmMtl)::getShader(const TimeValue t, MaterialParse
 	return mtlParser.materialSystem.ValueAdd(color0v, color1v); // dummy
 }
 
-void FRMTLCLASSNAME(ArithmMtl)::Update(TimeValue t, Interval& valid) {
+AColor FireRenderArithmMtl::EvalColor(ShadeContext& sc)
+{
+	Color color0, color1;
+	Texmap* colorTexmap0 = GetFromPb<Texmap*>(pblock, FRArithmMtl_COLOR0_TEXMAP);
+	if (colorTexmap0)
+		color0 = colorTexmap0->EvalColor(sc);
+	else
+		color0 = GetFromPb<Color>(pblock, FRArithmMtl_COLOR0);
+	Texmap* colorTexmap1 = GetFromPb<Texmap*>(pblock, FRArithmMtl_COLOR1_TEXMAP);
+	if (colorTexmap1)
+		color1 = colorTexmap1->EvalColor(sc);
+	else
+		color1 = GetFromPb<Color>(pblock, FRArithmMtl_COLOR1);
+	AColor retval;
+	int op = GetFromPb<int>(pblock, FRArithmMtl_OP);
+	switch (op)
+	{
+	case OperatorId_Add: // add
+		retval = AColor(color0 + color1);
+		break;
+	case OperatorId_Sub: // sub
+		retval = AColor(color0 - color1);
+		break;
+	case OperatorId_Mul: // mul
+		retval = AColor(color0 * color1);
+		break;
+	case OperatorId_Div: // div
+		retval = AColor(color0 / color1);
+		break;
+	case OperatorId_Sin: // sin
+		retval = AColor(sin(color0.r), sin(color0.g), sin(color0.b));
+		break;
+	case OperatorId_Cos: // cos
+		retval = AColor(cos(color0.r), cos(color0.g), cos(color0.b));
+		break;
+	case OperatorId_Tan: // tan
+		retval = AColor(tan(color0.r), tan(color0.g), tan(color0.b));
+		break;
+	case OperatorId_SelectX: // select x
+		retval = AColor(color0.r, color0.r, color0.r);
+		break;
+	case OperatorId_SelectY: // select y
+		retval = AColor(color0.g, color0.g, color0.g);
+		break;
+	case OperatorId_SelectZ: // select z
+		retval = AColor(color0.b, color0.b, color0.b);
+		break;
+	case OperatorId_Dot: // dot3
+	{
+		float dot = color0.r * color1.r + color0.g * color1.g + color0.b * color1.b;
+		retval = AColor(dot, dot, dot);
+	}
+	break;
+	case OperatorId_Pow: // pow
+		retval = AColor(pow(color0.r, color1.r), pow(color0.g, color1.g), pow(color0.b, color1.b));
+		break;
+	case OperatorId_Min:
+		retval = AColor(std::min(color0.r, color1.r), std::min(color0.g, color1.g), std::min(color0.b, color1.b));
+		break;
+	case OperatorId_Max:
+		retval = AColor(std::max(color0.r, color1.r), std::max(color0.g, color1.g), std::max(color0.b, color1.b));
+		break;
+	case OperatorId_Floor:
+		retval = AColor(floor(color0.r), floor(color0.g), floor(color0.b));
+		break;
+	case OperatorId_Magnitude:
+	{
+		float mag = sqrt(color0.r*color0.r + color0.g*color0.g + color0.b*color0.b);
+		retval = AColor(mag, mag, mag);
+	}
+	break;
+	case OperatorId_Normalize:
+	{
+		auto m = sqrt(color0.r*color0.r + color0.g*color0.g + color0.b*color0.b);
+		if (m > 0)
+			m = 1.0f / m;
+		retval = AColor(color0.r * m, color0.g * m, color0.b * m);
+	}
+	break;
+	case OperatorId_Abs:
+		retval = AColor(abs(color0.r), abs(color0.g), abs(color0.b));
+		break;
+	case OperatorId_Mod:
+		retval = AColor(SAFEMOD(color0.r, color1.r), SAFEMOD(color0.g, color1.g), SAFEMOD(color0.b, color1.b));
+		break;
+	case OperatorId_ArcSin:
+		retval = AColor(asin(color0.r), asin(color0.g), asin(color0.b));
+		break;
+	case OperatorId_ArcCos:
+		retval = AColor(acos(color0.r), acos(color0.g), acos(color0.b));
+		break;
+	case OperatorId_ArcTan:
+		retval = AColor(atan2(color0.r, color1.r), atan2(color0.g, color1.g), atan2(color0.b, color1.b));
+		break;
+	case OperatorId_Cross:
+		retval = AColor(color0.g * color1.b - color0.b * color1.g,
+			color0.b * color1.r - color0.r * color1.b,
+			color0.r * color1.g - color0.g * color1.r);
+		break;
+	case OperatorId_ComponentAverage:
+	{
+		float a = (color0.r + color0.g + color0.b) *  1.f / 3.f;
+		retval = AColor(a, a, a);
+	}
+	break;
+	case OperatorId_Average:
+		retval = AColor((color0.r + color1.r) * 0.5,
+			(color0.g + color1.g) * 0.5,
+			(color0.b + color1.b) * 0.5);
+		break;
+	}
+	return retval;
+}
+
+void FireRenderArithmMtl::Update(TimeValue t, Interval& valid)
+{
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);

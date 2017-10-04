@@ -49,7 +49,7 @@ float FireRenderRefractionMtl::GetXParency(int mtlNum, BOOL backFace)
 	return 0.5f;
 }
 
-frw::Shader FireRenderRefractionMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderRefractionMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -69,7 +69,7 @@ frw::Shader FireRenderRefractionMtl::getShader(const TimeValue t, MaterialParser
 	material.SetValue("ior", iorv);
 	
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue("normal", FireRenderNormalMtl::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

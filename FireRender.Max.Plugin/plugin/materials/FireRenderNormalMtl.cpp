@@ -17,13 +17,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(NormalMtl)
-
-FRMTLCLASSDESCNAME(NormalMtl) FRMTLCLASSNAME(NormalMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("NormalMtlPbdesc"), 0, &FRMTLCLASSNAME(NormalMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("NormalMtlPbdesc"), 0, &FireRenderNormalMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_NORMALMTL, IDS_FR_MTL_NORMAL, 0, 0, NULL,
 
@@ -58,14 +54,10 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(NormalMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderNormalMtl::TEXMAP_MAPPING = {
 	{ FRNormalMtl_TEXMAP_COLOR,{ FRNormalMtl_COLOR_TEXMAP, _T("Map") } },
 	{ FRNormalMtl_TEXMAP_ADDITIONALBUMP,{ FRNormalMtl_ADDITIONALBUMP, _T("Additional Bump") } }
 };
-
-FRMTLCLASSNAME(NormalMtl)::~FRMTLCLASSNAME(NormalMtl)()
-{
-}
 
 namespace
 {
@@ -110,7 +102,7 @@ frw::ValueNode findUV(frw::ValueNode map){
 
 // scout for a bitmap up the shader graph
 //
-Bitmap *FRMTLCLASSNAME(NormalMtl)::findBitmap(const TimeValue t, MtlBase *mat)
+Bitmap *FireRenderNormalMtl::findBitmap(const TimeValue t, MtlBase *mat)
 {
 	if (auto map = dynamic_cast<BitmapTex*>(mat->GetInterface(BITMAPTEX_INTERFACE)))
 	{
@@ -198,7 +190,7 @@ namespace {
 }
 
 
-inline BMM_Color_fl FRMTLCLASSNAME(NormalMtl)::SampleBitmap(Bitmap *bmp, float u, float v)
+inline BMM_Color_fl FireRenderNormalMtl::SampleBitmap(Bitmap *bmp, float u, float v)
 {
 	while (u < 0.f) u += 1.f;
 	while (v < 0.f) v += 1.f;
@@ -227,7 +219,7 @@ inline BMM_Color_fl FRMTLCLASSNAME(NormalMtl)::SampleBitmap(Bitmap *bmp, float u
 	return pix;
 }
 
-inline BMM_Color_fl FRMTLCLASSNAME(NormalMtl)::SampleBitmap(Bitmap *bmp, int u, int v)
+inline BMM_Color_fl FireRenderNormalMtl::SampleBitmap(Bitmap *bmp, int u, int v)
 {
 	int ww = bmp->Width();
 	int hh = bmp->Height();
@@ -242,7 +234,7 @@ inline BMM_Color_fl FRMTLCLASSNAME(NormalMtl)::SampleBitmap(Bitmap *bmp, int u, 
 	return pix;
 }
 
-bool FRMTLCLASSNAME(NormalMtl)::IsGrayScale(Bitmap *bm)
+bool FireRenderNormalMtl::IsGrayScale(Bitmap *bm)
 {
 	int bumpW = bm->Width();
 	int bumpH = bm->Height();
@@ -275,7 +267,7 @@ bool FRMTLCLASSNAME(NormalMtl)::IsGrayScale(Bitmap *bm)
 	return gray[0] && gray[1] && gray[2] && gray[3];
 }
 
-Bitmap *FRMTLCLASSNAME(NormalMtl)::BumpToNormalRPR(Bitmap *bumpBitmap, float strength)
+Bitmap *FireRenderNormalMtl::BumpToNormalRPR(Bitmap *bumpBitmap, float strength)
 {
 	// if the main normal map is an actual normal map, we need to convert the additional bump
 	// to a normal map
@@ -326,7 +318,7 @@ Bitmap *FRMTLCLASSNAME(NormalMtl)::BumpToNormalRPR(Bitmap *bumpBitmap, float str
 	return bitmap;
 }
 
-Bitmap *FRMTLCLASSNAME(NormalMtl)::ProcessBitmap(Bitmap *bumpBitmap, BOOL swapRG, BOOL flipR, BOOL flipG)
+Bitmap *FireRenderNormalMtl::ProcessBitmap(Bitmap *bumpBitmap, BOOL swapRG, BOOL flipR, BOOL flipG)
 {
 	int bumpW = bumpBitmap->Width();
 	int bumpH = bumpBitmap->Height();
@@ -368,13 +360,13 @@ Bitmap *FRMTLCLASSNAME(NormalMtl)::ProcessBitmap(Bitmap *bumpBitmap, BOOL swapRG
 	return bitmap;
 }
 
-frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Texmap *bumpMap, const float& strength, MaterialParser& mtlParser)
+frw::Value FireRenderNormalMtl::translateGenericBump(const TimeValue t, Texmap *bumpMap, const float& strength, MaterialParser& mtlParser)
 {
 	if (bumpMap)
 	{
 		if (bumpMap->ClassID() == FIRERENDER_NORMALMTL_CID)
 		{
-			return dynamic_cast<FRMTLCLASSNAME(NormalMtl)*>(bumpMap)->getShader(t, mtlParser);
+			return dynamic_cast<FireRenderNormalMtl*>(bumpMap)->GetShader(t, mtlParser);
 		}
 
 		// COMPUTE HASH
@@ -454,7 +446,7 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Te
 	return mtlParser.materialSystem.ValueLookupN();
 }
 
-frw::Image FRMTLCLASSNAME(NormalMtl)::bitmap2image(Bitmap *bmp, MaterialParser& mtlParser)
+frw::Image FireRenderNormalMtl::bitmap2image(Bitmap *bmp, MaterialParser& mtlParser)
 {
 	std::function<__m128i(__m128i, __m128i)> mm_packus_epi32_impl = [](__m128i a, __m128i b) {
 		return _mm_packus_epi32(a, b);
@@ -519,7 +511,7 @@ frw::Image FRMTLCLASSNAME(NormalMtl)::bitmap2image(Bitmap *bmp, MaterialParser& 
 	return img;
 }
 
-frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderNormalMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -741,7 +733,16 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParse
 	return ms.ValueLookupN();
 }
 
-void FRMTLCLASSNAME(NormalMtl)::Update(TimeValue t, Interval& valid) 
+AColor FireRenderNormalMtl::EvalColor(ShadeContext& sc)
+{
+	Color color(0.f, 0.f, 0.f);
+	Texmap* colorTexmap = GetFromPb<Texmap*>(pblock, FRNormalMtl_COLOR_TEXMAP);
+	if (colorTexmap)
+		color = colorTexmap->EvalColor(sc);
+	return AColor(color.r, color.g, color.b);
+}
+
+void FireRenderNormalMtl::Update(TimeValue t, Interval& valid) 
 {
     for (int i = 0; i < NumSubTexmaps(); ++i)
 	{
@@ -753,7 +754,7 @@ void FRMTLCLASSNAME(NormalMtl)::Update(TimeValue t, Interval& valid)
     this->pblock->GetValidity(t, valid);
 }
 
-Bitmap *FRMTLCLASSNAME(NormalMtl)::createImageFromMap(const TimeValue t, Texmap* input, MaterialParser& mtlParser, bool &deleteAfterwards)
+Bitmap *FireRenderNormalMtl::createImageFromMap(const TimeValue t, Texmap* input, MaterialParser& mtlParser, bool &deleteAfterwards)
 {
 	debugPrint("NormalMtl::createImageFromMap\n");
 	FASSERT(input);

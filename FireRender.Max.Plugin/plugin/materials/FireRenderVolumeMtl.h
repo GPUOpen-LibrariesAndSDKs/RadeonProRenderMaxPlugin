@@ -33,8 +33,8 @@ class FireRenderVolumeMtl :
 	public FireRenderMtl<FireRenderVolumeMtlTraits, FireRenderVolumeMtl>
 {
 public:
-	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
-	frw::Shader getShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+	frw::Shader GetVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
+	frw::Shader GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node) override;
 };
 
 FIRERENDER_NAMESPACE_END;

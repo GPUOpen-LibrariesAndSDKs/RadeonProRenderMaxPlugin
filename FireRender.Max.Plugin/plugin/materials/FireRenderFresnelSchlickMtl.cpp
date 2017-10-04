@@ -12,13 +12,9 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-IMPLEMENT_FRMTLCLASSDESC(FresnelSchlickMtl)
-
-FRMTLCLASSDESCNAME(FresnelSchlickMtl) FRMTLCLASSNAME(FresnelSchlickMtl)::ClassDescInstance;
-
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("FresnelSchlickMtlPbdesc"), 0, &FRMTLCLASSNAME(FresnelSchlickMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("FresnelSchlickMtlPbdesc"), 0, &FireRenderFresnelSchlickMtl::GetClassDesc(), P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
     //rollout
 	IDD_FIRERENDER_FRESNELSCHLICKMTL, IDS_FR_MTL_FRESNELSCHLICK, 0, 0, NULL,
 
@@ -37,18 +33,13 @@ static ParamBlockDesc2 pbDesc(
     PB_END
     );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(FresnelSchlickMtl)::TEXMAP_MAPPING = {
+std::map<int, std::pair<ParamID, MCHAR*>> FireRenderFresnelSchlickMtl::TEXMAP_MAPPING = {
 	{ FRFresnelSchlickMtl_TEXMAP_INVEC,{ FRFresnelSchlickMtl_INVEC_TEXMAP, _T("Invec map") } },
 	{ FRFresnelSchlickMtl_TEXMAP_N,{ FRFresnelSchlickMtl_N_TEXMAP, _T("N map") } },
 	{ FRFresnelSchlickMtl_TEXMAP_REFLECTANCE,{ FRFresnelSchlickMtl_REFLECTANCE_TEXMAP, _T("reflectance map") } }
 };
 
-FRMTLCLASSNAME(FresnelSchlickMtl)::~FRMTLCLASSNAME(FresnelSchlickMtl)()
-{
-}
-
-
-frw::Value FRMTLCLASSNAME(FresnelSchlickMtl)::getShader(const TimeValue t, MaterialParser& mtlParser)
+frw::Value FireRenderFresnelSchlickMtl::GetShader(const TimeValue t, MaterialParser& mtlParser)
 {
 	const Color reflectance = GetFromPb<Color>(pblock, FRFresnelSchlickMtl_REFLECTANCE);
 	Texmap* invecMap = GetFromPb<Texmap*>(pblock, FRFresnelSchlickMtl_INVEC_TEXMAP);
@@ -65,7 +56,7 @@ frw::Value FRMTLCLASSNAME(FresnelSchlickMtl)::getShader(const TimeValue t, Mater
 	return mtlParser.materialSystem.ValueFresnelSchlick(reflectanceValue, nValue, invecValue);
 }
 
-void FRMTLCLASSNAME(FresnelSchlickMtl)::Update(TimeValue t, Interval& valid) {
+void FireRenderFresnelSchlickMtl::Update(TimeValue t, Interval& valid) {
     for (int i = 0; i < NumSubTexmaps(); ++i) {
         // we are required to recursively call Update on all our submaps
         Texmap* map = GetSubTexmap(i);

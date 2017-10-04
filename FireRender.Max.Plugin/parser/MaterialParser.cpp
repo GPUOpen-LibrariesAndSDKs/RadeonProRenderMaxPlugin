@@ -673,26 +673,22 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 
 	auto classId = texmap->ClassID();
 
-	if(auto frmtl = dynamic_cast<FireRenderMtlBase*>(texmap)){
-		frmtl->SetCurrentTime(mT);
-	}	
-
 	if (classId == FIRERENDER_ARITHMMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(ArithmMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderArithmMtl*>(texmap)->GetShader(mT, *this);
 	else if (classId == FIRERENDER_INPUTLUMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(InputLUMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderInputLUMtl*>(texmap)->GetShader(mT, *this);
 	else if (classId == FIRERENDER_BLENDVALUEMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(BlendValueMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderBlendValueMtl*>(texmap)->GetShader(mT, *this);
 	else if (classId == FIRERENDER_FRESNELMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(FresnelMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderFresnelMtl*>(texmap)->GetShader(mT, *this);
 	else if (classId == FIRERENDER_COLORMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(ColorMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderColorMtl*>(texmap)->GetShader(mT, *this);
 	else if (classId == FIRERENDER_AVERAGEMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(AvgMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderAvgMtl*>(texmap)->GetShader(mT, *this);
 	else if (classId == FIRERENDER_NORMALMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(NormalMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderNormalMtl*>(texmap)->GetShader(mT, *this);
 	else if (classId == FIRERENDER_FRESNELSCHLICKMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(FresnelSchlickMtl)*>(texmap)->getShader(mT, *this);
+		result = dynamic_cast<FireRenderFresnelSchlickMtl*>(texmap)->GetShader(mT, *this);
 	//else if (classId == NORMALBUMP_CID)
 	//	result = createNormalBumpMap(texmap);
 	else if (classId == Corona::MIX_TEX_CID && ScopeManagerMax::CoronaOK)
@@ -805,25 +801,25 @@ frw::Shader MaterialParser::findVolumeMaterial(Mtl* mat)
 
 	if (mat->ClassID() == FIRERENDER_VOLUMEMTL_CID)
 	{
-		return dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(mat)->getVolumeShader(mT, *this, 0);
+		return dynamic_cast<FireRenderVolumeMtl*>(mat)->GetVolumeShader(mT, *this, 0);
 	}
 	else if (mat->ClassID() == FIRERENDER_UBERMTL_CID)
 	{
-		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(UberMtl)*>(mat)->getVolumeShader(mT, *this, 0);
+		frw::Shader res = dynamic_cast<FireRenderUberMtl*>(mat)->GetVolumeShader(mT, *this, 0);
 		
 		if (res)
 			return res;
 	}
 	else if (mat->ClassID() == FIRERENDER_UBERMTLV2_CID)
 	{
-		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(UberMtlv2)*>(mat)->getVolumeShader(mT, *this, 0);
+		frw::Shader res = dynamic_cast<FireRenderUberMtlv2*>(mat)->GetVolumeShader(mT, *this, 0);
 		
 		if (res)
 			return res;
 	}
 	else if (mat->ClassID() == FIRERENDER_PBRMTL_CID)
 	{
-		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(mat)->getVolumeShader(mT, *this, 0);
+		frw::Shader res = dynamic_cast<FireRenderPbrMtl*>(mat)->GetVolumeShader(mT, *this, 0);
 		
 		if (res)
 			return res;
@@ -909,16 +905,12 @@ frw::Shader MaterialParser::createVolumeShader(Mtl* material, INode* node)
 
 		const Class_ID cid = material->ClassID();
 
-	if(auto frmtl = dynamic_cast<FireRenderMtlBase*>(material)){
-		frmtl->SetCurrentTime(mT);
-	}	
-
 	if(false){}
 	else if (cid == FIRERENDER_VOLUMEMTL_CID) {
-		shader = dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(material)->getVolumeShader(mT, *this, node);
+		shader = dynamic_cast<FireRenderVolumeMtl*>(material)->GetVolumeShader(mT, *this, node);
 	}
 	else if (cid == FIRERENDER_MATERIALMTL_CID) {
-		shader = dynamic_cast<FRMTLCLASSNAME(MaterialMtl)*>(material)->getVolumeShader(mT, *this, node);
+		shader = dynamic_cast<FireRenderMaterialMtl*>(material)->GetVolumeShader(mT, *this, node);
 	}
 	else
 	{
@@ -994,9 +986,6 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 		{
 			const Class_ID cid = material->ClassID();
 
-			if(auto frmtl = dynamic_cast<FireRenderMtlBase*>(material)){
-				frmtl->SetCurrentTime(mT);
-			}	
 			if (auto stdMat2 = dynamic_cast<StdMat2*>(material)) {
 				shader = parseStdMat2(stdMat2);
 			}
@@ -1004,58 +993,58 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 				shader = parsePhysicalMaterial(material);
 			}
 			else if (cid == FIRERENDER_DIFFUSEMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(DiffuseMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderDiffuseMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_BLENDMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(BlendMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderBlendMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_ADDMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(AddMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderAddMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_MICROFACETMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(MicrofacetMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderMicrofacetMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_REFLECTIONMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(ReflectionMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderReflectionMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_REFRACTIONMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(RefractionMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderRefractionMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_MFREFRACTIONMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(MFRefractionMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderMFRefractionMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_TRANSPARENTMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(TransparentMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderTransparentMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_WARDMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(WardMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderWardMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_EMISSIVEMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(EmissiveMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderEmissiveMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_STANDARDMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(StandardMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderStandardMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_ORENNAYARMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(OrenNayarMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderOrenNayarMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_DIFFUSEREFRACTIONMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(DiffuseRefractionMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderDiffuseRefractionMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_MATERIALMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(MaterialMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderMaterialMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_UBERMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(UberMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderUberMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_UBERMTLV2_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(UberMtlv2)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderUberMtlv2*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_PBRMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderPbrMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_VOLUMEMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FireRenderVolumeMtl*>(material)->GetShader(mT, *this, node);
 			}
 			else if (cid == Corona::LAYERED_MTL_CID) {
 				if (ScopeManagerMax::CoronaOK)
@@ -1213,7 +1202,7 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	if (bumpMap)
 	{
 		float strength = mtl->GetTexmapAmt(ID_BU, mT);
-		normal = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bumpMap, strength, *this);
+		normal = FireRenderNormalMtl::translateGenericBump(mT, bumpMap, strength, *this);
 				result.SetValue("normal", normal);
 			}
 	
@@ -1550,7 +1539,7 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	frw::Value BaseBumpMap;
 	if (bump_map_on && bump_map)
 	{
-		BaseBumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bump_map, bump_map_amt, *this);
+		BaseBumpMap = FireRenderNormalMtl::translateGenericBump(mT, bump_map, bump_map_amt, *this);
 	}
 	
 	// compute roughness
@@ -1738,7 +1727,7 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	frw::Value CoatBumpMap;
 	if (coat_bump_map_on && coat_bump_map)
 	{
-		CoatBumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, coat_bump_map, clearcoat_bump_map_amt, *this);
+		CoatBumpMap = FireRenderNormalMtl::translateGenericBump(mT, coat_bump_map, clearcoat_bump_map_amt, *this);
 	}
 	CoatShader.SetValue("normal", CoatBumpMap);
 
@@ -1832,7 +1821,7 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 		if (normalTexmap)
 		{
 				float bumpAmount = GetFromPb<float>(pb, Corona::MTLP_MAPAMOUNT_BUMP);
-		bumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, normalTexmap, bumpAmount, *this);
+		bumpMap = FireRenderNormalMtl::translateGenericBump(mT, normalTexmap, bumpAmount, *this);
 		material.SetValue("diffuse.normal", bumpMap);
 		material.SetValue("clearcoat.normal", bumpMap);
 		material.SetValue("glossy.normal", bumpMap);

@@ -17,26 +17,27 @@ enum FRDisplacementMtl_ParamID : ParamID {
 	FRDisplacementMtl_BOUNDARY,
 };
 
-BEGIN_DECLARE_FRTEXCLASSDESC(DisplacementMtl, L"RPR Displacement", FIRERENDER_DISPLACEMENTMTL_CID)
-END_DECLARE_FRTEXCLASSDESC()
+class FireRenderDisplacementMtlTraits
+{
+public:
+	static const TCHAR* InternalName() { return _T("RPR Displacement"); }
+	static Class_ID ClassId() { return FIRERENDER_DISPLACEMENTMTL_CID; }
+};
 
-BEGIN_DECLARE_FRTEX(DisplacementMtl)
-	virtual  AColor EvalColor(ShadeContext& sc) override
-	{
-		Color color(0.f, 0.f, 0.f);
-		Texmap* colorTexmap = GetFromPb<Texmap*>(pblock, FRDisplacementMtl_COLOR_TEXMAP);
-		if (colorTexmap)
-			color = colorTexmap->EvalColor(sc);
-		return AColor(color.r, color.g, color.b);
-	}
+class FireRenderDisplacementMtl :
+	public FireRenderTex<FireRenderDisplacementMtlTraits, FireRenderDisplacementMtl>
+{
+public:
 
-static Texmap *findDisplacementMap(const TimeValue t, MaterialParser& mtlParser, Mtl* material,
-	float &minHeight, float &maxHeight, float &subdivision, float &creaseWeight, int &boundary, bool &notAccurate);
+	static Texmap *findDisplacementMap(const TimeValue t, MaterialParser& mtlParser, Mtl* material,
+		float &minHeight, float &maxHeight, float &subdivision, float &creaseWeight, int &boundary, bool &notAccurate);
 
 	static frw::Value translateDisplacement(const TimeValue t, MaterialParser& mtlParser, Mtl* material,
 		float &minHeight, float &maxHeight, float &subdivision, float &creaseWeight, int &boundary, bool &notAccurate);
 
-END_DECLARE_FRTEX(DisplacementMtl)
-
+	AColor EvalColor(ShadeContext& sc) override;
+	void Update(TimeValue t, Interval& valid) override;
+	frw::Value GetShader(const TimeValue t, class MaterialParser& mtlParser) override;
+};
 
 FIRERENDER_NAMESPACE_END;

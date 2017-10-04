@@ -37,7 +37,7 @@ std::map<int, std::pair<ParamID, MCHAR*>> FireRenderDiffuseMtl::TEXMAP_MAPPING =
 };
 
 
-frw::Shader FireRenderDiffuseMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderDiffuseMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -54,7 +54,7 @@ frw::Shader FireRenderDiffuseMtl::getShader(const TimeValue t, MaterialParser& m
 	material.SetColor(color);
 	
 	if (normalTexmap)
-		material.SetNormal(FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetNormal(FireRenderNormalMtl::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

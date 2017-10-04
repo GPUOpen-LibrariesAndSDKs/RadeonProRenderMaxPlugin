@@ -40,7 +40,7 @@ class FireRenderEmissiveMtl :
 	public FireRenderMtl<FireRenderEmissiveMtlTraits, FireRenderEmissiveMtl>
 {
 public:
-	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	frw::Shader GetShader(const TimeValue t, class MaterialParser& mtlParser, INode* node) override;
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;
 	float GetSelfIllum(int mtlNum, BOOL backFace) override;
 	Color GetSelfIllumColor(int mtlNum, BOOL backFace) override;

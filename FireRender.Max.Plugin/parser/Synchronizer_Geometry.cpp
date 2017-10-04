@@ -453,7 +453,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 				frw::Value displImageNode;
 				bool notAccurate;
 				if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
-					displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, currentMtl,
+					displImageNode = FireRenderDisplacementMtl::translateDisplacement(t, mtlParser, currentMtl,
 						minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
 				if (displImageNode)
 				{
@@ -735,7 +735,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 		frw::Value displImageNode;
 		bool notAccurate;
 		if (currentMtl != GEOM_DISABLED_MATERIAL)
-			displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, currentMtl,
+			displImageNode = FireRenderDisplacementMtl::translateDisplacement(t, mtlParser, currentMtl,
 				minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
 		if (displImageNode)
 		{

@@ -13,19 +13,20 @@ enum FRColorMtl_ParamID : ParamID {
 	FRColorMtl_COLOR_TEXMAP = 1001
 };
 
-BEGIN_DECLARE_FRTEXCLASSDESC(ColorMtl, L"RPR Color Value", FIRERENDER_COLORMTL_CID)
-END_DECLARE_FRTEXCLASSDESC()
+class FireRenderColorMtlTraits
+{
+public:
+	static const TCHAR* InternalName() { return _T("RPR Color Value"); }
+	static Class_ID ClassId() { return FIRERENDER_COLORMTL_CID; }
+};
 
-BEGIN_DECLARE_FRTEX(ColorMtl)
-	virtual  AColor EvalColor(ShadeContext& sc) override
-	{
-		Color color = GetFromPb<Color>(pblock, FRColorMtl_COLOR);
-		Texmap* colorTexmap = GetFromPb<Texmap*>(pblock, FRColorMtl_COLOR_TEXMAP);
-		if (colorTexmap)
-			color = colorTexmap->EvalColor(sc);
-		return color;
-	}
-END_DECLARE_FRTEX(ColorMtl)
-
+class FireRenderColorMtl :
+	public FireRenderTex<FireRenderColorMtlTraits, FireRenderColorMtl>
+{
+public:
+	AColor EvalColor(ShadeContext& sc) override;
+	void Update(TimeValue t, Interval& valid) override;
+	frw::Value GetShader(const TimeValue t, class MaterialParser& mtlParser) override;
+};
 
 FIRERENDER_NAMESPACE_END;

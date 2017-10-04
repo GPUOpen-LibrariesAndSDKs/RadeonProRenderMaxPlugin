@@ -156,11 +156,9 @@ float FireRenderStandardMtl::GetXParency(int mtlNum, BOOL backFace)
 	return avg(GetFromPb<Color>(pblock, FRStandardMtl_EMISSION_COLOR));
 }
 
-frw::Shader FireRenderStandardMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderStandardMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
-
-	currentTime = t;
 
 	frw::Shader material(ms, frw::ShaderTypeStandard);
 

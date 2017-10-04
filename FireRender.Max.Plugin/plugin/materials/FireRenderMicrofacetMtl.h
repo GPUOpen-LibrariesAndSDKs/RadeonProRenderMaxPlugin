@@ -31,7 +31,7 @@ class FireRenderMicrofacetMtl :
 {
 public:
 	Color GetDiffuse(int mtlNum, BOOL backFace) override;
-	frw::Shader getShader(const TimeValue t, class MaterialParser& mtlParser, INode* node);
+	frw::Shader GetShader(const TimeValue t, class MaterialParser& mtlParser, INode* node) override;
 };
 
 FIRERENDER_NAMESPACE_END;

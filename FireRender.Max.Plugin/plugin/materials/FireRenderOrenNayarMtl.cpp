@@ -48,7 +48,7 @@ Color FireRenderOrenNayarMtl::GetDiffuse(int mtlNum, BOOL backFace)
 	return GetFromPb<Color>(pblock, FROrenNayarMtl_COLOR);
 }
 
-frw::Shader FireRenderOrenNayarMtl::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FireRenderOrenNayarMtl::GetShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
 
@@ -72,7 +72,7 @@ frw::Shader FireRenderOrenNayarMtl::getShader(const TimeValue t, MaterialParser&
 	material.SetValue("roughness", roughnessv);
 	
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue("normal", FireRenderNormalMtl::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

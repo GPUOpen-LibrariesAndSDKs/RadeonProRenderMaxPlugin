@@ -181,7 +181,7 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 
 						frw::Value displImageNode;
 						bool notAccurate;
-						displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, pMat,
+						displImageNode = FireRenderDisplacementMtl::translateDisplacement(t, mtlParser, pMat,
 								minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
 						if (displImageNode)
 						{
