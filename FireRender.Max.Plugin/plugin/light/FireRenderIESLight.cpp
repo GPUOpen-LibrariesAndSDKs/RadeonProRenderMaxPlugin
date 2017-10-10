@@ -33,7 +33,7 @@
 #include "LookAtTarget.h"
 #include "FireRenderIES_Profiles.h"
 
-#include "IESprocessor.h"
+#include "IESLight\IESprocessor.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 

@@ -10,13 +10,14 @@
 #include "Common.h"
 #include "Resource.h"
 #include "FireRenderIESLight.h"
-#include "IESprocessor.h"
+#include "IESLight/IESprocessor.h"
+#include "IESLight/IESLightRepresentationCalc.h"
 #include "FireRenderIES_Profiles.h"
 #include <fstream>
 
 FIRERENDER_NAMESPACE_BEGIN
 
-static TCHAR* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
+static wchar_t* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
 {
 	switch (errorCode)
 	{
@@ -37,10 +38,25 @@ static TCHAR* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
 
 		case IESProcessor::ErrorCode::UNEXPECTED_END_OF_FILE:
 			return L"have reached end of file before parse was complete";
-
-		default:
-			return L"Unknown error";
 	}
+
+	assert(!"IESErrorCodeToMessage invalid usage");
+	return L"Unknown error";
+}
+
+static wchar_t* IESErrorCodeToMessage(IESLightRepresentationErrorCode errorCode)
+{
+	switch (errorCode)
+	{
+		case IESLightRepresentationErrorCode::INVALID_DATA:
+			return L"Invalid IES data";
+
+		case IESLightRepresentationErrorCode::NO_EDGES:
+			return L"No edges";
+	}
+
+	assert(!"IESErrorCodeToMessage invalid usage");
+	return L"Unknown error";
 }
 
 void Polar2XYZ(Point3& outPoint, double verticalAngle /*polar*/, double horizontalAngle /*azimuth*/, double dist)
@@ -184,21 +200,23 @@ bool FireRenderIESLight::CalculateBBox(void)
 bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 {
 	const float SCALE_WEB = 0.05f;
+	const size_t MAX_POINTS_PER_POLYLINE = 32; // this is 3DMax limitation!
 
 	m_plines.clear();
-	std::vector<std::vector<Point3>>& edges = m_plines;
 
 	// load IES data
 	std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName);
 
 	// get .ies light params
 	IESProcessor parser;
-	IESProcessor::IESLightData data;
+	IESLightRepresentationParams params;
+	params.webScale = 0.05f;
+	params.maxPointsPerPLine = MAX_POINTS_PER_POLYLINE;
 
 	const TCHAR* failReason = _T("Internal error");
 	std::basic_string<TCHAR> temp;
 
-	IESProcessor::ErrorCode parseRes = parser.Parse(data, profilePath.c_str());
+	IESProcessor::ErrorCode parseRes = parser.Parse(params.data, profilePath.c_str());
 
 	bool failed = parseRes != IESProcessor::ErrorCode::SUCCESS;
 	if (failed)
@@ -208,107 +226,34 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 		failReason = temp.c_str();
 	}
 
-	if (!failed)
+	if(!failed)
 	{
-		// calculate points of the mesh
-		// - verticle angles count is number of columns in candela values table
-		// - horizontal angles count is number of rows in candela values table
-		std::vector<Point3> candela_XYZ;
-		candela_XYZ.reserve(data.m_candelaValues.size());
-		auto it_candela = data.m_candelaValues.begin();
+		std::vector<std::vector<RadeonProRender::float3>> tempEdges;
+		IESLightRepresentationErrorCode calcRes = CalculateIESLightRepresentation(tempEdges, params);
+		failed = calcRes != IESLightRepresentationErrorCode::SUCCESS;
 
-		for (double horizontalAngle : data.m_horizontalAngles)
+		if (failed)
 		{
-			for (double verticleAngle : data.m_verticalAngles)
-			{
-				// get world coordinates from polar representation in .ies
-				candela_XYZ.emplace_back(0.0f, 0.0f, 0.0f);
-				Polar2XYZ(candela_XYZ.back(), verticleAngle, horizontalAngle, *it_candela);
-				candela_XYZ.back() *= SCALE_WEB;
-
-				++it_candela;
-			}
+			failReason = IESErrorCodeToMessage(calcRes);
 		}
-
-		// generate edges for each verticle angle (slices)
-		const size_t MAX_POINTS_PER_POLYLINE = 32; // this is 3DMax limitation!
-		size_t valuesPerRow = data.m_verticalAngles.size(); // verticle angles count is number of columns in candela values table
-
-		auto it_points = candela_XYZ.begin();
-		while (it_points != candela_XYZ.end())
+		else
 		{
-			auto endRow = it_points + valuesPerRow;
-			std::vector<Point3> pline; 
-			pline.reserve(MAX_POINTS_PER_POLYLINE);
-			bool isClosed = true;
+			const size_t edgesCount = tempEdges.size();
+			m_plines.reserve(edgesCount);
 
-			for (; it_points != endRow; ++it_points)
+			for (const auto& tempEdge : tempEdges)
 			{
-				pline.push_back(*it_points);
+				std::vector<Point3> edge;
+				edge.reserve(tempEdge.size());
 
-				if (pline.size() == MAX_POINTS_PER_POLYLINE)
+				for (const auto& point : tempEdge)
 				{
-					edges.push_back(pline);
-					pline.clear();
-					isClosed = false;
-					--it_points; // want to view continuous line
-				}
-			}
-
-			if (!pline.empty())
-			{
-				edges.push_back(pline);
-			}
-		}
-	}
-
-	if (!failed && edges.empty())
-	{
-		failed = true;
-		failReason = _T("Wrong IES file (edges list is empty).");
-	}
-
-	if (!failed)
-	{
-		// generate edges for mesh (edges crossing slices)
-#define IES_LIGHT_DONT_GEN_EXTRA_EDGES
-#ifndef IES_LIGHT_DONT_GEN_EXTRA_EDGES
-		if (!data.IsAxiallySymmetric()) // axially simmetric light field is a special case (should be processed after mirroring)
-		{
-			size_t columnCount = data.VerticalAngles().size();
-			size_t rowCount = data.HorizontalAngles().size();
-
-			for (size_t idx_column = 0; idx_column < columnCount; idx_column++) // 0 - 180
-			{
-
-				std::vector<Point3> pline; pline.reserve(MAX_POINTS_PER_POLYLINE);
-				for (size_t idx_row = 0; idx_row < rowCount; idx_row++) // 0 - 360
-				{
-					Point3 &tpoint = candela_XYZ[idx_row*columnCount + idx_column];
-					pline.push_back(tpoint);
-
-					if (pline.size() == MAX_POINTS_PER_POLYLINE)
-					{
-						edges.push_back(pline);
-						pline.clear();
-						--i; // want to view continuous line
-					}
+					edge.emplace_back(point.x, point.y, point.z);
 				}
 
-				if (!pline.empty())
-				{
-					edges.push_back(pline);
-				}
+				m_plines.push_back(std::move(edge));
 			}
-
 		}
-#endif
-	}
-
-	// mirror edges if necessary
-	if (!failed)
-	{
-		MirrorEdges(edges, data);
 	}
 
 	if (!failed)

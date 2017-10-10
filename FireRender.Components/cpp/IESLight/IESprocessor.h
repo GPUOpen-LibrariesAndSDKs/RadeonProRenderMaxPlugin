@@ -1,5 +1,5 @@
 /*********************************************************************************************************************************
-* Radeon ProRender for 3ds Max plugin
+* Radeon ProRender for plugins
 * Copyright (c) 2017 AMD
 * All Rights Reserved
 *
@@ -31,7 +31,7 @@ public:
 	* parse IES file filename and fill lightData with data from this file
 	* @param filename name of .ies file to be parsed
 	* @param lightData - output lightData
-	* @return code of error, zero if parse successfull 
+	* @return code of error, zero if parse successful 
 	*/
 	ErrorCode Parse (IESLightData& lightData, const wchar_t* filename) const;
 
@@ -39,7 +39,7 @@ public:
 	* change light data according to request, e.g. intensity is changed and so on
 	* @param req struct with values to be updated in lightData
 	* @param lightData input and output struct with IES data that should be changed according to request req
-	* @return code of error, zero if parse successfull
+	* @return code of error, zero if parse successful
 	*/
 	ErrorCode Update (IESLightData& lightData, const IESUpdateRequest& req) const;
 
@@ -58,7 +58,7 @@ protected:
 	/**
 	* Reads file and fills array tokens with numbers (as strings) and text array with data other than numbers
 	* read from the file.
-	* Basically makes data more convinient to parse
+	* Basically makes data more convenient to parse
 	*/
 	ErrorCode GetTokensFromFile (std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const;
 
@@ -69,7 +69,7 @@ protected:
 
 	/**
 	fills lightData with data read from tokens
-	* @return code of error in case of parse failure, zero if successfull 
+	* @return code of error in case of parse failure, zero if successful
 	*/
 	ErrorCode ParseTokens (IESLightData& lightData, std::vector<std::string>& tokens) const;
 
@@ -80,7 +80,7 @@ protected:
 	IESProcessor::ParseState FirstParseState (void) const;
 
 	/**
-	* fills corresponing to state lightData parameter with data read from value
+	* fills corresponding to state lightData parameter with data read from value
 	* value is supposed to string with one value, double or integer
 	* @return false in case of error
 	*/
@@ -114,7 +114,7 @@ public:
 	* The initial rated lumens for the lamp used in the test or -1 if absolute photometry is used
 	* and the intensity values do not depend on different lamp ratings. 
 	*/
-	double m_lumens = 0;
+	double m_lumens = 0.0f;
 
 	/**
 	* A multiplying factor for all the candela values in the file. 
@@ -123,7 +123,7 @@ public:
 	* when you obtain the photometric values from a catalog using a ruler on a goniometric diagram.
 	* Normally the multiplying factor is 1.
 	*/
-	double m_multiplier = 0;
+	double m_multiplier = 0.0f;
 
 	/**
 	* The number of vertical (polar) angles in the photometric web. 
@@ -154,7 +154,7 @@ public:
 	double m_height = 0.0f;
 
 	/**
-	* Multiplier representing difference between lab mesaurments and real world performance
+	* Multiplier representing difference between lab measurements and real world performance
 	*/
 	int m_ballast = 0;
 
@@ -245,3 +245,4 @@ struct IESProcessor::IESUpdateRequest
 {
 	float m_scale = 1.0f;
 };
+

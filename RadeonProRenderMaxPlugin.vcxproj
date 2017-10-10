@@ -248,7 +248,9 @@
     <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="FireRender.Components\cpp\inc\PluginContext.h" />
+    <ClInclude Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.h" />
+    <ClInclude Include="FireRender.Components\cpp\IESLight\IESprocessor.h" />
+    <ClInclude Include="FireRender.Components\cpp\PluginContext\PluginContext.h" />
     <ClInclude Include="FireRender.Max.Plugin\3dsMaxDeclarations.h" />
     <ClInclude Include="FireRender.Max.Plugin\autotesting\Testing.h" />
     <ClInclude Include="FireRender.Max.Plugin\Common.h" />
@@ -285,7 +287,6 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h" />
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESprocessor.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IFireRenderLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
@@ -337,7 +338,9 @@
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FireRender.Components\cpp\src\PluginContext.cpp" />
+    <ClCompile Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.cpp" />
+    <ClCompile Include="FireRender.Components\cpp\IESLight\IESprocessor.cpp" />
+    <ClCompile Include="FireRender.Components\cpp\PluginContext\PluginContext.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Plugin.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\FrScope.cpp" />
@@ -372,7 +375,6 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.cpp" />
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\IESprocessor.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.cpp" />

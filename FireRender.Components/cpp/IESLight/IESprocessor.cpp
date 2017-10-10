@@ -1,5 +1,5 @@
 /*********************************************************************************************************************************
-* Radeon ProRender for 3ds Max plugin
+* Radeon ProRender for plugins
 * Copyright (c) 2017 AMD
 * All Rights Reserved
 *
@@ -28,8 +28,8 @@ IESProcessor::IESLightData::IESLightData()
 void IESProcessor::IESLightData::Clear()
 {
 	m_countLamps = 0;
-	m_lumens = 0;
-	m_multiplier = 0;
+	m_lumens = 0.0f;
+	m_multiplier = 0.0f;
 	m_countVerticalAngles = 0;
 	m_countHorizontalAngles = 0;
 	m_photometricType = 0;
@@ -57,21 +57,31 @@ bool IESProcessor::IESLightData::IsValid() const
 		(m_ballast == 1) &&
 		(m_version == 1) &&
 		(m_wattage >= 0.0f); // while Autodesk specification says it always should be zero, this is not the case with real files
+	if (!areValuesCorrect)
+		return false;
 
 	// check table correctness
 	bool isSizeCorrect = ( (m_horizontalAngles.size() * m_verticalAngles.size()) == m_candelaValues.size() );
+	if (!isSizeCorrect)
+		return false;
 
 	// compare stored array size values with real array sizes (they should match)
 	bool isArrDataConsistent = (m_horizontalAngles.size() == m_countHorizontalAngles) && (m_verticalAngles.size() == m_countVerticalAngles);
+	if (!isArrDataConsistent)
+		return false;
 
 	// check data correctness (both angles arrays should be in ascending order)
 	bool areArrsSorted = std::is_sorted(m_horizontalAngles.begin(), m_horizontalAngles.end()) &&
 		std::is_sorted(m_verticalAngles.begin(), m_verticalAngles.end());
+	if (!areArrsSorted)
+		return false;
 
 	// ensure correct value for angles
 	bool correctAngles = IsAxiallySymmetric() || IsQuadrantSymmetric() || IsPlaneSymmetric() || IsAsymmetric();
+	if (!correctAngles)
+		return false;
 
-	return areValuesCorrect && isSizeCorrect && isArrDataConsistent && areArrsSorted && correctAngles;
+	return true;
 }
 
 // the distribution is axially symmetric.
@@ -99,7 +109,7 @@ bool IESProcessor::IESLightData::IsAsymmetric(void) const
 
 std::string IESProcessor::ToString(const IESLightData& lightData) const
 {
-	std::stringstream stream;
+	std::stringstream stream(lightData.m_extraData);
 
 	// Write IES header
 	stream << lightData.m_extraData;
@@ -202,7 +212,7 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	
 	text += lineToParse += "\n";
 
-	if (std::strncmp(text.c_str(), IES_FileTag, IES_TagSize) != 0)
+	if (std::strncmp(text.c_str(), IES_FileTag, 5) != 0)
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
 	}
@@ -467,7 +477,7 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& 
 		return false;
 
 	// read values from input
-	auto parseFuncImpl = m_parseImpl.find(state);
+	auto& parseFuncImpl = m_parseImpl.find(state);
 	if (parseFuncImpl != m_parseImpl.end())
 	{
 		state = parseFuncImpl->second(lightData, value);
@@ -563,3 +573,5 @@ IESProcessor::ErrorCode IESProcessor::Update(IESLightData& lightData, const IESU
 
 	return IESProcessor::ErrorCode::SUCCESS;
 }
+
+

@@ -3,7 +3,7 @@
 
 #include "FireRenderIESLight.h"
 #include "FireRenderIES_Profiles.h"
-#include "IESprocessor.h"
+#include "IESLight/IESprocessor.h"
 
 #include "FireRenderIES_General.h"
 

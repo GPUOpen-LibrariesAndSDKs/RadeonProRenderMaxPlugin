@@ -10,7 +10,7 @@
 #include "parser\MaterialParser.h"
 #include "maxscript\mxsplugin\mxsPlugin.h"
 #include "ParamBlock.h"
-#include "PluginContext.h"
+#include "PluginContext\PluginContext.h"
 
 #include <emmintrin.h>
 #include <functional>
