@@ -10,7 +10,9 @@
 #include "parser\MaterialParser.h"
 #include "maxscript\mxsplugin\mxsPlugin.h"
 #include <RprSupport.h>
+
 #include <functional>
+#include <unordered_map>
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -129,10 +131,16 @@ enum
 	ROLLOUT_MAX
 };
 
+
 IMPLEMENT_FRMTLCLASSDESC(UberMtlv2)
 
 
 FRMTLCLASSDESCNAME(UberMtlv2) FRMTLCLASSNAME(UberMtlv2)::ClassDescInstance;
+
+
+BasicParamsDlgProc dlgProcBasicParams;
+HWND BasicParamsDlgProc::hwndTip = nullptr;
+TOOLINFO BasicParamsDlgProc::toolInfo = { 0 };
 
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
@@ -141,7 +149,7 @@ static ParamBlockDesc2 pbDesc(
 	
 	// rollouts
 	ROLLOUT_MAX,
-	ROLLOUT_BASIC_PARAMS, IDD_UBERMTLV2_BASIC_PARAMS, IDS_MTL_UBERV2_BASIC_PARAMS, 0, 0, NULL,
+	ROLLOUT_BASIC_PARAMS, IDD_UBERMTLV2_BASIC_PARAMS, IDS_MTL_UBERV2_BASIC_PARAMS, 0, 0, &dlgProcBasicParams,
 	ROLLOUT_COATING, IDD_UBERMTLV2_COATING, IDS_MTL_UBERV2_COATING, 0, APPENDROLL_CLOSED, NULL,
 	ROLLOUT_SSS, IDD_UBERMTLV2_SSS, IDS_MTL_UBERV2_SSS, 0, APPENDROLL_CLOSED, NULL,
 	ROLLOUT_ABSORPTION, IDD_UBERMTLV2_ABSORPTION, IDS_MTL_UBERV2_ABSORPTION, 0, APPENDROLL_CLOSED, NULL,
@@ -1051,6 +1059,140 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 	
 	if (value.IsNode()) // a map must be connected
 		shader.xSetValue(RPRX_UBER_MATERIAL_BUMP, value);
+}
+
+INT_PTR BasicParamsDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	INT_PTR processed = FALSE;
+
+	static std::unordered_map<UINT, MsgProc> msgProc = 
+	{
+		{ WM_INITDIALOG, MsgProcInitDialog },
+		{ WM_CLOSE, MsgProcClose },
+		{ WM_COMMAND, MsgProcCommand },
+	};
+
+	auto msgProcIt = msgProc.find(msg);
+
+	if ( msgProcIt != msgProc.end() )
+		processed = msgProcIt->second(t, map, hWnd, wParam, lParam);
+
+	return processed;
+}
+
+void BasicParamsDlgProc::DeleteThis()
+{
+}
+
+INT_PTR BasicParamsDlgProc::MsgProcInitDialog(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	// setup controls
+	IParamBlock2* pBlock = map->GetParamBlock();
+	int reflectionMode = GetFromPb<int>(pBlock, FRUBERMTLV2_REFLECTION_MODE);
+	bool isLinked = GetFromPb<bool>(pBlock, FRUBERMTLV2_REFRACTION_LINK_TO_REFLECTION);
+	
+	// Core rises an exception for this set by design
+	bool isInvalidSet = ( (RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS == reflectionMode) && isLinked );
+	FASSERT( !isInvalidSet );
+
+	// parameters are valid, continue
+	HWND hCheckbox = GetDlgItem(hDlg, IDC_UBER_REFRACTION_LINK_TO_REFLECTION);
+
+	// setup controls
+	if (RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS == reflectionMode)
+	{
+		Button_Enable(hCheckbox, FALSE);
+	}
+	else if (isLinked)
+	{
+		HWND hCombo = GetDlgItem(hDlg, IDC_UBER_REFLECTION_MODE);
+		ComboBox_Enable(hCombo, FALSE);
+	}
+
+	// create tooltip
+	SetupTooltip(hDlg, hCheckbox);
+
+	// attach tooltip to the opening dialog
+	toolInfo.hwnd = hDlg;
+	toolInfo.uId = (UINT_PTR) hCheckbox;
+
+	SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM) &toolInfo);
+
+	return 1;
+}
+
+INT_PTR BasicParamsDlgProc::MsgProcClose(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	// detach tooltip from the closing dialog
+	SendMessage(hwndTip, TTM_DELTOOL, 0, (LPARAM) &toolInfo);
+
+	return 1;
+}
+
+INT_PTR BasicParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	INT_PTR processed = FALSE;
+
+	switch (LOWORD(wParam))
+	{
+	case IDC_UBER_REFLECTION_MODE:
+		{
+			bool isSelChanged = (CBN_SELCHANGE == HIWORD(wParam));
+
+			if (isSelChanged)
+			{
+				int selectionIndex = ComboBox_GetCurSel(GetDlgItem(hDlg, IDC_UBER_REFLECTION_MODE));
+				BOOL enable = (COMBO_INDEX_METALNESS_MODE != selectionIndex);
+				HWND hCheckbox = GetDlgItem(hDlg, IDC_UBER_REFRACTION_LINK_TO_REFLECTION);
+				Button_Enable(hCheckbox, enable);
+			}
+
+			processed = TRUE;
+		}
+
+		break;
+
+	case IDC_UBER_REFRACTION_LINK_TO_REFLECTION:
+		{
+			bool isClicked = (BN_CLICKED == HIWORD(wParam));
+
+			if (isClicked)
+			{
+				bool isLinkChecked = IsDlgButtonChecked(hDlg, IDC_UBER_REFRACTION_LINK_TO_REFLECTION);
+				BOOL enable = !isLinkChecked;
+				HWND hCombo = GetDlgItem(hDlg, IDC_UBER_REFLECTION_MODE);
+				ComboBox_Enable(hCombo, enable);
+			}
+	
+			processed = TRUE;
+		}
+
+		break;
+	}
+
+	return processed;
+}
+
+void BasicParamsDlgProc::SetupTooltip(HWND hDlg, HWND hCtl)
+{
+	if (nullptr == hwndTip)
+	{
+		hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+			CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+			hDlg, NULL, FireRender::fireRenderHInstance, NULL);
+
+		SetWindowPos(hwndTip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+		toolInfo.cbSize = sizeof(toolInfo);
+		toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+		toolInfo.hwnd = hDlg;
+		toolInfo.uId = (UINT_PTR) hCtl;
+		toolInfo.rect = { 0 };
+		toolInfo.hinst = nullptr;
+		toolInfo.lpszText = _T("Linked mode works only if reflection workflow is set to IOR");
+		toolInfo.lParam = 0;
+		toolInfo.lpReserved = nullptr;
+	}
 }
 
 FIRERENDER_NAMESPACE_END;

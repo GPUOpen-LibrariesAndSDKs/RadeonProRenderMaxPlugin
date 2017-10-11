@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FireRenderMtlBase.h"
+#include <functional>
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -263,5 +264,31 @@ private:
 	void SetupMaterial(MaterialParser& mtlParser, frw::Shader& shader);
 
 END_DECLARE_FRMTL(UberMtlv2)
+
+class BasicParamsDlgProc : public ParamMap2UserDlgProc
+{
+	enum
+	{
+		COMBO_INDEX_IOR_MODE = 0,
+		COMBO_INDEX_METALNESS_MODE = 1
+	};
+
+	using MsgProc = INT_PTR (*)(TimeValue t, IParamMap2* map, HWND hWnd, WPARAM wParam, LPARAM lParam);
+
+public:
+	virtual INT_PTR DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
+	virtual void DeleteThis() override;
+
+private:
+	static INT_PTR MsgProcInitDialog(TimeValue t, IParamMap2* map, HWND hWnd, WPARAM wParam, LPARAM lParam);
+	static INT_PTR MsgProcClose(TimeValue t, IParamMap2* map, HWND hWnd, WPARAM wParam, LPARAM lParam);
+	static INT_PTR MsgProcCommand(TimeValue t, IParamMap2* map, HWND hWnd, WPARAM wParam, LPARAM lParam);
+
+	static void SetupTooltip(HWND hWnd, HWND hCtl);
+
+private:
+	static HWND hwndTip;
+	static TOOLINFO toolInfo;
+};
 
 FIRERENDER_NAMESPACE_END;
