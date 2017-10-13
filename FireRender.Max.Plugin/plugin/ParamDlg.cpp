@@ -1446,6 +1446,8 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 	return TRUE;
 }
 
+extern "C" bool IsGltfExportEnabled();
+
 void FireRenderParamDlg::CAdvancedSettings::InitDialog()
 {
 	LRESULT n;
@@ -1493,11 +1495,24 @@ void FireRenderParamDlg::CAdvancedSettings::InitDialog()
 		SetCheckboxValue(warningsSuppressGlobal, IDC_WARNINGS_SUPPRESS_GLOBAL);
 	}
 
+	// setup export buttons
+	HWND hExportCheckBox = GetDlgItem(mHwnd, IDC_EXPORTMODEL_CHECK);
 
-	BOOL enableExport = FALSE;
-	pb->GetValue(PARAM_EXPORTMODEL_CHECK, 0, enableExport, Interval());
-	EnableExportModelControls(enableExport);
+	if ( IsGltfExportEnabled() )
+	{
+		Button_Enable(hExportCheckBox, TRUE);
+		BOOL enableExport = FALSE;
+		pb->GetValue(PARAM_EXPORTMODEL_CHECK, 0, enableExport, Interval());
+		EnableExportModelControls(enableExport);
+	}
+	else
+	{
+		EnableExportModelControls(FALSE);
+		Button_SetCheck(hExportCheckBox, FALSE);
+		Button_Enable(hExportCheckBox, FALSE);
+	}
 
+	// setup irradiance
 	SetupCheckbox(pb, PARAM_USE_IRRADIANCE_CLAMP, IDC_CLAMP_IRRADIANCE);
 	BOOL useIrradianceClamp = FALSE;
 	pb->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());
@@ -1569,8 +1584,8 @@ BOOL FireRenderParamDlg::CAdvancedSettings::GetExportFileName()
 		initialDir = std::wstring(my_documents) + L"\\3dsMax\\export\\";
 	}
 
-	filterList.Append(_T("Radeon ProRender Scene"));
-	filterList.Append(_T("*.frs"));
+	filterList.Append(_T("GL Transmission Format"));
+	filterList.Append(_T("*.gltf"));
 
 	memset(&ofn, 0, sizeof(ofn));
 
@@ -1593,7 +1608,7 @@ BOOL FireRenderParamDlg::CAdvancedSettings::GetExportFileName()
 	ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOREADONLYRETURN | OFN_EXPLORER | OFN_ENABLEHOOK | OFN_ENABLESIZING;
 	ofn.lpfnHook = NULL;
 	ofn.lCustData = 0;
-	ofn.lpstrDefExt = _T("frs");
+	ofn.lpstrDefExt = _T("gltf");
 
 	while (GetSaveFileName(&ofn)) {
 		exportFRSceneFileName = ofn.lpstrFile;

@@ -6,13 +6,11 @@
 * Production Renderer
 *********************************************************************************************************************************/
 
-#include <math.h>
-#include <Bitmap.h>
+#include "ProRenderGLTF.h" // must be the first to avoid compilation errors
 
 #include "PRManager.h"
 #include "resource.h"
-#include "plugin/ParamBlock.h"
-#include <wingdi.h>
+#include "ParamBlock.h"
 #include "utils/Thread.h"
 #include "AssetManagement\IAssetAccessor.h"
 #include "assetmanagement\AssetType.h"
@@ -21,11 +19,14 @@
 #include "FireRenderMaterialMtl.h"
 #include "CamManager.h"
 #include "TMManager.h"
-#include <RadeonProRender.h>
-#include <RprLoadStore.h>
-#include <RprSupport.h>
+#include "RadeonProRender.h"
+#include "RprLoadStore.h"
+#include "RprSupport.h"
+#include <wingdi.h>
+#include <math.h>
+#include <Bitmap.h>
 #include <shlobj.h>
-#include <gamma.h> // gamma export for FRS files
+#include <gamma.h>
 
 #include <mutex>
 #include <future>
@@ -759,31 +760,34 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
 	FASSERT(dd != mInstances.end());
 
-	auto data = dd->second;
-
-
-	auto &parameters = pRenderer->parameters;
+	const Data* data = dd->second;
+	auto& parameters = pRenderer->parameters;
 
 	// Export the model if requested
 	if (parameters.pblock && GetFromPb<bool>(parameters.pblock, PARAM_EXPORTMODEL_CHECK))
 	{
-		auto filename = pRenderer->GetFireRenderExportSceneFilename();
+		std::wstring filename = pRenderer->GetFireRenderExportSceneFilename();
+
 		if (filename.length() == 0)
 		{
 			TCHAR my_documents[MAX_PATH];
 			HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
+
 			if (result == S_OK)
 				filename = std::wstring(my_documents) + L"\\3dsMax\\export\\";
+			
 			filename += L"exportscene.rprs";
 		}
 
 		int extra_3dsmax_gammaenabled = 0;
 
-		const char* extra_int_names[] = {
+		const char* extra_int_names[] =
+		{
 			"3dsmax.gammaenabled",
 			"3dsmax.tonemapping.isnormals",
 			"3dsmax.tonemapping.shouldtonemap",
 		};
+
 		const int extra_int_values[] =
 		{
 			gammaMgr.enable ? 1 : 0,
@@ -791,14 +795,16 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 			data->shouldToneMap ? 1 : 0
 		};
 
-
-		const char* extra_float_names[] = {
+		const char* extra_float_names[] =
+		{
 			"3dsmax.displaygamma",
 			"3dsmax.fileingamma",
 			"3dsmax.fileoutgamma",
 			"3dsmax.tonemapping.exposure",
 		};
-		const float extra_float_values[] = {
+
+		const float extra_float_values[] =
+		{
 			gammaMgr.dispGamma,
 			gammaMgr.fileInGamma,
 			gammaMgr.fileOutGamma,
@@ -808,6 +814,7 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 		//check that the path only contains ASCII characters.
 		//FYI, frsExport manages only char* because this library is also used in Linux, and it seems that wchar_t is not Linux friendly.
 		bool goodAscii = true;
+
 		for (int i = 0; i<filename.size(); i++)
 		{
 			if (filename[i] > 0x0ff)
@@ -823,20 +830,38 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 		}
 		else
 		{
-			auto scope = ScopeManagerMax::TheManager.GetScope(data->scopeId);
-			rpr_int statusExport = rprsExport(ToAscii(filename).c_str(), scope.GetContext().Handle(), scope.GetScene().Handle(),
-				sizeof(extra_int_values) / sizeof(extra_int_values[0]),
-				extra_int_names,
-				extra_int_values,
-				sizeof(extra_float_values) / sizeof(extra_float_values[0]),
-				extra_float_names,
-				extra_float_values
-			);
+			frw::Scope scope = ScopeManagerMax::TheManager.GetScope(data->scopeId);
+			std::string exportFilename = ToAscii(filename);
+			rpr_context context = scope.GetContext().Handle();
+			rprx_context contextEx = scope.GetContextEx();
+			rpr_material_system matSystem = scope.GetMaterialSystem().Handle();
+			rpr_scene scene = scope.GetScene().Handle();
+			std::vector<rpr_scene> scenes{ scene };
+			gltf::glTF _exported;
 
-			if (statusExport == RPR_SUCCESS) {
-				wchar_t successMessage[2048];
-				swprintf_s(successMessage, L"Model successfully exported to : %s", filename.c_str());
-				GetCOREInterface()->DisplayTempPrompt(successMessage, 10000);
+			bool exportOk = true;
+			const TCHAR* errorMessage = _T("Unknown error");
+
+			exportOk = rpr::ExportToGLTF(_exported, exportFilename, context, matSystem, contextEx, scenes);
+
+			if (!exportOk)
+			{
+				errorMessage = _T("rpr::ExportToGLTF failed");
+			}
+
+			if (exportOk)
+			{
+				exportOk = gltf::Export(exportFilename.c_str(), _exported);
+
+				if (!exportOk)
+				{
+					errorMessage = _T("gltf::Export failed");
+				}
+			}
+
+			if (!exportOk)
+			{
+				MessageBox(GetCOREInterface()->GetMAXHWnd(), errorMessage, _T("Radeon ProRender warning"), MB_OK);
 			}
 		}
 	}

@@ -345,6 +345,7 @@
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\FrScope.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\Main.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\MaxScriptHandler.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\parser\MaterialLoader.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\parser\MaterialParser.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\parser\SceneParser.cpp" />
