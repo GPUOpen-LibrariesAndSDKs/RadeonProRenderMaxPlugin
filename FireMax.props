@@ -19,7 +19,7 @@
 		</ClCompile>
 		<Link>
 			<AdditionalLibraryDirectories>ThirdParty\RadeonProRender-GLTF\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalDependencies>ProRenderGLTFD.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>ProRenderGLTF.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 	<ItemGroup/>
