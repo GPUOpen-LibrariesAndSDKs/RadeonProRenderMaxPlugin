@@ -50,6 +50,7 @@ if "%CONFIG_NAME%"=="Release-%MAX_VERSION%" (
 
 	copy "ThirdParty\RadeonProRender SDK\Win\bin\*.dll" "dist\*"
 	copy "ThirdParty\AxfPackage\ReleaseDll\AxfDll\*.dll" "dist\*"
+	copy "ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll" "dist\*"
 	echo Hello world > "dist\copy to max exe folder"
 
 	md dist\plugins
