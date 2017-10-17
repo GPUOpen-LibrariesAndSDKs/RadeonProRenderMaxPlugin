@@ -34,6 +34,8 @@ class Cache
 	};
 
 	T defaultValue;
+
+public:
 	std::map<K, Entry> map;
 
 	bool enabled = true;
@@ -144,6 +146,16 @@ public:
 		return m ? m->materialSystem : MaterialSystem();
 	}
 
+	int Width() const
+	{
+		return m ? m->width : 0;
+	}
+
+	int Height() const
+	{
+		return m ? m->height : 0;
+	}
+
 	FrameBuffer GetFrameBuffer(int width, int height, int id = 0);
 	FrameBuffer GetFrameBuffer(int id);
 	void DestroyFrameBuffer(int id = 0);
@@ -155,6 +167,15 @@ public:
 
 	Shader GetShader(size_t key) { return m->cache.shader.Get(key); }
 	void SetShader(size_t key, Shader shader) { m->cache.shader.Set(key, shader); }
+	Shader GetShadowCatcherShader(void)
+	{
+		for (auto shader : m->cache.shader.map)
+		{
+			if (shader.second.value.IsShadowCatcher()) return shader.second.value;
+		}
+		return nullptr;
+	}
+
 
 	Shape GetShape(size_t key) { return m->cache.shape.Get(key); }
 	void SetShape(size_t key, Shape shape) { m->cache.shape.Set(key, shape); }

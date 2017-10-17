@@ -58,7 +58,11 @@ typedef enum
 	FrameBufferTypeId_GroupId,
 	FrameBufferTypeId_GroupIdResolve,
 	FrameBufferTypeId_ShadowCatcher,
-	FrameBufferTypeId_ShadowCatcherResolve
+	FrameBufferTypeId_ShadowCatcherResolve,
+	FrameBufferTypeId_Background,
+	FrameBufferTypeId_BackgroundResolve,
+	FrameBufferTypeId_Opacity,
+	FrameBufferTypeId_OpacityResolve
 } FramebufferTypeId;
 
 
