@@ -133,6 +133,8 @@ public:
 		int passesDone;
 	};
 
+	bool isShadowCatcherEnabled;
+
 	// termination
 	std::atomic<int> passLimit;
 	std::atomic<int> passesDone;
@@ -173,11 +175,8 @@ private:
 	frw::FrameBuffer frameBufferAlpha;
 	frw::FrameBuffer frameBufferAlphaResolve;
 	frw::FrameBuffer frameBufferShadowCatcher;
-	frw::FrameBuffer frameBufferShadowCatcherResolve;
 	frw::FrameBuffer frameBufferBackground;
-	frw::FrameBuffer frameBufferBackgroundResolve;
 	frw::FrameBuffer frameBufferOpacity;
-	frw::FrameBuffer frameBufferOpacityResolve;
 	Event eRestart;
 
 	class PixelBuffer
@@ -343,14 +342,10 @@ bool ProductionRenderCore::SaveCompositeFrameData(::Bitmap* bitmap)
 	if (pixels.get() == nullptr)
 		return false;
 
-	FASSERT(bitmap);
 	if (!bitmap)
 		return false;
 
 	pixelMutex.lock();
-
-	// debug bitmap dump
-	// "C://Users//Dmitrii//Pictures//temp//sc.bmp"
 
 	int width = bitmap->Width();
 	int height = bitmap->Height();
@@ -409,8 +404,6 @@ bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 	return true;
 }
 
-static bool isShadowCatcherEnabled = true;
-
 ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name) :
 	BaseThread(name, priority),
 	scope(rscope),
@@ -441,21 +434,21 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 	frameBufferColorResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_ColorResolve);
 	ctx.SetAOV(frameBufferColor, RPR_AOV_COLOR);
 
+	//Find first shadow catcher shader
+	isShadowCatcherEnabled = scope.GetShadowCatcherShader().IsValid();
+
 	if (isShadowCatcherEnabled) 
 	{
 		// Set shadow buffer
 		frameBufferShadowCatcher = scope.GetFrameBuffer(width, height, FrameBufferTypeId_ShadowCatcher);
-		//frameBufferShadowCatcherResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_ShadowCatcherResolve);
 		ctx.SetAOV(frameBufferShadowCatcher, RPR_AOV_SHADOW_CATCHER);
 
 		// Set background buffer
 		frameBufferBackground = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Background);
-		//frameBufferBackgroundResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_BackgroundResolve);
 		ctx.SetAOV(frameBufferBackground, RPR_AOV_BACKGROUND);
 
 		// Set opacity buffer
 		frameBufferOpacity = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Opacity);
-		//frameBufferOpacityResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_OpacityResolve);
 		ctx.SetAOV(frameBufferOpacity, RPR_AOV_OPACITY);
 	}
 
@@ -468,22 +461,20 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 	}
 }
 
-
 // Shadow catcher Impl
-
 void ProductionRenderCore::compositeOutput(/*RV_PIXEL**/ PixelBuffer& pixels, unsigned int width, unsigned int height, const RenderRegion& /*region*/, bool flip)
 {
-	// A temporary pixel buffer is required if the region is less
-	// than the full width and height, or the image should be flipped.
-	//bool useTempData = flip || region.getWidth() < width || region.getHeight() < height;
-
-	// Find the number of pixels in the frame buffer.
-	/*int pixelCount = width * height;*/
-
 	rpr_framebuffer frameBuffer = frameBufferColor.Handle();
 	rpr_framebuffer opacityFrameBuffer = frameBufferOpacity.Handle();
 	rpr_framebuffer shadowCatcherFrameBuffer = frameBufferShadowCatcher.Handle();
 	rpr_framebuffer backgroundFrameBuffer = frameBufferBackground.Handle();
+
+	#ifdef LOCAL_DEBUG
+		rprFrameBufferSaveToFile(frameBuffer, "C://Users//Dmitrii//Pictures//temp//color-max.png");
+		rprFrameBufferSaveToFile(opacityFrameBuffer, "C://Users//Dmitrii//Pictures//temp//opasity-max.png");
+		rprFrameBufferSaveToFile(shadowCatcherFrameBuffer, "C://Users//Dmitrii//Pictures//temp//sc-max.png");
+		rprFrameBufferSaveToFile(backgroundFrameBuffer, "C://Users//Dmitrii//Pictures//temp//bcg-max.png");
+	#endif
 
 	// Get data from the RPR frame buffer.
 	size_t dataSize;
@@ -522,6 +513,23 @@ void ProductionRenderCore::compositeOutput(/*RV_PIXEL**/ PixelBuffer& pixels, un
 	compositeLerp1.SetInputC("lerp.color1", compositeColorNorm);
 	compositeLerp1.SetInputC("lerp.weight", compositeOpacityNorm);
 
+	#ifdef LOCAL_DEBUG
+	{
+		rpr_framebuffer frameBufferTemp = 0;
+		rpr_framebuffer_format fmt = { 4, RPR_COMPONENT_TYPE_FLOAT32 };
+		rpr_framebuffer_desc desc;
+		desc.fb_width = width;
+		desc.fb_height = height;
+
+		frstatus = rprContextCreateFrameBuffer(context.Handle(), fmt, &desc, &frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+		frstatus = rprCompositeCompute(compositeLerp1, frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+
+		rprFrameBufferSaveToFile(frameBufferTemp, "C://Users//Dmitrii//Pictures//temp//lerp1-max.png");
+	}
+	#endif
+
 	// Step 2.
 	// Combine result from step 1, black color and normalized shadow catcher AOV
 	RprComposite compositeShadowCatcher(context.Handle(), RPR_COMPOSITE_FRAMEBUFFER);
@@ -556,6 +564,52 @@ void ProductionRenderCore::compositeOutput(/*RV_PIXEL**/ PixelBuffer& pixels, un
 	compositeSCWeight.SetInputC("arithmetic.color1", compositeShadowWeight);
 	compositeSCWeight.SetInputOp("arithmetic.op", RPR_MATERIAL_NODE_OP_MUL);
 
+	#ifdef LOCAL_DEBUG
+	// debug composites
+	{
+		rpr_framebuffer frameBufferTemp = 0;
+		rpr_framebuffer_format fmt = { 4, RPR_COMPONENT_TYPE_FLOAT32 };
+		rpr_framebuffer_desc desc;
+		desc.fb_width = width;
+		desc.fb_height = height;
+
+		frstatus = rprContextCreateFrameBuffer(context.Handle(), fmt, &desc, &frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+		frstatus = rprCompositeCompute(compositeShadowCatcher, frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+
+		rprFrameBufferSaveToFile(frameBufferTemp, "C://Users//Dmitrii//Pictures//temp//compSC-max.png");
+	}
+	{
+		rpr_framebuffer frameBufferTemp = 0;
+		rpr_framebuffer_format fmt = { 4, RPR_COMPONENT_TYPE_FLOAT32 };
+		rpr_framebuffer_desc desc;
+		desc.fb_width = width;
+		desc.fb_height = height;
+
+		frstatus = rprContextCreateFrameBuffer(context.Handle(), fmt, &desc, &frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+		frstatus = rprCompositeCompute(compositeShadowCatcherNorm, frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+
+		rprFrameBufferSaveToFile(frameBufferTemp, "C://Users//Dmitrii//Pictures//temp//compSCNorm-max.png");
+	}
+	{
+		rpr_framebuffer frameBufferTemp = 0;
+		rpr_framebuffer_format fmt = { 4, RPR_COMPONENT_TYPE_FLOAT32 };
+		rpr_framebuffer_desc desc;
+		desc.fb_width = width;
+		desc.fb_height = height;
+
+		frstatus = rprContextCreateFrameBuffer(context.Handle(), fmt, &desc, &frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+		frstatus = rprCompositeCompute(compositeSCWeight, frameBufferTemp);
+		FASSERT(frstatus == RPR_SUCCESS);
+
+		rprFrameBufferSaveToFile(frameBufferTemp, "C://Users//Dmitrii//Pictures//temp//compSCW-max.png");
+	}
+	#endif
+
 	RprComposite compositeLerp2(context.Handle(), RPR_COMPOSITE_LERP_VALUE);
 	//Setting BgIsEnv to false means that we should use shadow catcher color instead of environment background
 	if (shadowCatcherShader.BgIsEnv())
@@ -584,12 +638,9 @@ void ProductionRenderCore::compositeOutput(/*RV_PIXEL**/ PixelBuffer& pixels, un
 	frstatus = rprFrameBufferGetInfo(frameBufferComposite, RPR_FRAMEBUFFER_DATA, dataSize, &data[0], nullptr);
 	FASSERT(frstatus == RPR_SUCCESS);
 
-	// debug block
-	frstatus = rprFrameBufferGetInfo(/*frameBufferComposite*/ /*shadowCatcherFrameBuffer*/ opacityFrameBuffer, RPR_FRAMEBUFFER_DATA, dataSize, &data[0], nullptr);
-	FASSERT(frstatus == RPR_SUCCESS);
 	#ifdef LOCAL_DEBUG
-	rpr_int res = rprFrameBufferSaveToFile(/*shadowCatcherFrameBuffer*/ opacityFrameBuffer, "C://Users//Dmitrii//Pictures//temp//sc.bmp");
-	FASSERT(res == RPR_SUCCESS);
+		rpr_int res = rprFrameBufferSaveToFile(frameBufferComposite, "C://Users//Dmitrii//Pictures//temp//composite-max.png");
+		FASSERT(res == RPR_SUCCESS);
 	#endif
 
 	rprObjectDelete(frameBufferComposite);
@@ -651,13 +702,12 @@ void ProductionRenderCore::Worker()
 				frameBufferAlpha.Clear();
 			}
 
-			frameBufferShadowCatcher.Clear();
-			//frameBufferShadowCatcherResolve.Clear();
-
-			frameBufferBackground.Clear();
-			//frameBufferBackgroundResolve.Clear();
-			frameBufferOpacity.Clear();
-			//frameBufferOpacityResolve.Clear();
+			if (isShadowCatcherEnabled)
+			{
+				frameBufferShadowCatcher.Clear();
+				frameBufferBackground.Clear();
+				frameBufferOpacity.Clear();
+			}
 
 			clearFramebuffer = false;
 		}
@@ -706,14 +756,11 @@ void ProductionRenderCore::Worker()
 		// One more pass got rendered
 		++passesDone;
 
-		// if (!aov) {
-		// Save rendered frame buffer + elapsed time etc (frame data for blitting), for main thread for further processing & blitting
-		SaveFrameData();
-		// }
-		// else
-		// {
-		// as of now copy is done in the main thread
-		// }
+		if (!isShadowCatcherEnabled) 
+		{
+			// Save rendered frame buffer + elapsed time etc (frame data for blitting), for main thread for further processing & blitting
+			SaveFrameData();
+		}
 		
 		// Terminate thread when we reach a specific (amount of time) or (pass count) set by the artist
 		__time64_t current = time(0);
@@ -1480,7 +1527,6 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->bRenderCancelled = false;
 	data->bRenderThreadDone = false;
 	data->bQuitHelperThread = false;
-	
 
 	data->helperThread = new std::thread([data, frontBuffer]()
 	{
@@ -1490,7 +1536,8 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 			{
 				// - do the copy
 				bool isBitmapUpdated = false;
-				if (isShadowCatcherEnabled) {
+				if (data->renderThread->isShadowCatcherEnabled) 
+				{
 					isBitmapUpdated = data->renderThread->SaveCompositeFrameData(frontBuffer);
 				}
 				else

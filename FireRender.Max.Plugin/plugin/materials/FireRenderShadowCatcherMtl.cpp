@@ -114,7 +114,7 @@ static ParamBlockDesc2 pbDesc
 
 	// Background Is Environment
 	FRSHADOWCATCHER_IS_BACKGROUND, _T("BackgroundIsEnvironment"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, FALSE, p_ui, TYPE_SINGLECHEKBOX, IDC_SC_IS_BACKGROUND, PB_END,
+	p_default, TRUE, p_ui, TYPE_SINGLECHEKBOX, IDC_SC_IS_BACKGROUND, PB_END,
 
 	// Background Color
 	FRSHADOWCATCHER_BACKGROUND_COLOR_MUL, _T("BackgroundColorMul"), TYPE_FLOAT, P_ANIMATABLE, 0,
@@ -154,12 +154,6 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(SHADOWCATCHERMtl)::TEXM
 FRMTLCLASSNAME(SHADOWCATCHERMtl)::~FRMTLCLASSNAME(SHADOWCATCHERMtl)()
 {
 }
-
-/*Color FRMTLCLASSNAME(SHADOWCATCHERMtl)::GetDiffuse(int mtlNum, BOOL backFace)
-{
-	return Color();
-	//return GetFromPb<Color>(pblock, FRSCMTL_DIFFUSE_COLOR);
-}*/
 
 frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
@@ -239,7 +233,7 @@ frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getShader(const TimeValue t, Mater
 		shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, value);
 	}
 
-	//shader.SetShadowCatcher(true);
+	shader.SetShadowCatcher(true);
 	
 
 	return shader;

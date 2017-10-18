@@ -171,8 +171,10 @@ public:
 	{
 		for (auto shader : m->cache.shader.map)
 		{
-			if (shader.second.value.IsShadowCatcher()) return shader.second.value;
+			if (shader.second.value.IsShadowCatcher()) 
+				return shader.second.value;
 		}
+
 		return nullptr;
 	}
 
