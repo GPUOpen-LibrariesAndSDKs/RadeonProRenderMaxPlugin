@@ -52,7 +52,7 @@ public:
 
 	// Pixel data type.  Each channel must be a floating point
 	// value in the range 0.0 to 255.0.
-	struct pixel 
+	struct Pixel 
 	{
 		float    r;		// red
 		float    g;		// green
@@ -100,7 +100,7 @@ public:
 								  // essentially making code synchronous
 
 	std::mutex frameDataBuffersLock;
-
+	std::mutex pixelsLock;
 	std::mutex rprBuffersLock;
 
 private:
@@ -114,13 +114,12 @@ private:
 	frw::FrameBuffer frameBufferOpacity;
 	Event eRestart;
 
-	std::vector<pixel> pixels;
-	std::mutex pixelMutex;
+	std::vector<Pixel> pixels;
+	std::vector<Pixel> prevPixels;
 
 	void SaveFrameData (void);
 	rpr_int GetDataFromBuffer (std::vector<float> &data, const fr_framebuffer& frameBuffer);
 	void RPRCopyFrameData (void);
-	
 
 public:
 	bool CopyFrameDataToBitmap(::Bitmap* bitmap);
@@ -150,7 +149,7 @@ public:
 
 	void Restart();
 
-	void CompositeOutput(std::vector<pixel>& pixels, unsigned int width, unsigned int height, bool flip);
+	void CompositeOutput(std::vector<Pixel>& pixels, unsigned int width, unsigned int height, bool flip);
 };
 
 rpr_int ProductionRenderCore::GetDataFromBuffer(std::vector<float> &data, const fr_framebuffer& frameBuffer)
@@ -211,17 +210,17 @@ void ProductionRenderCore::RPRCopyFrameData()
 
 bool ProductionRenderCore::SaveCompositeFrameData(::Bitmap* bitmap)
 {
-	if (pixels.empty())
+	if (prevPixels.empty())
 		return false;
 
 	if (!bitmap)
 		return false;
 
-	pixelMutex.lock();
+	pixelsLock.lock();
 
 	int width = bitmap->Width();
 	int height = bitmap->Height();
-	bool sizeValid = (pixels.size() == width * height);
+	bool sizeValid = (prevPixels.size() == width * height);
 	FASSERT(sizeValid);
 	
 	// write data to output
@@ -230,10 +229,10 @@ bool ProductionRenderCore::SaveCompositeFrameData(::Bitmap* bitmap)
 	{
 		// the reason of using reinterpret_cast here is to avoide unnecessary copying
 		// BMM_Color_fl is a structure with 4 float values (r, g, b, a)
-		bitmap->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(pixels.data() + y * width));
+		bitmap->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(prevPixels.data() + y * width));
 	}
 
-	pixelMutex.unlock();
+	pixelsLock.unlock();
 
 	return true;
 }
@@ -242,18 +241,34 @@ void ProductionRenderCore::SaveFrameData()
 {
 	rprBuffersLock.lock();
 
-	// - Resolve & save Color buffer
-	frameBufferColor.Resolve(frameBufferColorResolve);
-
-	// - Resolve & save Alpha buffer
-	if (frameBufferAlpha)
+	if (isShadowCatcherEnabled)
 	{
-		frameBufferAlpha.Resolve(frameBufferAlphaResolve);
+		// calculate picture composed of rendered image and several aov's (including shadow catcher)
+		CompositeOutput(pixels, scope.Width(), scope.Height(), false);
+
+		pixelsLock.lock();
+		prevPixels.clear();
+		prevPixels.swap(pixels);
+		pixelsLock.unlock();
+	}
+	else
+	{
+		// Resolve & save Color buffer
+		frameBufferColor.Resolve(frameBufferColorResolve);
+
+		// Resolve & save Alpha buffer
+		if (frameBufferAlpha)
+		{
+			frameBufferAlpha.Resolve(frameBufferAlphaResolve);
+		}
 	}
 
 	rprBuffersLock.unlock();
 
-	copyResult = std::async(std::launch::async, &ProductionRenderCore::RPRCopyFrameData, this);
+	if (!isShadowCatcherEnabled)
+	{
+		copyResult = std::async(std::launch::async, &ProductionRenderCore::RPRCopyFrameData, this);
+	}
 }
 
 bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
@@ -334,7 +349,7 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 }
 
 // Shadow catcher Impl
-void ProductionRenderCore::CompositeOutput(std::vector<pixel>& pixels, unsigned int width, unsigned int height, bool flip)
+void ProductionRenderCore::CompositeOutput(std::vector<Pixel>& pixels, unsigned int width, unsigned int height, bool flip)
 {
 	rpr_framebuffer frameBuffer = frameBufferColor.Handle();
 	rpr_framebuffer opacityFrameBuffer = frameBufferOpacity.Handle();
@@ -348,9 +363,9 @@ void ProductionRenderCore::CompositeOutput(std::vector<pixel>& pixels, unsigned 
 
 	// Check that the reported frame buffer size
 	// in bytes matches the required dimensions.
-	size_t countPixels = dataSize / sizeof(pixel);
+	size_t countPixels = dataSize / sizeof(Pixel);
 	pixels.resize(countPixels);
-	assert(dataSize == (sizeof(pixel) * countPixels));
+	assert(dataSize == (sizeof(Pixel) * countPixels));
 	
 	frw::Context context = scope.GetContext();
 	// Step 1.
@@ -436,7 +451,7 @@ void ProductionRenderCore::CompositeOutput(std::vector<pixel>& pixels, unsigned 
 	FASSERT(frstatus == RPR_SUCCESS);
 
 	// Copy the frame buffer into the supplied pixel buffer.
-	pixel* data = pixels.data();
+	Pixel* data = pixels.data();
 	frstatus = rprFrameBufferGetInfo(frameBufferComposite, RPR_FRAMEBUFFER_DATA, dataSize, &data[0], nullptr);
 	FASSERT(frstatus == RPR_SUCCESS);
 
@@ -529,15 +544,6 @@ void ProductionRenderCore::Worker()
 			return;
 		}
 
-		if (isShadowCatcherEnabled) 
-		{
-			// composite output
-			bool flip = false;
-			pixelMutex.lock();
-			CompositeOutput(pixels, scope.Width(), scope.Height(), flip);
-			pixelMutex.unlock();
-		}
-
 		// Stop thread
 		if (bImmediateAbort)
 		{
@@ -548,11 +554,8 @@ void ProductionRenderCore::Worker()
 		// One more pass got rendered
 		++passesDone;
 
-		if (!isShadowCatcherEnabled) 
-		{
-			// Save rendered frame buffer + elapsed time etc (frame data for blitting), for main thread for further processing & blitting
-			SaveFrameData();
-		}
+		// Save rendered frame buffer + elapsed time etc (frame data for blitting), for main thread for further processing & blitting
+		SaveFrameData();
 		
 		// Terminate thread when we reach a specific (amount of time) or (pass count) set by the artist
 		__time64_t current = time(0);
