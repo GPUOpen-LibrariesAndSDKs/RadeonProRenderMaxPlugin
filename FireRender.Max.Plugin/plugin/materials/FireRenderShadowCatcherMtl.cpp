@@ -48,14 +48,14 @@ namespace
 	static constexpr float BackgroundAlphaMulDefault = 0.0f;
 }
 
-IMPLEMENT_FRMTLCLASSDESC(SHADOWCATCHERMtl)
+IMPLEMENT_FRMTLCLASSDESC(ShadowCatcherMtl)
 
-FRMTLCLASSDESCNAME(SHADOWCATCHERMtl) FRMTLCLASSNAME(SHADOWCATCHERMtl)::ClassDescInstance;
+FRMTLCLASSDESCNAME(ShadowCatcherMtl) FRMTLCLASSNAME(ShadowCatcherMtl)::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc
 (
-	0, _T("ShadowCatcherMtlPbdesc"), 0, &FRMTLCLASSNAME(SHADOWCATCHERMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
+	0, _T("ShadowCatcherMtlPbdesc"), 0, &FRMTLCLASSNAME(ShadowCatcherMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
 	//rollout
 	IDD_FIRERENDER_SCMTL, IDS_FR_MTL_SC, 0, 0, NULL,
 
@@ -143,7 +143,7 @@ static ParamBlockDesc2 pbDesc
 	PB_END
 );
 
-std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(SHADOWCATCHERMtl)::TEXMAP_MAPPING =
+std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(ShadowCatcherMtl)::TEXMAP_MAPPING =
 {
 	{ FRSHADOWCATCHERMTL_MAP_NORMAL       ,{ FRSHADOWCATCHER_NORMAL_MAP       , _T("Normal Map")}},
 	{ FRSHADOWCATCHERMTL_MAP_DISPLACEMENT ,{ FRSHADOWCATCHER_DISPLACE_MAP     , _T("Displacement Map") } },
@@ -151,16 +151,16 @@ std::map<int, std::pair<ParamID, MCHAR*>> FRMTLCLASSNAME(SHADOWCATCHERMtl)::TEXM
 	{ FRSHADOWCATCHERMTL_MAP_BACKGROUND_COLOR ,{ FRSHADOWCATCHER_BACKGROUND_COLOR_MAP , _T("Background Color Map") } },
 };
 
-FRMTLCLASSNAME(SHADOWCATCHERMtl)::~FRMTLCLASSNAME(SHADOWCATCHERMtl)()
+FRMTLCLASSNAME(ShadowCatcherMtl)::~FRMTLCLASSNAME(ShadowCatcherMtl)()
 {
 }
 
-frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	return frw::Shader();
 }
 
-frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
+frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	const frw::MaterialSystem& materialSystem = mtlParser.materialSystem;
 	const frw::Scope& scope = mtlParser.GetScope();
@@ -239,8 +239,8 @@ frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getShader(const TimeValue t, Mater
 	return shader;
 }
 
-std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(SHADOWCATCHERMtl)::GetParameters(FRSHADOWCATCHERMtl_ParamID useMapId,
-	FRSHADOWCATCHERMtl_ParamID mapId, FRSHADOWCATCHERMtl_ParamID colorId, FRSHADOWCATCHERMtl_ParamID mulId)
+std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(ShadowCatcherMtl)::GetParameters(FRShadowCatcherMtl_ParamID useMapId,
+	FRShadowCatcherMtl_ParamID mapId, FRShadowCatcherMtl_ParamID colorId, FRShadowCatcherMtl_ParamID mulId)
 {
 	bool useMap = GetFromPb<bool>(pblock, useMapId);
 	Texmap* map = GetFromPb<Texmap*>(pblock, mapId);
@@ -250,7 +250,7 @@ std::tuple<bool, Texmap*, Color, float> FRMTLCLASSNAME(SHADOWCATCHERMtl)::GetPar
 	return std::make_tuple(useMap, map, color, mul);
 }
 
-frw::Value FRMTLCLASSNAME(SHADOWCATCHERMtl)::SetupShaderOrdinary(MaterialParser& mtlParser,
+frw::Value FRMTLCLASSNAME(ShadowCatcherMtl)::SetupShaderOrdinary(MaterialParser& mtlParser,
 	std::tuple<bool, Texmap*, Color, float> parameters, int mapFlags)
 {
 	bool useMap = std::get<0>(parameters);

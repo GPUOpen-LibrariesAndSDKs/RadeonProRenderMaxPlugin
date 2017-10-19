@@ -38,15 +38,6 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 #define BMUI_TIMER_PERIOD 33
 
-//! Pixel data type.  Each channel must be a floating point
-//! value in the range 0.0 to 255.0.
-typedef struct RV_PIXEL {
-	float    r;		//!< red
-	float    g;		//!< green
-	float    b;		//!< blue
-	float    a;		//!< alpha
-} RV_PIXEL;
-
 Event PRManagerMax::bmDone;
 
 class ProductionRenderCore : public BaseThread
@@ -58,6 +49,16 @@ public:
 		Result_Aborted,
 		Result_Catastrophic
 	} TerminationResult;
+
+	// Pixel data type.  Each channel must be a floating point
+	// value in the range 0.0 to 255.0.
+	struct pixel 
+	{
+		float    r;		// red
+		float    g;		// green
+		float    b;		// blue
+		float    a;		// alpha
+	};
 
 	struct FrameDataBuffer
 	{
@@ -113,7 +114,7 @@ private:
 	frw::FrameBuffer frameBufferOpacity;
 	Event eRestart;
 
-	std::vector<RV_PIXEL> pixels;
+	std::vector<pixel> pixels;
 	std::mutex pixelMutex;
 
 	void SaveFrameData (void);
@@ -149,7 +150,7 @@ public:
 
 	void Restart();
 
-	void compositeOutput(std::vector<RV_PIXEL>& pixels, unsigned int width, unsigned int height, bool flip);
+	void CompositeOutput(std::vector<pixel>& pixels, unsigned int width, unsigned int height, bool flip);
 };
 
 rpr_int ProductionRenderCore::GetDataFromBuffer(std::vector<float> &data, const fr_framebuffer& frameBuffer)
@@ -220,7 +221,7 @@ bool ProductionRenderCore::SaveCompositeFrameData(::Bitmap* bitmap)
 
 	int width = bitmap->Width();
 	int height = bitmap->Height();
-	bool sizeValid = pixels.size() == width * height;
+	bool sizeValid = (pixels.size() == width * height);
 	FASSERT(sizeValid);
 	
 	// write data to output
@@ -228,8 +229,8 @@ bool ProductionRenderCore::SaveCompositeFrameData(::Bitmap* bitmap)
 	for (int y = 0; y < height; ++y)
 	{
 		// the reason of using reinterpret_cast here is to avoide unnecessary copying
-		// BMM_Color_fl is a structure with 4 float values (r,g,b,a)
-		bitmap->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(pixels.data() + y*width));
+		// BMM_Color_fl is a structure with 4 float values (r, g, b, a)
+		bitmap->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(pixels.data() + y * width));
 	}
 
 	pixelMutex.unlock();
@@ -333,7 +334,7 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 }
 
 // Shadow catcher Impl
-void ProductionRenderCore::compositeOutput(std::vector<RV_PIXEL>& pixels, unsigned int width, unsigned int height, bool flip)
+void ProductionRenderCore::CompositeOutput(std::vector<pixel>& pixels, unsigned int width, unsigned int height, bool flip)
 {
 	rpr_framebuffer frameBuffer = frameBufferColor.Handle();
 	rpr_framebuffer opacityFrameBuffer = frameBufferOpacity.Handle();
@@ -347,9 +348,9 @@ void ProductionRenderCore::compositeOutput(std::vector<RV_PIXEL>& pixels, unsign
 
 	// Check that the reported frame buffer size
 	// in bytes matches the required dimensions.
-	size_t countPixels = dataSize / sizeof(RV_PIXEL);
+	size_t countPixels = dataSize / sizeof(pixel);
 	pixels.resize(countPixels);
-	assert(dataSize == (sizeof(RV_PIXEL) * countPixels));
+	assert(dataSize == (sizeof(pixel) * countPixels));
 	
 	frw::Context context = scope.GetContext();
 	// Step 1.
@@ -435,7 +436,7 @@ void ProductionRenderCore::compositeOutput(std::vector<RV_PIXEL>& pixels, unsign
 	FASSERT(frstatus == RPR_SUCCESS);
 
 	// Copy the frame buffer into the supplied pixel buffer.
-	RV_PIXEL* data = pixels.data();
+	pixel* data = pixels.data();
 	frstatus = rprFrameBufferGetInfo(frameBufferComposite, RPR_FRAMEBUFFER_DATA, dataSize, &data[0], nullptr);
 	FASSERT(frstatus == RPR_SUCCESS);
 
@@ -533,7 +534,7 @@ void ProductionRenderCore::Worker()
 			// composite output
 			bool flip = false;
 			pixelMutex.lock();
-			compositeOutput(pixels, scope.Width(), scope.Height(), flip);
+			CompositeOutput(pixels, scope.Width(), scope.Height(), flip);
 			pixelMutex.unlock();
 		}
 

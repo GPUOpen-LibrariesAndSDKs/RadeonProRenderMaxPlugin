@@ -1056,7 +1056,7 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 				shader = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(material)->getShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_SCMTL_CID) {
-				shader = dynamic_cast<FRMTLCLASSNAME(SHADOWCATCHERMtl)*>(material)->getShader(mT, *this, node);
+				shader = dynamic_cast<FRMTLCLASSNAME(ShadowCatcherMtl)*>(material)->getShader(mT, *this, node);
 			}
 
 			else if (cid == FIRERENDER_VOLUMEMTL_CID) {

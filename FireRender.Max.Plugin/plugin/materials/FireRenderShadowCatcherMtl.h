@@ -4,7 +4,7 @@
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-enum FRSHADOWCATCHERMtl_TexmapId
+enum FRShadowCatcherMtl_TexmapId
 {
 	FRSHADOWCATCHERMTL_MAP_NORMAL = 0,
 	FRSHADOWCATCHERMTL_MAP_DISPLACEMENT = 1,
@@ -12,7 +12,7 @@ enum FRSHADOWCATCHERMtl_TexmapId
 	FRSHADOWCATCHERMTL_MAP_BACKGROUND_COLOR = 3,
 };
 
-enum FRSHADOWCATCHERMtl_ParamID : ParamID
+enum FRShadowCatcherMtl_ParamID : ParamID
 {
 	FRSHADOWCATCHER_NORMAL_MUL = 1000,
 	FRSHADOWCATCHER_NORMAL = 1001,
@@ -45,10 +45,10 @@ enum FRSHADOWCATCHERMtl_ParamID : ParamID
 	FRSHADOWCATCHER_BACKGROUND_ALPHA_MUL = 1080,
 };
 
-BEGIN_DECLARE_FRMTLCLASSDESC(SHADOWCATCHERMtl, L"RPR Shadow Catcher Material", FIRERENDER_SCMTL_CID)
+BEGIN_DECLARE_FRMTLCLASSDESC(ShadowCatcherMtl, L"RPR Shadow Catcher Material", FIRERENDER_SCMTL_CID)
 END_DECLARE_FRMTLCLASSDESC()
 
-BEGIN_DECLARE_FRMTL(SHADOWCATCHERMtl)
+BEGIN_DECLARE_FRMTL(ShadowCatcherMtl)
 
 public:
 	//virtual Color GetDiffuse(int mtlNum, BOOL backFace) override;
@@ -56,10 +56,10 @@ public:
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
 
 private:
-	std::tuple<bool, Texmap*, Color, float> GetParameters(FRSHADOWCATCHERMtl_ParamID useMapId,
-		FRSHADOWCATCHERMtl_ParamID mapId, FRSHADOWCATCHERMtl_ParamID colorId, FRSHADOWCATCHERMtl_ParamID mulId);
+	std::tuple<bool, Texmap*, Color, float> GetParameters(FRShadowCatcherMtl_ParamID useMapId,
+		FRShadowCatcherMtl_ParamID mapId, FRShadowCatcherMtl_ParamID colorId, FRShadowCatcherMtl_ParamID mulId);
 	frw::Value SetupShaderOrdinary(MaterialParser& mtlParser, std::tuple<bool, Texmap*, Color, float> parameters, int mapFlags);
 
-END_DECLARE_FRMTL(SHADOWCATCHERMtl)
+END_DECLARE_FRMTL(ShadowCatcherMtl)
 
 FIRERENDER_NAMESPACE_END;
