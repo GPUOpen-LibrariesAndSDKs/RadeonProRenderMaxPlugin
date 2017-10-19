@@ -167,11 +167,11 @@ frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getShader(const TimeValue t, Mater
 
 	frw::Shader shader(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);
 
-	bool useMap = false;
+	bool useMapFlag = false;
 	Texmap* map = nullptr;
 	Color color(0.0f, 0.0f, 0.0f);
 	frw::Value value = frw::Value(color);
-	bool toUseMap = false;
+	bool canUseMap = false;
 	std::tuple<bool, Texmap*, Color, float> parameters;
 
 	// Normal Map
@@ -197,9 +197,9 @@ frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getShader(const TimeValue t, Mater
 	// Shadow
 	// - Color
 	float shadowColorMul = 0.0f;
-	std::tie(useMap, map, color, displacementMul) = GetParameters(FRSHADOWCATCHER_SHADOW_COLOR_USEMAP, FRSHADOWCATCHER_SHADOW_COLOR_MAP,
+	std::tie(useMapFlag, map, color, displacementMul) = GetParameters(FRSHADOWCATCHER_SHADOW_COLOR_USEMAP, FRSHADOWCATCHER_SHADOW_COLOR_MAP,
 		FRSHADOWCATCHER_SHADOW_COLOR, FRSHADOWCATCHER_SHADOW_COLOR_MUL);
-	toUseMap = (useMap && map != nullptr); // map is ignored for now. maybe remove map completely?
+	canUseMap = (useMapFlag && map != nullptr); // map is ignored for now. maybe remove map completely?
 	// - Alpha
 	float shadowColorAlpha = GetFromPb<float>(pblock, FRSHADOWCATCHER_SHADOW_ALPHA_MUL);
 	shader.SetShadowColor(color.r, color.g, color.b, shadowColorAlpha);
@@ -216,11 +216,11 @@ frw::Shader FRMTLCLASSNAME(SHADOWCATCHERMtl)::getShader(const TimeValue t, Mater
 	{
 		// - background color
 		float backgroundColorMul = 0.0f;
-		std::tie(useMap, map, color, displacementMul) = GetParameters(FRSHADOWCATCHER_BACKGROUND_COLOR_USEMAP, FRSHADOWCATCHER_BACKGROUND_COLOR_MAP,
+		std::tie(useMapFlag, map, color, displacementMul) = GetParameters(FRSHADOWCATCHER_BACKGROUND_COLOR_USEMAP, FRSHADOWCATCHER_BACKGROUND_COLOR_MAP,
 			FRSHADOWCATCHER_BACKGROUND_COLOR, FRSHADOWCATCHER_BACKGROUND_COLOR_MUL);
-		toUseMap = (useMap && map != nullptr);
+		canUseMap = (useMapFlag && map != nullptr);
 
-		value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOFLAGS), color) : color;
+		value = canUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOFLAGS), color) : color;
 
 		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, value);
 

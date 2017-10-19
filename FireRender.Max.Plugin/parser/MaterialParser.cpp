@@ -1137,9 +1137,9 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 
 				static int materialKey = 0;
 				if (shaderData.mCacheable)
-					mScope.SetShader(materialKey++/*matKey*/, shader);
+					mScope.SetShader(materialKey++, shader);
 				else
-					mScope.SetShader(materialKey++/*matNodeKey*/, shader);
+					mScope.SetShader(materialKey++, shader);
 			}
 		}
 	}
