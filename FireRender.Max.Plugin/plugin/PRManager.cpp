@@ -1027,31 +1027,12 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 			rpr_material_system matSystem = scope.GetMaterialSystem().Handle();
 			rpr_scene scene = scope.GetScene().Handle();
 			std::vector<rpr_scene> scenes{ scene };
-			gltf::glTF _exported;
 
-			bool exportOk = true;
-			const TCHAR* errorMessage = _T("Unknown error");
-
-			exportOk = rpr::ExportToGLTF(_exported, exportFilename, context, matSystem, contextEx, scenes);
+			bool exportOk = rpr::ExportToGLTF( exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size() );
 
 			if (!exportOk)
 			{
-				errorMessage = _T("rpr::ExportToGLTF failed");
-			}
-
-			if (exportOk)
-			{
-				exportOk = gltf::Export(exportFilename.c_str(), _exported);
-
-				if (!exportOk)
-				{
-					errorMessage = _T("gltf::Export failed");
-				}
-			}
-
-			if (!exportOk)
-			{
-				MessageBox(GetCOREInterface()->GetMAXHWnd(), errorMessage, _T("Radeon ProRender warning"), MB_OK);
+				MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("gltf::Export failed"), _T("Radeon ProRender warning"), MB_OK);
 			}
 		}
 	}
