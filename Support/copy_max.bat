@@ -37,24 +37,46 @@ echo Copying: %SRC_PATH% to %DST_PATH%
 
 copy "%SRC_PATH%" "%DST_PATH%"
 
-copy "Support\*.frs" "%MAX_PLUGINS_DIR%\*"
-copy "Support\*.dat" "%MAX_PLUGINS_DIR%\*"
+::Copy silent, confirm overwrite and copy if different
+set xCopyFlags=/S /Y
 
-if NOT DEFINED SKIP_FR_DLLS_INSTALL copy "ThirdParty\RadeonProRender SDK\Win\bin\*.dll" "%MAX_INSTALL_DIR%\*"
+set ToMaxPluginsDir=^
+	"Support\*.frs"^
+	"Support\*.dat"
 
-if NOT DEFINED SKIP_FR_DLLS_INSTALL copy "ThirdParty\AxfPackage\ReleaseDll\AxfDll\*.dll" "%MAX_INSTALL_DIR%\*"
-if NOT DEFINED SKIP_FR_DLLS_INSTALL copy "ThirdParty\AxfPackage\ReleaseDll\AxfDll\*.def" "%MAX_INSTALL_DIR%\*"
+set ToMaxInstallDir=^
+	"ThirdParty\RadeonProRender SDK\Win\bin\*.dll"^
+	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\*.dll"^
+	"ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll"
 
+::Copy libraries to max plugins directory (to debug it easy)
+for %%a in (%ToMaxPluginsDir%) do (
+	::echo Copying: "%%a" to "%MAX_PLUGINS_DIR%"
+    xcopy "%%a" "%MAX_PLUGINS_DIR%\*" %xCopyFlags%
+)
+
+::Copy libraries to max install directory (to debug it easy)
+if NOT DEFINED SKIP_FR_DLLS_INSTALL for %%a in (%ToMaxInstallDir%) do (
+	::echo Copying: "%%a" to "%MAX_INSTALL_DIR%"
+    xcopy "%%a" "%MAX_INSTALL_DIR%\*" %xCopyFlags%
+)
+
+::make distribution folder with files for installer
 if "%CONFIG_NAME%"=="Release-%MAX_VERSION%" (
 	IF exist "dist\%CONFIG_NAME%" RMDIR /q /s "dist"
 
-	copy "ThirdParty\RadeonProRender SDK\Win\bin\*.dll" "dist\*"
-	copy "ThirdParty\AxfPackage\ReleaseDll\AxfDll\*.dll" "dist\*"
-	copy "ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll" "dist\*"
-	echo Hello world > "dist\copy to max exe folder"
+	for %%a in (%ToMaxInstallDir%) do ( 
+		::echo Copying: "%%a" to "dist"
+		xcopy "%%a" "dist\*" %xCopyFlags%
+	)
 
 	md dist\plugins
-	copy "%SRC_PATH%" "dist\plugins\RadeonProRender%MAX_VERSION%.dlr"
-	copy "Support\*.frs" "dist\plugins\*"
-	copy "Support\*.dat" "dist\plugins\*"
+
+	::Copy plugin library
+	xcopy "%SRC_PATH%" "dist\plugins\RadeonProRender%MAX_VERSION%.dlr*" %xCopyFlags%
+
+	for %%a in (%ToMaxPluginsDir%) do (
+		::echo Copying: "%%a" to "dist\plugins\"
+    	xcopy "%%a" "dist\plugins\*" %xCopyFlags%
+	)
 )
