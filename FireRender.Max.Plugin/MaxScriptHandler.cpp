@@ -2,7 +2,7 @@
 #include <maxscript/foundation/numbers.h>
 #include <maxscript/foundation/arrays.h>
 
-static bool EnableGltfExport = false;
+static bool EnableGltfExport = true;
 
 // Declare C++ function and register it with MAXScript
 #include <maxscript\macros\define_instantiation_functions.h>
