@@ -694,7 +694,10 @@ public:
 		auto visit = [this, &result](INode* node) {
 			if(!node)
 				return;
-			ObjectState state = node->EvalWorldState(0);
+
+			TimeValue editTime = getEditTime();
+
+			ObjectState state = node->EvalWorldState(editTime);
 			if (state.obj) {
 				switch(state.obj->SuperClassID()){
 				default:
@@ -703,8 +706,8 @@ public:
 						&& state.obj->IsRenderable()
 						){
 						Box3 bb;
-						Matrix3 tm = node->GetObjTMAfterWSM(getEditTime());
-						state.obj->GetDeformBBox(getEditTime(), bb, &tm);
+						Matrix3 tm = node->GetObjTMAfterWSM(editTime);
+						state.obj->GetDeformBBox(editTime, bb, &tm);
 						result += bb;
 					}
 				};
