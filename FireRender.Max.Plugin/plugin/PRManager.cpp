@@ -36,8 +36,6 @@ extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-#define BMUI_TIMER_PERIOD 33
-
 Event PRManagerMax::bmDone;
 
 class ProductionRenderCore : public BaseThread
@@ -50,16 +48,6 @@ public:
 		Result_Catastrophic
 	} TerminationResult;
 
-	// Pixel data type.  Each channel must be a floating point
-	// value in the range 0.0 to 255.0.
-	struct Pixel 
-	{
-		float    r;		// red
-		float    g;		// green
-		float    b;		// blue
-		float    a;		// alpha
-	};
-
 	struct FrameDataBuffer
 	{
 		std::vector<float> colorData;
@@ -69,6 +57,7 @@ public:
 	};
 
 	bool isShadowCatcherEnabled;
+	bool isAlphaEnabled;
 
 	// termination
 	std::atomic<int> passLimit;
@@ -111,22 +100,16 @@ private:
 	frw::FrameBuffer frameBufferAlphaResolve;
 	frw::FrameBuffer frameBufferShadowCatcher;
 	frw::FrameBuffer frameBufferBackground;
-	frw::FrameBuffer frameBufferOpacity;
 	Event eRestart;
 
-	std::vector<Pixel> pixels;
-	std::vector<Pixel> prevPixels;
-
-	void SaveFrameData (void);
-	rpr_int GetDataFromBuffer (std::vector<float> &data, const fr_framebuffer& frameBuffer);
-	void RPRCopyFrameData (void);
+	void SaveFrameData(void);
+	void RPRCopyFrameData(void);
 
 public:
 	bool CopyFrameDataToBitmap(::Bitmap* bitmap);
-	bool SaveCompositeFrameData(::Bitmap* bitmap);
 	void RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const;
 
-	explicit ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
+	explicit ProductionRenderCore(frw::Scope rscope, bool hasAlpa, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
 	
 	void Worker() override;
 
@@ -149,31 +132,8 @@ public:
 
 	void Restart();
 
-	void CompositeOutput(std::vector<Pixel>& pixels, unsigned int width, unsigned int height, bool flip);
+	void CompositeOutput(bool flip);
 };
-
-rpr_int ProductionRenderCore::GetDataFromBuffer(std::vector<float> &data, const fr_framebuffer& frameBuffer)
-{
-	size_t dataSize;
-	rpr_int res = rprFrameBufferGetInfo(frameBuffer
-		, RPR_FRAMEBUFFER_DATA
-		, 0
-		, NULL
-		, &dataSize
-	);
-	FASSERT(res == RPR_SUCCESS);
-
-	data.resize(dataSize / sizeof(float));
-	res = rprFrameBufferGetInfo(frameBuffer
-		, RPR_FRAMEBUFFER_DATA
-		, data.size() * sizeof(float)
-		, data.data()
-		, NULL
-	);
-	FASSERT(res == RPR_SUCCESS);
-
-	return res;
-}
 
 void ProductionRenderCore::RPRCopyFrameData()
 {
@@ -183,81 +143,42 @@ void ProductionRenderCore::RPRCopyFrameData()
 	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> tmpFrameData = std::make_unique<ProductionRenderCore::FrameDataBuffer>();
 
 	// get rgb
-	rpr_int res;
-	res = GetDataFromBuffer(tmpFrameData->colorData, frameBufferColorResolve.Handle());
-	FASSERT(res == RPR_SUCCESS);
-	frameBufferColorResolve.Clear();
+	tmpFrameData->colorData = frameBufferColorResolve.GetPixelData();
 
 	// get alpha
 	if (frameBufferAlpha)
 	{
-		res = GetDataFromBuffer(tmpFrameData->alphaData, frameBufferAlphaResolve.Handle());
-		FASSERT(res == RPR_SUCCESS);
-		frameBufferAlphaResolve.Clear();
+		tmpFrameData->alphaData = frameBufferAlphaResolve.GetPixelData();
 	}
 
-	// - Save additional frame data
+	// Save additional frame data
 	tmpFrameData->timePassed = timePassed;
 	tmpFrameData->passesDone = passesDone;
 
 	rprBuffersLock.unlock();
 
-	// - Swap new frame with the old one in the buffer
+	// Swap new frame with the old one in the buffer
 	frameDataBuffersLock.lock();
 	pLastFrameData = std::move(tmpFrameData);
 	frameDataBuffersLock.unlock();
-}
-
-bool ProductionRenderCore::SaveCompositeFrameData(::Bitmap* bitmap)
-{
-	if (prevPixels.empty())
-		return false;
-
-	if (!bitmap)
-		return false;
-
-	pixelsLock.lock();
-
-	int width = bitmap->Width();
-	int height = bitmap->Height();
-	bool sizeValid = (prevPixels.size() == width * height);
-	FASSERT(sizeValid);
-	
-	// write data to output
-	// max sdk can recieve picture data only by lines, thus loop is needed
-	for (int y = 0; y < height; ++y)
-	{
-		// the reason of using reinterpret_cast here is to avoide unnecessary copying
-		// BMM_Color_fl is a structure with 4 float values (r, g, b, a)
-		bitmap->PutPixels(0, y, width, reinterpret_cast<BMM_Color_fl*>(prevPixels.data() + y * width));
-	}
-
-	pixelsLock.unlock();
-
-	return true;
 }
 
 void ProductionRenderCore::SaveFrameData()
 {
 	rprBuffersLock.lock();
 
+	// Resolve & save Color buffer
 	if (isShadowCatcherEnabled)
 	{
 		// calculate picture composed of rendered image and several aov's (including shadow catcher)
-		CompositeOutput(pixels, scope.Width(), scope.Height(), false);
-
-		pixelsLock.lock();
-		prevPixels.clear();
-		prevPixels.swap(pixels);
-		pixelsLock.unlock();
+		CompositeOutput(false);
 	}
 	else
 	{
-		// Resolve & save Color buffer
 		frameBufferColor.Resolve(frameBufferColorResolve);
 
 		// Resolve & save Alpha buffer
-		if (frameBufferAlpha)
+		if (isAlphaEnabled)
 		{
 			frameBufferAlpha.Resolve(frameBufferAlphaResolve);
 		}
@@ -283,7 +204,7 @@ bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 	float _exposure = IsReal((float)exposure) ? (float)exposure : 1.f;
 	CompositeFrameBuffersToBitmap(pFrameData->colorData, pFrameData->alphaData, bitmap, _exposure, isNormals, isToneOperatorPreviewRender);
 
-	if (useMaxTonemapper)
+	if (useMaxTonemapper && !isShadowCatcherEnabled)
 		UpdateBitmapWithToneOperator(bitmap);
 
 	RenderStamp(bitmap, pFrameData);
@@ -291,7 +212,7 @@ bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 	return true;
 }
 
-ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name) :
+ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool hasAlpha, int width, int height, int priority, const char* name) :
 	BaseThread(name, priority),
 	scope(rscope),
 	eRestart(true),
@@ -321,6 +242,8 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 	frameBufferColorResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_ColorResolve);
 	ctx.SetAOV(frameBufferColor, RPR_AOV_COLOR);
 
+	isAlphaEnabled = hasAlpha;
+
 	//Find first shadow catcher shader
 	isShadowCatcherEnabled = scope.GetShadowCatcherShader().IsValid();
 
@@ -334,13 +257,11 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 		frameBufferBackground = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Background);
 		ctx.SetAOV(frameBufferBackground, RPR_AOV_BACKGROUND);
 
-		// Set opacity buffer
-		frameBufferOpacity = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Opacity);
-		ctx.SetAOV(frameBufferOpacity, RPR_AOV_OPACITY);
+		isAlphaEnabled = true;
 	}
 
 	// Set alpha buffer
-	if (bRenderAlpha)
+	if (isAlphaEnabled)
 	{
 		frameBufferAlpha = scope.GetFrameBuffer(width, height, FramebufferTypeId_Alpha);
 		frameBufferAlphaResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_AlphaResolve);
@@ -349,35 +270,23 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 }
 
 // Shadow catcher Impl
-void ProductionRenderCore::CompositeOutput(std::vector<Pixel>& pixels, unsigned int width, unsigned int height, bool flip)
+void ProductionRenderCore::CompositeOutput(bool flip)
 {
-	rpr_framebuffer frameBuffer = frameBufferColor.Handle();
-	rpr_framebuffer opacityFrameBuffer = frameBufferOpacity.Handle();
-	rpr_framebuffer shadowCatcherFrameBuffer = frameBufferShadowCatcher.Handle();
-	rpr_framebuffer backgroundFrameBuffer = frameBufferBackground.Handle();
+	unsigned int width = scope.Width();
+	unsigned int height = scope.Height();
 
-	// Get data from the RPR frame buffer.
-	size_t dataSize;
-	rpr_int frstatus = rprFrameBufferGetInfo(frameBuffer, RPR_FRAMEBUFFER_DATA, 0, nullptr, &dataSize);
-	FASSERT(frstatus == RPR_SUCCESS);
-
-	// Check that the reported frame buffer size
-	// in bytes matches the required dimensions.
-	size_t countPixels = dataSize / sizeof(Pixel);
-	pixels.resize(countPixels);
-	assert(dataSize == (sizeof(Pixel) * countPixels));
-	
 	frw::Context context = scope.GetContext();
+
 	// Step 1.
 	// Combine normalized color, background and opacity AOVs using lerp
 	RprComposite compositeBg(context.Handle(), RPR_COMPOSITE_FRAMEBUFFER);
-	compositeBg.SetInputFb("framebuffer.input", backgroundFrameBuffer);
+	compositeBg.SetInputFb("framebuffer.input", frameBufferBackground.Handle());
 
 	RprComposite compositeColor(context.Handle(), RPR_COMPOSITE_FRAMEBUFFER);
-	compositeColor.SetInputFb("framebuffer.input", frameBuffer);
+	compositeColor.SetInputFb("framebuffer.input", frameBufferColor.Handle());
 
 	RprComposite compositeOpacity(context.Handle(), RPR_COMPOSITE_FRAMEBUFFER);
-	compositeOpacity.SetInputFb("framebuffer.input", opacityFrameBuffer);
+	compositeOpacity.SetInputFb("framebuffer.input", frameBufferAlpha.Handle());
 
 	RprComposite compositeBgNorm(context.Handle(), RPR_COMPOSITE_NORMALIZE);
 	compositeBgNorm.SetInputC("normalize.color", compositeBg);
@@ -396,7 +305,7 @@ void ProductionRenderCore::CompositeOutput(std::vector<Pixel>& pixels, unsigned 
 	// Step 2.
 	// Combine result from step 1, black color and normalized shadow catcher AOV
 	RprComposite compositeShadowCatcher(context.Handle(), RPR_COMPOSITE_FRAMEBUFFER);
-	compositeShadowCatcher.SetInputFb("framebuffer.input", shadowCatcherFrameBuffer);
+	compositeShadowCatcher.SetInputFb("framebuffer.input", frameBufferShadowCatcher.Handle());
 
 	RprComposite compositeOne(context.Handle(), RPR_COMPOSITE_CONSTANT);
 	compositeOne.SetInput4f("constant.input", 1.0f, 0.0f, 0.0f, 0.0f);
@@ -404,10 +313,12 @@ void ProductionRenderCore::CompositeOutput(std::vector<Pixel>& pixels, unsigned 
 	//Find first shadow catcher shader
 	frw::Shader shadowCatcherShader = scope.GetShadowCatcherShader();
 	assert(shadowCatcherShader);
+	
 	float r = 0.0f;
 	float g = 0.0f;
 	float b = 0.0f;
 	float a = 0.0f;
+	
 	shadowCatcherShader.GetShadowColor(&r, &g, &b, &a);
 
 	float weight = shadowCatcherShader.GetShadowWeight();
@@ -428,6 +339,7 @@ void ProductionRenderCore::CompositeOutput(std::vector<Pixel>& pixels, unsigned 
 	compositeSCWeight.SetInputOp("arithmetic.op", RPR_MATERIAL_NODE_OP_MUL);
 
 	RprComposite compositeLerp2(context.Handle(), RPR_COMPOSITE_LERP_VALUE);
+
 	//Setting BgIsEnv to false means that we should use shadow catcher color instead of environment background
 	if (shadowCatcherShader.BgIsEnv())
 		compositeLerp2.SetInputC("lerp.color0", compositeLerp1);
@@ -439,28 +351,24 @@ void ProductionRenderCore::CompositeOutput(std::vector<Pixel>& pixels, unsigned 
 
 	// Step 3.
 	// Compute results from step 2 into separate framebuffer
-	rpr_framebuffer frameBufferComposite = 0;
-	rpr_framebuffer_format fmt = { 4, RPR_COMPONENT_TYPE_FLOAT32 };
-	rpr_framebuffer_desc desc;
-	desc.fb_width = width;
-	desc.fb_height = height;
+	auto frameBufferSC = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Composite);
 
-	frstatus = rprContextCreateFrameBuffer(context.Handle(), fmt, &desc, &frameBufferComposite);
-	FASSERT(frstatus == RPR_SUCCESS);
-	frstatus = rprCompositeCompute(compositeLerp2, frameBufferComposite);
-	FASSERT(frstatus == RPR_SUCCESS);
+	rpr_int status = rprCompositeCompute(compositeLerp2, frameBufferSC.Handle());
+	FASSERT(RPR_SUCCESS == status);
 
 	// Copy the frame buffer into the supplied pixel buffer.
-	Pixel* data = pixels.data();
-	frstatus = rprFrameBufferGetInfo(frameBufferComposite, RPR_FRAMEBUFFER_DATA, dataSize, &data[0], nullptr);
-	FASSERT(frstatus == RPR_SUCCESS);
+	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> tmpFrameData = std::make_unique<ProductionRenderCore::FrameDataBuffer>();
+	tmpFrameData->colorData = frameBufferSC.GetPixelData();
 
-	rprObjectDelete(frameBufferComposite);
+	frameDataBuffersLock.lock();
+	pLastFrameData = std::move(tmpFrameData);
+	frameDataBuffersLock.unlock();
 }
 
 void ProductionRenderCore::Worker()
 {
 	unsigned int numPasses = passLimit;
+
 	if (numPasses < 1)
 		numPasses = 1;
 	
@@ -505,7 +413,7 @@ void ProductionRenderCore::Worker()
 		{
 			frameBufferColor.Clear();
 
-			if (frameBufferAlpha)
+			if (isAlphaEnabled)
 			{
 				frameBufferAlpha.Clear();
 			}
@@ -514,7 +422,6 @@ void ProductionRenderCore::Worker()
 			{
 				frameBufferShadowCatcher.Clear();
 				frameBufferBackground.Clear();
-				frameBufferOpacity.Clear();
 			}
 
 			clearFramebuffer = false;
@@ -560,6 +467,7 @@ void ProductionRenderCore::Worker()
 		// Terminate thread when we reach a specific (amount of time) or (pass count) set by the artist
 		__time64_t current = time(0);
 		timePassed = current - startedAt;
+
 		if (term != Termination_None)
 		{
 			if (term == Termination_Passes && passesDone == numPasses) // Passes done, terminate
@@ -1053,7 +961,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
 	FASSERT(dd != mInstances.end());
 
-	auto data = dd->second;
+	PRManagerMax::Data* data = dd->second;
 
 	auto &parameters = pRenderer->parameters;
 
@@ -1087,6 +995,9 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	// Do we need alpha channel rendering?
 	BOOL bRenderAlpha;
 	parameters.pblock->GetValue(TRPARAM_BG_ENABLEALPHA, 0, bRenderAlpha, Interval());
+
+	if ( scope.GetShadowCatcherShader().IsValid() )
+		bRenderAlpha = true;
 
 	//Render Elements
 	auto renderElementMgr = parameters.rendParams.GetRenderElementMgr();
@@ -1279,6 +1190,8 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->renderThread->exposure = data->toneMappingExposure;
 	data->renderThread->useMaxTonemapper = !overrideTonemappers;
 	data->renderThread->regionMode = (parameters.rendParams.rendType == RENDTYPE_REGION);
+	data->isAlphaEnabled = bRenderAlpha;
+
 	if (data->renderThread->regionMode)
 	{
 		int xmin = parameters.frameRendParams.regxmin;
@@ -1311,15 +1224,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 			if (!data->bitmapUpdated) // bitmap is not refreshed yet => skip (to prevent tearing)
 			{
 				// - do the copy
-				bool isBitmapUpdated = false;
-				if (data->renderThread->isShadowCatcherEnabled) 
-				{
-					isBitmapUpdated = data->renderThread->SaveCompositeFrameData(frontBuffer);
-				}
-				else
-				{
-					isBitmapUpdated = data->renderThread->CopyFrameDataToBitmap(frontBuffer);
-				}
+				bool isBitmapUpdated = data->renderThread->CopyFrameDataToBitmap(frontBuffer);
 
 				// - Blit frontBuffer to render window
 				data->bitmapUpdated = isBitmapUpdated; // <= have to do the bitmap refresh in main Max thread; otherwise Max sdk can crash
