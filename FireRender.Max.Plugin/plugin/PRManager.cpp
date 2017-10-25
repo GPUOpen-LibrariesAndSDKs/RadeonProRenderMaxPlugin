@@ -89,7 +89,6 @@ public:
 								  // essentially making code synchronous
 
 	std::mutex frameDataBuffersLock;
-	std::mutex pixelsLock;
 	std::mutex rprBuffersLock;
 
 private:
