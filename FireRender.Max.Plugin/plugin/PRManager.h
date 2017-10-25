@@ -58,11 +58,8 @@ typedef enum
 	FrameBufferTypeId_GroupId,
 	FrameBufferTypeId_GroupIdResolve,
 	FrameBufferTypeId_ShadowCatcher,
-	FrameBufferTypeId_ShadowCatcherResolve,
 	FrameBufferTypeId_Background,
-	FrameBufferTypeId_BackgroundResolve,
-	FrameBufferTypeId_Opacity,
-	FrameBufferTypeId_OpacityResolve
+	FrameBufferTypeId_Composite,
 } FramebufferTypeId;
 
 
@@ -109,7 +106,8 @@ private:
 		bool shouldToneMap;
 		float toneMappingExposure;
 		bool isToneOperatorPreviewRender;
-		
+		bool isAlphaEnabled;
+
 		class ProductionRenderCore* renderThread;
 		std::thread* helperThread;
 		std::atomic<bool> bRenderCancelled;
