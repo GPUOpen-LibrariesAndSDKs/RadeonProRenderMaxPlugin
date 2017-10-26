@@ -41,6 +41,7 @@
 #include "FireRenderUberMtlv2.h"
 #include "FireRenderVolumeMtl.h"
 #include "FireRenderPbrMtl.h"
+#include "FireRenderShadowCatcherMtl.h"
 #include "utils/KelvinToColor.h"
 
 #include <icurvctl.h>
@@ -1054,6 +1055,10 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 			else if (cid == FIRERENDER_PBRMTL_CID) {
 				shader = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(material)->getShader(mT, *this, node);
 			}
+			else if (cid == FIRERENDER_SCMTL_CID) {
+				shader = dynamic_cast<FRMTLCLASSNAME(ShadowCatcherMtl)*>(material)->getShader(mT, *this, node);
+			}
+
 			else if (cid == FIRERENDER_VOLUMEMTL_CID) {
 				shader = dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(material)->getShader(mT, *this, node);
 			}
@@ -1130,10 +1135,11 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 				std::string name_s( name.begin(), name.end() );
 				shader.SetName(name_s.c_str());
 
-				//if (shaderData.mCacheable)
-				//	mScope.SetShader(matKey, shader);
-				//else
-				//	mScope.SetShader(matNodeKey, shader);
+				static int materialKey = 0;
+				if (shaderData.mCacheable)
+					mScope.SetShader(materialKey++, shader);
+				else
+					mScope.SetShader(materialKey++, shader);
 			}
 		}
 	}
