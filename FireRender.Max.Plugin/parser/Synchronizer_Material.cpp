@@ -178,10 +178,6 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 							if (ScopeManagerMax::CoronaOK)
 							shadowCatcher = true;
 						}
-						else if (pMat && pMat->ClassID() == FIRERENDER_SCMTL_CID) // Shadow Catcher Material
-						{
-							shadowCatcher = true;
-						}
 
 						frw::Value displImageNode;
 						bool notAccurate;
@@ -200,7 +196,7 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 							shape->Get().RemoveDisplacement();
 
 						shape->Get().SetShadowFlag(castsShadows);
-						shape->Get().SetShadowCatcherFlag(shadowCatcher);
+						shape->Get().SetShadowCatcherFlag(false);
 
 						// reassign the new shader
 

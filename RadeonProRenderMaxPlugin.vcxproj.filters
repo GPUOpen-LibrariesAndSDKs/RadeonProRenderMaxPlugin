@@ -282,9 +282,6 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderShadowCatcherMtl.h">
-      <Filter>Plugin\materials</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.h">
       <Filter>FireRender.Components\IESLight</Filter>
     </ClInclude>
@@ -293,9 +290,6 @@
     </ClInclude>
     <ClInclude Include="FireRender.Components\cpp\PluginContext\PluginContext.h">
       <Filter>FireRender.Components\PluginContext</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\RprComposite.h">
-      <Filter>Plugin</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -528,12 +522,6 @@
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.cpp">
       <Filter>Plugin\light</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderShadowCatcherMtl.cpp">
-      <Filter>Plugin\materials</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\RprComposite.cpp">
-      <Filter>Plugin</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.cpp">
       <Filter>FireRender.Components\IESLight</Filter>
