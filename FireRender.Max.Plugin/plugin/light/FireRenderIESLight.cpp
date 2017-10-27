@@ -342,26 +342,40 @@ namespace
 				ParameterCache<p>::GetValue(pBlock)));
 	}
 
+	template<IESLightParameter... params>
+	void InitializeDefaultBlockValues(IParamBlock2* pBlock)
+	{
+		(void)std::initializer_list<int>
+		{
+			(InitializeDefaultBlockValue<params>(pBlock), 0)...
+		};
+	}
+
 	void* FireRenderIESLightClassDesc::Create(BOOL loading)
 	{
 		FireRenderIESLight* instance = new FireRenderIESLight();
 		IParamBlock2* pBlock = instance->GetParamBlock(0);
 
-		InitializeDefaultBlockValue<IES_PARAM_ENABLED>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_PROFILE>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_AREA_WIDTH>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_X>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_Y>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_LIGHT_ROTATION_Z>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_TARGETED>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_INTENSITY>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_COLOR_MODE>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_COLOR>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_TEMPERATURE>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_ENABLED>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_SOFTNESS>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_SHADOWS_TRANSPARENCY>(pBlock);
-		InitializeDefaultBlockValue<IES_PARAM_VOLUME_SCALE>(pBlock);
+		if (!loading)
+		{
+			InitializeDefaultBlockValues<
+				IES_PARAM_ENABLED,
+				IES_PARAM_PROFILE,
+				IES_PARAM_AREA_WIDTH,
+				IES_PARAM_LIGHT_ROTATION_X,
+				IES_PARAM_LIGHT_ROTATION_Y,
+				IES_PARAM_LIGHT_ROTATION_Z,
+				IES_PARAM_TARGETED,
+				IES_PARAM_INTENSITY,
+				IES_PARAM_COLOR_MODE,
+				IES_PARAM_COLOR,
+				IES_PARAM_TEMPERATURE,
+				IES_PARAM_SHADOWS_ENABLED,
+				IES_PARAM_SHADOWS_SOFTNESS,
+				IES_PARAM_SHADOWS_TRANSPARENCY,
+				IES_PARAM_VOLUME_SCALE
+			>(pBlock);
+		}
 
 		TimeValue t = GetCOREInterface()->GetTime();
 		if (instance->ProfileIsSelected(t))
@@ -557,6 +571,7 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_defaultUp(0.0f, 1.0f, 0.0f),
 	m_isPreviewGraph(true),
 	m_bbox(),
+	m_invlidProfileMessageShown(false),
 	m_BBoxCalculated(false),
 	m_pblock2(nullptr),
 	m_thisNodeMonitor(MakeNodeTransformMonitor()),
@@ -656,6 +671,8 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 			{
 				case IES_PARAM_PROFILE:
 				{
+					m_invlidProfileMessageShown = false;
+
 					if (ProfileIsSelected(time))
 					{
 						if (CalculateLightRepresentation(GetActiveProfile(time)))
@@ -960,7 +977,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 	Matrix3 tm = prevtm;
 	BOOL result = TRUE;
 
-	if (ProfileIsSelected(t))
+	if (ProfileIsSelected(t) && !m_invlidProfileMessageShown)
 	{
 		GraphicsWindow* graphicsWindow = vpt->getGW();
 

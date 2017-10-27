@@ -293,11 +293,15 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 
 	if (failed)
 	{
+		assert(!m_invlidProfileMessageShown);
+
 		MessageBox(
 			GetCOREInterface()->GetMAXHWnd(),
 			failReason,
 			_T("Error"),
 			MB_ICONERROR | MB_OK);
+
+		m_invlidProfileMessageShown = true;
 	}
 
 	return !failed;
