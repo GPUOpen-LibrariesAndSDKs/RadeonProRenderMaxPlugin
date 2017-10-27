@@ -312,6 +312,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderReflectionMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderRefractionMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderShadowCatcherMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderStandardMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderTransparentMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtl.h" />
@@ -322,6 +323,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\ParamBlock.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ParamDlg.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\PRManager.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\RprComposite.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ScopeManager.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\SkyGen.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\TmManager.h" />
@@ -399,6 +401,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderReflectionMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderRefractionMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderShadowCatcherMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderStandardMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderTransparentMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtl.cpp" />
@@ -409,6 +412,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\ParamBlock.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ParamDlg.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\PRManager.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\RprComposite.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ScopeManager.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\SkyGen.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\TmManager.cpp" />

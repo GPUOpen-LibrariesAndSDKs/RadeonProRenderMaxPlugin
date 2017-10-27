@@ -1054,6 +1054,10 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 						if (ScopeManagerMax::CoronaOK)
 						shadowCatcher = true;
 					}
+					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_SCMTL_CID) // Shadow Catcher Material
+					{
+						shadowCatcher = true;
+					}
 
 					frw::Value displImageNode;
 					bool notAccurate;
@@ -1074,7 +1078,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 							shape.RemoveDisplacement();
 
 					shape.SetShadowFlag(castsShadows);
-					shape.SetShadowCatcherFlag(false);
+					shape.SetShadowCatcherFlag(shadowCatcher);
 
 					frw::Shader volumeShader;
 						if (currentMtl != DISABLED_MATERIAL)
