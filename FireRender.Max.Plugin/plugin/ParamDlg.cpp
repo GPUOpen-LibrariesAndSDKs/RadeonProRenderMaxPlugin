@@ -1706,6 +1706,9 @@ INT_PTR FireRenderParamDlg::CScripts::DlgProc(UINT msg, WPARAM wParam, LPARAM lP
 void FireRenderParamDlg::CScripts::InitDialog()
 {
 	//Render device
+
+	// disabled because shouldn't be in UI according to JIRA ticket
+#ifdef VRAY_MATERIAL_CONVERTION_ENABLED
 	LRESULT n;
 	HWND renderScript = GetDlgItem(mHwnd, IDC_RENDER_SCRIPTS);
 	FASSERT(renderScript);
@@ -1713,6 +1716,7 @@ void FireRenderParamDlg::CScripts::InitDialog()
 	n = SendMessage(renderScript, CB_ADDSTRING, 0L, (LPARAM)_T("Convert Vray materials to ProRender materials"));
 	SendMessage(renderScript, CB_SETITEMDATA, n, RPR_CONVERT_MATERIALS_FROM_VRAY_TO_PRORENDER);
 	mIsReady = true;
+#endif
 }
 
 void FireRenderParamDlg::CScripts::DestroyDialog()
