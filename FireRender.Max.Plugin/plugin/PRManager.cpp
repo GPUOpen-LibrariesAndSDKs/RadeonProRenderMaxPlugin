@@ -105,6 +105,19 @@ private:
 	void SaveFrameData(void);
 	void RPRCopyFrameData(void);
 
+	mutable struct StampCachedData
+	{
+		std::wstring gpuName;
+		std::wstring cpuName;
+		std::wstring product;
+		std::wstring version;
+		int lightsCount;
+		int shapesCount;
+		bool isCacheCreated;
+
+		StampCachedData() : isCacheCreated(false) {}
+	} m_stampCachedData;
+
 public:
 	bool CopyFrameDataToBitmap(::Bitmap* bitmap);
 	void RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const;
@@ -361,6 +374,10 @@ void ProductionRenderCore::CompositeOutput(bool flip)
 	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> tmpFrameData = std::make_unique<ProductionRenderCore::FrameDataBuffer>();
 	tmpFrameData->colorData = frameBufferComposite.GetPixelData();
 
+	// Save additional frame data
+	tmpFrameData->timePassed = timePassed;
+	tmpFrameData->passesDone = passesDone;
+
 	frameDataBuffersLock.lock();
 	pLastFrameData = std::move(tmpFrameData);
 	frameDataBuffersLock.unlock();
@@ -503,6 +520,17 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 
 	auto scene = scope.GetScene();
 
+	if (!m_stampCachedData.isCacheCreated)
+	{
+		// cache not created yet => write values to cache
+		m_stampCachedData.isCacheCreated = true;
+		m_stampCachedData.gpuName = GetFriendlyUsedGPUName();
+		m_stampCachedData.cpuName = GetCPUName();
+		m_stampCachedData.lightsCount = scene.LightCount();
+		m_stampCachedData.shapesCount = scene.ShapeCount();
+		GetProductAndVersion(m_stampCachedData.product, m_stampCachedData.version);
+	}
+
 	// parse string
 	std::wstring str;
 	str.reserve(256);
@@ -557,19 +585,19 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 			switch (c)
 			{
 			case 'l': // %sl - number of light primitives
-				numericValue = scene.LightCount();
+				numericValue = m_stampCachedData.lightsCount;
 				break;
 			case 'o': // %so - number of objects
-				numericValue = scene.ShapeCount();
+				numericValue = m_stampCachedData.shapesCount;
 				break;
 			}
 		}
 		break;
 		case 'c': // CPU name
-			str += GetCPUName();
+			str += m_stampCachedData.cpuName;
 			break;
 		case 'g': // GPU name
-			str += GetFriendlyUsedGPUName();
+			str += m_stampCachedData.gpuName;
 			break;
 		case 'r': // rendering mode
 		{
@@ -584,11 +612,11 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 		case 'h': // used hardware
 		{
 			if (renderDevice == RPR_RENDERDEVICE_CPUONLY)
-				str += GetCPUName();
+				str += m_stampCachedData.cpuName;
 			else if (renderDevice == RPR_RENDERDEVICE_GPUONLY)
-				str += GetFriendlyUsedGPUName();
+				str += m_stampCachedData.gpuName;
 			else
-				str += GetCPUName() + _T(" / ") + GetFriendlyUsedGPUName();
+				str += m_stampCachedData.cpuName + _T(" / ") + m_stampCachedData.gpuName;
 		}
 		break;
 		case 'i': // computer name
@@ -610,9 +638,7 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 		break;
 		case 'b': // build number
 		{
-			std::wstring name, version;
-			GetProductAndVersion(name, version);
-			str += version;
+			str += m_stampCachedData.version;
 		}
 		break;
 		default:

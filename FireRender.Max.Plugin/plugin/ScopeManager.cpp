@@ -369,19 +369,26 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 					{
 						size_t deviceNameSize = 0;
 						int status = rprContextGetInfo(temporaryContext, gpuIdNames[i], 0, 0, &deviceNameSize);
-						if (status != RPR_SUCCESS) { throw  RPR_ERROR_INVALID_PARAMETER; }
+						if (status != RPR_SUCCESS) 
+						{ 
+							throw  RPR_ERROR_INVALID_PARAMETER; 
+						}
 
-						std::string deviceName;
-						deviceName.resize(deviceNameSize); // may throw std::bad_alloc
-						status = rprContextGetInfo(temporaryContext, gpuIdNames[i], deviceNameSize, &deviceName[0], 0);
-						if (status != RPR_SUCCESS) { throw  RPR_ERROR_INVALID_PARAMETER; }
+						std::unique_ptr<char[]> dataBuffer (new char[deviceNameSize]);
+						status = rprContextGetInfo(temporaryContext, gpuIdNames[i], deviceNameSize, dataBuffer.get(), 0);
+						if (status != RPR_SUCCESS)
+						{ 
+							throw  RPR_ERROR_INVALID_PARAMETER; 
+						}
 
-						GpuInfo info;
-						info.name = deviceName;
+						gpuInfoArray.emplace_back();
+						GpuInfo& info = gpuInfoArray.back();
+						info.name.clear();
+						info.name.append(dataBuffer.get());
 						info.isUsed = true;
 						info.isCompatible = true;
 						info.isWhiteListed = IsDeviceNameWhitelisted(
-							deviceName.c_str(),
+							info.name.c_str(),
 #ifdef OSMac_
 							RPRTOS_MACOS
 #elif __linux__
@@ -391,7 +398,6 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 #endif
 						);
 						info.frFlags = gpuIdFlags[i];
-						gpuInfoArray.push_back(info);
 
 						auto res = rprObjectDelete(temporaryContext);
 						FASSERT(RPR_SUCCESS == res);
