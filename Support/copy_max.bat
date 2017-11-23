@@ -46,8 +46,10 @@ set ToMaxPluginsDir=^
 
 set ToMaxInstallDir=^
 	"ThirdParty\RadeonProRender SDK\Win\bin\*.dll"^
-	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\*.dll"^
-	"ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll"
+	"ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll" ^
+	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxfConverter.dll"^
+	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxFDecoding_r.dll"^
+	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"
 
 ::Copy libraries to max plugins directory (to debug it easy)
 for %%a in (%ToMaxPluginsDir%) do (
