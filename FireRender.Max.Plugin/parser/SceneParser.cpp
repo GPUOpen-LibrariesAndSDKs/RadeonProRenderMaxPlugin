@@ -2589,20 +2589,23 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 			{
 				if (type == LightscapeLight::TARGET_POINT_TYPE || type == LightscapeLight::POINT_TYPE)
 				{
-					res = rprContextCreateSpotLight(context.Handle(), &fireLight);
-					FASSERT(res == RPR_SUCCESS);
-					const float iAngle = DEG_TO_RAD*light->GetHotspot(this->params.t) * 0.5f;
-					const float oAngle = DEG_TO_RAD*light->GetFallsize(this->params.t) * 0.5f;
+					if (intensity > 0)
+					{
+						res = rprContextCreateSpotLight(context.Handle(), &fireLight);
+						FASSERT(res == RPR_SUCCESS);
+						const float iAngle = DEG_TO_RAD*light->GetHotspot(this->params.t) * 0.5f;
+						const float oAngle = DEG_TO_RAD*light->GetFallsize(this->params.t) * 0.5f;
 
-					float lumens = phlight->GetResultingFlux(this->params.t);
-					float steradians = lumens / intensity;
-					float watts = lumens / ((1700.f * steradians) / (4.f * PI)); // scotopic
-					Point3 color = phlight->GetRGBFilter(this->params.t) * phlight->GetRGBColor(this->params.t) * watts;
+						float lumens = phlight->GetResultingFlux(this->params.t);
+						float steradians = lumens / intensity;
+						float watts = lumens / ((1700.f * steradians) / (4.f * PI)); // scotopic
+						Point3 color = phlight->GetRGBFilter(this->params.t) * phlight->GetRGBColor(this->params.t) * watts;
 
-					res = rprSpotLightSetRadiantPower3f(fireLight, color.x, color.y, color.z);
-					FASSERT(res == RPR_SUCCESS);
-					res = rprSpotLightSetConeShape(fireLight, iAngle, oAngle);
-					FASSERT(res == RPR_SUCCESS);
+						res = rprSpotLightSetRadiantPower3f(fireLight, color.x, color.y, color.z);
+						FASSERT(res == RPR_SUCCESS);
+						res = rprSpotLightSetConeShape(fireLight, iAngle, oAngle);
+						FASSERT(res == RPR_SUCCESS);
+					}
 				}
 				// other types are currently not supported by FR
 				else
