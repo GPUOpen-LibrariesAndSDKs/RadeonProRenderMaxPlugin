@@ -1694,8 +1694,12 @@ void ApplyFREnvironment(frw::Scope& scope, frw::MaterialSystem& materialSystem, 
 	}
 	else
 	{
-		scene.SetBackground(frw::EnvironmentLight());
-		scene.SetBackgroundImage(frw::Image());
+		Color envColor = parsedEnv.envColor;
+		if (avg(envColor) > 0.0f)
+		{
+			scene.SetBackground(frw::EnvironmentLight());
+			scene.SetBackgroundImage(frw::Image());
+		}
 	}
 }
 
