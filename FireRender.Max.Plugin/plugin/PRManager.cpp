@@ -870,6 +870,9 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 	context.SetParameter("aasamples", GetFromPb<int>(parameters.pblock, PARAM_AA_SAMPLE_COUNT));
 	context.SetParameter("pdfthreshold", 0.f);
 
+	float raycastEpsilon = GetFromPb<float>(parameters.pblock, PARAM_QUALITY_RAYCAST_EPSILON);
+	context.SetParameter("raycastepsilon", raycastEpsilon);
+
 	BOOL useIrradianceClamp = FALSE;
 	float irradianceClamp = FLT_MAX;
 	parameters.pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());

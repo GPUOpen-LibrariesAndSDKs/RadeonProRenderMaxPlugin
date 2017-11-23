@@ -121,6 +121,13 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 				mBridge->SetLimitType(v.mSimpleValue.int_val);
 			}
 			break;
+
+			case PARAM_QUALITY_RAYCAST_EPSILON:
+			{
+				auto v = mParametersTracker.GetParam(pp);
+				context.SetParameter("raycastepsilon", v.mSimpleValue.float_val);
+			}
+			break;
 		}
 	}
 }

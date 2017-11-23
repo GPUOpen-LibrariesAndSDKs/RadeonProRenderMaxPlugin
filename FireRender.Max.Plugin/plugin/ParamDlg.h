@@ -568,6 +568,10 @@ protected:
 	class CQualitySettings : public CRollout
 	{
 	public:
+		struct {
+			ISpinnerControl* raycastEpsilon;
+		} controls;
+
 		CQualitySettings()
 		{
 		}

@@ -45,6 +45,9 @@ FIRERENDER_NAMESPACE_BEGIN
 
 #define PROP_SENDER_COLORDIAL 102
 
+// UI has units in mm, but core needs it in meters 1m = 1000mm
+static const float rayCastEpsilonContextCoeff = 1000.0f;
+
 static MSTR GetIBLRootDirectory()
 {
 	// Reference: installer/nsiexec2/nsiexec2/main.cpp
@@ -2796,6 +2799,26 @@ INT_PTR FireRenderParamDlg::CQualitySettings::DlgProc(UINT msg, WPARAM wParam, L
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
+		case CC_SPINNER_CHANGE:
+		{
+			if (mIsReady)
+			{
+				int idSpinner = (int)LOWORD(wParam);
+
+				if (idSpinner == IDC_QUALITY_RAY_EPSILON_S)
+				{
+					float val = controls.raycastEpsilon->GetFVal();
+					BOOL res = pb->SetValue(PARAM_QUALITY_RAYCAST_EPSILON, 0, val / rayCastEpsilonContextCoeff);
+					FASSERT(res);
+				}
+				else
+				{
+					CommitSpinnerToParam(pb, idSpinner);
+				}							
+			}
+		}
+		break;
+
 		case WM_COMMAND:
 		{
 			switch (HIWORD(wParam))
@@ -2868,12 +2891,26 @@ void FireRenderParamDlg::CQualitySettings::InitDialog()
 	
 	int numPresets = InitPresetComboBox(global_presetTable, qualityPreset, true);
 
+	controls.raycastEpsilon = SetupSpinner(pb, PARAM_QUALITY_RAYCAST_EPSILON, IDC_QUALITY_RAY_EPSILON, IDC_QUALITY_RAY_EPSILON_S);
+
+	std::tuple<float, float, float> constants = GetRayCastConstants();
+
+	controls.raycastEpsilon->SetLimits(std::get<0>(constants) * rayCastEpsilonContextCoeff,
+		std::get<1>(constants) * rayCastEpsilonContextCoeff);
+
+	float value = pb->GetFloat(PARAM_QUALITY_RAYCAST_EPSILON);
+	controls.raycastEpsilon->SetValue(value * rayCastEpsilonContextCoeff, TRUE);
+	
 	mIsReady = true;
 }
 
 void FireRenderParamDlg::CQualitySettings::DestroyDialog()
 {
-	mIsReady = false;
+	if (mIsReady)
+	{
+		mIsReady = false;
+		ReleaseISpinner(controls.raycastEpsilon);
+	}
 }
 
 void FireRenderParamDlg::CQualitySettings::SetQualityPresets(int qualityLevel)

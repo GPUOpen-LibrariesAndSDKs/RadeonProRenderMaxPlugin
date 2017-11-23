@@ -34,6 +34,8 @@ enum PbDescVersion {
 
 #define DEFAULT_RENDER_STAMP _T("Radeon ProRender for 3ds Max %b | %h | Time: %pt | Passes: %pp | Objects: %so | Lights: %sl")
 
+std::tuple<float, float, float> GetRayCastConstants();
+
 enum Parameter : ParamID {
 
     /// INT: Maximum number of global illumination light bounces.
@@ -235,6 +237,9 @@ enum Parameter : ParamID {
 
 	// (sky) ground albedo
 	TRPARAM_BG_SKY_GROUND_ALBEDO,
+
+	// (Quality) Raycast Epsilon
+	PARAM_QUALITY_RAYCAST_EPSILON,
 };
 
 /// Descriptor of the rendering plugin parameter block. It specifies all parameters and their options the rendering plugin has

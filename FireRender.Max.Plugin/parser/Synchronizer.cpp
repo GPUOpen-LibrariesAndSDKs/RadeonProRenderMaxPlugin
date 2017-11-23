@@ -241,6 +241,7 @@ Synchronizer::Synchronizer(frw::Scope scope, INode *pSceneINode, SynchronizerBri
 	FASSERT(mParametersTracker.AddToTracker(PARAM_TIME_LIMIT));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_PASS_LIMIT));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_RENDER_LIMIT));
+	FASSERT(mParametersTracker.AddToTracker(PARAM_QUALITY_RAYCAST_EPSILON));
 }
 
 Synchronizer::~Synchronizer()

@@ -797,6 +797,7 @@ void ActiveShader::Begin()
 	context.SetParameter("aacellsize", GetFromPb<int>(pblock, PARAM_AA_GRID_SIZE));
 	context.SetParameter("aasamples", GetFromPb<int>(pblock, PARAM_AA_SAMPLE_COUNT));
 	context.SetParameter("pdfthreshold", 0.f);
+	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
 
 	BOOL useIrradianceClamp = FALSE;
 	pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());

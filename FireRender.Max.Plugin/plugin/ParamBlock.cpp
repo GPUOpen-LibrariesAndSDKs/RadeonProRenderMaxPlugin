@@ -19,6 +19,17 @@ FireRenderClassDesc fireRenderClassDesc;
 
 static BgAccessor theBgAccessor;
 
+// Values of raycast epsilon constants in meters
+static const float rprRenderRaycastEpsilonMin = 0.0f;
+static const float rprRenderRaycastEpsilonMax = 0.01f;
+static const float rprRenderRaycastEpsilonDefault = 0.00002f;
+
+std::tuple<float, float, float> GetRayCastConstants()
+{
+	return std::make_tuple(rprRenderRaycastEpsilonMin, rprRenderRaycastEpsilonMax, rprRenderRaycastEpsilonDefault);
+}
+
+
 /// All rendering plugin parameters. Type of parameters cannot be changed and parameters cannot be removed without possibly 
 /// breaking backwards compatibility of loading old scenes! Instead of removing a parameter it should be flagged with P_OBSOLETE
 /// as shown in the code below. Instead of changing parameter type, the parameter should be declared obsolete and new parameter
@@ -405,6 +416,9 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	
 	TRPARAM_BG_SKY_GROUND_ALBEDO, _T("backgroundSkyGroundAlbedo"), TYPE_RGBA, P_ANIMATABLE | P_TRANSIENT, IDS_STRING247,
 	p_default, Color(1.0f, 1.0f, 1.0f), p_accessor, &theBgAccessor, PB_END,
+
+	PARAM_QUALITY_RAYCAST_EPSILON, _T("raycastEpsilon"), TYPE_FLOAT, 0, 0, p_default, rprRenderRaycastEpsilonDefault,
+		p_range, rprRenderRaycastEpsilonMin, rprRenderRaycastEpsilonMax, PB_END,
 
 	PB_END);
 
