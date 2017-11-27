@@ -91,6 +91,9 @@ public:
 	std::mutex frameDataBuffersLock;
 	std::mutex rprBuffersLock;
 
+	// To ensure that we are finished with RPRCopyFrameData
+	Event rprCopyFrameDataDoneEvent;
+
 private:
 	frw::Scope scope;
 	frw::FrameBuffer frameBufferColor;
@@ -127,6 +130,8 @@ public:
 
 	void Done(TerminationResult res, rpr_int err)
 	{
+		rprCopyFrameDataDoneEvent.Wait();
+
 		errorCode = err;
 		rpr_int errorCode = RPR_SUCCESS;
 		result = res;
@@ -173,6 +178,8 @@ void ProductionRenderCore::RPRCopyFrameData()
 	frameDataBuffersLock.lock();
 	pLastFrameData = std::move(tmpFrameData);
 	frameDataBuffersLock.unlock();
+
+	rprCopyFrameDataDoneEvent.Fire();
 }
 
 void ProductionRenderCore::SaveFrameData()
@@ -200,6 +207,7 @@ void ProductionRenderCore::SaveFrameData()
 
 	if (!isShadowCatcherEnabled)
 	{
+		rprCopyFrameDataDoneEvent.Reset();
 		copyResult = std::async(std::launch::async, &ProductionRenderCore::RPRCopyFrameData, this);
 	}
 }
@@ -408,6 +416,8 @@ void ProductionRenderCore::Worker()
 			ymax = ymin + region.h();
 		}
 	}
+
+	rprCopyFrameDataDoneEvent.Fire();
 
 	// render all passes, unless the render is cancelled (and even then render at least a single pass)
 	while (1)
