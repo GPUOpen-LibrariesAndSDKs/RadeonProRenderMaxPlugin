@@ -998,6 +998,8 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 
 int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBuffer, FrameRendParams &frp, HWND hwnd, RendProgressCallback* prog, ViewParams* viewPar)
 {
+	SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
+
 	int returnValue = 1;
 
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
@@ -1286,34 +1288,26 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	while (true)
 	{
 		MSG msg;
+		
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 		{
 			TranslateMessage(&msg);
-			bool process = IsWndMessageToSkip(msg);
-			// Skip all mouse and keyboard messages for any window except render progress and warningDlg
-			if ((msg.hwnd == pRenderer->mRenderWindow) || IsChild(pRenderer->mRenderWindow, msg.hwnd))
-				process = true;
-			if (!process)
-				if ((msg.hwnd == pRenderer->hRenderProgressDlg) || IsChild(pRenderer->hRenderProgressDlg, msg.hwnd))
-					process = true;
-			if (!process)
-				if (pRenderer->warningDlg.get() && ((msg.hwnd == pRenderer->warningDlg->warningWindow) || IsChild(pRenderer->warningDlg->warningWindow, msg.hwnd)))
-					process = true;
-			if (process)
-				DispatchMessage(&msg);
+			DispatchMessage(&msg);
 		}
 
 		// Check for render cancel from user, update progress message
-		if (GetCOREInterface()->CheckForRenderAbort())
+		if ( GetCOREInterface()->CheckForRenderAbort() )
 		{
 			if (shaderCacheDlg)
 			{
 				DestroyWindow(shaderCacheDlg);
 				shaderCacheDlg = NULL;
 			}
+
 			data->renderThread->AbortImmediate();
 			data->bQuitHelperThread = true;
 			data->bRenderCancelled = true;
+			
 			break;
 		}
 		else
@@ -1498,8 +1492,12 @@ void PRManagerMax::Abort(FireRenderer *pRenderer)
 	if (dd != mInstances.end())
 	{
 		auto data = dd->second;
+
 		if (data->renderThread)
+		{
+			data->bRenderCancelled = true;
 			data->renderThread->Abort();
+		}
 	}	
 }
 
@@ -1592,15 +1590,6 @@ void PRManagerMax::SetupCamera(const ParsedView& view, const int imageWidth, con
 
 	if (view.useMotionBlur)
 		rprCameraSetExposure(outCamera, view.cameraExposure);
-}
-
-bool PRManagerMax::IsWndMessageToSkip(const MSG &msg)
-{
-	// for Max menu lock, skip only these messages
-	return  msg.message == WM_KEYDOWN || msg.message == WM_KEYUP ||
-		msg.message == WM_RBUTTONDOWN || msg.message == WM_RBUTTONUP || msg.message == WM_RBUTTONDBLCLK ||
-		msg.message == WM_LBUTTONDOWN || msg.message == WM_LBUTTONUP || msg.message == WM_LBUTTONDBLCLK ||
-		msg.message == WM_MBUTTONDOWN || msg.message == WM_MBUTTONUP || msg.message == WM_MBUTTONDBLCLK;
 }
 
 FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOV(rpr_aov aov)

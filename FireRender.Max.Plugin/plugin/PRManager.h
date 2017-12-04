@@ -156,8 +156,6 @@ private:
 
 	void SetupCamera(const ParsedView& view, const int imageWidth, const int imageHeight, rpr_camera outCamera);
 
-	bool IsWndMessageToSkip(const MSG &msg);
-
 	FramebufferTypeId GetFramebufferTypeIdForAOV(rpr_aov aov);
 	FramebufferTypeId GetFramebufferTypeIdForAOVResolve(rpr_aov aov);
 };
