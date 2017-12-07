@@ -1790,8 +1790,11 @@ namespace frw
 		{
 			switch (idx)
 			{
-			case 0: return LookupNode(*this, LookupTypeUV0);
-			case 1: return LookupNode(*this, LookupTypeUV1);
+			case 0:
+				return LookupNode(*this, LookupTypeUV0);
+			
+			case 1:
+				return LookupNode(*this, LookupTypeUV1);
 			}
 
 			FASSERT(0);
@@ -2643,7 +2646,6 @@ namespace frw
 
 	inline void EnvironmentLight::AttachPortal(Shape shape)
 	{
-		assert(0);
 		auto res = rprEnvironmentLightAttachPortal(GetContext().GetScene(), Handle(), shape.Handle());
 		FASSERT(RPR_SUCCESS == res);
 		data().portals.push_back(shape);
