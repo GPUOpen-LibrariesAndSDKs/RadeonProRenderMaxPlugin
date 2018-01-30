@@ -2,7 +2,7 @@
 #include <maxscript/foundation/numbers.h>
 #include <maxscript/foundation/arrays.h>
 
-static bool EnableGltfExport = true;
+static bool enableGltfExport = true;
 
 // Declare C++ function and register it with MAXScript
 #include <maxscript\macros\define_instantiation_functions.h>
@@ -18,18 +18,28 @@ Value* rprEnableGltfExport_cf(Value **arg_list, int count)
 
 	Value* pEnable = arg_list[0];
 
-	EnableGltfExport = pEnable->to_bool();
+	enableGltfExport = pEnable->to_bool();
 
 	mputs(_M("GLTF Export functionality is turned "));
-	EnableGltfExport ? mputs(_M("ON\r\n")) : mputs(_M("OFF\r\n"));
+	enableGltfExport ? mputs(_M("ON\r\n")) : mputs(_M("OFF\r\n"));
 
 	one_typed_value_local(Integer* value);
-	vl.value = new Integer(EnableGltfExport);
+	vl.value = new Integer(enableGltfExport);
 
 	return_value(vl.value);
 }
 
 extern "C" bool IsGltfExportEnabled()
 {
-	return EnableGltfExport;
+	return enableGltfExport;
+}
+
+extern "C" void EnableGltfExport()
+{
+	enableGltfExport = true;
+}
+
+extern "C" void DisableGltfExport()
+{
+	enableGltfExport = false;
 }

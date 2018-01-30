@@ -53,6 +53,7 @@
 #include "MPManager.h"
 #include "ScopeManager.h"
 #include "PRManager.h"
+#include "utils\Utils.h"
 
 #ifdef FIREMAX_DEBUG
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RadeonProRender64.lib") // no 'D' suffix as no debug lib supplied
@@ -117,6 +118,8 @@
 #   pragma comment (lib, "Release/gup.lib")
 #endif
 
+extern "C" void DisableGltfExport();
+
 
 HINSTANCE FireRender::fireRenderHInstance;
 
@@ -167,37 +170,96 @@ ClassDesc2& GetAOVElementClassDesc(int);
 /// Called by 3ds Max immediately after 3ds Max loads the plugin. Any initialization should be done here (and not in DllMain)
 EXPORT_TO_MAX int LibInitialize()
 {
-	// sanity check (AMDMAX-1029)
-	wchar_t bufp[MAX_PATH + 1];
-	int bytes = GetModuleFileName(NULL, bufp, MAX_PATH);
-	std::wstring modulep = bufp;
-	std::wstring::size_type pos = modulep.find_last_of('\\');
+	HMODULE hModule = NULL;
 
-	if (pos != std::wstring::npos)
-		modulep = modulep.substr(0, pos + 1);
-
-	std::wstring checkp[4] =
+	if ( !GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		(LPTSTR) &LibInitialize, &hModule) )
 	{
-		{L"Tahoe64.dll" },
-		{L"RprLoadStore64.dll" },
-		{L"RadeonProRender64.dll" },
-		{L"OpenImageIO_RPR.dll" },
+		MessageBox(0, L"Failed to get module handle. Plugin will not be loaded.", L"Radeon ProRender", MB_OK | MB_ICONEXCLAMATION);
+
+		return 0;
+	}
+
+	DWORD pathSize = 1024;
+	const DWORD reasonablePathSize = 4096;
+
+	std::wstring pluginPath = FireRender::GetModuleFolder();
+
+	if ( pluginPath.empty() )
+	{
+		MessageBox(0, L"Failed to get module name. Plugin will not be loaded.", L"Radeon ProRender", MB_OK | MB_ICONEXCLAMATION);
+
+		return 0;
+	}
+
+	// getting the root folder of plugin
+	std::wstring::size_type pos = pluginPath.find(L"plug-ins");
+
+	if (std::wstring::npos == pos)
+	{
+		MessageBox(0, L"Failed to get module path. Plugin will not be loaded.", L"Radeon ProRender", MB_OK | MB_ICONEXCLAMATION);
+
+		return 0;
+	}
+
+	std::wstring pluginFolder = pluginPath.substr(0, pos);
+	std::wstring binFolder = pluginFolder + L"bin\\";
+
+	SetDllDirectory( binFolder.c_str() );
+
+	struct HelperBinaryDescriptor
+	{
+		enum class BINARY_STATUS { BINARY_OPTIONAL = 0, BINARY_ESSENTIAL = 1 };
+
+		std::wstring  mName;
+		BINARY_STATUS mBinaryStatus;
 	};
 
-	for (int i = 0; i < 4; i++)
+	std::vector<HelperBinaryDescriptor> helperBinaryDescriptors =
 	{
-		std::wstring toCheck = modulep + checkp[i];
-		struct __stat64 buffer;
-		if (_wstat64(toCheck.c_str(), &buffer) != 0)
+		{ L"Tahoe64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"RadeonProRender64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"RprLoadStore64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"RprSupport64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"OpenImageIO_RPR.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+
+		{ L"embree.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"tbb.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"tbbmalloc.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+
+		{ L"AxfConverter.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
+		{ L"AxFDecoding_r.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
+		{ L"FreeImage.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
+		
+		{ L"ProRenderGLTF.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
+	};
+
+	for (const HelperBinaryDescriptor& libraryDescriptor : helperBinaryDescriptors)
+	{
+		const std::wstring& libraryName = libraryDescriptor.mName;
+
+		HMODULE h = LoadLibrary(libraryName.c_str() );
+
+		if (NULL == h)
 		{
-			std::wstring message = L"Required DLL ";
-			message += checkp[i];
-			message += L" is missing.\nCannot load Radeon ProRenderer.";
-			MessageBox(0, message.c_str(), L"Radeon ProRender", MB_OK | MB_ICONEXCLAMATION);
-			return false;
+			if ( HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL == libraryDescriptor.mBinaryStatus)
+			{
+				std::wstring message = L"Failed to load " + libraryName + L". Plugin will not be loaded.";
+				MessageBox(0, message.c_str(), L"Radeon ProRender", MB_OK | MB_ICONEXCLAMATION);
+				SetDllDirectory(NULL);
+
+				return 0;
+			}
+
+			if (L"ProRenderGLTF.dll" == libraryName)
+			{
+				DisableGltfExport();
+			}
 		}
 	}
-	
+
+	SetDllDirectory(NULL);
+
     // We create a dedicated folder for our logs/config in a location 3ds Max designates for us.
     const std::wstring folder = FireRender::GetDataStoreFolder();
     _wmkdir(folder.c_str());
@@ -229,7 +291,9 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DiffuseRefractionMtl)::ClassDescInstance);
 	
 	if (RPR_API_VERSION > 0x010000094)
+	{
 		gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(FresnelSchlickMtl)::ClassDescInstance);
+	}
 	
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DisplacementMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(NormalMtl)::ClassDescInstance);
@@ -262,11 +326,12 @@ EXPORT_TO_MAX int LibInitialize()
 
 	gClassInstances.push_back(FireRender::FireRenderIESLight::GetClassDesc());
 
-	for(int i=0;i<GetAOVElementClassDescCount();++i){
+	for(int i = 0; i < GetAOVElementClassDescCount(); i++)
+	{
 		gClassInstances.push_back(&GetAOVElementClassDesc(i));
 	}
 
-    return true;
+    return 1;
 }
 
 /// Called by 3ds Max immediately before the plugin is unloaded (e.g. when closing the application)

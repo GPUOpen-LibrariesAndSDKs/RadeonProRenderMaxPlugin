@@ -293,9 +293,23 @@ typedef std::vector<std::vector<std::string>> CDatabase;
 
 void BgManagerMax::BuildWorldCitiesDatabase()
 {
-	auto coname = GetModuleFolder() + L"RadeonProRender_co.dat";
-	auto ciname = GetModuleFolder() + L"RadeonProRender_ci.dat";
-	auto csname = GetModuleFolder() + L"RadeonProRender_cs.dat";
+	std::wstring pluginPath = GetModuleFolder();
+
+	// getting the root folder of plugin
+	std::wstring::size_type pos = pluginPath.find(L"plug-ins");
+
+	if (std::wstring::npos == pos)
+	{
+		return;
+	}
+
+	std::wstring pluginFolder = pluginPath.substr(0, pos);
+	std::wstring dataFolder = pluginFolder + L"data\\";
+
+	auto coname = dataFolder + L"RadeonProRender_co.dat";
+	auto ciname = dataFolder + L"RadeonProRender_ci.dat";
+	auto csname = dataFolder + L"RadeonProRender_cs.dat";
+
 	bool coExists = _waccess(coname.c_str(), 0) == 0;
 	bool ciExists = _waccess(ciname.c_str(), 0) == 0;
 	bool csExists = _waccess(csname.c_str(), 0) == 0;
@@ -304,10 +318,12 @@ void BgManagerMax::BuildWorldCitiesDatabase()
 	{
 		char buffer[2048];
 		FILE *countries_in = 0, *cities_in = 0;
+	
 		if (_wfopen_s(&countries_in, coname.c_str(), L"rb") == 0)
 		{
 			int num_countries = 0;
 			fread(&num_countries, sizeof(int), 1, countries_in);
+			
 			for (int i = 0; i < num_countries; i++)
 			{
 				int len = 0;
@@ -316,6 +332,7 @@ void BgManagerMax::BuildWorldCitiesDatabase()
 				buffer[len] = '\0';
 				mCountriesData.push_back(buffer);
 			}
+
 			fclose(countries_in);
 		}
 
@@ -324,9 +341,11 @@ void BgManagerMax::BuildWorldCitiesDatabase()
 			int num_cities = 0;
 			fread(&num_cities, sizeof(int), 1, cities_in);
 			mCitiesData.resize(num_cities);
+			
 			for (int i = 0; i < num_cities; i++)
 			{
 				int len = 0;
+				
 				fread(&len, sizeof(int), 1, cities_in);
 				fread(&buffer, sizeof(char), len, cities_in);
 				buffer[len] = '\0';
@@ -336,6 +355,7 @@ void BgManagerMax::BuildWorldCitiesDatabase()
 				fread(&mCitiesData[i].UTCOffset, sizeof(float), 1, cities_in);
 				fread(&mCitiesData[i].countryIdx, sizeof(int), 1, cities_in);
 			}
+
 			fclose(cities_in);
 		}
 	}
@@ -364,6 +384,7 @@ void BgManagerMax::BuildWorldCitiesDatabase()
 			fread(&mTzDb[curRecord].UTCoffset, sizeof(float), 1, shapes_in);
 			int numVerts = 0;
 			fread(&numVerts, sizeof(int), 1, shapes_in);
+		
 			for (int j = 0; j < numVerts; j++)
 			{
 				float lati, longi;
@@ -372,6 +393,7 @@ void BgManagerMax::BuildWorldCitiesDatabase()
 				mTzDb[curRecord].verts.push_back(Point2(longi, lati));
 			}
 		}
+
 		fclose(shapes_in);
 	}
 }
