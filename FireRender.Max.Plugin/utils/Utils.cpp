@@ -98,28 +98,43 @@ void debugPrint(const std::wstring& msg) {
 }
 
 
-std::wstring GetDataStoreFolder() {
+std::wstring GetDataStoreFolder()
+{
 	// We use the default plugin configuration dir, and add our own sub-directory "RadeonProRender"
 	return TheManager->GetDir(APP_PLUGCFG_DIR) + std::wstring(DATA_FOLDER_NAME);
 }
 
 
-std::wstring GetModuleFolder() {
+std::wstring GetModuleFolder()
+{
+	std::wstring pluginPath;
 
-	HMODULE hm = nullptr;
+	HMODULE hModule = NULL;
 
-	if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-		GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		reinterpret_cast<LPCSTR>(&GetModuleFolder),
-		&hm))
+	if (GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, (LPTSTR) &GetModuleFolder, &hModule))
 	{
-		return GetDataStoreFolder();
+		DWORD pathSize = 1024;
+		const DWORD reasonablePathSize = 4096;
+
+		while (pathSize <= reasonablePathSize)
+		{
+			std::vector<wchar_t> buffer(pathSize);
+
+			GetModuleFileName(hModule, &buffer[0], pathSize);
+
+			if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+			{
+				pathSize *= 2;
+			}
+			else
+			{
+				pluginPath.assign(buffer.data());
+				break;
+			}
+		}
 	}
 
-	wchar_t path[MAX_PATH + 1] = {};
-	GetModuleFileNameW(hm, path, MAX_PATH);
-	wcsrchr(path, '\\')[1] = 0;
-	return path;
+	return pluginPath;
 }
 
 float GetDeterminant(const Matrix3& input) {

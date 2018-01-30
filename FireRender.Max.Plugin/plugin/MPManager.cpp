@@ -478,7 +478,21 @@ void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
 	auto _context = scope.GetContext().Handle();
 	rpr_scene _scene = nullptr;
 
-	const std::string thumbnail = ToAscii(GetModuleFolder()) + "matball.frs";
+	std::wstring pluginPath = GetModuleFolder();
+
+	// getting the root folder of plugin
+	std::wstring::size_type pos = pluginPath.find(L"plug-ins");
+
+	if (std::wstring::npos == pos)
+	{
+		return;
+	}
+
+	std::wstring pluginFolder = pluginPath.substr(0, pos);
+	std::wstring dataFolder = pluginFolder + L"data\\";
+
+	const std::string thumbnail = ToAscii(dataFolder) + "matball.frs";
+
 	bool ires = importFRS(thumbnail.c_str(), _context, _scene, _ms);
 	
 	if (!ires)

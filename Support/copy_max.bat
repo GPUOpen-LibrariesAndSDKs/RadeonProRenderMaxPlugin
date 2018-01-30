@@ -1,13 +1,13 @@
 @echo off
 
-REM Post build event that copies RPR plugin to 3ds max 
-REM %1 = config name (eg "Debug-2016")
+setlocal enabledelayedexpansion
 
-pushd "%~dp0.."
+REM Post build event that creates plugins bundle
+REM %1 = config name (eg "Debug-2016")
 
 if not defined MAX_VERSION (
 	echo MAX_VERSION not defined
-	exit(1)
+	exit 1
 )
 
 set CONFIG_NAME=%~1
@@ -20,65 +20,53 @@ echo	Max version: %MAX_VERSION%
 
 REM the following call allows for some extra indirection, 2 escape passes
 
-call set MAX_INSTALL_DIR=%%ADSK_3DSMAX_x64_%MAX_VERSION%%%
-
-REM and trunctate the trailing slash
-
-set MAX_INSTALL_DIR=%MAX_INSTALL_DIR:~0,-1%
-
-echo Installing to %MAX_INSTALL_DIR%
-
-if NOT DEFINED MAX_PLUGINS_DIR set MAX_PLUGINS_DIR=%MAX_INSTALL_DIR%\plugins
-
-set SRC_PATH=bin\x64\%CONFIG_NAME%\RadeonProRenderMaxPlugin.dll
-set DST_PATH=%MAX_PLUGINS_DIR%\RadeonProRender%MAX_VERSION%.dlr
-
-echo Copying: %SRC_PATH% to %DST_PATH%
-
-copy "%SRC_PATH%" "%DST_PATH%"
+set DIST_PATH=dist
+set PLUGIN_PATH=bin\x64\%CONFIG_NAME%\RadeonProRenderMaxPlugin.dll
 
 ::Copy silent, confirm overwrite and copy if different
 set xCopyFlags=/S /Y
 
-set ToMaxPluginsDir=^
+set DataFiles=^
 	"Support\*.frs"^
 	"Support\*.dat"
 
-set ToMaxInstallDir=^
-	"ThirdParty\RadeonProRender SDK\Win\bin\*.dll"^
-	"ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll" ^
+set CoreFiles=^
+	"ThirdParty\RadeonProRender SDK\Win\bin\Tahoe64.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\RadeonProRender64.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\RprLoadStore64.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\RprSupport64.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\OpenImageIO_RPR.dll"
+
+set EmbreeFiles=^
+	"..\RadeonProRenderPkgPlugin\MaxPkg\support\origindll\embree.dll"^
+	"..\RadeonProRenderPkgPlugin\MaxPkg\support\origindll\tbb.dll"^
+	"..\RadeonProRenderPkgPlugin\MaxPkg\support\origindll\tbbmalloc.dll"
+
+set AxfFiles=^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxfConverter.dll"^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxFDecoding_r.dll"^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"
 
-::Copy libraries to max plugins directory (to debug it easy)
-for %%a in (%ToMaxPluginsDir%) do (
-	::echo Copying: "%%a" to "%MAX_PLUGINS_DIR%"
-    xcopy "%%a" "%MAX_PLUGINS_DIR%\*" %xCopyFlags%
-)
-
-::Copy libraries to max install directory (to debug it easy)
-if NOT DEFINED SKIP_FR_DLLS_INSTALL for %%a in (%ToMaxInstallDir%) do (
-	::echo Copying: "%%a" to "%MAX_INSTALL_DIR%"
-    xcopy "%%a" "%MAX_INSTALL_DIR%\*" %xCopyFlags%
-)
+set GltfFiles=^
+	"ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll"
 
 ::make distribution folder with files for installer
-if "%CONFIG_NAME%"=="Release-%MAX_VERSION%" (
-	IF exist "dist\%CONFIG_NAME%" RMDIR /q /s "dist"
+if not exist %DIST_PATH% md %DIST_PATH%
 
-	for %%a in (%ToMaxInstallDir%) do ( 
-		::echo Copying: "%%a" to "dist"
-		xcopy "%%a" "dist\*" %xCopyFlags%
-	)
+for %%a in (%DataFiles%) do ( 
+	xcopy %%a "%DIST_PATH%\data\*" %xCopyFlags%
+)
 
-	md dist\plugins
+set PluginBundle=CoreFiles EmbreeFiles AxfFiles GltfFiles
 
-	::Copy plugin library
-	xcopy "%SRC_PATH%" "dist\plugins\RadeonProRender%MAX_VERSION%.dlr*" %xCopyFlags%
-
-	for %%a in (%ToMaxPluginsDir%) do (
-		::echo Copying: "%%a" to "dist\plugins\"
-    	xcopy "%%a" "dist\plugins\*" %xCopyFlags%
+for %%b in (%PluginBundle%) do (
+	for %%a in (!%%b!) do ( 
+		xcopy %%a "%DIST_PATH%\bin\*" %xCopyFlags%
 	)
 )
+
+xcopy %PLUGIN_PATH% "%DIST_PATH%\plug-ins\%MAX_VERSION%\RadeonProRender%MAX_VERSION%.dlr*" %xCopyFlags%
+
+pushd Support
+powershell -executionPolicy bypass -file RprSetup.ps1 %MAX_VERSION%
+popd
