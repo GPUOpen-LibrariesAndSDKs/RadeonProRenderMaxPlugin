@@ -5,6 +5,10 @@ Param(
 
 $targetPath = "$Env:LOCALAPPDATA\Autodesk\3dsMax\$cfg - 64bit\ENU\Plugin.UserSettings.ini"
 
+if (-not (Test-Path $targetPath)) {
+	return
+}
+
 $rootPath = Split-Path $PSScriptRoot -Parent
 
 $pluginPath = "$rootPath\dist\plug-ins\$cfg"
