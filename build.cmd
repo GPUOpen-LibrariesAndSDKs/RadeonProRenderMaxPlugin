@@ -21,6 +21,10 @@ set vs_major=%vs_ver:~0,2%
 
 if %vs_major%==14 (
 	echo Visual Studio 2015 is installed.
+
+	pushd "%VS140COMNTOOLS%..\..\VC"
+	call vcvarsall.bat amd64
+	popd
 	
 	goto :build_plugin
 )
