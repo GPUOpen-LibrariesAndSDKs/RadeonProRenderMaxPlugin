@@ -1,15 +1,16 @@
-echo off
+@echo off
 
 set ThirdPartyDir="..\..\RadeonProRenderThirdPartyComponents"
 
-IF exist %ThirdPartyDir% ( 
-    echo Updating %ThirdPartyDir% 
-
-    echo ===============================================================
-    pushd %ThirdPartyDir% 
-    git remote update
-    git status -uno
-    popd
+if exist %ThirdPartyDir% ( 
+	if "%1"=="update_thirdparty" (
+		echo Updating %ThirdPartyDir% 
+	    echo ===============================================================
+	    pushd %ThirdPartyDir% 
+    	git remote update
+	    git status -uno
+		popd
+	)
 	
     rd /S /Q AxfPackage
     rd /S /Q 'Expat 2.1.0'
@@ -27,6 +28,6 @@ IF exist %ThirdPartyDir% (
     xcopy /S /Y /I %ThirdPartyDir%\RadeonProRender-GLTF\* "RadeonProRender-GLTF"
     xcopy /S /Y /I %ThirdPartyDir%\json\* json
 
-) ELSE ( 
+) else ( 
     echo Cannot update as %ThirdPartyDir% missing
 )
