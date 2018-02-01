@@ -178,10 +178,10 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	p_default, 1.f, PB_END,
 
     OBSOLETE_PARAM_AA_GRID_SIZE, _T("aaGridSize"), TYPE_FLOAT, P_OBSOLETE, 0,
-    p_default, 4.f, p_range, 1.f, float(RPR_MAX_AA_GRID_SIZE), PB_END,
+    p_default, 4.f, p_range, 1.f, float(16.0f /*RPR_MAX_AA_GRID_SIZE*/), PB_END,
 
 	OBSOLETE_PARAM_AA_SAMPLE_COUNT, _T("aaSampleCount"), TYPE_FLOAT, P_OBSOLETE, 0,
-    p_default, 1.f, p_range, 1.f, float(RPR_MAX_AA_SAMPLES), PB_END,
+    p_default, 1.f, p_range, 1.f, float(32.0f /*RPR_MAX_AA_SAMPLES*/), PB_END,
 
 	// Values from ParamBlock.h:
 	// RPR_GLOBAL_ILLUMINATION_SOLVER_PATH_TRACING 0x1
@@ -409,10 +409,10 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	p_default, 1.0, p_range, 0.0, 1.0, p_accessor, &theBgAccessor, PB_END,
 
 	PARAM_AA_GRID_SIZE, _T("aaGridSize"), TYPE_INT, 0, 0,
-	p_default, 4, p_range, 1, RPR_MAX_AA_GRID_SIZE, PB_END,
+	p_default, 4, p_range, 1, 16 /*RPR_MAX_AA_GRID_SIZE*/, PB_END,
 
 	PARAM_AA_SAMPLE_COUNT, _T("aaSampleCount"), TYPE_INT, 0, 0,
-	p_default, 1, p_range, 1, RPR_MAX_AA_SAMPLES, PB_END,
+	p_default, 1, p_range, 1, 32 /*RPR_MAX_AA_SAMPLES*/, PB_END,
 	
 	TRPARAM_BG_SKY_GROUND_ALBEDO, _T("backgroundSkyGroundAlbedo"), TYPE_RGBA, P_ANIMATABLE | P_TRANSIENT, IDS_STRING247,
 	p_default, Color(1.0f, 1.0f, 1.0f), p_accessor, &theBgAccessor, PB_END,
