@@ -48,7 +48,7 @@ set AxfFiles=^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"
 
 set GltfFiles=^
-	"ThirdParty\RadeonProRender-GLTF\lib\ProRenderGLTF.dll"
+	"ThirdParty\RadeonProRender-GLTF\Win\lib\ProRenderGLTF.dll"
 
 ::make distribution folder with files for installer
 if not exist %DIST_PATH% md %DIST_PATH%
