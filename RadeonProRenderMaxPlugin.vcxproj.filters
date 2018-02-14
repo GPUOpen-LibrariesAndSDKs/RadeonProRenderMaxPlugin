@@ -297,6 +297,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\RprComposite.h">
       <Filter>Plugin</Filter>
     </ClInclude>
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />

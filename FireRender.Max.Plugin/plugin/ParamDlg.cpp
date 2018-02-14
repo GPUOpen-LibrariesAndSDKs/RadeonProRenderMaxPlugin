@@ -121,8 +121,6 @@ FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRende
 
 	mBackgroundSettings.Init(ir, IDD_RENDER_BG, (const MCHAR*)_T("Environment and Scene"), this, true, &kSettingsTabID);
 
-	mGroundSettings.Init(ir, IDD_RENDER_GROUND, (const MCHAR*)_T("Ground"), this, true, &kSettingsTabID);
-
 	mAntialiasSettings.Init(ir, IDD_RENDER_AASETTINGS, (const MCHAR*)_T("Anti Aliasing"), this, true, &kSettingsTabID);
 
 	mAdvancedSettings.Init(ir, IDD_RENDER_ADVANCEDSETTINGS, (const MCHAR*)_T("Advanced"), this, false, &kAdvSettingsTabID);
@@ -148,7 +146,6 @@ FireRenderParamDlg::~FireRenderParamDlg()
 	mScripts.DeleteRollout();
 	mAdvancedSettings.DeleteRollout();
 	mAntialiasSettings.DeleteRollout();
-	mGroundSettings.DeleteRollout();
 	mBackgroundSettings.DeleteRollout();
 	mTonemapSetting.DeleteRollout();
 	mCameraSetting.DeleteRollout();
@@ -2422,108 +2419,6 @@ void FireRenderParamDlg::CBackgroundSettings::propChangedCallback(class ManagerM
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// GROUND ROLLOUT
-//
-
-INT_PTR FireRenderParamDlg::CGroundSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
-	switch (msg)
-	{
-		case WM_COMMAND:
-		{
-			int controlId = LOWORD(wParam);
-			int submsg = HIWORD(wParam);
-			if (submsg == 0)
-			{
-				switch (controlId)
-				{
-					case IDC_GROUND_USE:
-					{
-						BOOL bUseGround = BOOL(IsDlgButtonChecked(mHwnd, IDC_GROUND_USE));
-						BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_ACTIVE, bUseGround);
-						FASSERT(res);
-						EnableGroupboxControls(mHwnd, 0, bUseGround, { IDC_GROUND_USE });
-					}
-					break;
-					case IDC_GROUND_SHADOWS: { BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_SHADOWS, BOOL(IsDlgButtonChecked(mHwnd, IDC_GROUND_SHADOWS))); FASSERT(res); } break;
-					case IDC_GROUND_REFLECTIONS: { BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_REFLECTIONS, BOOL(IsDlgButtonChecked(mHwnd, IDC_GROUND_REFLECTIONS))); FASSERT(res); } break;
-				}
-			}
-		}
-		break;
-
-		case CC_SPINNER_CHANGE:
-		{
-			if (mIsReady)
-			{
-				int controlId = LOWORD(wParam);
-				CommitSpinnerToParam(BgManagerMax::TheManager, controlId);
-			}
-		}
-		break;
-
-		case CC_COLOR_CHANGE:
-		{
-			if (mIsReady)
-			{
-				int controlId = LOWORD(wParam);
-				switch (controlId)
-				{
-					case IDC_GROUND_REFL_COLOR:
-					{
-						Color col = controls.reflColor->GetAColor();
-						BOOL res = BgManagerMax::TheManager.SetProperty(PARAM_GROUND_REFLECTIONS_COLOR, col); FASSERT(res);
-					}
-					break;
-				}
-			}
-		}
-		break;
-
-		default:
-			return FALSE;
-	}
-
-	return TRUE;
-}
-
-void FireRenderParamDlg::CGroundSettings::InitDialog()
-{
-	LRESULT n;
-
-	SetupCheckbox(BgManagerMax::TheManager, PARAM_GROUND_ACTIVE, IDC_GROUND_USE);
-	SetupCheckbox(BgManagerMax::TheManager, PARAM_GROUND_SHADOWS, IDC_GROUND_SHADOWS);
-	SetupCheckbox(BgManagerMax::TheManager, PARAM_GROUND_REFLECTIONS, IDC_GROUND_REFLECTIONS);
-
-	controls.reflColor = SetupSwatch(PARAM_GROUND_REFLECTIONS_COLOR, IDC_GROUND_REFL_COLOR);
-
-	controls.radius = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_RADIUS, IDC_GROUND_RADIUS, IDC_GROUND_RADIUS_S, 0.f, FLT_MAX);
-	controls.heigth = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_GROUND_HEIGHT, IDC_GROUND_HEIGHT, IDC_GROUND_HEIGHT_S, -FLT_MAX, FLT_MAX);
-	controls.reflStrength = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_REFLECTIONS_STRENGTH, IDC_GROUND_REFL_STRENGTH, IDC_GROUND_REFL_STRENGTH_S, 0.f, 1.f);
-	controls.reflRoughness = SetupSpinnerFloat(BgManagerMax::TheManager, PARAM_GROUND_REFLECTIONS_ROUGHNESS, IDC_GROUND_REFL_ROUGH, IDC_GROUND_REFL_ROUGH_S, 0.f, 1.f);
-
-	if (!IsDlgButtonChecked(mHwnd, IDC_GROUND_USE))
-		EnableGroupboxControls(mHwnd, 0, false, { IDC_GROUND_USE });
-
-	mIsReady = true;
-}
-
-void FireRenderParamDlg::CGroundSettings::DestroyDialog()
-{
-	if (mIsReady)
-	{
-		mIsReady = false;
-		RemoveAllSpinnerAssociations();
-		ReleaseISpinner(controls.heigth);
-		ReleaseISpinner(controls.radius);
-		ReleaseISpinner(controls.reflStrength);
-		ReleaseISpinner(controls.reflRoughness);
-		ReleaseIColorSwatch(controls.reflColor);
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////////
 // HARDCODED PRESET SUPPORT
 //
 
@@ -2924,7 +2819,6 @@ void FireRenderParamDlg::DeleteThis()
 	mScripts.DestroyDialog();
 	mAdvancedSettings.DestroyDialog();
 	mAntialiasSettings.DestroyDialog();
-	mGroundSettings.DestroyDialog();
 	mBackgroundSettings.DestroyDialog();
 	mTonemapSetting.DestroyDialog();
 	mCameraSetting.DestroyDialog();
@@ -2935,7 +2829,6 @@ void FireRenderParamDlg::DeleteThis()
 	mScripts.DeleteRollout();
 	mAdvancedSettings.DeleteRollout();
 	mAntialiasSettings.DeleteRollout();
-	mGroundSettings.DeleteRollout();
 	mBackgroundSettings.DeleteRollout();
 	mTonemapSetting.DeleteRollout();
 	mCameraSetting.DeleteRollout();
