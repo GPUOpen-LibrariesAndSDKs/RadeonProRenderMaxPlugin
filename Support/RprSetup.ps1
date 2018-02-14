@@ -18,7 +18,7 @@ $content= Get-Content -Path $targetPath -Encoding Unicode
 $nl = [Environment]::NewLine
 
 foreach ($line in $content) {
-	$tline = $line.trim();
+	$tline = $line.trim()
 
 	if ($tline -eq "[Directories]") {
 		$out += $tline + $nl

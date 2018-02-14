@@ -521,29 +521,6 @@ protected:
 		void propChangedCallback(class ManagerMaxBase *owner, int paramId, int sender) override;
 	};
 
-	class CGroundSettings : public CRollout
-	{
-	private:
-
-	public:
-		struct {
-			ISpinnerControl* heigth;
-			ISpinnerControl* radius;
-			ISpinnerControl* reflStrength;
-			ISpinnerControl* reflRoughness;
-			IColorSwatch* reflColor;
-		} controls;
-
-		CGroundSettings()
-		{
-			memset(&controls, 0, sizeof(controls));
-		}
-
-		void InitDialog() override;
-		void DestroyDialog() override;
-		INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
-	};
-
 	class CAntialiasSettings : public CRollout
 	{
 	public:
@@ -592,7 +569,6 @@ protected:
 	CAdvancedSettings mAdvancedSettings;
 	CScripts mScripts;
 	CBackgroundSettings mBackgroundSettings;
-	CGroundSettings mGroundSettings;
 	CAntialiasSettings mAntialiasSettings;
 	CQualitySettings mQualitySettings;
 
@@ -624,7 +600,6 @@ public:
 		mScripts.DestroyDialog();
 		mTonemapSetting.DestroyDialog();
 		mBackgroundSettings.DestroyDialog();
-		mGroundSettings.DestroyDialog();
 		mGeneralSettings.InitDialog(); // this should set everything to defaults
 		mHardwareSetting.InitDialog();
 		mCameraSetting.InitDialog();
@@ -632,7 +607,6 @@ public:
 		mScripts.InitDialog();
 		mTonemapSetting.InitDialog();
 		mBackgroundSettings.InitDialog();
-		mGroundSettings.InitDialog();
     }
 
 	virtual void DeleteThis() override;

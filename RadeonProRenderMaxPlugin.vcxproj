@@ -167,6 +167,9 @@
       <DelayLoadDLLs>ProRenderGLTF.dll;RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'">
     <ClCompile>
@@ -341,6 +344,7 @@
     <ClInclude Include="FireRender.Max.Plugin\utils\Stack.h" />
     <ClInclude Include="FireRender.Max.Plugin\utils\Thread.h" />
     <ClInclude Include="FireRender.Max.Plugin\utils\Utils.h" />
+    <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
