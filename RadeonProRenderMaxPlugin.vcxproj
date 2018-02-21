@@ -305,6 +305,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendValueMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderColorMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseRefractionMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderDisplacementMtl.h" />
@@ -396,6 +397,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendValueMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderColorMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderDiffuseRefractionMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderDisplacementMtl.cpp" />

@@ -297,6 +297,9 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\RprComposite.h">
       <Filter>Plugin</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
     <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
@@ -546,6 +549,9 @@
       <Filter>FireRender.Components\PluginContext</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\MaxScriptHandler.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.cpp">
+      <Filter>Plugin\materials</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp">
