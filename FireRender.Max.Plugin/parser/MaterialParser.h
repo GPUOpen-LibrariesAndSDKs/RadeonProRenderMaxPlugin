@@ -169,6 +169,7 @@ protected:
 	frw::Value createGradientMap(Texmap *tm);
 	frw::Value createNoiseMap(Texmap *tm);
 	frw::Value createColorCorrectionMap(Texmap* tm);
+	frw::Value createRPRColorCorrectionMap(Texmap* tm);
 	frw::Value createMixMap(Texmap* tm);
 	frw::Value createOutputMap(Texmap* tm);
 	frw::Value createRgbMultiplyMap(Texmap* texmap);

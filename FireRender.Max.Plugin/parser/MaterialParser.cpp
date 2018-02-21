@@ -42,6 +42,7 @@
 #include "FireRenderVolumeMtl.h"
 #include "FireRenderPbrMtl.h"
 #include "FireRenderShadowCatcherMtl.h"
+#include "FireRenderColourCorrectionMtl.h"
 #include "utils/KelvinToColor.h"
 
 #include <icurvctl.h>
@@ -694,6 +695,8 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		result = dynamic_cast<FRMTLCLASSNAME(NormalMtl)*>(texmap)->getShader(mT, *this);
 	else if (classId == FIRERENDER_FRESNELSCHLICKMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(FresnelSchlickMtl)*>(texmap)->getShader(mT, *this);
+	else if (classId == FIRERENDER_COLOURCORMTL_CID)
+		result = createRPRColorCorrectionMap(texmap);
 	//else if (classId == NORMALBUMP_CID)
 	//	result = createNormalBumpMap(texmap);
 	else if (classId == Corona::MIX_TEX_CID && ScopeManagerMax::CoronaOK)
@@ -2451,6 +2454,111 @@ namespace
 	}
 }
 
+void TryImageSetTextureGamma(const frw::Value &v, float gammaRGB)
+{
+	// get Image from frw::Value
+	const frw::Node& vNode = v.GetNode();
+	int nType = vNode.GetType();
+
+	if (nType == frw::ValueType::ValueTypeImageMap)
+	{
+		frw::Node& nonconst_vNode = const_cast<frw::Node&>(vNode);
+
+		for (auto it = nonconst_vNode.GetData()->references.begin(); it != nonconst_vNode.GetData()->references.end(); ++it)
+		{
+			void* hRef = (*it)->Handle();
+			const TCHAR* typeName = (*it)->GetTypeName();
+			if (L"Image" == typeName)
+			{
+				rpr_int res = rprImageSetGamma(hRef, gammaRGB);
+				FASSERT(RPR_SUCCESS == res);
+			}
+		}
+	}
+}
+
+frw::Value MaterialParser::createRPRColorCorrectionMap(Texmap *texmap)
+{
+	auto& ms = materialSystem;
+
+	IParamBlock2 *pb = texmap->GetParamBlock(0);
+	TimeValue timeVal = 0;
+
+	Texmap* map = GetFromPb<Texmap*>(pb, FRColourCorMtl_COLOR_TEXMAP, timeVal);
+	frw::Value v = getValue(map, frw::Value(0.0f, 0.0f, 0.0f, 0.0f));
+
+	bool isEnabled = GetFromPb<bool>(pb, FRColourCorMtl_ISENABLED, timeVal);
+	if (!isEnabled)
+		return v;
+
+	float gammaRGB = 1.0f;
+
+	bool useCustomGamma = GetFromPb<bool>(pb, FRColourCorMtl_USECUSTOM, timeVal);
+	if (!useCustomGamma)
+	{
+		int gammaType = GetFromPb<int>(pb, FRColourCorMtl_BOUNDARY, timeVal);
+		switch (gammaType)
+		{
+			case RPR_GAMMA_RAW:
+			{
+				gammaRGB = 1.0f;
+				break;
+			}
+			case RPR_GAMMA_SRGB:
+			{
+				gammaRGB = 2.2f;
+				break;
+			}
+		}
+	}
+	else
+	{
+		gammaRGB = GetFromPb<float>(pb, FRColourCorMtl_CUSTOMGAMMA, timeVal);
+	}
+
+	TryImageSetTextureGamma(v, gammaRGB);
+
+	return v;
+}
+
+enum MaxColorCorrectionNode_ParamID : ParamID {
+	MaxColorCorrectionNode_ParamID_COLOR = 0x0,
+	MaxColorCorrectionNode_MAP = 0x1,
+	MaxColorCorrectionNode_REWIREMODE = 0x2,
+	MaxColorCorrectionNode_REWIRER = 0x3,
+	MaxColorCorrectionNode_REWIREG = 0x4,
+	MaxColorCorrectionNode_REWIREB = 0x5,
+	MaxColorCorrectionNode_REWIREA = 0x6,
+	MaxColorCorrectionNode_HUESHIFT = 0x7,
+	MaxColorCorrectionNode_SATURATION = 0x8,
+	MaxColorCorrectionNode_TINT = 0x9,
+	MaxColorCorrectionNode_TINTSTRENGTH = 0xA,
+	MaxColorCorrectionNode_LIGHTNESSMODE = 0xB,
+	MaxColorCorrectionNode_BRIGHTNESS = 0xC,
+	MaxColorCorrectionNode_CONTRAST = 0xD,
+	MaxColorCorrectionNode_EXPOSUREMODE = 0xE,
+	MaxColorCorrectionNode_ENABLER = 0xF,
+	MaxColorCorrectionNode_ENABLEG = 0x10,
+	MaxColorCorrectionNode_ENABLEB = 0x11,
+	MaxColorCorrectionNode_GAINRGB = 0x12,
+	MaxColorCorrectionNode_GAINR = 0x13,
+	MaxColorCorrectionNode_GAING = 0x14,
+	MaxColorCorrectionNode_GAINB = 0x15,
+	MaxColorCorrectionNode_GAMMARGB = 0x16,
+	MaxColorCorrectionNode_GAMMAR = 0x17,
+	MaxColorCorrectionNode_GAMMAG = 0x18,
+	MaxColorCorrectionNode_GAMMAB = 0x19,
+	MaxColorCorrectionNode_PIVOTRGB = 0x1A,
+	MaxColorCorrectionNode_PIVOTR = 0x1B,
+	MaxColorCorrectionNode_PIVOTG = 0x1C,
+	MaxColorCorrectionNode_PIVOTB = 0x1D,
+	MaxColorCorrectionNode_LIFTRGB = 0x1E,
+	MaxColorCorrectionNode_LIFTR = 0x1F,
+	MaxColorCorrectionNode_LIFTG = 0x20,
+	MaxColorCorrectionNode_LIFTB = 0x21,
+	MaxColorCorrectionNode_PRINTERLIGHTS = 0x22,
+};
+
 frw::Value MaterialParser::createColorCorrectionMap(Texmap *texmap)
 {
 	auto& ms = materialSystem;
@@ -2458,45 +2566,45 @@ frw::Value MaterialParser::createColorCorrectionMap(Texmap *texmap)
 	IParamBlock2 *pb = texmap->GetParamBlock(0);
 	TimeValue timeVal = 0;
 
-	GET_PARAM(Point4, color, 0x0);
-	GET_PARAM(Texmap*, map, 0x1);
-	GET_PARAM(int, rewireMode, 0x2);
-	GET_PARAM(int, rewireR, 0x3);
-	GET_PARAM(int, rewireG, 0x4);
-	GET_PARAM(int, rewireB, 0x5);
-	GET_PARAM(int, rewireA, 0x6);
+	GET_PARAM(Point4, color, MaxColorCorrectionNode_ParamID_COLOR);
+	GET_PARAM(Texmap*, map, MaxColorCorrectionNode_MAP);
+	GET_PARAM(int, rewireMode, MaxColorCorrectionNode_REWIREMODE);
+	GET_PARAM(int, rewireR, MaxColorCorrectionNode_REWIRER);
+	GET_PARAM(int, rewireG, MaxColorCorrectionNode_REWIREG);
+	GET_PARAM(int, rewireB, MaxColorCorrectionNode_REWIREB);
+	GET_PARAM(int, rewireA, MaxColorCorrectionNode_REWIREA);
 
-	GET_PARAM(float, hueShift, 0x7);
-	GET_PARAM(float, saturation, 0x8);
-	GET_PARAM(Point4, tint, 0x9);
-	GET_PARAM(float, tintStrength, 0xA);
-	GET_PARAM(int, lightnessMode, 0xB);
-	GET_PARAM(float, contrast, 0xD);
-	GET_PARAM(float, brightness, 0xC);
+	GET_PARAM(float, hueShift, MaxColorCorrectionNode_HUESHIFT);
+	GET_PARAM(float, saturation, MaxColorCorrectionNode_SATURATION);
+	GET_PARAM(Point4, tint, MaxColorCorrectionNode_TINT);
+	GET_PARAM(float, tintStrength, MaxColorCorrectionNode_TINTSTRENGTH);
+	GET_PARAM(int, lightnessMode, MaxColorCorrectionNode_LIGHTNESSMODE);
+	GET_PARAM(float, contrast, MaxColorCorrectionNode_CONTRAST);
+	GET_PARAM(float, brightness, MaxColorCorrectionNode_BRIGHTNESS);
 
 
 	// NOT IMPLEMENTED: photographic exposure stuff
-	//GET_PARAM(01, exposureMode, 0xE);
-	//GET_PARAM(04, enableR, 0xF);
-	//GET_PARAM(04, enableG, 0x10);
-	//GET_PARAM(04, enableB, 0x11);
-	//GET_PARAM(00, gainRGB, 0x12);
-	//GET_PARAM(00, gainR, 0x13);
-	//GET_PARAM(00, gainG, 0x14);
-	//GET_PARAM(00, gainB, 0x15);
-	//GET_PARAM(00, gammaRGB, 0x16);
-	//GET_PARAM(00, gammaR, 0x17);
-	//GET_PARAM(00, gammaG, 0x18);
-	//GET_PARAM(00, gammaB, 0x19);
-	//GET_PARAM(00, pivotRGB, 0x1A);
-	//GET_PARAM(00, pivotR, 0x1B);
-	//GET_PARAM(00, pivotG, 0x1C);
-	//GET_PARAM(00, pivotB, 0x1D);
-	//GET_PARAM(00, liftRGB, 0x1E);
-	//GET_PARAM(00, liftR, 0x1F);
-	//GET_PARAM(00, liftG, 0x20);
-	//GET_PARAM(00, liftB, 0x21);
-	//GET_PARAM(00, printerLights, 0x22);
+	//GET_PARAM(01, exposureMode, MaxColorCorrectionNode_EXPOSUREMODE);
+	//GET_PARAM(04, enableR, MaxColorCorrectionNode_ENABLER);
+	//GET_PARAM(04, enableG, MaxColorCorrectionNode_ENABLEG);
+	//GET_PARAM(04, enableB, MaxColorCorrectionNode_ENABLEB);
+	//GET_PARAM(00, gainRGB, MaxColorCorrectionNode_GAINRGB);
+	//GET_PARAM(00, gainR, MaxColorCorrectionNode_GAINR);
+	//GET_PARAM(00, gainG, MaxColorCorrectionNode_GAING);
+	//GET_PARAM(00, gainB, MaxColorCorrectionNode_GAINB);
+	GET_PARAM(float, gammaRGB, MaxColorCorrectionNode_GAMMARGB);
+	GET_PARAM(float, gammaR, MaxColorCorrectionNode_GAMMAR);
+	GET_PARAM(float, gammaG, MaxColorCorrectionNode_GAMMAG);
+	GET_PARAM(float, gammaB, MaxColorCorrectionNode_GAMMAB);
+	//GET_PARAM(00, pivotRGB, MaxColorCorrectionNode_PIVOTRGB);
+	//GET_PARAM(00, pivotR, MaxColorCorrectionNode_PIVOTR);
+	//GET_PARAM(00, pivotG, MaxColorCorrectionNode_PIVOTG);
+	//GET_PARAM(00, pivotB, MaxColorCorrectionNode_PIVOTB);
+	//GET_PARAM(00, liftRGB, MaxColorCorrectionNode_LIFTRGB);
+	//GET_PARAM(00, liftR, MaxColorCorrectionNode_LIFTR);
+	//GET_PARAM(00, liftG, MaxColorCorrectionNode_LIFTG);
+	//GET_PARAM(00, liftB, MaxColorCorrectionNode_LIFTB);
+	//GET_PARAM(00, printerLights, MaxColorCorrectionNode_PRINTERLIGHTS);
 
 	Matrix3 tm;
 	tm.IdentityMatrix();
@@ -2564,7 +2672,9 @@ frw::Value MaterialParser::createColorCorrectionMap(Texmap *texmap)
 		tm.Translate(Point3(1, 1, 1) * (lo));
 
 	tm.ValidateFlags();
-	auto v = getValue(map, frw::Value(color.x, color.y, color.z, color.w));
+	frw::Value v = getValue(map, frw::Value(color.x, color.y, color.z, color.w));
+
+	TryImageSetTextureGamma(v, gammaRGB);
 
 	// Other color transforms
 	v = materialSystem.ValueTransform(v, tm);
@@ -2925,6 +3035,7 @@ frw::Value MaterialParser::createTextureMap(Texmap *texmap, int flags)
 		{
 			frw::ImageNode node(materialSystem);
 			node.SetMap(image);
+
 			if(auto uv = getTexmapUV(texmap))
 				node.SetValue("uv", getTexmapUV(texmap));
 			v = node;

@@ -417,6 +417,11 @@ namespace frw
 				return reinterpret_cast<T&>(*this);
 			return T();	// return a null otherwise
 		}
+
+		DataPtr GetData(void)
+		{
+			return m;
+		}
 	};
 
 /*
