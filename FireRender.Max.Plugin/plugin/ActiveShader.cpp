@@ -383,45 +383,45 @@ void ActiveShadeRenderCore::SetupCamera(const ParsedView& view, const int imageW
 	Point3 camOriginOffset = Point3(0.f, 0.f, 0.f); // used to shift ortho camera origin so it can behave as "in infinity"
 
 	res = rprObjectSetName(outCamera, view.cameraNodeName.c_str());
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 
 	switch (view.projection)
 	{
 		case P_PERSPECTIVE:
 		{
 			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_PERSPECTIVE);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			res = rprCameraSetFocalLength(outCamera, view.focalLength);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			res = rprCameraSetSensorSize(outCamera, view.sensorWidth, view.sensorWidth / float(imageWidth) * float(imageHeight));
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			if (view.useDof) {
 				res = rprCameraSetFStop(outCamera, view.fSTop);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 
 				res = rprCameraSetApertureBlades(outCamera, view.bokehBlades);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 
 				res = rprCameraSetFocusDistance(outCamera, view.focusDistance);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 			}
 			else {
 				res = rprCameraSetFStop(outCamera, std::numeric_limits<float>::infinity());
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 			}
 
 			break;
 		}
 		case P_ORTHO:
 			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_ORTHOGRAPHIC);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			res = rprCameraSetOrthoWidth(outCamera, view.orthoSize);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			res = rprCameraSetOrthoHeight(outCamera, view.orthoSize / float(imageWidth) * float(imageHeight));
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			camOriginOffset.z += view.orthoSize*1.f;
 			break;
 		default:
@@ -435,25 +435,29 @@ void ActiveShadeRenderCore::SetupCamera(const ParsedView& view, const int imageW
 	Point3 TARGET = tm.PointTransform(camOriginOffset + Point3(0.f, 0.f, -1.f));
 	Point3 ROLL = tm.VectorTransform(Point3(0.f, 1.f, 0.f));
 	res = rprCameraLookAt(outCamera, ORIGIN.x, ORIGIN.y, ORIGIN.z, TARGET.x, TARGET.y, TARGET.z, ROLL.x, ROLL.y, ROLL.z);
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 
 	res = rprCameraSetTiltCorrection(outCamera, -view.tilt.x, -view.tilt.y);
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 
 	switch (FRCameraType(view.projectionOverride))
 	{
 		case FRCameraType_Default:break;
 		case FRCameraType_LatitudeLongitude_360:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_360);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_360);
+			FCHECK(res);
 			break;
 		case FRCameraType_LatitudeLongitude_Stereo:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_STEREO);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_STEREO);
+			FCHECK(res);
 			break;
 		case FRCameraType_Cubemap:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP);
+			FCHECK(res);
 			break;
 		case FRCameraType_Cubemap_Stereo:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP_STEREO);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP_STEREO);
+			FCHECK(res);
 			break;
 		default:
 			FASSERT(!"camera type not supported yet");
@@ -461,7 +465,8 @@ void ActiveShadeRenderCore::SetupCamera(const ParsedView& view, const int imageW
 
 	if (view.useMotionBlur)
 	{
-		rprCameraSetExposure(outCamera, view.cameraExposure);
+		res = rprCameraSetExposure(outCamera, view.cameraExposure);
+		FCHECK(res);
 	}
 }
 
@@ -487,7 +492,7 @@ void ActiveShadeRenderCore::Worker()
 	scope.GetContext().Attach(normalizationFilter);
 
 #ifdef ACTIVESHADER_PREVIEW_QUALITY
-	FASSERT(rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1) == RPR_SUCCESS);
+	FCHECK(rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1));
 #endif
 
 	// render all passes, unless the render is cancelled (and even then render at least a single pass)

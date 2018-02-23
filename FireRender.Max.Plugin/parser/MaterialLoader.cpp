@@ -18,7 +18,7 @@
 #include <stack>
 #include <regex>
 
-#include "RadeonProRender.h"
+#include "Common.h"
 
 using namespace std;
 
@@ -762,6 +762,12 @@ bool ImportMaterials(const std::string& filename, rpr_context context, rpr_mater
     catch (const std::exception& e)
     {
         cout << "MaterialImport error: " << e.what() << endl;
+
+		// Make log to Max Log
+		string str = e.what();
+		std::wstring wstr(str.begin(), str.end());
+		FireRender::LogErrorStringToMaxLog(wstr);
+
         return false;
     }
     return true;

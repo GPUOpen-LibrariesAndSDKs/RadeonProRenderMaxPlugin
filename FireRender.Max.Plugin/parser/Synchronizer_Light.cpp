@@ -105,7 +105,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 			if (type == LightscapeLight::TARGET_POINT_TYPE || type == LightscapeLight::POINT_TYPE)
 			{
 				res = rprContextCreatePointLight(context.Handle(), &fireLight);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 
 				// isotropic spherical light source, total surface yields 4PI steradians,
 				// but for some reason FR wants PI instead of 4PI, the engine is probably making some assumptions.
@@ -114,7 +114,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				Point3 color = phlight->GetRGBFilter(t) * phlight->GetRGBColor(t) * watts;
 
 				res = rprPointLightSetRadiantPower3f(fireLight, color.x, color.y, color.z);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 			}
 			else if (type == LightscapeLight::AREA_TYPE || type == LightscapeLight::TARGET_AREA_TYPE)
 			{
@@ -587,7 +587,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 			if (type == LightscapeLight::TARGET_POINT_TYPE || type == LightscapeLight::POINT_TYPE)
 			{
 				res = rprContextCreateSpotLight(context.Handle(), &fireLight);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 				const float iAngle = DEG_TO_RAD*light->GetHotspot(t) * 0.5f;
 				const float oAngle = DEG_TO_RAD*light->GetFallsize(t) * 0.5f;
 				
@@ -604,9 +604,9 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				Point3 color = phlight->GetRGBFilter(t) * phlight->GetRGBColor(t) * watts;
 
 				res = rprSpotLightSetRadiantPower3f(fireLight, color.x, color.y, color.z);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 				res = rprSpotLightSetConeShape(fireLight, iAngle, oAngle);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 			}
 			// other types are currently not supported by RPR
 			else
@@ -626,7 +626,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					if (!iesData.empty())
 					{
 						res = rprContextCreateIESLight(context.Handle(), &fireLight);
-						FASSERT(res == RPR_SUCCESS);
+						FCHECK(res);
 
 						res = rprIESLightSetImageFromIESdata(fireLight, iesData.c_str(), 256, 256);
 						if (RPR_SUCCESS != res) {
@@ -643,7 +643,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 
 						res = rprIESLightSetRadiantPower3f(fireLight, color.x, color.y, color.z);
 
-						FASSERT(res == RPR_SUCCESS);
+						FCHECK(res);
 
 						Matrix3 r;
 						r.IdentityMatrix();
@@ -1060,44 +1060,44 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 		{
 			// A directional light (located in infinity)
 			res = rprContextCreateDirectionalLight(context.Handle(), &fireLight);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			color *= PI; // it seems we need to multiply by pi to get same intensity in RPR and 3dsmax
 			res = rprDirectionalLightSetRadiantPower3f(fireLight, color.r, color.g, color.b);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 		else if (light->IsSpot())
 		{
 			// Spotlight (point light with non-uniform directional distribution)
 			res = rprContextCreateSpotLight(context.Handle(), &fireLight);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			const float iAngle = DEG_TO_RAD*light->GetHotspot(t) * 0.5f;
 			const float oAngle = DEG_TO_RAD*light->GetFallsize(t) * 0.5f;
 			color *= 683.f * PI; // should be 4PI (steradians in a sphere) doh
 			res = rprSpotLightSetRadiantPower3f(fireLight, color.r, color.g, color.b);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			res = rprSpotLightSetConeShape(fireLight, iAngle, oAngle);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 		else if (evaluatedObject->ClassID() == Class_ID(0x7bf61478, 0x522e4705))
 		{
 			//standard Skylight object
 			res = rprContextCreateSkyLight(context.Handle(), &fireLight);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			float intensity = light->GetIntensity(t);
 			res = rprSkyLightSetScale(fireLight, (intensity * 0.2f));
 			Point3 color = light->GetRGBColor(t);
 			rprSkyLightSetAlbedo(fireLight, (color.x + color.y + color.z) * 1.f / 3.f);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 		else
 		{
 			// point light with uniform directional distribution
 			res = rprContextCreatePointLight(context.Handle(), &fireLight);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			color *= 683.f * PI; // should be 4PI (steradians in a sphere) doh
 			res = rprPointLightSetRadiantPower3f(fireLight, color.r, color.g, color.b);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 	}
 
@@ -1136,14 +1136,14 @@ void Synchronizer::RebuildCoronaSun(INode *node, Object* evaluatedObject)
 		color /= 10000.f; // magic matching constant
 		rpr_light light;
 		rpr_int res = rprContextCreateDirectionalLight(context.Handle(), &light);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 		res = rprDirectionalLightSetRadiantPower3f(light, color.r, color.g, color.b);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		float frTm[16];
 		CreateFrMatrix(fxLightTm(tm), frTm);
 		res = rprLightSetTransform(light, false, frTm);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		auto fireLight = frw::Light(light, context);
 		

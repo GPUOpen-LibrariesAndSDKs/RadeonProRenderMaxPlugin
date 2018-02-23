@@ -55,6 +55,12 @@ bool exportMat(Mtl *max_mat, const std::wstring &path)
 	static fr_int plug = frRegisterPlugin(pluginsPath);
 	fr_context context = nullptr;
 	status = rprCreateContext(RPR_API_VERSION, &plug, 1, createFlags, NULL, NULL, &context);
+	FCHECK(status);
+
+	if (status != RPR_SUCCESS)
+	{
+		return false;
+	}
 
 	frw::Scope scope(context, true);
 	FireRender::MaterialParser parser(scope);

@@ -120,10 +120,10 @@ void MPManagerMax::renderingThreadProc(Bitmap* tobm)
 
 	// initialize core
 	auto res = rprContextSetAOV(scope.GetContext().Handle(), RPR_AOV_COLOR, frameBufferMain.Handle());
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 
 	res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 
 	// render
 	int passesDone = 0;
@@ -159,18 +159,18 @@ void MPManagerMax::renderingThreadProc(Bitmap* tobm)
 		normalizedFrameBuffer.Clear();
 
 		res = rprContextResolveFrameBuffer(scope.GetContext().Handle(), frameBufferMain.Handle(), normalizedFrameBuffer.Handle(), true);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		size_t fbSize;
 
 		res = rprFrameBufferGetInfo(normalizedFrameBuffer.Handle(), RPR_FRAMEBUFFER_DATA, 0, NULL, &fbSize);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		std::vector<float> fbData;
 
 		fbData.resize( fbSize / sizeof(float) );
 		res = rprFrameBufferGetInfo(normalizedFrameBuffer.Handle(), RPR_FRAMEBUFFER_DATA, fbData.size() * sizeof(float), fbData.data(), NULL);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		// copy results to bitmap
 		for (int y = 0; y < height; y++)
@@ -508,25 +508,25 @@ void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
 		int nbLights = 0;
 		int nbCameras = 0;
 
-		rpr_int status = rprsListImportedImages(NULL, 0, &nbImages); FASSERT(status == RPR_SUCCESS);
+		rpr_int status = rprsListImportedImages(NULL, 0, &nbImages); FCHECK(status);
 		imageList.resize(nbImages);
-		status = rprsListImportedImages(imageList.data(), sizeof(fr_image)*nbImages, NULL); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedImages(imageList.data(), sizeof(fr_image)*nbImages, NULL); FCHECK(status);
 		
 		status = rprsListImportedShapes(NULL, 0, &nbShapes); FASSERT(status == RPR_SUCCESS);
 		shapeList.resize(nbShapes);
-		status = rprsListImportedShapes(shapeList.data(), sizeof(rpr_shape)*nbShapes, NULL); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedShapes(shapeList.data(), sizeof(rpr_shape)*nbShapes, NULL); FCHECK(status);
 
-		status = rprsListImportedMaterialNodes(NULL, 0, &nbMaterials); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedMaterialNodes(NULL, 0, &nbMaterials); FCHECK(status);
 		materialList.resize(nbMaterials);
-		status = rprsListImportedMaterialNodes(materialList.data(), sizeof(rpr_material_node)*nbMaterials, NULL); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedMaterialNodes(materialList.data(), sizeof(rpr_material_node)*nbMaterials, NULL); FCHECK(status);
 
-		status = rprsListImportedLights(NULL, 0, &nbLights); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedLights(NULL, 0, &nbLights); FCHECK(status);
 		lightList.resize(nbLights);
-		status = rprsListImportedLights(lightList.data(), sizeof(rpr_light)*nbLights, NULL); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedLights(lightList.data(), sizeof(rpr_light)*nbLights, NULL); FCHECK(status);
 
-		status = rprsListImportedCameras(NULL, 0, &nbCameras); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedCameras(NULL, 0, &nbCameras); FCHECK(status);
 		cameraList.resize(nbCameras);
-		status = rprsListImportedCameras(cameraList.data(), sizeof(rpr_camera)*nbCameras, NULL); FASSERT(status == RPR_SUCCESS);
+		status = rprsListImportedCameras(cameraList.data(), sizeof(rpr_camera)*nbCameras, NULL); FCHECK(status);
 				
 		scope.SetScene(frw::Scene(_scene, scope.GetContext()));
 	}
@@ -534,12 +534,12 @@ void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
 	for (auto shape : shapeList)
 	{
 		rpr_shape_type type;
-		rpr_int res = rprShapeGetInfo(shape, RPR_SHAPE_TYPE, sizeof(rpr_shape_type), &type, NULL); FASSERT(res == RPR_SUCCESS);
+		rpr_int res = rprShapeGetInfo(shape, RPR_SHAPE_TYPE, sizeof(rpr_shape_type), &type, NULL); FCHECK(res);
 		if (type == RPR_SHAPE_TYPE_MESH)
 		{
 			frw::Shape shape(shape, scope.GetContext(), false);
 			uint64_t  vertex_count = 0;
-			res = rprMeshGetInfo(shape.Handle(), RPR_MESH_VERTEX_COUNT, sizeof(vertex_count), &vertex_count, NULL); FASSERT(res == RPR_SUCCESS);
+			res = rprMeshGetInfo(shape.Handle(), RPR_MESH_VERTEX_COUNT, sizeof(vertex_count), &vertex_count, NULL); FCHECK(res);
 			// FR does not support names or anything else that can identify an object
 			// so we need to identify objects by other hardcoded features such as number of vertices (sigh)
 			if (vertex_count == 7188)
@@ -573,7 +573,7 @@ void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
 	{
 		rpr_material_node textured_bg = nullptr;
 		auto res = rprShapeGetInfo(scope.GetShape(BackgroundShape).Handle(), RPR_SHAPE_MATERIAL, sizeof(textured_bg), &textured_bg, nullptr);
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 		scope.GetShape(BackgroundShape).SetShader(scope.GetShader(DiffuseMaterial));
 		frw::Shader shader(textured_bg, scope.GetMaterialSystem(), false);
 		scope.SetShader(TexturedBgMaterial, shader);
@@ -612,14 +612,14 @@ void MPManagerMax::DestroyLoadedAssets()
 
 	for (auto i : materialList)
 	{
-		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
+		res = rprObjectDelete(i); FCHECK(res);
 	}
 
 	materialList.clear();
 
 	for (auto i : imageList)
 	{
-		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
+		res = rprObjectDelete(i); FCHECK(res);
 	}
 
 	imageList.clear();
@@ -628,15 +628,15 @@ void MPManagerMax::DestroyLoadedAssets()
 
 	for (auto i : lightList)
 	{
-		res = rprSceneDetachLight(scope.GetScene().Handle(), i); FASSERT(res == RPR_SUCCESS);
-		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
+		res = rprSceneDetachLight(scope.GetScene().Handle(), i); FCHECK(res);
+		res = rprObjectDelete(i); FCHECK(res);
 	}
 
 	lightList.clear();
 
 	for (auto i : cameraList)
 	{
-		res = rprObjectDelete(i); FASSERT(res == RPR_SUCCESS);
+		res = rprObjectDelete(i); FCHECK(res);
 	}
 
 	cameraList.clear();
