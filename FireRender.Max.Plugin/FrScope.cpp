@@ -164,7 +164,7 @@ Scope::Data::Data(Context c, bool bCreateContextEx /*= false*/)
 	if (bOwnContextEx)
 	{
 		auto res = rprxCreateContext(materialSystem.Handle(), RPRX_FLAGS_ENABLE_LOGGING, &contextEx);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 	}
 }
 
@@ -175,7 +175,7 @@ Scope::Data::Data(Context c, MaterialSystem ms, bool bCreateContextEx /*= false*
 	if (bOwnContextEx)
 	{
 		auto res = rprxCreateContext(materialSystem.Handle(), RPRX_FLAGS_ENABLE_LOGGING, &contextEx);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 	}
 }
 
@@ -190,7 +190,7 @@ Scope::Data::~Data()
 	if (contextEx && bOwnContextEx)
 	{
 		auto res = rprxDeleteContext(contextEx);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 		DebugPrint(L"\tDeleted RPRX context %08X\n", contextEx);
 	}	
 }

@@ -5,7 +5,7 @@ namespace
 {
 	void checkStatus(rpr_int status)
 	{
-		FASSERT(status == RPR_SUCCESS);
+		FCHECK(status);
 	}
 }
 
@@ -25,7 +25,11 @@ RprComposite::RprComposite(rpr_context context, rpr_composite_type type) :
 
 RprComposite::~RprComposite()
 {
-	if (mData) rprObjectDelete(mData);
+	if (mData)
+	{
+		rpr_int status = rprObjectDelete(mData);
+		checkStatus(status);
+	}
 }
 
 RprComposite::operator rpr_composite()

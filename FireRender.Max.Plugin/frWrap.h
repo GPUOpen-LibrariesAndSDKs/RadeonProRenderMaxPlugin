@@ -399,7 +399,7 @@ namespace frw
 			if (Handle())
 			{
 				auto res = rprObjectSetName(Handle(), name);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 		}
 
@@ -520,7 +520,7 @@ namespace frw
 		{
 			size_t n = 0;
 			auto res = rprMaterialNodeGetInfo(Handle(), NodeInfoInputCount, sizeof(n), &n, nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			return n;
 		}
 
@@ -539,21 +539,21 @@ namespace frw
 
 			// Get name
 			auto res = rprMaterialNodeGetInputInfo(Handle(), i, NodeInputInfoName, 0, nullptr, &size);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			info.name.resize(size);
 			res = rprMaterialNodeGetInputInfo(Handle(), i, NodeInputInfoName, size, const_cast<char*>(info.name.data()), nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			// Get description
 			res = rprMaterialNodeGetInputInfo(Handle(), i, NodeInputInfoDescription, 0, nullptr, &size);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			info.description.resize(size);
 			res = rprMaterialNodeGetInputInfo(Handle(), i, NodeInputInfoDescription, size, const_cast<char*>(info.description.data()), nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 				// get type
 			res = rprMaterialNodeGetInputInfo(Handle(), i, NodeInputInfoType, sizeof(info.type), &info.type, nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			return info;
 		}
@@ -702,39 +702,39 @@ namespace frw
 		void SetVisibility(bool visible)
 		{
 			auto res = rprShapeSetVisibility(Handle(), visible);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void SetPrimaryVisibility(bool visible)
 		{
 #if RPR_API_VERSION != 0x010000110	
 			auto res = rprShapeSetVisibilityPrimaryOnly(Handle(), visible);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 #endif
 		}
 		void SetReflectionVisibility(bool visible)
 		{
 #if RPR_API_VERSION != 0x010000110	// AMDMAX-617
 			auto res = rprShapeSetVisibilityInSpecular(Handle(), visible);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 #endif
 		}
 		Shape CreateInstance(Context context) const;
 		void SetTransform(const float* tm, bool transpose = false)
 		{
 			auto res = rprShapeSetTransform(Handle(), transpose, tm);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		void SetLinearMotion(float x, float y, float z)
 		{
 			auto res = rprShapeSetLinearMotion(Handle(), x, y, z);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		void SetAngularMotion(float x, float y, float z, float w)
 		{
 			auto res = rprShapeSetAngularMotion(Handle(), x, y, z, w);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 #ifdef FRW_USE_MAX_TYPES
@@ -755,14 +755,14 @@ namespace frw
 		void SetShadowFlag(bool castsShadows)
 		{
 			auto res = rprShapeSetShadow(Handle(), castsShadows);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		void SetShadowCatcherFlag(bool shadowCatcher)
 		{
 #if RPR_API_VERSION >= 0x010000109
 			auto res = rprShapeSetShadowCatcher(Handle(), shadowCatcher);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 #endif
 		}
 
@@ -776,7 +776,7 @@ namespace frw
 		{
 			rpr_shape_type type = RPR_SHAPE_TYPE_INSTANCE;
 			auto res = rprShapeGetInfo(Handle(), RPR_SHAPE_TYPE, sizeof(type), &type, nullptr);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			return type == RPR_SHAPE_TYPE_INSTANCE;
 		}
 
@@ -786,7 +786,7 @@ namespace frw
 			if (IsInstance())
 			{
 				auto res = rprInstanceGetBaseShape(Handle(), &shape);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 			else
 			{
@@ -795,7 +795,7 @@ namespace frw
 
 			size_t n = 0;
 			auto res = rprMeshGetInfo(shape, RPR_MESH_POLYGON_COUNT, sizeof(n), &n, nullptr);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			return n;
 		}
 		
@@ -814,7 +814,7 @@ namespace frw
 		void SetTransform(const float* tm, bool transpose = false)
 		{
 			auto res = rprLightSetTransform(Handle(), transpose, tm);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 #ifdef FRW_USE_MAX_TYPES
 		void SetTransform(const Matrix3& tm)
@@ -852,7 +852,7 @@ namespace frw
 		void SetRadiantPower(float r, float g, float b)
 		{
 			auto res = rprPointLightSetRadiantPower3f(Handle(), r, g, b);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 	};
 
@@ -865,7 +865,7 @@ namespace frw
 		void SetRadiantPower(float r, float g, float b)
 		{
 			auto res = rprDirectionalLightSetRadiantPower3f(Handle(), r, g, b);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 	};
 
@@ -884,7 +884,7 @@ namespace frw
 		void SetLightIntensityScale(float k)
 		{
 			auto res = rprEnvironmentLightSetIntensityScale(Handle(), k);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void SetImage(Image img);
 		void AttachPortal(Shape shape);
@@ -909,19 +909,19 @@ namespace frw
 		void SetIESFile(const rpr_char* path, int nx, int ny)
 		{
 			rpr_int res = rprIESLightSetImageFromFile(Handle(), path, nx, ny);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		void SetIESData(const char* data, int nx, int ny)
 		{
 			rpr_int res = rprIESLightSetImageFromIESdata(Handle(), data, nx, ny);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		void SetRadiantPower(float r, float g, float b)
 		{
 			rpr_int res = rprIESLightSetRadiantPower3f(Handle(), r, g, b);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 	};
 	
@@ -952,27 +952,27 @@ namespace frw
 		void Attach(Shape v)
 		{
 			AddReference(v);
-			auto res = rprSceneAttachShape(Handle(), v.Handle()); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneAttachShape(Handle(), v.Handle()); FCHECK(res);
 		}
 		void Attach(Light v)
 		{
 			AddReference(v);
-			auto res = rprSceneAttachLight(Handle(), v.Handle()); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneAttachLight(Handle(), v.Handle()); FCHECK(res);
 		}
 		void Detach(Shape v)
 		{
 			RemoveReference(v);
-			auto res = rprSceneDetachShape(Handle(), v.Handle()); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneDetachShape(Handle(), v.Handle()); FCHECK(res);
 		}
 		void Detach(Light v)
 		{
 			RemoveReference(v);
-			auto res = rprSceneDetachLight(Handle(), v.Handle()); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneDetachLight(Handle(), v.Handle()); FCHECK(res);
 		}
 
 		void SetCamera(Camera v)
 		{
-			auto res = rprSceneSetCamera(Handle(), v.Handle()); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneSetCamera(Handle(), v.Handle()); FCHECK(res);
 			data().camera = v;
 		}
 		Camera GetCamera()
@@ -984,7 +984,7 @@ namespace frw
 		{
 			SetCamera(Camera());
 			auto res = rprSceneClear(Handle()); // this only detaches objects, doesn't delete them
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			RemoveAllReferences();
 			// clear local data
 			Data& d = data();
@@ -998,7 +998,7 @@ namespace frw
 		int ShapeCount() const
 		{
 			size_t count = 0;
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_COUNT, sizeof(count), &count, nullptr); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_COUNT, sizeof(count), &count, nullptr); FCHECK(res);
 			return count;
 		}
 
@@ -1006,10 +1006,10 @@ namespace frw
 		{
 			auto count = ShapeCount();
 			std::vector<rpr_shape> items(count);
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
 			for (auto& it : items)
 			{
-				res = rprSceneDetachShape(Handle(), it); FASSERT(RPR_SUCCESS == res);
+				res = rprSceneDetachShape(Handle(), it); FCHECK(res);
 				RemoveReference(it);
 			}
 		}
@@ -1018,7 +1018,7 @@ namespace frw
 		{
 			auto count = ShapeCount();
 			std::vector<rpr_shape> items(count);
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
 			std::list<Shape> ret;
 			for (auto& it : items)
 			{
@@ -1031,7 +1031,7 @@ namespace frw
 		int LightCount() const
 		{
 			size_t count = 0;
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_COUNT, sizeof(count), &count, nullptr); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_COUNT, sizeof(count), &count, nullptr); FCHECK(res);
 			return count;
 		}
 
@@ -1039,7 +1039,7 @@ namespace frw
 		{
 			auto count = LightCount();
 			std::vector<rpr_light> items(count);
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
 			std::list<Light> ret;
 			for (auto& it : items)
 			{
@@ -1053,35 +1053,35 @@ namespace frw
 		{
 			auto count = LightCount();
 			std::vector<rpr_light> items(count);
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
 			for (auto& it : items)
 			{
-				res = rprSceneDetachLight(Handle(), it); FASSERT(RPR_SUCCESS == res);
+				res = rprSceneDetachLight(Handle(), it); FCHECK(res);
 				RemoveReference(it);
 			}
 		}
 
 		void SetBackgroundImage(Image v)
 		{
-			auto res = rprSceneSetBackgroundImage(Handle(), v.Handle()); FASSERT(RPR_SUCCESS==res);
+			auto res = rprSceneSetBackgroundImage(Handle(), v.Handle()); FCHECK(res);
 			data().backgroundImage = v;
 		}
 
 		void SetBackground(EnvironmentLight v)
 		{
-			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_BACKGROUND, v.Handle()); FASSERT(RPR_SUCCESS==res);
+			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_BACKGROUND, v.Handle()); FCHECK(res);
 			data().background = v;
 		}
 
 		void SetBackgroundReflectionsOverride(EnvironmentLight v)
 		{
-			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_REFLECTION, v.Handle()); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_REFLECTION, v.Handle()); FCHECK(res);
 			data().backgroundReflOverride = v;
 		}
 
 		void SetBackgroundRefractionsOverride(EnvironmentLight v)
 		{
-			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_REFRACTION, v.Handle()); FASSERT(RPR_SUCCESS == res);
+			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_REFRACTION, v.Handle()); FCHECK(res);
 			data().backgroundRefrOverride = v;
 		}
 
@@ -1112,27 +1112,27 @@ namespace frw
 		void SetParameter(const char * sz, rpr_uint v)
 		{
 			auto res = rprContextSetParameter1u(Handle(), sz, v);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void SetParameter(const char * sz, int v)
 		{
 			auto res = rprContextSetParameter1u(Handle(), sz, v);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void SetParameter(const char * sz, double v)
 		{
 			auto res = rprContextSetParameter1f(Handle(), sz, (rpr_float)v);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void SetParameter(const char * sz, double x, double y, double z)
 		{
 			auto res = rprContextSetParameter3f(Handle(), sz, (rpr_float)x, (rpr_float)y, (rpr_float)z);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void SetParameter(const char * sz, double x, double y, double z, double w)
 		{
 			auto res = rprContextSetParameter4f(Handle(), sz, (rpr_float)x, (rpr_float)y, (rpr_float)z, (rpr_float)w);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		Scene CreateScene()
@@ -1140,7 +1140,7 @@ namespace frw
 			DebugPrint(L"CreateScene()\n");
 			rpr_scene v;
 			auto status = rprContextCreateScene(Handle(), &v);
-			FASSERT(status == RPR_SUCCESS);
+			FCHECK(status);
 
 			data().scene = v;
 			return Scene(v, *this);
@@ -1151,7 +1151,7 @@ namespace frw
 			DebugPrint(L"CreateCamera()\n");
 			rpr_camera v;
 			auto status = rprContextCreateCamera(Handle(), &v);
-			FASSERT(status == RPR_SUCCESS);
+			FCHECK(status);
 			return Camera(v, *this);
 		}
 
@@ -1176,7 +1176,7 @@ namespace frw
 			DebugPrint(L"CreatePointLight()\n");
 			rpr_light h;
 			auto res = rprContextCreatePointLight(Handle(), &h);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			return PointLight(h,*this);
 		}
 
@@ -1185,7 +1185,7 @@ namespace frw
 			DebugPrint(L"CreateEnvironmentLight()\n");
 			rpr_light h;
 			auto res = rprContextCreateEnvironmentLight(Handle(), &h);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			return EnvironmentLight(h,*this);
 		}
 
@@ -1194,7 +1194,7 @@ namespace frw
 			DebugPrint(L"CreateDirectionalLight()\n");
 			rpr_light h;
 			auto res = rprContextCreateDirectionalLight(Handle(), &h);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			return DirectionalLight(h, *this);
 		}
 
@@ -1202,7 +1202,7 @@ namespace frw
 		{
 			rpr_light light = 0;
 			rpr_int res = rprContextCreateIESLight(Handle(), &light);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			return IESLight(light, *this);
 		}
@@ -1213,7 +1213,7 @@ namespace frw
 			FASSERT(!scene || scene.GetContext() == *this);
 
 			auto res = rprContextSetScene(Handle(), scene.Handle());
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
         void Attach(PostEffect post_effect);
@@ -1239,14 +1239,14 @@ namespace frw
 		{
 			rpr_render_statistics statistics = {};
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_RENDER_STATISTICS, sizeof(statistics), &statistics, nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			return statistics.gpumem_usage;
 		}
 		int GetMaterialStackSize() const
 		{
 			size_t info = 0;
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_MATERIAL_STACK_SIZE, sizeof(info), &info, nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			return info;
 		}
 
@@ -1254,7 +1254,7 @@ namespace frw
 		{
 			size_t info = 0;
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_PARAMETER_COUNT, sizeof(info), &info, nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			return info;
 		}
 
@@ -1278,21 +1278,21 @@ namespace frw
 
 			// get name
 			auto res = rprContextGetParameterInfo(Handle(), i, ParameterInfoName, 0, nullptr, &size);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			info.name.resize(size);
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoName, size, const_cast<char*>(info.name.data()), nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			// get description
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoDescription, 0, nullptr, &size);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			info.description.resize(size);
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoDescription, size, const_cast<char*>(info.description.data()), nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			// get type
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoType, sizeof(info.type), &info.type, nullptr);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			return info;
 		}
@@ -1369,7 +1369,7 @@ namespace frw
 				Node n = v.GetNode();
 				AddReference(n);
 				auto res = rprMaterialNodeSetInputN(Handle(), "color", n.Handle());
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 		}
 	};
@@ -1387,7 +1387,7 @@ namespace frw
 				Node n = v.GetNode();
 				AddReference(n);
 				auto res = rprMaterialNodeSetInputN(Handle(), "color", n.Handle());
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 		}
 	};
@@ -1404,7 +1404,7 @@ namespace frw
 			DebugPrint(L"CreateNode(%d)\n", type);
 			rpr_material_node node = nullptr;
 			auto res = rprMaterialSystemCreateNode(Handle(), type, &node);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			return node;
 		}
 
@@ -1421,7 +1421,7 @@ namespace frw
 				DebugPrint(L"CreateMaterialSystem()\n");
 				rpr_material_system h = nullptr;
 				auto res = rprContextCreateMaterialSystem(c.Handle(), 0, &h);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 				m->Attach(h);
 			}
 		}
@@ -1942,7 +1942,7 @@ namespace frw
 				}
 
 				auto res = rprContextDetachPostEffect(_context, _posteffect);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 
 			void SetAttached(bool value)
@@ -1959,20 +1959,20 @@ namespace frw
 			DebugPrint(L"PostEfect()\n");
 			rpr_post_effect h = nullptr;
 			auto res = rprContextCreatePostEffect(context.Handle(), type, &h);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			m->Attach(h);
 		}
 
 		void SetParameter(const char * name, int value)
 		{
 			auto res = rprPostEffectSetParameter1u(Handle(), name, value);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 
 		void SetParameter(const char * name, float value)
 		{
 			auto res = rprPostEffectSetParameter1f(Handle(), name, value);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 
 		void SetAttached(bool value)
@@ -1995,20 +1995,20 @@ namespace frw
 			rpr_framebuffer h = nullptr;
 			rpr_framebuffer_desc desc = { rpr_uint(width), rpr_uint(height) };
 			auto res = rprContextCreateFrameBuffer(context.Handle(), format, &desc, &h);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			m->Attach(h);
 		}
 
 		void Resolve(FrameBuffer dest)
 		{
 			auto res = rprContextResolveFrameBuffer(GetContext().Handle(), Handle(), dest.Handle());
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 
 		void Clear()
 		{
 			auto res = rprFrameBufferClear(Handle());
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		bool SaveToFile(const std::string& path)
@@ -2023,12 +2023,12 @@ namespace frw
 			
 			size_t fbSize;
 			int res = rprFrameBufferGetInfo(Handle(), RPR_FRAMEBUFFER_DATA, 0, NULL, &fbSize);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			
 			// Get all image data from RPR in single call, then use multiple threads to copy them over to 3ds Max
 			result.resize(int(fbSize / sizeof(float)));
 			res = rprFrameBufferGetInfo(Handle(), RPR_FRAMEBUFFER_DATA, result.size() * sizeof(float), result.data(), NULL);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 			
 			// Just to be sure, move it
 			return std::move(result);
@@ -2058,7 +2058,7 @@ namespace frw
 				if (material)
 				{
 					auto res = rprxMaterialDelete(context, material);
-					FASSERT(RPR_SUCCESS == res);
+					FCHECK(res);
 					DebugPrint(L"\tDeleted RPRX material %08X\n", material);
 				}
 			}
@@ -2121,7 +2121,7 @@ namespace frw
 			Data& d = data();
 			d.context = xContext;
 			auto status = rprxCreateMaterial(xContext, type, &d.material);
-			FASSERT(RPR_SUCCESS == status);
+			FCHECK(status);
 			d.shaderType = ShaderTypeRprx;
 			DebugPrint(L"\tCreated RPRX material %08X\n", d.material);
 		}
@@ -2157,21 +2157,21 @@ namespace frw
 			{
 				DebugPrint(L"\tShape.AttachMaterial: shape=%08X x_material=%08X\n", shape.Handle(), d.material);
 				res = rprxShapeAttachMaterial(d.context, shape.Handle(), d.material);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 				res = rprxMaterialCommit(d.context, d.material);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 
 				if (d.isShadowCatcher)
 				{
 					res = rprShapeSetShadowCatcher(shape.Handle(), true);
-					FASSERT(RPR_SUCCESS == res);
+					FCHECK(res);
 				}
 			}
 			else
 			{
 				DebugPrint(L"\tShape.AttachMaterial: shape=%08X material=%08X\n", shape.Handle(), d.Handle());
 				res = rprShapeSetMaterial(shape.Handle(), d.Handle());
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 		}
 		void DetachFromShape(Shape::Data& shape)
@@ -2182,12 +2182,12 @@ namespace frw
 			if (d.material)
 			{
 				rpr_int res = rprxShapeDetachMaterial(d.context, shape.Handle(), d.material);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 
 			{
 				auto res = rprShapeSetMaterial(shape.Handle(), nullptr);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 		}
 		void AttachToMaterialInput(rpr_material_node node, const char* inputName) const
@@ -2199,15 +2199,15 @@ namespace frw
 				// attach rprx shader output to some material's input
 				// note: there's no call to rprxShapeDetachMaterial
 				res = rprxMaterialAttachMaterial(d.context, node, inputName, d.material);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 
 				res = rprxMaterialCommit(d.context, d.material);
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 			else
 			{
 				res = rprMaterialNodeSetInputN(node, inputName, d.Handle());
-				FASSERT(RPR_SUCCESS == res);
+				FCHECK(res);
 			}
 		}
 		void xSetParameterN(rprx_parameter parameter, frw::Node node)
@@ -2216,19 +2216,19 @@ namespace frw
 
 			const Data& d = data();
 			auto res = rprxMaterialSetParameterN(d.context, d.material, parameter, node.Handle());
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void xSetParameterU(rprx_parameter parameter, rpr_uint value)
 		{
 			const Data& d = data();
 			auto res = rprxMaterialSetParameterU(d.context, d.material, parameter, value);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 		void xSetParameterF(rprx_parameter parameter, rpr_float x, rpr_float y, rpr_float z, rpr_float w)
 		{
 			const Data& d = data();
 			auto res = rprxMaterialSetParameterF(d.context, d.material, parameter, x, y, z, w);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 
 		bool xSetValue(rprx_parameter parameter, const Value& v)
@@ -2301,7 +2301,7 @@ namespace frw
 			if (destroyOnDelete)
 			{
 				auto res = rprObjectDelete(handle);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 			}
 
 			allocatedObjects--;
@@ -2319,7 +2319,7 @@ namespace frw
 			if (destroyOnDelete)
 			{
 				auto res = rprObjectDelete(handle);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 			}
 			allocatedObjects--;
 			DebugPrint(L"\tFR- %s %08X%s (%d total)\n", GetTypeName(), handle, destroyOnDelete ? L"" : L" (unmanaged)", allocatedObjects);
@@ -2369,7 +2369,7 @@ namespace frw
 		{
 			case Value::FLOAT:
 				res = rprMaterialNodeSetInputF(Handle(), key, v.x, v.y, v.z, v.w);
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 				break;
 			case Value::NODE:
 			{
@@ -2379,7 +2379,7 @@ namespace frw
 					AddReference(v.node);
 				}
 				res = rprMaterialNodeSetInputN(Handle(), key, handle);	// should be ok to set null here now
-				FASSERT(res == RPR_SUCCESS);
+				FCHECK(res);
 			}
 			break;
 			default:
@@ -2390,7 +2390,7 @@ namespace frw
 	inline void Node::SetValue(const char* key, int v)
 	{
 		auto res = rprMaterialNodeSetInputU(Handle(), key, v);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 	}
 
 	inline MaterialSystem Node::GetMaterialSystem() const
@@ -2487,7 +2487,7 @@ namespace frw
 		if (!shader.IsRprxMaterial())
 		{
 			auto res = rprShapeSetVolumeMaterial( Handle(), shader.Handle() );
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 	}
 
@@ -2501,7 +2501,7 @@ namespace frw
 		DebugPrint(L"CreateInstance()\n");
 		rpr_shape h = nullptr;
 		auto res = rprContextCreateInstance(context.Handle(), Handle(), &h);
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 		Shape shape(h, context);
 		shape.AddReference(*this);
 		return shape;
@@ -2515,9 +2515,9 @@ namespace frw
 			Node n = v.GetNode();
 			data().displacementShader = n;
 			auto res = rprShapeSetDisplacementMaterial(Handle(), n.Handle());
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			res = rprShapeSetDisplacementScale(Handle(), minscale, maxscale);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 		}
 	}
 
@@ -2526,9 +2526,9 @@ namespace frw
 		if (data().displacementShader)
 		{
 			auto res = rprShapeSetDisplacementMaterial(Handle(), nullptr);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			res = rprShapeSetSubdivisionFactor(Handle(), 0);
-			FASSERT(RPR_SUCCESS == res);
+			FCHECK(res);
 			data().displacementShader = nullptr;
 		}
 	}
@@ -2541,19 +2541,19 @@ namespace frw
 			sub--;
 
 		auto res = rprShapeSetSubdivisionFactor(Handle(), sub);
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 	}
 
 	inline void Shape::SetSubdivisionCreaseWeight(float weight)
 	{
 		auto res = rprShapeSetSubdivisionCreaseWeight(Handle(), weight);
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 	}
 
 	inline void Shape::SetSubdivisionBoundaryInterop(rpr_subdiv_boundary_interfop_type type)
 	{
 		auto res = rprShapeSetSubdivisionBoundaryInterop(Handle(), type);
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 	}
 
 	inline Image::Image(Context context, const rpr_image_format& format, const rpr_image_desc& image_desc, const void* data)
@@ -2562,7 +2562,7 @@ namespace frw
 		DebugPrint(L"CreateImage()\n");
 		rpr_image h = nullptr;
 		auto res = rprContextCreateImage(context.Handle(), format, &image_desc, data, &h);
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 		m->Attach(h);
 	}
 
@@ -2572,9 +2572,9 @@ namespace frw
 		rpr_image img = Handle();
 		if (!img)
 			return false;
-		rpr_int status = rprImageGetInfo(img, RPR_IMAGE_DESC, sizeof(desc), &desc, nullptr); FASSERT(status == RPR_SUCCESS);
+		rpr_int status = rprImageGetInfo(img, RPR_IMAGE_DESC, sizeof(desc), &desc, nullptr); FCHECK(status);
 		fr_image_format format;
-		status = frImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr); FASSERT(status == RPR_SUCCESS);
+		status = frImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr); FCHECK(status);
 		if (format.num_components == 1)
 		{
 			return true;
@@ -2594,10 +2594,10 @@ namespace frw
 		if (format.type == RPR_COMPONENT_TYPE_UINT8)
 		{
 			size_t imgsize = 0;
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize); FASSERT(status == RPR_SUCCESS);
+			status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize); FCHECK(status);
 			static std::vector<unsigned char> img_data(imgsize);
 			img_data.resize(imgsize);
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr); FASSERT(status == RPR_SUCCESS);
+			status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr); FCHECK(status);
 			if (format.num_components == 3)
 			{
 #pragma omp parallel for
@@ -2618,10 +2618,10 @@ namespace frw
 		else if (format.type == RPR_COMPONENT_TYPE_FLOAT32)
 		{
 			size_t imgsize = 0;
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize); FASSERT(status == RPR_SUCCESS);
+			status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize); FCHECK(status);
 			static std::vector<float> img_data(imgsize);
 			img_data.resize(imgsize);
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr); FASSERT(status == RPR_SUCCESS);
+			status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr); FCHECK(status);
 			if (format.num_components == 3)
 			{
 #pragma omp parallel for
@@ -2645,26 +2645,26 @@ namespace frw
 	inline void EnvironmentLight::SetImage(Image img)
 	{
 		auto res = rprEnvironmentLightSetImage(Handle(), img.Handle());
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 		data().image = img;
 	}
 
 	inline void EnvironmentLight::AttachPortal(Shape shape)
 	{
 		auto res = rprEnvironmentLightAttachPortal(GetContext().GetScene(), Handle(), shape.Handle());
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 		data().portals.push_back(shape);
 	}
 
     inline void Context::Attach(PostEffect post_effect){
         auto res = rprContextAttachPostEffect(Handle(), post_effect.Handle());
-        FASSERT(RPR_SUCCESS == res);
+        FCHECK(res);
 		post_effect.SetAttached(true);
     }
 
     inline void Context::Detach(PostEffect post_effect){
         auto res = rprContextDetachPostEffect(Handle(), post_effect.Handle());
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 		post_effect.SetAttached(false);
     }
 
@@ -2689,7 +2689,7 @@ namespace frw
 			num_face_vertices, num_faces, 
 			&shape);
 		
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 
 		return Shape(shape, *this);
 	}
@@ -2722,7 +2722,7 @@ namespace frw
 		{
 		}
 		
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 
 		return Shape(shape, *this);
 	}
@@ -2730,7 +2730,7 @@ namespace frw
 	inline rpr_int Context::SetAOV(FrameBuffer frameBuffer, rpr_aov aov)
 	{
 		rpr_int res = rprContextSetAOV(Handle(), aov, frameBuffer.Handle());
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 		return res;
 	}
 

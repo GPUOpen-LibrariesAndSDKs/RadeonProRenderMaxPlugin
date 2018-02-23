@@ -10,6 +10,9 @@
 #include <windows.h>
 #include <sstream>
 #include <max.h>
+#include <string>
+#include <RadeonProRender.h>
+
 #ifdef max // This macro is defined inside 3ds Max API/windows.h
 #   undef max
 #endif
@@ -31,6 +34,11 @@ extern HINSTANCE fireRenderHInstance;
 /// Shows an assert dialog if something goes wrong in the application
 void AssertImpl(const MCHAR* expression, const MCHAR* file, const int line);
 
+// Make a check with log entry and message box
+void RPRResultCheckImpl(rpr_int result, const MCHAR* file, const int line);
+void LogErrorStringToMaxLog(const std::wstring& str);
+
+
 /// We use the "STOP" macro to kill the program execution if it reaches invalid state (such as non-implemented method). Program 
 /// is killed in both debug and release configurations, although in debug config it also displays an assert.
 #define STOP FASSERT(false); throw ::FireRender::Exception(_T("STOP@") _T(__FILE__) _T("(") + ::FireRender::toWString(__LINE__) + _T(")"));
@@ -42,6 +50,10 @@ void AssertImpl(const MCHAR* expression, const MCHAR* file, const int line);
 #else
 #   define FASSERT(condition)
 #endif
+
+#define FCHECK(resultCode) ::FireRender::RPRResultCheckImpl(resultCode, _T(__FILE__), __LINE__)
+
+std::wstring GetRPRErrorString(rpr_int code);
 
 /// Class ID of the main rendering plugin that translates data between Radeon ProRender code and 3ds Max
 const Class_ID FIRE_MAX_CID(0x61458ded, 0x9fa91ad5);

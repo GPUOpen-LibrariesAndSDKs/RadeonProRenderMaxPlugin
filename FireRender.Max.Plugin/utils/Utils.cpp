@@ -9,7 +9,6 @@
 #include "utils/Utils.h"
 #include "Stack.h"
 #include "CoronaDeclarations.h"
-#include <RadeonProRender.h>
 #include <iparamb2.h>
 #include <iomanip>
 #include <vector>
@@ -19,6 +18,8 @@
 #include "plugin/ScopeManager.h"
 
 #pragma comment(lib,"Version.lib")
+
+using namespace std;
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -320,11 +321,97 @@ void AssertImpl(const MCHAR* expression, const MCHAR* file, const int line) {
     }
 }
 
+wstring GetFileNameFromPath(wstring filePath)
+{
+	const wchar_t kPathSeparator =
+#ifdef _WIN32
+		L'\\';
+#else
+		L'/';
+#endif
+	std::size_t pos = filePath.rfind(kPathSeparator);
+
+	if (pos == wstring::npos)
+	{
+		return filePath;
+	}
+
+	return filePath.substr(pos + 1, filePath.length() - pos - 1);
+}
+
+// helper function
+wstring LogMaxError(rpr_int code, const wstring& fileName, const int line)
+{
+	std::wstring errorMsg = GetRPRErrorString(code);
+
+	std::wstringstream messageStream;
+	messageStream << fileName.c_str() << _T(":") << line << _M("\nErrorCode:\n") << code << _M(", Message: \n") << errorMsg.c_str();
+	LogErrorStringToMaxLog(messageStream.str());
+
+	return messageStream.str();
+}
+
+void LogErrorStringToMaxLog(const wstring& str)
+{
+	GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, _M("Radeon ProRender - Error"), str.c_str());
+}
+
+void RPRResultCheckImpl(rpr_int code, const MCHAR* filePath, const int line)
+{
+	if (code != RPR_SUCCESS)
+	{
+		wstring fileName = GetFileNameFromPath(filePath);
+
+#if defined(FIREMAX_DEBUG)
+		AssertImpl(_T(""), fileName.c_str(), line);
+#endif
+		wstring resMessage = LogMaxError(code, fileName, line);
+
+#if !defined(FIREMAX_DEBUG)
+		MessageBox(GetCOREInterface()->GetMAXHWnd(), resMessage.c_str(), _T("Radeon ProRender Error"), MB_OK);
+#endif
+	}
+}
+
+std::wstring GetRPRErrorString(rpr_int code)
+{
+	std::wstring errorMsg;
+
+	switch (code)
+	{
+	case RPR_ERROR_OUT_OF_VIDEO_MEMORY: errorMsg = L"Out of video memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your GPU"; break;
+	case RPR_ERROR_OUT_OF_SYSTEM_MEMORY: errorMsg = L"Out of system memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your hardware"; break;
+	case RPR_ERROR_MATERIAL_STACK_OVERFLOW: errorMsg = L"Material Stack Overflow"; break;
+	case RPR_ERROR_COMPUTE_API_NOT_SUPPORTED: errorMsg = L"Compute API Not Supported"; break;
+	case RPR_ERROR_INVALID_LIGHTPATH_EXPR: errorMsg = L"Invalid LightPath Expression"; break;
+	case RPR_ERROR_INVALID_IMAGE: errorMsg = L"Invalid Image"; break;
+	case RPR_ERROR_INVALID_AA_METHOD: errorMsg = L"Invalid AA Method"; break;
+	case RPR_ERROR_UNSUPPORTED_IMAGE_FORMAT: errorMsg = L"Unsupported Image Format"; break;
+	case RPR_ERROR_INVALID_GL_TEXTURE: errorMsg = L"Invalid GL Texture"; break;
+	case RPR_ERROR_INVALID_CL_IMAGE: errorMsg = L"Invalid CL Image"; break;
+	case RPR_ERROR_INVALID_OBJECT: errorMsg = L"Invalid Object"; break;
+	case RPR_ERROR_INVALID_PARAMETER: errorMsg = L"Invalid Parameter"; break;
+	case RPR_ERROR_INVALID_TAG: errorMsg = L"Invalid Tag"; break;
+	case RPR_ERROR_INVALID_LIGHT: errorMsg = L"Invalid Light"; break;
+	case RPR_ERROR_INVALID_CONTEXT: errorMsg = L"Invalid Context"; break;
+	case RPR_ERROR_UNIMPLEMENTED: errorMsg = L"Unimplemented"; break;
+	case RPR_ERROR_INVALID_API_VERSION: errorMsg = L"Invalid API Version"; break;
+	case RPR_ERROR_INTERNAL_ERROR: errorMsg = L"Internal Error"; break;
+	case RPR_ERROR_IO_ERROR: errorMsg = L"IO Error"; break;
+	case RPR_ERROR_UNSUPPORTED_SHADER_PARAMETER_TYPE: errorMsg = L"Unsupported Shader Parameter Type"; break;
+	case RPR_ERROR_INVALID_PARAMETER_TYPE: errorMsg = L"Invalid Parameter Type"; break;
+	default:
+		errorMsg = L"Unspecified internal error";
+		break;
+	}
+
+	return errorMsg;
+}
+
 float GetUnitScale()
 {
 	return float(GetMasterScale(UNITS_METERS));
 }
-
 
 void UpdateBitmapWithToneOperator(Bitmap *bitmap) {
 	//change type of toneoperator if needed

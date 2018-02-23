@@ -284,11 +284,11 @@ void ScopeManagerMax::EnableRPRTrace(IParamBlock2 *pblock, bool enable)
 		}
 
 		auto res = rprContextSetParameterString(nullptr, "tracingfolder", ToAscii(traceFolder).c_str());
-		FASSERT(RPR_SUCCESS == res);
+		FCHECK(res);
 	}
 
 	auto res = rprContextSetParameter1u(nullptr, "tracing", enable ? 1 : 0);
-	FASSERT(RPR_SUCCESS == res);
+	FCHECK(res);
 }
 
 std::wstring ScopeManagerMax::GetRPRTraceDirectory(IParamBlock2 *pblock)
@@ -338,77 +338,85 @@ void ScopeManagerMax::ValidateParamBlock(IParamBlock2 *pblock)
 
 bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 {
-	if (!gpuComputed)
+	try
 	{
-		rpr_creation_flags devicesUsed = RPR_CREATION_FLAGS_ENABLE_GPU0 | RPR_CREATION_FLAGS_ENABLE_GPU1 | RPR_CREATION_FLAGS_ENABLE_GPU2 | RPR_CREATION_FLAGS_ENABLE_GPU3 |
-			RPR_CREATION_FLAGS_ENABLE_GPU4 | RPR_CREATION_FLAGS_ENABLE_GPU5 | RPR_CREATION_FLAGS_ENABLE_GPU6 | RPR_CREATION_FLAGS_ENABLE_GPU7;
-		rpr_creation_flags devicesCompatibleOut = 0;
-		rprAreDevicesCompatible(
-			"Tahoe64.dll",
-			NULL,
-			false,
-			devicesUsed,
-			&devicesCompatibleOut,
-#ifdef OSMac_
-			RPRTOS_MACOS
-#elif __linux__
-			RPRTOS_LINUX
-#else
-			RPRTOS_WINDOWS
-#endif
-		);
-
-		if (devicesCompatibleOut)
+		if (!gpuComputed)
 		{
-			for (int i = 0; i < 8; i++)
-			{
-				if (devicesCompatibleOut & gpuIdFlags[i])
-				{
-					rpr_context temporaryContext = 0;
-					if (CreateContext(gpuIdFlags[i], temporaryContext))
-					{
-						size_t deviceNameSize = 0;
-						int status = rprContextGetInfo(temporaryContext, gpuIdNames[i], 0, 0, &deviceNameSize);
-						if (status != RPR_SUCCESS) 
-						{ 
-							throw  RPR_ERROR_INVALID_PARAMETER; 
-						}
-
-						std::unique_ptr<char[]> dataBuffer (new char[deviceNameSize]);
-						status = rprContextGetInfo(temporaryContext, gpuIdNames[i], deviceNameSize, dataBuffer.get(), 0);
-						if (status != RPR_SUCCESS)
-						{ 
-							throw  RPR_ERROR_INVALID_PARAMETER; 
-						}
-
-						gpuInfoArray.emplace_back();
-						GpuInfo& info = gpuInfoArray.back();
-						info.name.clear();
-						info.name.append(dataBuffer.get());
-						info.isUsed = true;
-						info.isCompatible = true;
-						info.isWhiteListed = IsDeviceNameWhitelisted(
-							info.name.c_str(),
+			rpr_creation_flags devicesUsed = RPR_CREATION_FLAGS_ENABLE_GPU0 | RPR_CREATION_FLAGS_ENABLE_GPU1 | RPR_CREATION_FLAGS_ENABLE_GPU2 | RPR_CREATION_FLAGS_ENABLE_GPU3 |
+				RPR_CREATION_FLAGS_ENABLE_GPU4 | RPR_CREATION_FLAGS_ENABLE_GPU5 | RPR_CREATION_FLAGS_ENABLE_GPU6 | RPR_CREATION_FLAGS_ENABLE_GPU7;
+			rpr_creation_flags devicesCompatibleOut = 0;
+			rprAreDevicesCompatible(
+				"Tahoe64.dll",
+				NULL,
+				false,
+				devicesUsed,
+				&devicesCompatibleOut,
 #ifdef OSMac_
-							RPRTOS_MACOS
+				RPRTOS_MACOS
 #elif __linux__
-							RPRTOS_LINUX
+				RPRTOS_LINUX
 #else
-							RPRTOS_WINDOWS
+				RPRTOS_WINDOWS
 #endif
-						);
-						info.frFlags = gpuIdFlags[i];
+			);
 
-						auto res = rprObjectDelete(temporaryContext);
-						FASSERT(RPR_SUCCESS == res);
+			if (devicesCompatibleOut)
+			{
+				for (int i = 0; i < 8; i++)
+				{
+					if (devicesCompatibleOut & gpuIdFlags[i])
+					{
+						rpr_context temporaryContext = 0;
+						if (CreateContext(gpuIdFlags[i], temporaryContext))
+						{
+							size_t deviceNameSize = 0;
+							int status = rprContextGetInfo(temporaryContext, gpuIdNames[i], 0, 0, &deviceNameSize);
+							if (status != RPR_SUCCESS)
+							{
+								throw  RPR_ERROR_INVALID_PARAMETER;
+							}
+
+							std::unique_ptr<char[]> dataBuffer(new char[deviceNameSize]);
+							status = rprContextGetInfo(temporaryContext, gpuIdNames[i], deviceNameSize, dataBuffer.get(), 0);
+							if (status != RPR_SUCCESS)
+							{
+								throw  RPR_ERROR_INVALID_PARAMETER;
+							}
+
+							gpuInfoArray.emplace_back();
+							GpuInfo& info = gpuInfoArray.back();
+							info.name.clear();
+							info.name.append(dataBuffer.get());
+							info.isUsed = true;
+							info.isCompatible = true;
+							info.isWhiteListed = IsDeviceNameWhitelisted(
+								info.name.c_str(),
+#ifdef OSMac_
+								RPRTOS_MACOS
+#elif __linux__
+								RPRTOS_LINUX
+#else
+								RPRTOS_WINDOWS
+#endif
+							);
+							info.frFlags = gpuIdFlags[i];
+
+							auto res = rprObjectDelete(temporaryContext);
+							FCHECK(res);
+						}
 					}
 				}
 			}
-		}
 
-		gpuComputed = true;
+			gpuComputed = true;
+		}
+		numberCompatibleGPUs = gpuInfoArray.size();
 	}
-	numberCompatibleGPUs = gpuInfoArray.size();
+	catch (int res)
+	{
+		FCHECK(res);
+		return 0;
+	}
 	return (numberCompatibleGPUs > 0);
 }
 

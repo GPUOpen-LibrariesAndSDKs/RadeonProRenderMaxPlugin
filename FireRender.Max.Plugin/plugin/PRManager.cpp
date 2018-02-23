@@ -24,7 +24,6 @@
 #include "RprSupport.h"
 #include <wingdi.h>
 #include <math.h>
-#include <Bitmap.h>
 #include <shlobj.h>
 #include <gamma.h>
 
@@ -477,7 +476,7 @@ void ProductionRenderCore::Worker()
 		// Render failed
 		if (res != RPR_SUCCESS)
 		{
-			TheManager->Max()->Log()->LogEntry(SYSLOG_WARN, NO_DIALOG, L"Radeon ProRender - Warning", L"rprContextRender returned '%d'\n", res);
+			GetCOREInterface()->Log()->LogEntry(SYSLOG_WARN, NO_DIALOG, L"Radeon ProRender - Warning", L"rprContextRender returned '%d'\n", res);
 			Done(Result_Catastrophic, res);
 			return;
 		}
@@ -1219,9 +1218,9 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 #ifdef SWITCH_AXES
 	res = context.SetParameter("xflip", 1);
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 	res = context.SetParameter("yflip", 1);
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 #else
 	context.SetParameter("xflip", 0);
 	context.SetParameter("yflip", 1);
@@ -1409,34 +1408,8 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 	if (data->renderThread->errorCode != RPR_SUCCESS)
 	{
-		std::wstring errorMsg;
-		switch (data->renderThread->errorCode)
-		{
-			case RPR_ERROR_OUT_OF_VIDEO_MEMORY: errorMsg = L"Out of video memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your GPU"; break;
-			case RPR_ERROR_OUT_OF_SYSTEM_MEMORY: errorMsg = L"Out of system memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your hardware"; break;
-			case RPR_ERROR_MATERIAL_STACK_OVERFLOW: errorMsg = L"Material Stack Overflow"; break;
-			case RPR_ERROR_COMPUTE_API_NOT_SUPPORTED: errorMsg = L"Compute API Not Supported"; break;
-			case RPR_ERROR_INVALID_LIGHTPATH_EXPR: errorMsg = L"Invalid LightPath Expression"; break;
-			case RPR_ERROR_INVALID_IMAGE: errorMsg = L"Invalid Image"; break;
-			case RPR_ERROR_INVALID_AA_METHOD: errorMsg = L"Invalid AA Method"; break;
-			case RPR_ERROR_UNSUPPORTED_IMAGE_FORMAT: errorMsg = L"Unsupported Image Format"; break;
-			case RPR_ERROR_INVALID_GL_TEXTURE: errorMsg = L"Invalid GL Texture"; break;
-			case RPR_ERROR_INVALID_CL_IMAGE: errorMsg = L"Invalid CL Image"; break;
-			case RPR_ERROR_INVALID_OBJECT: errorMsg = L"Invalid Object"; break;
-			case RPR_ERROR_INVALID_PARAMETER: errorMsg = L"Invalid Parameter"; break;
-			case RPR_ERROR_INVALID_TAG: errorMsg = L"Invalid Tag"; break;
-			case RPR_ERROR_INVALID_LIGHT: errorMsg = L"Invalid Light"; break;
-			case RPR_ERROR_INVALID_CONTEXT: errorMsg = L"Invalid Context"; break;
-			case RPR_ERROR_UNIMPLEMENTED: errorMsg = L"Unimplemented"; break;
-			case RPR_ERROR_INVALID_API_VERSION: errorMsg = L"Invalid API Version"; break;
-			case RPR_ERROR_INTERNAL_ERROR: errorMsg = L"Internal Error"; break;
-			case RPR_ERROR_IO_ERROR: errorMsg = L"IO Error"; break;
-			case RPR_ERROR_UNSUPPORTED_SHADER_PARAMETER_TYPE: errorMsg = L"Unsupported Shader Parameter Type"; break;
-			case RPR_ERROR_INVALID_PARAMETER_TYPE: errorMsg = L"Invalid Parameter Type"; break;
-			default:
-				errorMsg = L"Unspecified internal error";
-				break;
-		}
+		std::wstring errorMsg = GetRPRErrorString(data->renderThread->errorCode);
+		
 		MessageBox(GetCOREInterface()->GetMAXHWnd(), errorMsg.c_str(), L"Radeon ProRender", MB_OK | MB_ICONERROR);
 	}
 
@@ -1516,47 +1489,47 @@ void PRManagerMax::SetupCamera(const ParsedView& view, const int imageWidth, con
 	Point3 camOriginOffset = Point3(0.f, 0.f, 0.f); // used to shift ortho camera origin so it can behave as "in infinity"
 
 	res = rprObjectSetName(outCamera, view.cameraNodeName.c_str());
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 
 	switch (view.projection) {
 	case P_PERSPECTIVE:
 	{
 		res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_PERSPECTIVE);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		res = rprCameraSetFocalLength(outCamera, view.focalLength);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		res = rprCameraSetSensorSize(outCamera, view.sensorWidth, view.sensorWidth / float(imageWidth) * float(imageHeight));
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		res = rprCameraSetTiltCorrection(outCamera, -view.tilt.x, -view.tilt.y);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 
 		if (view.useDof) {
 			res = rprCameraSetFStop(outCamera, view.fSTop);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			res = rprCameraSetApertureBlades(outCamera, view.bokehBlades);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 
 			res = rprCameraSetFocusDistance(outCamera, view.focusDistance);
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 		else {
 			res = rprCameraSetFStop(outCamera, std::numeric_limits<float>::infinity());
-			FASSERT(res == RPR_SUCCESS);
+			FCHECK(res);
 		}
 
 		break;
 	}
 	case P_ORTHO:
 		res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_ORTHOGRAPHIC);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 		res = rprCameraSetOrthoWidth(outCamera, view.orthoSize);
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 		res = rprCameraSetOrthoHeight(outCamera, view.orthoSize / float(imageWidth) * float(imageHeight));
-		FASSERT(res == RPR_SUCCESS);
+		FCHECK(res);
 		camOriginOffset.z += view.orthoSize*1.f;
 		break;
 	default:
@@ -1570,29 +1543,36 @@ void PRManagerMax::SetupCamera(const ParsedView& view, const int imageWidth, con
 	Point3 ROLL = tm.VectorTransform(Point3(0.f, 1.f, 0.f));
 
 	res = rprCameraLookAt(outCamera, ORIGIN.x, ORIGIN.y, ORIGIN.z, TARGET.x, TARGET.y, TARGET.z, ROLL.x, ROLL.y, ROLL.z);
-	FASSERT(res == RPR_SUCCESS);
+	FCHECK(res);
 
 	switch (FRCameraType(view.projectionOverride))
 	{
 		case FRCameraType_Default:break;
 		case FRCameraType_LatitudeLongitude_360:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_360);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_360);
+			FCHECK(res);
 			break;
 		case FRCameraType_LatitudeLongitude_Stereo:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_STEREO);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_LATITUDE_LONGITUDE_STEREO);
+			FCHECK(res);
 			break;
 		case FRCameraType_Cubemap:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP);
+			FCHECK(res);
 			break;
 		case FRCameraType_Cubemap_Stereo:
-			rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP_STEREO);
+			res = rprCameraSetMode(outCamera, RPR_CAMERA_MODE_CUBEMAP_STEREO);
+			FCHECK(res);
 			break;
 		default:
 			FASSERT(!"camera type not supported yet");
 	};
 
 	if (view.useMotionBlur)
-		rprCameraSetExposure(outCamera, view.cameraExposure);
+	{
+		res = rprCameraSetExposure(outCamera, view.cameraExposure);
+		FCHECK(res);
+	}
 }
 
 FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOV(rpr_aov aov)
