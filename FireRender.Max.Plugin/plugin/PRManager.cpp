@@ -1022,7 +1022,7 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 			rpr_scene scene = scope.GetScene().Handle();
 			std::vector<rpr_scene> scenes{ scene };
 
-			bool exportOk = rpr::ExportToGLTF( exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size() );
+			bool exportOk = rprExportToGLTF( exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size() );
 
 			if (!exportOk)
 			{
