@@ -224,6 +224,8 @@ EXPORT_TO_MAX int LibInitialize()
 		{ L"RprSupport64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"OpenImageIO_RPR.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 
+		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+	
 		{ L"embree.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"tbb.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"tbbmalloc.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },

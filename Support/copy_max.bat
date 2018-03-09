@@ -45,7 +45,8 @@ set EmbreeFiles=^
 set AxfFiles=^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxfConverter.dll"^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxFDecoding_r.dll"^
-	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"
+	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"^
+	"ThirdParty\RadeonProImageProcessing\Win\lib\RadeonImageFilters64.dll"
 
 set GltfFiles=^
 	"ThirdParty\RadeonProRender-GLTF\Win\lib\ProRenderGLTF.dll"

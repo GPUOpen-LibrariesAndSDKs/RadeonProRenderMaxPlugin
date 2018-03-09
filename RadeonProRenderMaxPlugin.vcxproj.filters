@@ -40,6 +40,9 @@
     <Filter Include="FireRender.Components\IESLight">
       <UniqueIdentifier>{64b38013-5056-419b-b971-85dac0854ae2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FireRender.Components\ImageFilter">
+      <UniqueIdentifier>{23ba0957-5c7a-4ccd-9cce-7f25fa290dba}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
@@ -300,6 +303,9 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Components\cpp\ImageFilter\ImageFilter.h">
+      <Filter>FireRender.Components\ImageFilter</Filter>
+    </ClInclude>
     <ClInclude Include="version.h" />
   </ItemGroup>
   <ItemGroup>
@@ -551,6 +557,9 @@
     <ClCompile Include="FireRender.Max.Plugin\MaxScriptHandler.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.cpp">
       <Filter>Plugin\materials</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Components\cpp\ImageFilter\ImageFilter.cpp">
+      <Filter>FireRender.Components\ImageFilter</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

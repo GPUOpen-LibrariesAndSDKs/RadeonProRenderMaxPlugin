@@ -145,7 +145,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>ProRenderGLTF.dll;RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
@@ -164,7 +164,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>ProRenderGLTF.dll;RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
     <ResourceCompile>
@@ -186,7 +186,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>ProRenderGLTF.dll;RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
@@ -208,7 +208,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>ProRenderGLTF.dll;RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
@@ -230,7 +230,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>ProRenderGLTF.dll;RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
@@ -252,13 +252,14 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>ProRenderGLTF.dll;RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll</DelayLoadDLLs>
+      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.h" />
     <ClInclude Include="FireRender.Components\cpp\IESLight\IESprocessor.h" />
+    <ClInclude Include="FireRender.Components\cpp\ImageFilter\ImageFilter.h" />
     <ClInclude Include="FireRender.Components\cpp\PluginContext\PluginContext.h" />
     <ClInclude Include="FireRender.Max.Plugin\3dsMaxDeclarations.h" />
     <ClInclude Include="FireRender.Max.Plugin\autotesting\Testing.h" />
@@ -353,6 +354,7 @@
   <ItemGroup>
     <ClCompile Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.cpp" />
     <ClCompile Include="FireRender.Components\cpp\IESLight\IESprocessor.cpp" />
+    <ClCompile Include="FireRender.Components\cpp\ImageFilter\ImageFilter.cpp" />
     <ClCompile Include="FireRender.Components\cpp\PluginContext\PluginContext.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Plugin.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp" />

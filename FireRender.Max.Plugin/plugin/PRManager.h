@@ -12,14 +12,19 @@
 #include <guplib.h>
 #include <notify.h>
 #include <iparamb2.h>
+
+#include <thread>
+
 #include "Common.h"
+#include "ParamBlock.h"
 #include "plugin/ManagerBase.h"
 #include "parser/RenderParameters.h"
 #include "parser/SceneCallbacks.h"
 #include "plugin/FireRenderer.h"
-#include <thread>
+#include "ImageFilter/ImageFilter.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+
+FIRERENDER_NAMESPACE_BEGIN
 
 #define MPMANAGER_VERSION 1
 
@@ -60,6 +65,7 @@ typedef enum
 	FrameBufferTypeId_ShadowCatcher,
 	FrameBufferTypeId_Background,
 	FrameBufferTypeId_Composite,
+	FrameBufferTypeId_CompositeResolve,
 } FramebufferTypeId;
 
 
@@ -107,6 +113,7 @@ private:
 		float toneMappingExposure;
 		bool isToneOperatorPreviewRender;
 		bool isAlphaEnabled;
+		bool isDenoiserEnabled;
 
 		class ProductionRenderCore* renderThread;
 		std::thread* helperThread;
@@ -115,20 +122,30 @@ private:
 		std::atomic<bool> bQuitHelperThread;
 		std::atomic<bool> bitmapUpdated;
 
-		Data()
-			: scopeId(-1)
-			, toneMappingExposure(1.0f)
-			, renderThread(nullptr)
-			, helperThread(nullptr)
-			, isToneOperatorPreviewRender(false)
-			, bRenderCancelled(false)
-			, isNormals(false)
-			, shouldToneMap(false)
-			, bitmapUpdated(false)
+		std::unique_ptr<ImageFilter> mDenoiser;
+
+		Data() :
+			scopeId(-1),
+			termCriteria(Termination_None),
+			passLimit(1),
+			timeLimit(10),
+			isNormals(false),
+			shouldToneMap(false),
+			toneMappingExposure(1.0f),
+			isToneOperatorPreviewRender(false),
+			isAlphaEnabled(false),
+			isDenoiserEnabled(false),
+
+			renderThread(nullptr),
+			helperThread(nullptr),
+			bRenderCancelled(false),
+			bRenderThreadDone(false),
+			bQuitHelperThread(false),
+			bitmapUpdated(false)
 		{}
 	};
 
-	std::map<FireRenderer *, Data *> mInstances;
+	std::map<FireRenderer*, Data*> mInstances;
 	
 	void CleanUpRender(FireRenderer *pRenderer);
 
@@ -136,14 +153,17 @@ private:
 
 	// reference maker
 	RefTargetHandle refTarget;
+
 	int NumRefs() override
 	{
 		return 1;
 	}
+
 	RefTargetHandle GetReference(int i) override
 	{
 		return refTarget;
 	}
+
 	void SetReference(int i, RefTargetHandle rtarg) override
 	{
 		refTarget = rtarg;
@@ -152,12 +172,16 @@ private:
 	{
 		ReplaceReference(0, rtarg);
 	}
+
 	RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override;
 
 	void SetupCamera(const ParsedView& view, const int imageWidth, const int imageHeight, rpr_camera outCamera);
 
 	FramebufferTypeId GetFramebufferTypeIdForAOV(rpr_aov aov);
 	FramebufferTypeId GetFramebufferTypeIdForAOVResolve(rpr_aov aov);
+
+	std::tuple<bool, DenoiserType> IsDenoiserEnabled(IParamBlock2* pb) const;
+	void SetupDenoiser(frw::Context context, PRManagerMax::Data* data, int imageWidth, int imageHeight, DenoiserType type, IParamBlock2* pb);
 };
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END
