@@ -6,6 +6,7 @@
 * 3ds Max storage of rendering plugin parameters
 *********************************************************************************************************************************/
 #pragma once
+
 #include "Common.h"
 #include "iparamm2.h"
 
@@ -13,7 +14,8 @@ FIRERENDER_NAMESPACE_BEGIN;
 
 /// IDs of different versions of the plugin. The ID is written in the saved files and can be read later during loading to
 /// potentially run a legacy-porting script.
-enum PbDescVersion {
+enum PbDescVersion
+{
     FIREMAXVER_DELIVERABLE_2 = 1234,
     FIREMAXVER_LATEST = FIREMAXVER_DELIVERABLE_2,
 };
@@ -36,8 +38,16 @@ enum PbDescVersion {
 
 std::tuple<float, float, float> GetRayCastConstants();
 
-enum Parameter : ParamID {
+enum DenoiserType
+{
+	DenoiserNone      = 0,
+	DenoiserBilateral = 1,
+	DenoiserLwr       = 2,
+	DenoiserEaw       = 3
+};
 
+enum Parameter : ParamID
+{
     /// INT: Maximum number of global illumination light bounces.
     PARAM_MAX_RAY_DEPTH                 = 101,
 
@@ -240,6 +250,18 @@ enum Parameter : ParamID {
 
 	// (Quality) Raycast Epsilon
 	PARAM_QUALITY_RAYCAST_EPSILON,
+
+	// Denoiser
+	PARAM_DENOISER_ENABLED          = 700,
+	PARAM_DENOISER_TYPE             = 701,
+	PARAM_DENOISER_BILATERAL_RADIUS = 710,
+	PARAM_DENOISER_LWR_SAMPLES      = 720,
+	PARAM_DENOISER_LWR_RADIUS       = 721,
+	PARAM_DENOISER_LWR_BANDWIDTH    = 722,
+	PARAM_DENOISER_EAW_COLOR        = 730,
+	PARAM_DENOISER_EAW_NORMAL       = 731,
+	PARAM_DENOISER_EAW_DEPTH        = 732,
+	PARAM_DENOISER_EAW_OBJECTID     = 733,
 };
 
 /// Descriptor of the rendering plugin parameter block. It specifies all parameters and their options the rendering plugin has

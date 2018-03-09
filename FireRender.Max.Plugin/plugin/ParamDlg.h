@@ -8,13 +8,18 @@
 *********************************************************************************************************************************/
 
 #pragma once
+
 #include "Common.h"
+#include "ManagerBase.h"
+#include "ParamBlock.h"
+
 #include <3dsmaxport.h>
 #include <stdint.h>
 #include <iparamm2.h>
+
 #include <map>
 #include <memory>
-#include "plugin/ManagerBase.h"
+#include <unordered_map>
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -562,19 +567,45 @@ protected:
 		void SetQualityPresets(int qualityLevel);
 	};
 
-	CGeneralSettings mGeneralSettings;
-	CHardwareSettings mHardwareSetting;
-	CCameraSettings mCameraSetting;
-	CTonemapSettings mTonemapSetting;
-	CAdvancedSettings mAdvancedSettings;
-	CScripts mScripts;
-	CBackgroundSettings mBackgroundSettings;
-	CAntialiasSettings mAntialiasSettings;
-	CQualitySettings mQualitySettings;
+	class CDenoiserSettings : public CRollout
+	{
+	public:
+		struct
+		{
+			ISpinnerControl* bilateralRadius = nullptr;
+			ISpinnerControl* lwrSamples = nullptr;
+			ISpinnerControl* lwrRadius = nullptr;
+			ISpinnerControl* lwrBandwidth = nullptr;
+			ISpinnerControl* eawColor = nullptr;
+			ISpinnerControl* eawNormal = nullptr;
+			ISpinnerControl* eawDepth = nullptr;
+			ISpinnerControl* eawObjectId = nullptr;
+		} controls;
 
+		std::unordered_map<int, std::pair<ISpinnerControl*, Parameter>> mParamById;
+
+	public:
+		void InitDialog() override;
+		void DestroyDialog() override;
+		INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
+
+		void setupUIFromData();
+	};
+
+	CGeneralSettings     mGeneralSettings;
+	CHardwareSettings    mHardwareSetting;
+	CCameraSettings      mCameraSetting;
+	CTonemapSettings     mTonemapSetting;
+	CAdvancedSettings    mAdvancedSettings;
+	CScripts             mScripts;
+	CBackgroundSettings  mBackgroundSettings;
+	CAntialiasSettings   mAntialiasSettings;
+	CQualitySettings     mQualitySettings;
+	CDenoiserSettings    mDenoiserSettings;
 
 	std::string uncertifiedGpuNames;
 	std::string outDatedDriverGpuNames;
+
 public:
 
     /// Constructs the UI dialog and intializes it with current render settings, and sets itself as the current dialog in the 

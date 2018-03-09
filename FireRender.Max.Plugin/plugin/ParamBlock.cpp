@@ -24,6 +24,38 @@ static const float rprRenderRaycastEpsilonMin = 0.0f;
 static const float rprRenderRaycastEpsilonMax = 0.01f;
 static const float rprRenderRaycastEpsilonDefault = 0.00002f;
 
+static const int bilateralRadiusDefault = 3;
+static const int bilateralRadiusMin = 1;
+static const int bilateralRadiusMax = 10;
+
+static const int lwrSamplesDefault = 4;
+static const int lwrSamplesMin = 1;
+static const int lwrSamplesMax = 10;
+
+static const int lwrRadiusDefault = 4;
+static const int lwrRadiusMin = 1;
+static const int lwrRadiusMax = 10;
+
+static const float lwrBandwidthDefault = 0.1f;
+static const float lwrBandwidthMin = 0.1f;
+static const float lwrBandwidthMax = 1.0f;
+
+static const float eawColorDefault = 0.1f;
+static const float eawColorMin = 0.1f;
+static const float eawColorMax = 1.0f;
+
+static const float eawNormalDefault = 0.1f;
+static const float eawNormalMin = 0.1f;
+static const float eawNormalMax = 1.0f;
+
+static const float eawDepthDefault = 0.1f;
+static const float eawDepthMin = 0.1f;
+static const float eawDepthMax = 1.0f;
+
+static const float eawObjectIdDefault = 0.1f;
+static const float eawObjectIdMin = 0.1f;
+static const float eawObjectIdMax = 1.0f;
+
 std::tuple<float, float, float> GetRayCastConstants()
 {
 	return std::make_tuple(rprRenderRaycastEpsilonMin, rprRenderRaycastEpsilonMax, rprRenderRaycastEpsilonDefault);
@@ -418,9 +450,40 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	p_default, Color(1.0f, 1.0f, 1.0f), p_accessor, &theBgAccessor, PB_END,
 
 	PARAM_QUALITY_RAYCAST_EPSILON, _T("raycastEpsilon"), TYPE_FLOAT, 0, 0, p_default, rprRenderRaycastEpsilonDefault,
-		p_range, rprRenderRaycastEpsilonMin, rprRenderRaycastEpsilonMax, PB_END,
+	p_range, rprRenderRaycastEpsilonMin, rprRenderRaycastEpsilonMax, PB_END,
 
-	PB_END);
+	// Denoiser
+	PARAM_DENOISER_ENABLED, _T("enableDenoiser"), TYPE_BOOL, 0, 0,
+	p_default, FALSE, PB_END,
+
+	PARAM_DENOISER_TYPE, _T("denoiserType"), TYPE_INT, 0, 0,
+	p_default, DenoiserNone, PB_END,
+
+	PARAM_DENOISER_BILATERAL_RADIUS, _T("bilateralRadius"), TYPE_INT, 0, 0, p_default,
+	bilateralRadiusDefault, p_range, bilateralRadiusMin, bilateralRadiusMax, PB_END,
+
+	PARAM_DENOISER_LWR_SAMPLES, _T("lwrSamples"), TYPE_INT, 0, 0, p_default,
+	lwrSamplesDefault, p_range, lwrSamplesMin, lwrSamplesMax, PB_END,
+
+	PARAM_DENOISER_LWR_RADIUS, _T("lwrRadius"), TYPE_INT, 0, 0, p_default,
+	lwrRadiusDefault, p_range, lwrRadiusMin, lwrRadiusMax, PB_END,
+
+	PARAM_DENOISER_LWR_BANDWIDTH, _T("lwrBandwidth"), TYPE_FLOAT, 0, 0, p_default,
+	lwrBandwidthDefault, p_range, lwrBandwidthMin, lwrBandwidthMax, PB_END,
+
+	PARAM_DENOISER_EAW_COLOR, _T("eawColor"), TYPE_FLOAT, 0, 0, p_default,
+	eawColorDefault, p_range, eawColorMin, eawColorMax, PB_END,
+
+	PARAM_DENOISER_EAW_NORMAL, _T("eawNormal"), TYPE_FLOAT, 0, 0, p_default,
+	eawNormalDefault, p_range, eawNormalMin, eawNormalMax, PB_END,
+
+	PARAM_DENOISER_EAW_DEPTH, _T("eawDepth"), TYPE_FLOAT, 0, 0, p_default,
+	eawDepthDefault, p_range, eawDepthMin, eawDepthMax, PB_END,
+
+	PARAM_DENOISER_EAW_OBJECTID, _T("eawObjectId"), TYPE_FLOAT, 0, 0, p_default,
+	eawObjectIdDefault, p_range, eawObjectIdMin, eawObjectIdMax, PB_END,
+
+PB_END);
 
 
 void BgAccessor::Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid)

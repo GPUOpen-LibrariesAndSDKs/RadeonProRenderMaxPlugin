@@ -10,7 +10,6 @@
 
 #include "PRManager.h"
 #include "resource.h"
-#include "ParamBlock.h"
 #include "utils/Thread.h"
 #include "AssetManagement\IAssetAccessor.h"
 #include "assetmanagement\AssetType.h"
@@ -28,8 +27,13 @@
 #include <gamma.h>
 
 #include <mutex>
-#include <future>
+
 #include "RprComposite.h"
+
+#include "RadeonProRender_CL.h"
+#include "RadeonImageFilters.h"
+#include "RadeonImageFilters_cl.h"
+
 
 extern HINSTANCE hInstance;
 
@@ -83,25 +87,33 @@ public:
 	std::atomic<bool> regionMode;
 	Box2 region;
 
-	std::future<void> copyResult; // for async: If the std::future obtained from std::async is not moved from or bound to a reference, 
-								  // the destructor of the std::future will block at the end of the full expression until the asynchronous operation completes,
-								  // essentially making code synchronous
-
 	std::mutex frameDataBuffersLock;
-	std::mutex rprBuffersLock;
 
 	// To ensure that we are finished with RPRCopyFrameData
 	Event rprCopyFrameDataDoneEvent;
 
-private:
+	ImageFilter* mDenoiser = nullptr;
+
+public:
 	frw::Scope scope;
 	frw::FrameBuffer frameBufferColor;
 	frw::FrameBuffer frameBufferColorResolve;
 	frw::FrameBuffer frameBufferAlpha;
 	frw::FrameBuffer frameBufferAlphaResolve;
+
+	// shadow catcher buffers
 	frw::FrameBuffer frameBufferShadowCatcher;
 	frw::FrameBuffer frameBufferBackground;
 	frw::FrameBuffer frameBufferComposite;
+	frw::FrameBuffer frameBufferCompositeResolve;
+
+	// denoiser buffers (doesn't need normilezed copies because they are equal to the original ones)
+	frw::FrameBuffer frameBufferShadingNormal;
+	frw::FrameBuffer frameBufferDepth;
+	frw::FrameBuffer frameBufferWorldCoordinate;
+	frw::FrameBuffer frameBufferObjectId;
+
+private:
 	Event eRestart;
 
 	void SaveFrameData(void);
@@ -124,7 +136,9 @@ public:
 	bool CopyFrameDataToBitmap(::Bitmap* bitmap);
 	void RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const;
 
-	explicit ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
+	explicit ProductionRenderCore(frw::Scope rscope, int width, int height, bool bRenderAlpha, bool denoiserEnabled,
+		int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
+
 	void Worker() override;
 
 	void Done(TerminationResult res, rpr_int err)
@@ -149,17 +163,30 @@ public:
 	void Restart();
 
 	void CompositeOutput(bool flip);
+
+	void SetDenoiser(ImageFilter* denoiser)
+	{
+		mDenoiser = denoiser;
+	}
 };
 
 void ProductionRenderCore::RPRCopyFrameData()
 {
-	rprBuffersLock.lock();
-
 	// get data from RPR and put it to back buffer
 	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> tmpFrameData = std::make_unique<ProductionRenderCore::FrameDataBuffer>();
 
-	// get rgb
-	tmpFrameData->colorData = frameBufferColorResolve.GetPixelData();
+	if (isShadowCatcherEnabled)
+	{
+		tmpFrameData->colorData = frameBufferCompositeResolve.GetPixelData();
+	}
+	else if (mDenoiser)
+	{
+		tmpFrameData->colorData = mDenoiser->GetData();
+	}
+	else
+	{
+		tmpFrameData->colorData = frameBufferColorResolve.GetPixelData();
+	}
 
 	// get alpha
 	if (frameBufferAlpha)
@@ -171,8 +198,6 @@ void ProductionRenderCore::RPRCopyFrameData()
 	tmpFrameData->timePassed = timePassed;
 	tmpFrameData->passesDone = passesDone;
 
-	rprBuffersLock.unlock();
-
 	// Swap new frame with the old one in the buffer
 	frameDataBuffersLock.lock();
 	pLastFrameData = std::move(tmpFrameData);
@@ -183,31 +208,38 @@ void ProductionRenderCore::RPRCopyFrameData()
 
 void ProductionRenderCore::SaveFrameData()
 {
-	rprBuffersLock.lock();
-
-	// Resolve & save Color buffer
-	if (isShadowCatcherEnabled)
+	try
 	{
-		// calculate picture composed of rendered image and several aov's (including shadow catcher)
-		CompositeOutput(false);
-	}
-	else
-	{
-		frameBufferColor.Resolve(frameBufferColorResolve);
+		if (isShadowCatcherEnabled)
+		{
+			// calculate picture composed of rendered image and several aov's (including shadow catcher)
+			CompositeOutput(false);
+			frameBufferComposite.Resolve(frameBufferCompositeResolve);
+		}
+		else
+		{
+			frameBufferColor.Resolve(frameBufferColorResolve);
 
-		// Resolve & save Alpha buffer
+			if (mDenoiser)
+			{
+				mDenoiser->Run();
+			}
+		}
+
 		if (isAlphaEnabled)
 		{
 			frameBufferAlpha.Resolve(frameBufferAlphaResolve);
 		}
-	}
 
-	rprBuffersLock.unlock();
-
-	if (!isShadowCatcherEnabled)
-	{
 		rprCopyFrameDataDoneEvent.Reset();
-		copyResult = std::async(std::launch::async, &ProductionRenderCore::RPRCopyFrameData, this);
+		RPRCopyFrameData();
+	}
+	catch (std::exception& e)
+	{
+		AbortImmediate();
+		rprCopyFrameDataDoneEvent.Fire();
+		MessageBoxA(GetCOREInterface()->GetMAXHWnd(), e.what(), "Radeon ProRender", MB_OK | MB_ICONERROR);
+		return;
 	}
 }
 
@@ -231,11 +263,12 @@ bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 	return true;
 }
 
-ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha, int width, int height, int priority, const char* name) :
-	BaseThread(name, priority),
-	scope(rscope),
-	eRestart(true),
-	bImmediateAbort(false)
+ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int height, bool bRenderAlpha, bool denoiserEnabled,
+	int priority, const char* name) :
+		BaseThread(name, priority),
+		scope(rscope),
+		eRestart(true),
+		bImmediateAbort(false)
 {
 	// termination
 	passLimit = 1;
@@ -278,6 +311,7 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 
 		// buffers for results
 		frameBufferComposite = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Composite);
+		frameBufferCompositeResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_CompositeResolve);
 
 		isAlphaEnabled = true;
 		useMaxTonemapper = false;
@@ -289,6 +323,22 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, bool bRenderAlpha,
 		frameBufferAlpha = scope.GetFrameBuffer(width, height, FramebufferTypeId_Alpha);
 		frameBufferAlphaResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_AlphaResolve);
 		ctx.SetAOV(frameBufferAlpha, RPR_AOV_OPACITY);
+	}
+
+	// additional frame buffers for denoising
+	if (denoiserEnabled)
+	{
+		frameBufferShadingNormal = scope.GetFrameBuffer(width, height, FramebufferTypeId_ShadingNormal);
+		ctx.SetAOV(frameBufferShadingNormal, RPR_AOV_SHADING_NORMAL);
+
+		frameBufferDepth = scope.GetFrameBuffer(width, height, FramebufferTypeId_Depth);
+		ctx.SetAOV(frameBufferDepth, RPR_AOV_DEPTH);
+
+		frameBufferWorldCoordinate = scope.GetFrameBuffer(width, height, FramebufferTypeId_WorldCoordinate);
+		ctx.SetAOV(frameBufferWorldCoordinate, RPR_AOV_WORLD_COORDINATE);
+
+		frameBufferObjectId = scope.GetFrameBuffer(width, height, FramebufferTypeId_ObjectId);
+		ctx.SetAOV(frameBufferObjectId, RPR_AOV_OBJECT_ID);
 	}
 }
 
@@ -379,18 +429,6 @@ void ProductionRenderCore::CompositeOutput(bool flip)
 	// Compute results from step 2 into separate framebuffer
 	rpr_int status = rprCompositeCompute(compositeLerp2, frameBufferComposite.Handle());
 	FASSERT(RPR_SUCCESS == status);
-
-	// Copy the frame buffer into the supplied pixel buffer.
-	std::unique_ptr<ProductionRenderCore::FrameDataBuffer> tmpFrameData = std::make_unique<ProductionRenderCore::FrameDataBuffer>();
-	tmpFrameData->colorData = frameBufferComposite.GetPixelData();
-
-	// Save additional frame data
-	tmpFrameData->timePassed = timePassed;
-	tmpFrameData->passesDone = passesDone;
-
-	frameDataBuffersLock.lock();
-	pLastFrameData = std::move(tmpFrameData);
-	frameDataBuffersLock.unlock();
 }
 
 void ProductionRenderCore::Worker()
@@ -774,15 +812,18 @@ void PRManagerMax::NotifyProc(void *param, NotifyInfo *info)
 	}
 }
 
-void PRManagerMax::CleanUpRender(FireRenderer *pRenderer)
+void PRManagerMax::CleanUpRender(FireRenderer* pRenderer)
 {
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
+
 	if (dd != mInstances.end())
 	{
 		auto data = dd->second;
+
 		if (data->helperThread)
 		{
 			data->helperThread->join();
+
 			delete data->helperThread;
 			data->helperThread = nullptr;
 		}
@@ -792,10 +833,11 @@ void PRManagerMax::CleanUpRender(FireRenderer *pRenderer)
 			data->renderThread->Abort();
 
 			if (!data->bRenderThreadDone)
+			{
 				bmDone.Wait();
+			}
 
 			delete data->renderThread;
-
 			data->renderThread = nullptr;
 		}
 	}
@@ -1047,7 +1089,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	if (isShadowCatcherEnabled)
 		bRenderAlpha = true;
 
-	//Render Elements
+	// Render Elements
 	auto renderElementMgr = parameters.rendParams.GetRenderElementMgr();
 	
 	if (renderElementMgr)
@@ -1227,8 +1269,15 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 #endif
 
 	SetupCamera(parser->view, renderWidth, renderHeight, camera.Handle());
-	
-	data->renderThread = new ProductionRenderCore(scope, bRenderAlpha, renderWidth, renderHeight);
+
+	// setup Denoiser
+	bool isDenoiserEnabled = false;
+	DenoiserType denoiserType = DenoiserNone;
+
+	std::tie(isDenoiserEnabled, denoiserType ) = IsDenoiserEnabled(parameters.pblock);
+
+	// setup ProductionRenderCore data
+	data->renderThread = new ProductionRenderCore(scope, renderWidth, renderHeight, bRenderAlpha, isDenoiserEnabled);
 	data->renderThread->term = data->termCriteria;
 	data->renderThread->passLimit = data->passLimit;
 	data->renderThread->timeLimit = data->timeLimit;
@@ -1241,6 +1290,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->renderThread->useMaxTonemapper = isShadowCatcherEnabled ? false : !overrideTonemappers;
 	data->renderThread->regionMode = (parameters.rendParams.rendType == RENDTYPE_REGION);
 	data->isAlphaEnabled = bRenderAlpha;
+	data->isDenoiserEnabled = isDenoiserEnabled;
 
 	if (data->renderThread->regionMode)
 	{
@@ -1255,6 +1305,13 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 			region.SetWH(xmax - xmin, ymax - ymin);
 			data->renderThread->region = region;
 		}
+	}
+
+	// denoiser setup procedure uses frame buffers created in ProductionRenderCore
+	if (isDenoiserEnabled)
+	{
+		SetupDenoiser(context, data, renderWidth, renderHeight, denoiserType, parameters.pblock);
+		data->renderThread->SetDenoiser(data->mDenoiser.get());
 	}
 
 	// bmDone event will be fired when renderThread finished his job
@@ -1286,7 +1343,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 	std::wstring prevProgressString;
 	HWND shaderCacheDlg = NULL;
-	
+
 	while (true)
 	{
 		MSG msg;
@@ -1462,6 +1519,115 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	return returnValue;
 }
 
+std::tuple<bool, DenoiserType> PRManagerMax::IsDenoiserEnabled(IParamBlock2* pb) const
+{
+	BOOL isDenoiserEnabled = false;
+	int denoiserType = DenoiserNone;
+
+	BOOL res = pb->GetValue(PARAM_DENOISER_ENABLED, 0, isDenoiserEnabled, Interval());
+	FASSERT(res);
+
+	if (isDenoiserEnabled)
+	{
+		res = pb->GetValue(PARAM_DENOISER_TYPE, 0, denoiserType, Interval());
+		FASSERT(res);
+
+		isDenoiserEnabled = denoiserType != DenoiserNone;
+	}
+
+	return std::make_tuple(static_cast<bool>(isDenoiserEnabled), static_cast<DenoiserType>(denoiserType));
+}
+
+
+void PRManagerMax::SetupDenoiser(frw::Context context, PRManagerMax::Data* data, int imageWidth, int imageHeight,
+	DenoiserType type, IParamBlock2* pb)
+{
+	const rpr_framebuffer fbColor = data->renderThread->frameBufferColorResolve.Handle();
+	const rpr_framebuffer fbShadingNormal = data->renderThread->frameBufferShadingNormal.Handle();
+	const rpr_framebuffer fbDepth = data->renderThread->frameBufferDepth.Handle();
+	const rpr_framebuffer fbWorldCoord = data->renderThread->frameBufferWorldCoordinate.Handle();
+	const rpr_framebuffer fbObjectId = data->renderThread->frameBufferObjectId.Handle();
+	const rpr_framebuffer fbTrans = fbObjectId;
+
+	data->mDenoiser.reset( new ImageFilter(context.Handle(), imageWidth, imageHeight) );
+	ImageFilter& filter = *data->mDenoiser;
+
+	if (DenoiserBilateral == type)
+	{
+		filter.CreateFilter(RifFilterType::BilateralDenoise);
+		filter.AddInput(RifColor, fbColor, 0.3f);
+		filter.AddInput(RifNormal, fbShadingNormal, 0.01f);
+		filter.AddInput(RifWorldCoordinate, fbWorldCoord, 0.01f);
+
+		int bilateralRadius = 0;
+		BOOL res = pb->GetValue(PARAM_DENOISER_BILATERAL_RADIUS, 0, bilateralRadius, FOREVER);
+		FASSERT(res);
+
+		RifParam p = { RifParamType::RifInt, bilateralRadius };
+		filter.AddParam("radius", p);
+	}
+	else if (DenoiserLwr == type)
+	{
+		filter.CreateFilter(RifFilterType::LwrDenoise);
+		filter.AddInput(RifColor, fbColor, 0.1f);
+		filter.AddInput(RifNormal, fbShadingNormal, 0.1f);
+		filter.AddInput(RifDepth, fbDepth, 0.1f);
+		filter.AddInput(RifWorldCoordinate, fbWorldCoord, 0.1f);
+		filter.AddInput(RifObjectId, fbObjectId, 0.1f);
+		filter.AddInput(RifTrans, fbTrans, 0.1f);
+
+		RifParam p;
+
+		int lwrSamples = 0;
+		BOOL res = pb->GetValue(PARAM_DENOISER_LWR_SAMPLES, 0, lwrSamples, FOREVER);
+		FASSERT(res);
+
+		p = { RifParamType::RifInt, lwrSamples };
+		filter.AddParam("samples", p);
+
+		int lwrRadius = 0;
+		res = pb->GetValue(PARAM_DENOISER_LWR_RADIUS, 0, lwrRadius, FOREVER);
+		FASSERT(res);
+
+		p = { RifParamType::RifInt, lwrRadius };
+		filter.AddParam("halfWindow", p);
+
+		float lwrBandwidth = 0;
+		res = pb->GetValue(PARAM_DENOISER_LWR_BANDWIDTH, 0, lwrBandwidth, FOREVER);
+		FASSERT(res);
+
+		p.mType = RifParamType::RifFloat;
+		p.mData.f = lwrBandwidth;
+		filter.AddParam("bandwidth", p);
+	}
+	else if (DenoiserEaw == type)
+	{
+		filter.CreateFilter(RifFilterType::EawDenoise);
+
+		float sigma = 0.0f;
+		BOOL res = pb->GetValue(PARAM_DENOISER_EAW_COLOR, 0, sigma, FOREVER);
+		FASSERT(res);
+		filter.AddInput(RifColor, fbColor, sigma);
+	
+		res = pb->GetValue(PARAM_DENOISER_EAW_NORMAL, 0, sigma, FOREVER);
+		FASSERT(res);
+		filter.AddInput(RifNormal, fbShadingNormal, sigma);
+
+		res = pb->GetValue(PARAM_DENOISER_EAW_DEPTH, 0, sigma, FOREVER);
+		FASSERT(res);
+		filter.AddInput(RifDepth, fbDepth, sigma);
+
+		res = pb->GetValue(PARAM_DENOISER_EAW_OBJECTID, 0, sigma, FOREVER);
+		FASSERT(res);
+		filter.AddInput(RifTrans, fbTrans, sigma);
+
+		filter.AddInput(RifWorldCoordinate, fbWorldCoord, 0.1f);
+		filter.AddInput(RifObjectId, fbObjectId, 0.1f);
+	}
+
+	filter.AttachFilter();
+}
+
 void PRManagerMax::Abort(FireRenderer *pRenderer)
 {
 	auto dd = mInstances.find(static_cast<FireRenderer*>(pRenderer));
@@ -1631,7 +1797,5 @@ const MCHAR* PRManagerMax::GetStampHelp()
 		HELP("%d", "current date and time")
 		HELP("%b", "Radeon ProRenderer version number");
 }
-
-#undef HELP
 
 FIRERENDER_NAMESPACE_END;

@@ -9,8 +9,7 @@
 
 #include "plugin/ParamDlg.h"
 #include "plugin/FireRenderer.h"
-#include "ParamBlock.h"
-#include <RadeonProRender.h>
+#include "RadeonProRender.h"
 #include "utils/Utils.h"
 #include "plugin/FRSettingsFileHandler.h"
 #include "plugin/FireRenderEnvironment.h"
@@ -115,6 +114,8 @@ FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRende
 		
 	mQualitySettings.Init(ir, IDD_RENDER_QUALITYSETTINGS, (const MCHAR*)_T("Quality"), this, true, &kSettingsTabID);
 
+	mDenoiserSettings.Init(ir, IDD_RENDER_DENOISER, (const MCHAR*)_T("Denoiser"), this, true, &kSettingsTabID);
+
 	mCameraSetting.Init(ir, IDD_RENDER_CAMERASETTINGS, (const MCHAR*)_T("Camera"), this, true, &kSettingsTabID);
 
 	mTonemapSetting.Init(ir, IDD_RENDER_TONEMAPPING, (const MCHAR*)_T("Tonemap"), this, true, &kSettingsTabID);
@@ -130,14 +131,16 @@ FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRende
 	mQualitySettings.setupUIFromData();
 
 	std::wstring strVersion;
+
 	if (GetProductAndVersion(strProductName, strProductVersion))
 	{
 		strVersion = strProductName + L" " + strProductVersion;
 	}
+
 	SetDlgItemText(mAdvancedSettings.Hwnd(), IDC_VERSION, strVersion.c_str());
 	SetDlgItemText(mScripts.Hwnd(), IDC_VERSION, strVersion.c_str());
 
-	if(!readOnly)
+	if (!readOnly)
 		processUncertifiedGpuWarning();
 }
 
@@ -149,6 +152,7 @@ FireRenderParamDlg::~FireRenderParamDlg()
 	mBackgroundSettings.DeleteRollout();
 	mTonemapSetting.DeleteRollout();
 	mCameraSetting.DeleteRollout();
+	mDenoiserSettings.DeleteRollout();
 	mQualitySettings.DeleteRollout();
 	mHardwareSetting.DeleteRollout();
 	mGeneralSettings.DeleteRollout();
@@ -1948,7 +1952,8 @@ INT_PTR FireRenderParamDlg::CBackgroundSettings::DlgProc(UINT msg, WPARAM wParam
 				break;
 			}
 		}
-		else if (submsg == 0) switch (controlId)
+		else if (submsg == 0)
+		switch (controlId)
 		{
 			case IDC_BG_RESET:
 			{
@@ -2814,6 +2819,190 @@ void FireRenderParamDlg::CQualitySettings::SetQualityPresets(int qualityLevel)
 	ApplyPreset(global_presetTable, mOwner->mAdvancedSettings.Hwnd(), qualityLevel);
 }
 
+
+
+void FireRenderParamDlg::CDenoiserSettings::InitDialog()
+{
+	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+
+	// setup "Enable" checkbox
+	SetupCheckbox(pb, PARAM_DENOISER_ENABLED, IDC_DENOISER_ENABLE);
+
+	// setup radio buttons based on denoise type
+	int denoiserType = DenoiserNone;
+	BOOL res = pb->GetValue(PARAM_DENOISER_TYPE, 0, denoiserType, Interval());
+	FASSERT(res);
+
+	struct DenoiserTypeItem
+	{
+		DenoiserType mType;
+		int          mUiId;
+	};
+
+	static const std::vector<DenoiserTypeItem> types =
+	{ 
+		{ DenoiserBilateral, IDC_DENOISER_BILATERAL },
+		{ DenoiserLwr,       IDC_DENOISER_LWR },
+		{ DenoiserEaw,       IDC_DENOISER_EAW }
+	};
+
+	for (const DenoiserTypeItem& type : types)
+	{
+		denoiserType == type.mType ? CheckRadioButton(type.mUiId) : UnCheckRadioButton(type.mUiId);
+	}
+
+	// Bilateral parameters
+	controls.bilateralRadius = SetupSpinner(pb, PARAM_DENOISER_BILATERAL_RADIUS, IDC_DENOISER_BILATERAL_RADIUS, IDC_DENOISER_BILATERAL_RADIUS_S);
+
+	// LWR parameters
+	controls.lwrSamples = SetupSpinner(pb, PARAM_DENOISER_LWR_SAMPLES, IDC_DENOISER_LWR_SAMPLES, IDC_DENOISER_LWR_SAMPLES_S);
+	controls.lwrRadius = SetupSpinner(pb, PARAM_DENOISER_LWR_RADIUS, IDC_DENOISER_LWR_RADIUS, IDC_DENOISER_LWR_RADIUS_S);
+	controls.lwrBandwidth = SetupSpinner(pb, PARAM_DENOISER_LWR_BANDWIDTH, IDC_DENOISER_LWR_BANDWIDTH, IDC_DENOISER_LWR_BANDWIDTH_S);
+
+	// EAW parameters
+	controls.eawColor = SetupSpinner(pb, PARAM_DENOISER_EAW_COLOR, IDC_DENOISER_EAW_COLOR, IDC_DENOISER_EAW_COLOR_S);
+	controls.eawNormal = SetupSpinner(pb, PARAM_DENOISER_EAW_NORMAL, IDC_DENOISER_EAW_NORMAL, IDC_DENOISER_EAW_NORMAL_S);
+	controls.eawDepth = SetupSpinner(pb, PARAM_DENOISER_EAW_DEPTH, IDC_DENOISER_EAW_DEPTH, IDC_DENOISER_EAW_DEPTH_S);
+	controls.eawObjectId = SetupSpinner(pb, PARAM_DENOISER_EAW_OBJECTID, IDC_DENOISER_EAW_OBJECTID, IDC_DENOISER_EAW_OBJECTID_S);
+
+	// fill in 
+	std::unordered_map<int, std::pair<ISpinnerControl*, Parameter>> paramById
+	{
+		{ IDC_DENOISER_BILATERAL_RADIUS_S, { controls.bilateralRadius, PARAM_DENOISER_BILATERAL_RADIUS } },
+		{ IDC_DENOISER_LWR_SAMPLES_S,      { controls.lwrSamples, PARAM_DENOISER_LWR_SAMPLES } },
+		{ IDC_DENOISER_LWR_RADIUS_S,       { controls.lwrRadius, PARAM_DENOISER_LWR_RADIUS } },
+		{ IDC_DENOISER_LWR_BANDWIDTH_S,    { controls.lwrBandwidth, PARAM_DENOISER_LWR_BANDWIDTH } },
+		{ IDC_DENOISER_EAW_COLOR_S,        { controls.eawColor, PARAM_DENOISER_EAW_COLOR } },
+		{ IDC_DENOISER_EAW_NORMAL_S,       { controls.eawNormal, PARAM_DENOISER_EAW_NORMAL } },
+		{ IDC_DENOISER_EAW_DEPTH_S,        { controls.eawDepth, PARAM_DENOISER_EAW_DEPTH } },
+		{ IDC_DENOISER_EAW_OBJECTID_S,     { controls.eawObjectId, PARAM_DENOISER_EAW_OBJECTID } },
+	};
+
+	mParamById = std::move(paramById);
+
+	mIsReady = true;
+}
+
+void FireRenderParamDlg::CDenoiserSettings::DestroyDialog()
+{
+	if (mIsReady)
+	{
+		mIsReady = false;
+
+		ReleaseISpinner(controls.bilateralRadius);
+		ReleaseISpinner(controls.lwrSamples);
+		ReleaseISpinner(controls.lwrRadius);
+		ReleaseISpinner(controls.lwrBandwidth);
+		ReleaseISpinner(controls.eawColor);
+		ReleaseISpinner(controls.eawNormal);
+		ReleaseISpinner(controls.eawDepth);
+		ReleaseISpinner(controls.eawObjectId);
+
+		mParamById.clear();
+	}
+}
+
+INT_PTR FireRenderParamDlg::CDenoiserSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	static const std::unordered_map<int, DenoiserType> typeById = 
+	{
+		{ IDC_DENOISER_BILATERAL, DenoiserBilateral },
+		{ IDC_DENOISER_LWR, DenoiserLwr },
+		{ IDC_DENOISER_EAW, DenoiserEaw },
+	};
+
+	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+
+	switch (msg)
+	{
+		case WM_COMMAND:
+		{
+			int idButton = (int) LOWORD(wParam);
+
+			switch (HIWORD(wParam))
+			{
+				case BN_CLICKED:
+				{
+					switch (idButton)
+					{
+					case IDC_DENOISER_ENABLE:
+						if (mIsReady)
+						{
+							BOOL value = BOOL(IsDlgButtonChecked(mHwnd, IDC_DENOISER_ENABLE));
+							BOOL res = pb->SetValue(PARAM_DENOISER_ENABLED, 0, value);
+							FASSERT(res);
+						}
+						break;
+
+					case IDC_DENOISER_BILATERAL:
+					case IDC_DENOISER_LWR:
+					case IDC_DENOISER_EAW:
+						if (mIsReady)
+						{
+							BOOL res = pb->SetValue(PARAM_DENOISER_TYPE, 0, typeById.at(idButton));
+							FASSERT(res);
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		case CC_SPINNER_CHANGE:
+		{
+			int idSpinner = (int) LOWORD(wParam);
+
+			switch (idSpinner)
+			{
+			case IDC_DENOISER_BILATERAL_RADIUS:
+			case IDC_DENOISER_LWR_SAMPLES:
+			case IDC_DENOISER_LWR_RADIUS:
+			case IDC_DENOISER_LWR_BANDWIDTH:
+			case IDC_DENOISER_EAW_COLOR:
+			case IDC_DENOISER_EAW_NORMAL:
+			case IDC_DENOISER_EAW_DEPTH:
+			case IDC_DENOISER_EAW_OBJECTID:
+				if (mIsReady)
+				{
+					CommitSpinnerToParam(pb, idSpinner);
+				}
+				break;
+
+			case IDC_DENOISER_BILATERAL_RADIUS_S:
+			case IDC_DENOISER_LWR_SAMPLES_S:
+			case IDC_DENOISER_LWR_RADIUS_S:
+				if (mIsReady)
+				{
+					int value = mParamById.at(idSpinner).first->GetIVal();
+					BOOL res = pb->SetValue(mParamById.at(idSpinner).second, 0, value);
+					FASSERT(res);
+				}
+				break;
+
+			case IDC_DENOISER_LWR_BANDWIDTH_S:
+			case IDC_DENOISER_EAW_COLOR_S:
+			case IDC_DENOISER_EAW_NORMAL_S:
+			case IDC_DENOISER_EAW_DEPTH_S:
+			case IDC_DENOISER_EAW_OBJECTID_S:
+				if (mIsReady)
+				{
+					float value = mParamById.at(idSpinner).first->GetFVal();
+					BOOL res = pb->SetValue(mParamById.at(idSpinner).second, 0, value);
+					FASSERT(res);
+				}
+				break;
+			}
+		}
+
+	}
+
+	return TRUE;
+}
+
+void FireRenderParamDlg::CDenoiserSettings::setupUIFromData()
+{
+}
+
 void FireRenderParamDlg::DeleteThis()
 {
 	mScripts.DestroyDialog();
@@ -2822,6 +3011,7 @@ void FireRenderParamDlg::DeleteThis()
 	mBackgroundSettings.DestroyDialog();
 	mTonemapSetting.DestroyDialog();
 	mCameraSetting.DestroyDialog();
+	mDenoiserSettings.DestroyDialog();
 	mQualitySettings.DestroyDialog();
 	mHardwareSetting.DestroyDialog();
 	mGeneralSettings.DestroyDialog();
@@ -2832,6 +3022,7 @@ void FireRenderParamDlg::DeleteThis()
 	mBackgroundSettings.DeleteRollout();
 	mTonemapSetting.DeleteRollout();
 	mCameraSetting.DeleteRollout();
+	mDenoiserSettings.DeleteRollout();
 	mQualitySettings.DeleteRollout();
 	mHardwareSetting.DeleteRollout();
 	mGeneralSettings.DeleteRollout();
