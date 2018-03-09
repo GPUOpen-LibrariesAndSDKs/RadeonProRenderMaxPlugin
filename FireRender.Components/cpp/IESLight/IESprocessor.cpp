@@ -17,9 +17,12 @@
 #include <map>
 #include <functional>
 #include <clocale>
+#include <cmath>
+#include <float.h>
 #include "IESprocessor.h"
 
 const char* IESProcessor::IES_FileTag = "IESNA";
+const char* IESProcessor::IES_FileExtraTag = "TILT=NONE";
 
 IESProcessor::IESLightData::IESLightData()
 {
@@ -175,27 +178,35 @@ std::string IESProcessor::ToString(const IESLightData& lightData) const
 void IESProcessor::SplitLine(std::vector<std::string>& tokens, const std::string& lineToParse) const
 {
 	// split string
-	std::istringstream iss(lineToParse); // will be able to separate string to substrings dividing them by spaces
-	std::vector<std::string> line_tokens
-	(
-		std::istream_iterator<std::string>(iss), {} // iterator iterates through sub strings separated by space values
-	);
+	std::size_t prev = 0;
+	std::size_t pos = 0;
 
-	// add splited strings 
-	tokens.insert(tokens.end(), line_tokens.begin(), line_tokens.end());
+	do
+	{
+		pos = lineToParse.find_first_of(" ,;", prev);
+
+		if (pos > prev)
+			tokens.push_back(lineToParse.substr(prev, pos - prev));
+
+		if (pos == std::string::npos)
+			break;
+
+		prev = pos + 1;
+	} while (prev < lineToParse.length());
 }
 
 // if line starts not with a number after space character then this is a line with extra data
 // if line has spaces and the numbers than this is a line with data to be parsed
 bool LineHaveNumbers(const std::string& lineToParse)
 {
-	const char* c = lineToParse.c_str();
-	while (c && isspace((unsigned char)*c))
-	{
-		++c;
-	}
+	size_t firstNumberPos = lineToParse.find_first_of("0123456789-.,");
 
-	return (isdigit(*c) || (*c == '-'));
+	if (firstNumberPos == std::string::npos)
+		return false;
+
+	// check if there are any non-space characters before number (text string might have text and numbers mixed)
+	std::size_t found = lineToParse.find_first_not_of(' ');
+	return (found == firstNumberPos);
 }
 
 IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>& tokens, std::string& text, std::ifstream& inputFile) const
@@ -205,25 +216,42 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 	std::string lineToParse;
 
 	// file is not IES file => return
+	bool hasIESFileTag = true;
 	if (!std::getline(inputFile, lineToParse))
 	{
 		return IESProcessor::ErrorCode::NOT_IES_FILE;
 	}
-	
-	text += lineToParse += "\n";
 
-	if (std::strncmp(text.c_str(), IES_FileTag, 5) != 0)
+	text += lineToParse + "\n";
+
+	if ((lineToParse.compare(0, IES_TagSize, IES_FileTag) != 0) &&
+		(lineToParse.compare(0, IES_ExtraTagSize, IES_FileExtraTag) != 0))
 	{
-		return IESProcessor::ErrorCode::NOT_IES_FILE;
+		// no IES file tag but can still be IES file
+		hasIESFileTag = false;
 	}
 
 	// parse file line after line
 	while (std::getline(inputFile, lineToParse))
 	{
+		// IES file consists of 2 parts:
+		// - text with some information about light manufacturers and laboratory that made light mesaurments
+		// - IES light data
+		bool hasReachedIESDataSegment = LineHaveNumbers(lineToParse) && hasIESFileTag;
+
 		// skip all data irrelevant for render
-		if (!LineHaveNumbers(lineToParse))
+		// - before we encounter ies file tag we skip lines with numbers as well
+		if (!hasReachedIESDataSegment)
 		{
-			text += lineToParse += "\n";
+			text += lineToParse + "\n";
+
+			// - check line for IES file tag
+			if (!hasIESFileTag)
+			{
+				if (lineToParse.compare(0, IES_ExtraTagSize, IES_FileExtraTag) == 0)
+					hasIESFileTag = true;
+			}
+
 			continue;
 		}
 
@@ -231,7 +259,7 @@ IESProcessor::ErrorCode IESProcessor::GetTokensFromFile(std::vector<std::string>
 		SplitLine(tokens, lineToParse);
 	}
 
-	return IESProcessor::ErrorCode::SUCCESS;
+	return (hasIESFileTag) ? IESProcessor::ErrorCode::SUCCESS : IESProcessor::ErrorCode::NOT_IES_FILE;
 }
 
 bool ReadDouble(const std::string& input, double& output)
@@ -477,7 +505,7 @@ bool IESProcessor::ReadValue(IESLightData& lightData, IESProcessor::ParseState& 
 		return false;
 
 	// read values from input
-	auto& parseFuncImpl = m_parseImpl.find(state);
+	const auto& parseFuncImpl = m_parseImpl.find(state);
 	if (parseFuncImpl != m_parseImpl.end())
 	{
 		state = parseFuncImpl->second(lightData, value);
@@ -515,6 +543,10 @@ IESProcessor::ErrorCode IESProcessor::ParseTokens(IESLightData& lightData, std::
 
 IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const wchar_t* filename) const
 {
+#if defined(OSMac_)
+	// Todo : std::ifstream does not take a wchar_t filename on OSX
+	return IESProcessor::ErrorCode::NO_FILE;
+#else
 	// back-off
 	if (filename == nullptr)
 	{
@@ -559,6 +591,7 @@ IESProcessor::ErrorCode IESProcessor::Parse(IESLightData& lightData, const wchar
 
 	// parse successfull!
 	return IESProcessor::ErrorCode::SUCCESS;
+#endif
 }
 
 IESProcessor::ErrorCode IESProcessor::Update(IESLightData& lightData, const IESUpdateRequest& req) const
