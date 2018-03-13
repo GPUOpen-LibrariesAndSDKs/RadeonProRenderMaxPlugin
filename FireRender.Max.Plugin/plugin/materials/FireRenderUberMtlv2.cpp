@@ -14,7 +14,7 @@
 #include <functional>
 #include <unordered_map>
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 namespace
 {
@@ -139,8 +139,6 @@ FRMTLCLASSDESCNAME(UberMtlv2) FRMTLCLASSNAME(UberMtlv2)::ClassDescInstance;
 
 
 BasicParamsDlgProc dlgProcBasicParams;
-HWND BasicParamsDlgProc::hwndTip = nullptr;
-TOOLINFO BasicParamsDlgProc::toolInfo = { 0 };
 
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
@@ -350,7 +348,8 @@ static ParamBlockDesc2 pbDesc(
 
 	// Refraction link to Reflection
 	FRUBERMTLV2_REFRACTION_LINK_TO_REFLECTION, _T("LinkToReflection"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, FALSE, p_ui, ROLLOUT_BASIC_PARAMS, TYPE_SINGLECHEKBOX, IDC_UBER_REFRACTION_LINK_TO_REFLECTION, PB_END,
+	p_default, FALSE, p_ui, ROLLOUT_BASIC_PARAMS, TYPE_SINGLECHEKBOX, IDC_UBER_REFRACTION_LINK_TO_REFLECTION,
+	p_tooltip, IDS_MTL_UBER2_LINK_TTP, PB_END,
 
 
 
@@ -1066,7 +1065,6 @@ INT_PTR BasicParamsDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UIN
 	static std::unordered_map<UINT, MsgProc> msgProc = 
 	{
 		{ WM_INITDIALOG, MsgProcInitDialog },
-		{ WM_CLOSE, MsgProcClose },
 		{ WM_COMMAND, MsgProcCommand },
 	};
 
@@ -1106,23 +1104,6 @@ INT_PTR BasicParamsDlgProc::MsgProcInitDialog(TimeValue t, IParamMap2* map, HWND
 		HWND hCombo = GetDlgItem(hDlg, IDC_UBER_REFLECTION_MODE);
 		ComboBox_Enable(hCombo, FALSE);
 	}
-
-	// create tooltip
-	SetupTooltip(hDlg, hCheckbox);
-
-	// attach tooltip to the opening dialog
-	toolInfo.hwnd = hDlg;
-	toolInfo.uId = (UINT_PTR) hCheckbox;
-
-	SendMessage(hwndTip, TTM_ADDTOOL, 0, (LPARAM) &toolInfo);
-
-	return 1;
-}
-
-INT_PTR BasicParamsDlgProc::MsgProcClose(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
-{
-	// detach tooltip from the closing dialog
-	SendMessage(hwndTip, TTM_DELTOOL, 0, (LPARAM) &toolInfo);
 
 	return 1;
 }
@@ -1171,26 +1152,4 @@ INT_PTR BasicParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hD
 	return processed;
 }
 
-void BasicParamsDlgProc::SetupTooltip(HWND hDlg, HWND hCtl)
-{
-	if (nullptr == hwndTip)
-	{
-		hwndTip = CreateWindowEx(NULL, TOOLTIPS_CLASS, NULL, WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
-			CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-			hDlg, NULL, FireRender::fireRenderHInstance, NULL);
-
-		SetWindowPos(hwndTip, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
-
-		toolInfo.cbSize = sizeof(toolInfo);
-		toolInfo.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
-		toolInfo.hwnd = hDlg;
-		toolInfo.uId = (UINT_PTR) hCtl;
-		toolInfo.rect = { 0 };
-		toolInfo.hinst = nullptr;
-		toolInfo.lpszText = _T("Linked mode works only if reflection workflow is set to IOR");
-		toolInfo.lParam = 0;
-		toolInfo.lpReserved = nullptr;
-	}
-}
-
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END
