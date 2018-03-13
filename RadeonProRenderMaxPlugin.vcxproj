@@ -148,6 +148,9 @@
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">
     <ClCompile>
@@ -189,6 +192,9 @@
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'">
     <ClCompile>
@@ -211,6 +217,9 @@
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">
     <ClCompile>
@@ -233,6 +242,9 @@
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2018|x64'">
     <ClCompile>
@@ -255,6 +267,9 @@
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.h" />
