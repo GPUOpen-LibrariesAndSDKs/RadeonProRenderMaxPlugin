@@ -14,89 +14,141 @@
 #include "Resource.h"
 
 #include "max.h"
-#include <iparamm2.h>
-
-
+#include "iparamm2.h"
 #include "renderElements.h"
-
-#include <iparamb2.h>
+#include "iparamb2.h"
 #include "plugin.h"
 
-TCHAR *GetString( int id )
-{
-    static TCHAR buf[256];
-    
-    if (FireRender::fireRenderHInstance) {
-        return LoadString(FireRender::fireRenderHInstance, id, buf, _countof(buf)) ? buf : NULL;
-    }
-    
-    return NULL;
-}
+
 
 // pblock parameter ids
-enum { enableOn,
-       filterOn,
-	   atmosphereOn,
-	   shadowOn,
-	   eleName,
-	   pbBitmap };
-//	   pathName };
+enum
+{
+	enableOn,
+	filterOn,
+	atmosphereOn,
+	shadowOn,
+	eleName,
+	pbBitmap
+};
 
 
-class AOVRenderElement: public IRenderElement {
+
+class AOVRenderElement : public IRenderElement
+{
+	IParamBlock2* mPblock = nullptr;
 
 public:
+	ClassDesc2* mClassDesc;
+	const wchar_t* mName;
 
-	ClassDesc2& classDesc;
-	StringResID nameId;
-	StringResID typeNameId;
-
-	AOVRenderElement(ClassDesc2& classDesc, StringResID nameId, StringResID typeNameId):
-		classDesc(classDesc)
-		, nameId(nameId)
-		, typeNameId(typeNameId)
+public:
+	AOVRenderElement(ClassDesc2* classDesc, const wchar_t* name) :
+		mClassDesc(classDesc),
+		mName(name)
 	{
-		classDesc.MakeAutoParamBlocks(this);
-		FASSERT(pblock);
+		assert(classDesc != nullptr);
+		assert(name != nullptr);
+
+		classDesc->MakeAutoParamBlocks(this);
+		FASSERT(mPblock);
 		SetElementName( GetName() );
 	}
 
-	~AOVRenderElement(){
+	virtual ~AOVRenderElement()
+	{
 	}
 
-	RefTargetHandle Clone( RemapDir &remap ) override {
-		return 0;
+	RefTargetHandle Clone(RemapDir& remap) override
+	{
+		AOVRenderElement* newElement = new AOVRenderElement(mClassDesc, mName);
+		newElement->ReplaceReference(0, remap.CloneRef(mPblock));
+		BaseClone(this, newElement, remap);
+
+		return static_cast<RefTargetHandle>(newElement);
 	}
 
-	int NumSubs()  override { return 1; }
-	Animatable* SubAnim(int i) override { return i? NULL : pblock; }
-	TSTR SubAnimName(int i) override { return i ? L"" : L"pblock"; }
+	int NumSubs() override
+	{
+		return 1;
+	}
 
-	int NumRefs() override { return 1;};
-	RefTargetHandle GetReference(int i)override { return i? NULL : pblock; }
+	Animatable* SubAnim(int i) override
+	{
+		return 0 == i ? mPblock : NULL;
+	}
+
+	TSTR SubAnimName(int i) override
+	{
+		return 0 == i ? L"pblock" : L"";
+	}
+
+	int NumRefs() override
+	{
+		return 1;
+	};
+
+	RefTargetHandle GetReference(int i) override
+	{
+		return 0 == i ? mPblock : NULL;
+	}
+
 private:
-	virtual void SetReference(int i, RefTargetHandle rtarg) override { 
+	virtual void SetReference(int i, RefTargetHandle rtarg) override
+	{ 
 		if ( i == 0 ) 
-			pblock = (IParamBlock2*)rtarg; 
+			mPblock = (IParamBlock2*) rtarg;
 	}
-public:
-	int	NumParamBlocks() override { return 1; }
-	IParamBlock2* GetParamBlock(int i) override { return pblock; } // only one
-	IParamBlock2* GetParamBlockByID(BlockID id) override { return (pblock->ID() == id) ? pblock : NULL; }
-    
-	Class_ID ClassID() override  {return classDesc.ClassID(); }
-    TSTR GetName() { return GetString(nameId); }
-    void GetClassName(TSTR& s) override  { s = GetString(typeNameId); }
 
-	IRenderElementParamDlg *CreateParamDialog(IRendParams *ip) override {
+public:
+	int	NumParamBlocks() override
+	{
+		return 1;
+	}
+
+	IParamBlock2* GetParamBlock(int i) override
+	{
+		return mPblock;
+	}
+	
+	IParamBlock2* GetParamBlockByID(BlockID id) override
+	{
+		return (mPblock->ID() == id) ? mPblock : NULL;
+	}
+    
+	Class_ID ClassID() override
+	{
+		return mClassDesc->ClassID();
+	}
+
+    TSTR GetName() override
+	{
+		return mName;
+	}
+
+    void GetClassName(TSTR& s) override
+	{
+		static const wchar_t* classNameStr = L"RPR AOV";
+
+		s = classNameStr;
+	}
+
+	IRenderElementParamDlg* CreateParamDialog(IRendParams* ip) override
+	{
 		return 0;
 	}
-	virtual void Update(TimeValue t, Interval& valid) override {}
-	virtual int RenderBegin(TimeValue t, ULONG flags) override {
+
+	virtual void Update(TimeValue t, Interval& valid) override
+	{
+	}
+
+	virtual int RenderBegin(TimeValue t, ULONG flags) override
+	{
 		return true;
 	}
     
-	BOOL AtmosphereApplied() const override {
+	BOOL AtmosphereApplied() const override
+	{
 		return false;
 	}
 
@@ -104,164 +156,247 @@ public:
 	{ 
 		return SpecialFX::GetInterface(id);
 	}
-	void ReleaseInterface(ULONG,void *) override {}
-	void SetEnabled(BOOL on) override {
-		pblock->SetValue( enableOn, 0, on );
+
+	void ReleaseInterface(ULONG, void *) override
+	{
 	}
-	BOOL IsEnabled(void) const override {
+
+	void SetEnabled(BOOL on) override
+	{
+		mPblock->SetValue(enableOn, 0, on);
+	}
+
+	BOOL IsEnabled(void) const override
+	{
 		int on;
-		pblock->GetValue( enableOn, 0, on, FOREVER );
+		mPblock->GetValue(enableOn, 0, on, FOREVER);
+
 		return on;
 	}
-	void SetFilterEnabled(BOOL on) override {
-		pblock->SetValue( filterOn, 0, on );
+
+	void SetFilterEnabled(BOOL on) override
+	{
+		mPblock->SetValue(filterOn, 0, on);
 	}
-	BOOL IsFilterEnabled(void) const override {
+
+	BOOL IsFilterEnabled(void) const override
+	{
 		int on;
-		pblock->GetValue( filterOn, 0, on, FOREVER );
+		mPblock->GetValue(filterOn, 0, on, FOREVER);
+
 		return on;
 	}
-	BOOL BlendOnMultipass(void) const override {
+
+	BOOL BlendOnMultipass(void) const override
+	{
 		return false;
 	}
-	BOOL ShadowsApplied(void) const override {
+
+	BOOL ShadowsApplied(void) const override
+	{
 		return false;
 	}
-	void SetElementName(const wchar_t *value) override {
-		pblock->SetValue( eleName, 0, value );
+
+	void SetElementName(const wchar_t* value) override
+	{
+		mPblock->SetValue(eleName, 0, value);
 	}
-	const wchar_t *ElementName(void) const override {
+
+	const wchar_t* ElementName(void) const override
+	{
 		const TCHAR* s = NULL;
-		pblock->GetValue( eleName, 0, s, FOREVER );
+		mPblock->GetValue(eleName, 0, s, FOREVER);
+
 		return s;
 	}
-	void SetPBBitmap(PBBitmap *&b) const override {
-		int i_w = b->bi.Width(), i_h = b->bi.Height();
-		auto path = b->bi.Name();
-		pblock->SetValue( pbBitmap, 0, b );
+
+	void SetPBBitmap(PBBitmap *&b) const override
+	{
+		mPblock->SetValue(pbBitmap, 0, b);
 	}
 
-	void GetPBBitmap(PBBitmap *&b) const override {
-		pblock->GetValue( pbBitmap, 0, b, FOREVER );
+	void GetPBBitmap(PBBitmap *&b) const override
+	{
+		mPblock->GetValue(pbBitmap, 0, b, FOREVER);
 	}
-    
-private:
-
-	IParamBlock2 *pblock = nullptr;
 };
 
 
-class AOVRenderElementClassDesc:public ClassDesc2
+
+class AOVRenderElementClassDesc : public ClassDesc2
 {
-	Class_ID classId;
+	Class_ID mClassId;
 
-	StringResID classNameId;
-
-	StringResID nameId;
-	StringResID typeNameId;
+	const wchar_t* mClassName;
+	const wchar_t* mName;
 
 public:
-	AOVRenderElementClassDesc(Class_ID classId, StringResID classNameId, StringResID nameId, StringResID typeNameId):
-		classId(classId)
-		,classNameId(classNameId)
-		, nameId(nameId)
-		, typeNameId(typeNameId)
-		{}
+ 	AOVRenderElementClassDesc(Class_ID classId, const wchar_t* className, const wchar_t* name) :
+		mClassId(classId),
+		mClassName(className),
+		mName(name)
+	{
+		assert(className);
+		assert(name);
+	}
 
-    int 			IsPublic() { return TRUE; }
-    void *			Create(BOOL loading) { return new AOVRenderElement(*this, nameId, typeNameId); }
-    const TCHAR *	ClassName() { return GetString(classNameId); }
-    SClass_ID		SuperClassID() { return RENDER_ELEMENT_CLASS_ID; }
-    Class_ID 		ClassID() { return classId; }
-    const TCHAR* 	Category() { return _T(""); }
-    const TCHAR*	InternalName() { return GetString(typeNameId); }
-    HINSTANCE		HInstance() { 
+    int IsPublic() override
+	{
+		return TRUE;
+	}
+
+    void* Create(BOOL loading) override
+	{
+		return new AOVRenderElement(this, mName);
+	}
+
+    const TCHAR* ClassName() override
+	{
+		return mName;
+	}
+
+    SClass_ID SuperClassID() override
+	{
+		return RENDER_ELEMENT_CLASS_ID;
+	}
+
+    Class_ID ClassID() override
+	{
+		return mClassId;
+	}
+
+    const TCHAR* Category() override
+	{
+		return _T("IRenderElement");
+	}
+
+    const TCHAR* InternalName() override
+	{
+		return mClassName;
+	}
+  
+	HINSTANCE HInstance() override
+	{ 
 		using namespace FireRender;
+
 		FASSERT(fireRenderHInstance != NULL);
+
 		return fireRenderHInstance;
 	}
 };
 
-void printRenderElement(IRenderElement* renderElement) {
-	MSTR className;
-	renderElement->GetClassName(className);
-				
-	Class_ID classId = renderElement->ClassID();
 
-	FireRender::debugPrint(
-		std::wstring(L"isAOVRenderElement: {")
-		+ L"Class_ID("
-			+std::to_wstring(classId.PartA())
-			+L", "
-			+std::to_wstring(classId.PartB())+L")"
-		+L","
-		+L"\""+std::wstring(className)+L"\""
-		+L"},");
-}
 
-class AOVElementXXX{
+class AOVElementXXX
+{
 public:
-	AOVRenderElementClassDesc desc;
-	std::unique_ptr<ParamBlockDesc2> pblock;
-	rpr_aov frAov;
+	std::shared_ptr<AOVRenderElementClassDesc> mDesc;
+	std::shared_ptr<ParamBlockDesc2> mPblock;
+	rpr_aov mAov;
 
-	AOVElementXXX(rpr_aov frAov, StringResID classNameId, StringResID nameId, StringResID typeNameId, Class_ID classId): 
-		frAov(frAov), desc(classId, classNameId, nameId, typeNameId) {
-		pblock = std::make_unique<ParamBlockDesc2>
-			(0, _T(""), 0, &desc, P_AUTO_CONSTRUCT, 0,
+public:
+	AOVElementXXX() :
+		mAov(RPR_AOV_MAX)
+	{
+	}
 
-		enableOn, _T("enabled"), TYPE_BOOL, 0, IDS_ENABLED,
-			p_default, TRUE,
-		p_end,
+	~AOVElementXXX()
+	{
+	}
 
-		filterOn, _T("filterOn"), TYPE_BOOL, 0, IDS_FILTER_ON,
-			p_default, TRUE,
-		p_end,
+	AOVElementXXX(rpr_aov frAov, const wchar_t* className, const wchar_t* name, Class_ID classId) :
+		mAov(frAov)
+	{
+		assert(frAov > RPR_AOV_COLOR && frAov < RPR_AOV_MAX);
+		assert(className != nullptr);
+		assert(name != nullptr);
 
-		eleName, _T("elementName"), TYPE_STRING, 0, IDS_ELEMENT_NAME,
-			p_default, _T(""),
-		p_end,
+		mDesc = std::make_shared<AOVRenderElementClassDesc>(classId, className, name);
 
-		pbBitmap, _T("bitmap"), TYPE_BITMAP, 0, IDS_BITMAP,
-		p_end,
-
-		p_end
+		mPblock = std::make_shared<ParamBlockDesc2>(0, _T(""), 0, mDesc.get(), P_AUTO_CONSTRUCT, 0,
+			enableOn, _T("enabled"), TYPE_BOOL, 0, IDS_ENABLED, p_default, TRUE, p_end,
+			filterOn, _T("filterOn"), TYPE_BOOL, 0, IDS_FILTER_ON, p_default, TRUE, p_end,
+			eleName, _T("elementName"), TYPE_STRING, 0, IDS_ELEMENT_NAME, p_default, _T(""), p_end,
+			pbBitmap, _T("bitmap"), TYPE_BITMAP, 0, IDS_BITMAP, p_end,
+			p_end
 		);
+	}
+
+	AOVElementXXX(const AOVElementXXX& rhs)
+	{
+		mDesc = rhs.mDesc;
+		mPblock = rhs.mPblock;
+		mAov = rhs.mAov;
+	}
+
+	AOVElementXXX(AOVElementXXX&& rhs)
+	{
+		mDesc = rhs.mDesc;
+		mPblock = rhs.mPblock;
+		mAov = rhs.mAov;
+
+		rhs.mDesc.reset();
+		rhs.mPblock.reset();
+	}
+
+	AOVElementXXX& operator=(const AOVElementXXX& rhs)
+	{
+		mDesc = rhs.mDesc;
+		mPblock = rhs.mPblock;
+		mAov = rhs.mAov;
 	}
 };
 
-#define element(name, classId) \
-	{RPR_AOV_##name, IDS_RENDER_ELEMENT_##name, IDS_RENDER_ELEMENT_##name##_NAME, IDS_RENDER_ELEMENT_##name##_TYPE_NAME, classId}
 
-static const int AOVRenderElementCount = 8;
-static AOVElementXXX AOVRenderElements[AOVRenderElementCount] = {
-	element(OPACITY, Class_ID(0x209e157d, 0x652b22f3)),
-	element(WORLD_COORDINATE, Class_ID(0x2b206111, 0x214071d8)),
-	element(UV, Class_ID(0x4f084770, 0x5a6e19c1)),
-	element(MATERIAL_IDX, Class_ID(0x5fa228b7, 0x52b85c68)),
-	element(GEOMETRIC_NORMAL, Class_ID(0x61d978d9, 0x5b02258)),
-	element(SHADING_NORMAL, Class_ID(0x1f557d30, 0x628a6d6c)),
-	element(DEPTH, Class_ID(0x73f37173, 0x17b71f13)),
-	element(OBJECT_ID, Class_ID(0x6e556ec6, 0x4774515b)),
+
+static std::vector<AOVElementXXX> AOVRenderElements =
+{
+	{ RPR_AOV_OPACITY, L"RprOpacity", L"RPR : Opacity", Class_ID(0x209e157d, 0x652b22f3) },
+	{ RPR_AOV_WORLD_COORDINATE, L"RprWorldCoordinate", L"RPR : World Coordinate", Class_ID(0x2b206111, 0x214071d8) },
+	{ RPR_AOV_UV, L"RprUV", L"RPR : UV", Class_ID(0x4f084770, 0x5a6e19c1) },
+	{ RPR_AOV_MATERIAL_IDX, L"RprMaterialIdx", L"RPR : Material Index", Class_ID(0x5fa228b7, 0x52b85c68) },
+	{ RPR_AOV_GEOMETRIC_NORMAL, L"RprGeometricNormal", L"RPR : Geometric Normal", Class_ID(0x61d978d9, 0x5b02258) },
+	{ RPR_AOV_SHADING_NORMAL, L"RprShadingNormal", L"RPR : Shading Normal", Class_ID(0x1f557d30, 0x628a6d6c) },
+	{ RPR_AOV_DEPTH, L"RprDepth", L"RPR : Depth", Class_ID(0x73f37173, 0x17b71f13) },
+	{ RPR_AOV_OBJECT_ID, L"RprObjectId", L"RPR : Object Id", Class_ID(0x6e556ec6, 0x4774515b) },
+	{ RPR_AOV_OBJECT_GROUP_ID, L"RprObjectGroupId", L"RPR : Object Group Id", Class_ID(0x1d4e3072, 0x1da02872) },
+	{ RPR_AOV_BACKGROUND, L"RprBackground", L"RPR : Background", Class_ID(0x106a41f0, 0x12bd4e2a) },
+	{ RPR_AOV_EMISSION, L"RprEmission", L"RPR : Emission", Class_ID(0x58373b7f, 0x3a14077a) },
+	{ RPR_AOV_VELOCITY, L"RprVelocity", L"RPR : Velocity", Class_ID(0x579077b0, 0x51732d75) },
+	{ RPR_AOV_DIRECT_ILLUMINATION, L"RprDirectIllumination", L"RPR : Direct Illumination", Class_ID(0x48a9465e, 0x5f8f347f) },
+	{ RPR_AOV_INDIRECT_ILLUMINATION, L"RprIndirectIllumination", L"RPR : Indirect Illumination", Class_ID(0x51bf04a7, 0x79a202c9) },
+	{ RPR_AOV_AO, L"RprAO", L"RPR : Ambient Occlusion", Class_ID(0x6d69675a, 0x56672c13) },
+	{ RPR_AOV_DIRECT_DIFFUSE, L"RprDirectDiffuse", L"RPR : Direct Diffuse", Class_ID(0x65ff44a8, 0x16e318bc) },
+	{ RPR_AOV_DIRECT_REFLECT, L"RprDirectReflect", L"RPR : Direct Reflect", Class_ID(0x5cfc21b7, 0x44a31fba) },
+	{ RPR_AOV_INDIRECT_DIFFUSE, L"RprIndirectDiffuse", L"RPR : Indirect Diffuse", Class_ID(0x53c808fb, 0x5ba824c3) },
+	{ RPR_AOV_INDIRECT_REFLECT, L"RprIndirectReflect", L"RPR : Indirect Reflect", Class_ID(0x53bd322c, 0x2a184bdf) },
+	{ RPR_AOV_REFRACT, L"RprRefract", L"RPR : Refract", Class_ID(0x359b767a, 0x70fb474e) },
+	{ RPR_AOV_VOLUME, L"RprVolume", L"RPR : Volume", Class_ID(0x19aa705d, 0x1a5c6a47) }
 };
 
-int GetAOVElementClassDescCount() { 
-	return AOVRenderElementCount;
+
+
+int GetAOVElementClassDescCount()
+{ 
+	return AOVRenderElements.size();
 }
 
-ClassDesc2& GetAOVElementClassDesc(int i) { 
-	return AOVRenderElements[i].desc; 
+ClassDesc2& GetAOVElementClassDesc(int i)
+{ 
+	return *AOVRenderElements[i].mDesc; 
 }
 
-struct RenderElementTag{
-	Class_ID classId;
-	const char* name;
-	rpr_aov frAOV;
+struct RenderElementTag
+{
+	Class_ID    mClassId;
+	const char* mName;
+	rpr_aov     mAOV;
 };
 
 // these just in case we want to support some of the others renderelements
 // it's a list of all render elements I had enumerated on my system
-RenderElementTag compatibleRenderElements[] = {
+RenderElementTag compatibleRenderElements[] =
+{
 //{Class_ID(1778464685, 1758472605),"3dsmax Hair"},
 //{Class_ID(610800728, 1405106252),"Paint"},
 //{Class_ID(450513551, 1836194615),"Ink"},
@@ -397,36 +532,67 @@ RenderElementTag compatibleRenderElements[] = {
 {Class_ID(1325942640, 1517164993),"frAOV_GetClassName", RPR_AOV_UV},
 };
 
-rpr_aov getAOVRenderElementFRId(IRenderElement* renderElement) {
+void printRenderElement(IRenderElement* renderElement)
+{
+	assert(renderElement != nullptr);
+
+	MSTR className;
+	renderElement->GetClassName(className);
+
+	Class_ID classId = renderElement->ClassID();
+
+	FireRender::debugPrint(
+		std::wstring(L"isAOVRenderElement: {")
+		+ L"Class_ID("
+		+ std::to_wstring(classId.PartA())
+		+ L", "
+		+ std::to_wstring(classId.PartB()) + L")"
+		+ L","
+		+ L"\"" + std::wstring(className) + L"\""
+		+ L"},");
+}
+
+rpr_aov getAOVRenderElementFRId(IRenderElement* renderElement)
+{
+	assert(renderElement != nullptr);
+
 	printRenderElement(renderElement);
 
-	for(auto& e: AOVRenderElements){
-		if(renderElement->ClassID()==e.desc.ClassID()){
-			return e.frAov;
+	for (const AOVElementXXX& aov : AOVRenderElements)
+	{
+		if (renderElement->ClassID() == aov.mDesc->ClassID())
+		{
+			return aov.mAov;
 		}
 	}
 
-	for(auto tag: compatibleRenderElements){
-		if(renderElement->ClassID()==tag.classId){
-			return tag.frAOV;
+	for (const RenderElementTag& compatibleAov : compatibleRenderElements)
+	{
+		if (renderElement->ClassID() == compatibleAov.mClassId)
+		{
+			return compatibleAov.mAOV;
 		}
 	}
 
 	return RPR_AOV_MAX;
 }
 
-
-bool isAOVRenderElement(IRenderElement* renderElement) {
+bool isAOVRenderElement(IRenderElement* renderElement)
+{
 	printRenderElement(renderElement);
 
-	for(auto& e: AOVRenderElements){
-		if(renderElement->ClassID()==e.desc.ClassID()){
+	for (const AOVElementXXX& aov : AOVRenderElements)
+	{
+		if (renderElement->ClassID() == aov.mDesc->ClassID())
+		{
 			return true;
 		}
 	}
 
-	for(auto tag: compatibleRenderElements){
-		if(renderElement->ClassID()==tag.classId){
+	for (const RenderElementTag& compatibleAov : compatibleRenderElements)
+	{
+		if (renderElement->ClassID() == compatibleAov.mClassId)
+		{
 			return true;
 		}
 	}
