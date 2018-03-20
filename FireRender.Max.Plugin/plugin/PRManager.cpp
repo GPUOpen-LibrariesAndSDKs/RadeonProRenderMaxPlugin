@@ -1743,40 +1743,75 @@ void PRManagerMax::SetupCamera(const ParsedView& view, const int imageWidth, con
 
 FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOV(rpr_aov aov)
 {
-	switch (aov)
+	static const std::unordered_map<rpr_aov, FramebufferTypeId> fbToAov =
 	{
-		//case RPR_AOV_COLOR: !! not using main color in render elements
-		case RPR_AOV_OPACITY: return FramebufferTypeId_Alpha;
-		case RPR_AOV_WORLD_COORDINATE: return FramebufferTypeId_WorldCoordinate;
-		case RPR_AOV_UV: return FramebufferTypeId_UV;
-		case RPR_AOV_MATERIAL_IDX: return FramebufferTypeId_MaterialIdx;
-		case RPR_AOV_GEOMETRIC_NORMAL: return FramebufferTypeId_GeometricNormal;
-		case RPR_AOV_SHADING_NORMAL: return FramebufferTypeId_ShadingNormal;
-		case RPR_AOV_DEPTH: return FramebufferTypeId_Depth;
-		case RPR_AOV_OBJECT_ID: return FramebufferTypeId_ObjectId;
-		case RPR_AOV_OBJECT_GROUP_ID: return FrameBufferTypeId_GroupId;
-		case RPR_AOV_SHADOW_CATCHER: return FrameBufferTypeId_ShadowCatcher;
+		{ RPR_AOV_OPACITY,                   FramebufferTypeId_Alpha },
+		{ RPR_AOV_WORLD_COORDINATE,          FramebufferTypeId_WorldCoordinate },
+		{ RPR_AOV_UV,                        FramebufferTypeId_UV },
+		{ RPR_AOV_MATERIAL_IDX,              FramebufferTypeId_MaterialIdx },
+		{ RPR_AOV_GEOMETRIC_NORMAL,          FramebufferTypeId_GeometricNormal },
+		{ RPR_AOV_SHADING_NORMAL,            FramebufferTypeId_ShadingNormal },
+		{ RPR_AOV_DEPTH,                     FramebufferTypeId_Depth },
+		{ RPR_AOV_OBJECT_ID,                 FramebufferTypeId_ObjectId },
+		{ RPR_AOV_OBJECT_GROUP_ID,           FrameBufferTypeId_GroupId },
+		{ RPR_AOV_BACKGROUND,                FrameBufferTypeId_Background },
+		{ RPR_AOV_EMISSION,                  FrameBufferTypeId_Emission },
+		{ RPR_AOV_VELOCITY,                  FrameBufferTypeId_Velocity },
+		{ RPR_AOV_DIRECT_ILLUMINATION,       FrameBufferTypeId_DirectIllumination },
+		{ RPR_AOV_INDIRECT_ILLUMINATION,     FrameBufferTypeId_IndirectIllumination },
+		{ RPR_AOV_AO,                        FrameBufferTypeId_AO },
+		{ RPR_AOV_DIRECT_DIFFUSE,            FrameBufferTypeId_DirectDiffuse },
+		{ RPR_AOV_DIRECT_REFLECT,            FrameBufferTypeId_DirectReflect },
+		{ RPR_AOV_INDIRECT_DIFFUSE,          FrameBufferTypeId_IndirectDiffuse },
+		{ RPR_AOV_INDIRECT_REFLECT,          FrameBufferTypeId_IndirectReflect },
+		{ RPR_AOV_REFRACT,                   FrameBufferTypeId_DirectRefract },
+		{ RPR_AOV_VOLUME,                    FrameBufferTypeId_Volume }
 	};
-	FASSERT(false);
+
+	auto fbToAovIt = fbToAov.find(aov);
+
+	FASSERT( fbToAovIt != fbToAov.end() );
+
+	if ( fbToAovIt != fbToAov.end() )
+		return fbToAovIt->second;
+
 	return FramebufferTypeId_Color;
 }
 
 FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOVResolve(rpr_aov aov)
 {
-	switch (aov)
+	static const std::unordered_map<rpr_aov, FramebufferTypeId> fbToAov =
 	{
-		//case RPR_AOV_COLOR: !! not using main color in render elements
-	case RPR_AOV_OPACITY: return FramebufferTypeId_AlphaResolve;
-	case RPR_AOV_WORLD_COORDINATE: return FramebufferTypeId_WorldCoordinateResolve;
-	case RPR_AOV_UV: return FramebufferTypeId_UVResolve;
-	case RPR_AOV_MATERIAL_IDX: return FramebufferTypeId_MaterialIdxResolve;
-	case RPR_AOV_GEOMETRIC_NORMAL: return FramebufferTypeId_GeometricNormalResolve;
-	case RPR_AOV_SHADING_NORMAL: return FramebufferTypeId_ShadingNormalResolve;
-	case RPR_AOV_DEPTH: return FramebufferTypeId_DepthResolve;
-	case RPR_AOV_OBJECT_ID: return FramebufferTypeId_ObjectIdResolve;
-	case RPR_AOV_OBJECT_GROUP_ID: return FrameBufferTypeId_GroupIdResolve;
+		{ RPR_AOV_OPACITY,                   FramebufferTypeId_AlphaResolve },
+		{ RPR_AOV_WORLD_COORDINATE,          FramebufferTypeId_WorldCoordinateResolve },
+		{ RPR_AOV_UV,                        FramebufferTypeId_UVResolve },
+		{ RPR_AOV_MATERIAL_IDX,              FramebufferTypeId_MaterialIdxResolve },
+		{ RPR_AOV_GEOMETRIC_NORMAL,          FramebufferTypeId_GeometricNormalResolve },
+		{ RPR_AOV_SHADING_NORMAL,            FramebufferTypeId_ShadingNormalResolve },
+		{ RPR_AOV_DEPTH,                     FramebufferTypeId_DepthResolve },
+		{ RPR_AOV_OBJECT_ID,                 FramebufferTypeId_ObjectIdResolve },
+		{ RPR_AOV_OBJECT_GROUP_ID,           FrameBufferTypeId_GroupIdResolve },
+		{ RPR_AOV_BACKGROUND,                FrameBufferTypeId_BackgroundResolve },
+		{ RPR_AOV_EMISSION,                  FrameBufferTypeId_EmissionResolve },
+		{ RPR_AOV_VELOCITY,                  FrameBufferTypeId_VelocityResolve },
+		{ RPR_AOV_DIRECT_ILLUMINATION,       FrameBufferTypeId_DirectIlluminationResolve },
+		{ RPR_AOV_INDIRECT_ILLUMINATION,     FrameBufferTypeId_IndirectIlluminationResolve },
+		{ RPR_AOV_AO,                        FrameBufferTypeId_AOResolve },
+		{ RPR_AOV_DIRECT_DIFFUSE,            FrameBufferTypeId_DirectDiffuseResolve },
+		{ RPR_AOV_DIRECT_REFLECT,            FrameBufferTypeId_DirectReflectResolve },
+		{ RPR_AOV_INDIRECT_DIFFUSE,          FrameBufferTypeId_IndirectDiffuseResolve },
+		{ RPR_AOV_INDIRECT_REFLECT,          FrameBufferTypeId_IndirectReflectResolve },
+		{ RPR_AOV_REFRACT,                   FrameBufferTypeId_DirectRefractResolve },
+		{ RPR_AOV_VOLUME,                    FrameBufferTypeId_VolumeResolve }
 	};
-	FASSERT(false);
+
+	auto fbToAovIt = fbToAov.find(aov);
+
+	FASSERT(fbToAovIt != fbToAov.end());
+
+	if (fbToAovIt != fbToAov.end())
+		return fbToAovIt->second;
+
 	return FramebufferTypeId_Color;
 }
 

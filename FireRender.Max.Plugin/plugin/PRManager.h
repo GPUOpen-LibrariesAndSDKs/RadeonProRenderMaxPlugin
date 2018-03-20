@@ -32,15 +32,15 @@ FIRERENDER_NAMESPACE_BEGIN
 class FireRenderer;
 class ProductionRenderCore;
 
-typedef enum
+enum TerminationCriteria
 {
 	Termination_None,
 	Termination_Passes,
 	Termination_Time
-} TerminationCriteria;
+};
 
 // render elements
-typedef enum
+enum FramebufferTypeId
 {
 	FramebufferTypeId_Color,
 	FramebufferTypeId_ColorResolve,
@@ -62,11 +62,36 @@ typedef enum
 	FramebufferTypeId_ObjectIdResolve,
 	FrameBufferTypeId_GroupId,
 	FrameBufferTypeId_GroupIdResolve,
-	FrameBufferTypeId_ShadowCatcher,
 	FrameBufferTypeId_Background,
+	FrameBufferTypeId_BackgroundResolve,
+	FrameBufferTypeId_Emission,
+	FrameBufferTypeId_EmissionResolve,
+	FrameBufferTypeId_Velocity,
+	FrameBufferTypeId_VelocityResolve,
+	FrameBufferTypeId_DirectIllumination,
+	FrameBufferTypeId_DirectIlluminationResolve,
+	FrameBufferTypeId_IndirectIllumination,
+	FrameBufferTypeId_IndirectIlluminationResolve,
+	FrameBufferTypeId_AO,
+	FrameBufferTypeId_AOResolve,
+	FrameBufferTypeId_DirectDiffuse,
+	FrameBufferTypeId_DirectDiffuseResolve,
+	FrameBufferTypeId_DirectReflect,
+	FrameBufferTypeId_DirectReflectResolve,
+	FrameBufferTypeId_IndirectDiffuse,
+	FrameBufferTypeId_IndirectDiffuseResolve,
+	FrameBufferTypeId_IndirectReflect,
+	FrameBufferTypeId_IndirectReflectResolve,
+	FrameBufferTypeId_DirectRefract,
+	FrameBufferTypeId_DirectRefractResolve,
+	FrameBufferTypeId_Volume,
+	FrameBufferTypeId_VolumeResolve,
+
+	// special cases
+	FrameBufferTypeId_ShadowCatcher,
 	FrameBufferTypeId_Composite,
-	FrameBufferTypeId_CompositeResolve,
-} FramebufferTypeId;
+	FrameBufferTypeId_CompositeResolve
+};
 
 
 class PRManagerMax : public GUP, public ReferenceMaker
