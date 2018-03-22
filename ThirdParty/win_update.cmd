@@ -13,9 +13,9 @@ if exist %ThirdPartyDir% (
 	)
 	
     rd /S /Q AxfPackage
-    rd /S /Q 'Expat 2.1.0'
-    rd /S /Q 'RadeonProImageProcessing'
-    rd /S /Q 'RadeonProRender SDK'
+    rd /S /Q "Expat 2.1.0"
+    rd /S /Q RadeonProImageProcessing
+    rd /S /Q "RadeonProRender SDK"
     rd /S /Q RadeonProRender-GLTF
     rd /S /Q json
 
@@ -25,7 +25,7 @@ if exist %ThirdPartyDir% (
     xcopy /S /Y /I "%ThirdPartyDir%\Expat 2.1.0\*" "Expat 2.1.0"
     xcopy /S /Y /I %ThirdPartyDir%\RadeonProImageProcessing\* RadeonProImageProcessing
     xcopy /S /Y /I "%ThirdPartyDir%\RadeonProRender SDK\*" "RadeonProRender SDK"
-    xcopy /S /Y /I %ThirdPartyDir%\RadeonProRender-GLTF\* "RadeonProRender-GLTF"
+    xcopy /S /Y /I %ThirdPartyDir%\RadeonProRender-GLTF\* RadeonProRender-GLTF
     xcopy /S /Y /I %ThirdPartyDir%\json\* json
 
 ) else ( 
