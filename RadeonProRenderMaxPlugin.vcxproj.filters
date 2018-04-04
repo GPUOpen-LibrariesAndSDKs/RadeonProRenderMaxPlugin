@@ -43,6 +43,12 @@
     <Filter Include="FireRender.Components\ImageFilter">
       <UniqueIdentifier>{23ba0957-5c7a-4ccd-9cce-7f25fa290dba}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Plugin\light\physical">
+      <UniqueIdentifier>{5c95f37b-9dd8-4dd8-b24a-32a5be839c29}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Plugin\light\ies">
+      <UniqueIdentifier>{38a4fabe-7698-4fe8-84a5-590b6608188b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
@@ -165,27 +171,6 @@
     <ClInclude Include="FireRender.Max.Plugin\CoronaDeclarations.h">
       <Filter>Decl</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
@@ -276,9 +261,6 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.h">
-      <Filter>Plugin\light</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IFireRenderLight.h">
       <Filter>Plugin\light</Filter>
     </ClInclude>
@@ -307,6 +289,33 @@
       <Filter>FireRender.Components\ImageFilter</Filter>
     </ClInclude>
     <ClInclude Include="version.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLight.h">
+      <Filter>Plugin\light\physical</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h">
+      <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -425,26 +434,11 @@
     <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp">
       <Filter>RprTools</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp">
-      <Filter>Plugin\light</Filter>
-    </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp">
-      <Filter>Plugin\light</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp">
-      <Filter>Plugin\light</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.cpp">
       <Filter>Plugin\light</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\utils\KelvinToColor.cpp">
       <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.cpp">
-      <Filter>Plugin\light</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.cpp">
-      <Filter>Plugin\light</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.cpp">
       <Filter>Plugin\materials</Filter>
@@ -527,16 +521,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderPbrMtl.cpp">
       <Filter>Plugin\materials</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.cpp">
-      <Filter>Plugin\light</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLightImpl.cpp">
-      <Filter>Plugin\light</Filter>
-    </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.cpp">
-      <Filter>Plugin\light</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.cpp">
       <Filter>Plugin\light</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderShadowCatcherMtl.cpp">
@@ -560,6 +545,45 @@
     </ClCompile>
     <ClCompile Include="FireRender.Components\cpp\ImageFilter\ImageFilter.cpp">
       <Filter>FireRender.Components\ImageFilter</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLight.cpp">
+      <Filter>Plugin\light\physical</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightMouseCallback.cpp">
+      <Filter>Plugin\light\physical</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightPBlock.cpp">
+      <Filter>Plugin\light\physical</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightDisplay.cpp">
+      <Filter>Plugin\light\physical</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightExport.cpp">
+      <Filter>Plugin\light\physical</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_General.cpp">
+      <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Intensity.cpp">
+      <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Panel.cpp">
+      <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Profiles.cpp">
+      <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Shadows.cpp">
+      <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.cpp">
+      <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLight.cpp">
+      <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLightImpl.cpp">
+      <Filter>Plugin\light\ies</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

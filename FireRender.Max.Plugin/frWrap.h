@@ -404,7 +404,11 @@ namespace frw
 		}
 
 		const TCHAR* GetTypeName() const { return m->GetTypeName(); }
-		bool IsValid() const { return m->IsValid(); }
+		bool IsValid() const 
+		{ 
+			bool hasData = m->IsValid() && m.get()->IsValid();
+			return hasData;
+		}
 
 		// for easier scope and creation flow
 		explicit operator bool() const { return m->IsValid(); }

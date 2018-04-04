@@ -34,6 +34,7 @@
 #include "BgManager.h"
 #include "FireRenderPortalLight.h"
 #include "light/FireRenderIESLight.h"
+#include "light/physical/FireRenderPhysicalLight.h"
 
 #define USE_INSTANCES_ONLY false
 #define DEFAULT_LIGHT_ID 0x100000000
@@ -909,9 +910,10 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 		{
 			parseFRPortal(actual, state.obj);
 		}
-		else if (classId == FireRenderIESLight::GetClassId())
+		else if ((classId == FireRenderIESLight::GetClassId()) || 
+				(classId == FIRERENDER_PHYSICALLIGHT_CLASS_ID))
 		{
-			FireRenderIESLight* light = dynamic_cast<FireRenderIESLight*>(state.obj);
+			FireRenderLight* light = dynamic_cast<FireRenderLight*>(state.obj);
 			if (light && light->GetUseLight())
 			{
 				light->CreateSceneLight(actual, scope, params);

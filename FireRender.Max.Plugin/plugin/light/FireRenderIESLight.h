@@ -118,7 +118,7 @@ public:
 
 	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params) override;
 	bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
-	bool CalculateLightRepresentation(const TCHAR* profileName) override;
+	bool CalculateLightRepresentation(const TCHAR* profileName);
 	bool CalculateBBox(void) override;
 
 	bool SetLightPoint(Point3 value, TimeValue t);
