@@ -257,7 +257,7 @@ void BlitBitmap(Bitmap* Dst, Bitmap* Src, int x, int y, float alpha);
 
 std::wstring GetCPUName();
 std::wstring GetFriendlyUsedGPUName();
-bool GetProductAndVersion(std::wstring &strProductName, std::wstring &strProductVersion);
+bool GetProductAndVersion(std::wstring& strProductName, std::wstring& strProductVersion, std::wstring& strCoreVersion);
 
 void EnableGroupboxControls(HWND dialogWnd, int groupId, bool bEnabled, std::vector<int> ignoreIds);
 

@@ -12,8 +12,6 @@
 #include "MPManager.h"
 #include "resource.h"
 #include "plugin/ParamBlock.h"
-#include <wingdi.h>
-#include "utils/Thread.h"
 
 #include "AssetManagement\IAssetAccessor.h"
 #include "assetmanagement\AssetType.h"
@@ -21,8 +19,8 @@
 #include "FireRenderDisplacementMtl.h"
 #include "FireRenderMaterialMtl.h"
 #include "ScopeManager.h"
-#include <RadeonProRender.h>
-#include <RprLoadStore.h>
+#include "RadeonProRender.h"
+#include "RprLoadStore.h"
 
 #include <thread>
 
@@ -49,11 +47,6 @@ ClassDesc* MPManagerMax::GetClassDesc()
 }
 
 MPManagerMax::MPManagerMax()
-	: exitImmediately(false)
-	, requestDestroyLoadedAssets(false)
-	, matballScopeID(-1)
-	, tempScopeID(-1)
-	, mRenderingPreview(false)
 {
 }
 
@@ -96,26 +89,21 @@ bool MPManagerMax::Abort()
 {
 	bool res = true;
 
-	if (mRenderingPreview.Wait(0))
+	if (mRenderingPreview)
 	{
 		res = false;
-		exitImmediately.Fire();
-		requestDestroyLoadedAssets.Fire();
+		mExitImmediately = true;
+		mRequestDestroyLoadedAssets = true;
 	}
 
 	return res;
 }
 
-void MPManagerMax::renderingThreadProc(Bitmap* tobm)
+void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>& fbData)
 {
-	int width = tobm->Width();
-	int height = tobm->Height();
-
 	frw::Scope& scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
 
-	frw::FrameBuffer frameBufferMain;
-
-	frameBufferMain = scope.GetFrameBuffer(width, height, 0);
+	frw::FrameBuffer frameBufferMain = scope.GetFrameBuffer(width, height, FramebufferColor);
 	frameBufferMain.Clear();
 
 	// initialize core
@@ -131,14 +119,16 @@ void MPManagerMax::renderingThreadProc(Bitmap* tobm)
 
 	for (; passesDone < passLimit; passesDone++)
 	{
-		if (eRestart.Wait(0))
+		if (mRestart)
 		{
+			mRestart = false;
+
 			MPManagerMax::TheManager.UpdateMaterial();
 			frameBufferMain.Clear();
 			passesDone = 0;
 		}
 
-		if (exitImmediately.Wait(0))
+		if (mExitImmediately)
 			break;
 
 		rpr_int res = rprContextRender(scope.GetContext().Handle());
@@ -152,60 +142,28 @@ void MPManagerMax::renderingThreadProc(Bitmap* tobm)
 
 	if (passesDone == passLimit)
 	{
-		// get rendered image from core
-		frw::FrameBuffer normalizedFrameBuffer;
-
-		normalizedFrameBuffer = scope.GetFrameBuffer(width, height, 1);
+		frw::FrameBuffer normalizedFrameBuffer = scope.GetFrameBuffer(width, height, FramebufferColorNormalized);
 		normalizedFrameBuffer.Clear();
 
-		res = rprContextResolveFrameBuffer(scope.GetContext().Handle(), frameBufferMain.Handle(), normalizedFrameBuffer.Handle(), true);
-		FCHECK(res);
+		frameBufferMain.Resolve(normalizedFrameBuffer, true);
 
-		size_t fbSize;
+		fbData = normalizedFrameBuffer.GetPixelData();
 
-		res = rprFrameBufferGetInfo(normalizedFrameBuffer.Handle(), RPR_FRAMEBUFFER_DATA, 0, NULL, &fbSize);
-		FCHECK(res);
-
-		std::vector<float> fbData;
-
-		fbData.resize( fbSize / sizeof(float) );
-		res = rprFrameBufferGetInfo(normalizedFrameBuffer.Handle(), RPR_FRAMEBUFFER_DATA, fbData.size() * sizeof(float), fbData.data(), NULL);
-		FCHECK(res);
-
-		// copy results to bitmap
-		for (int y = 0; y < height; y++)
-		{
-			tobm->PutPixels(0, y, width, ((BMM_Color_fl*) fbData.data()) + y * width);
-		}
-
-		tobm->RefreshWindow();
+		mPreviewReady = true;
 	}
-
-	bmDone.Fire();
 }
 
 int MPManagerMax::Render(FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, FrameRendParams &frp, HWND hwnd, RendProgressCallback* prog, ViewParams* viewPar, INode *sceneNode, INode *viewNode, RendParams &rendParams)
 {
-	class CActiveShadeLocker
-	{
-	public:
-		CActiveShadeLocker()
-		{
-			ActiveShader::mGlobalLocker.Fire();
-		}
-		~CActiveShadeLocker()
-		{
-			ActiveShader::mGlobalLocker.Reset();
-		}
-	};
-
-	ScopeResetEventOnExit rendering(mRenderingPreview);
-
 	CActiveShadeLocker aslocker; // block activeshader's rendering until finished
 
-	bmDone.Reset();
-	exitImmediately.Reset();
-	requestDestroyLoadedAssets.Reset();
+	SuspendAll(TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);
+
+	mRenderingPreview = true;
+
+	mPreviewReady = false;
+	mExitImmediately = false;
+	mRequestDestroyLoadedAssets = false;
 
 	auto pblock = renderer->GetParamBlock(0);
 
@@ -237,12 +195,15 @@ int MPManagerMax::Render(FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, Fr
 
 	UpdateMaterial();
 	
-	std::thread renderingThread(&MPManagerMax::renderingThreadProc, this, tobm);
-	renderingThread.detach();
+	int width = tobm->Width();
+	int height = tobm->Height();
+	std::vector<float> fbData;
+
+	std::thread renderingThread(&MPManagerMax::renderingThreadProc, this, width, height, std::ref(fbData));
 
 	while (true)
 	{
-		if (exitImmediately.Wait(0) || bmDone.Wait(0))
+		if (mExitImmediately || mPreviewReady)
 			break;
 
 		MSG msg;
@@ -255,23 +216,35 @@ int MPManagerMax::Render(FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, Fr
 	}
 
 	ReplaceReference(0, 0);
-	
+
+	renderingThread.join();
+
+	if (mPreviewReady)
+	{
+		// copy results to bitmap
+		for (int y = 0; y < height; y++)
+		{
+			tobm->PutPixels(0, y, width, ((BMM_Color_fl*) fbData.data()) + y * width);
+		}
+
+		tobm->RefreshWindow();
+	}
+
+	// cleanup
 	ResetMaterial();
 	ScopeManagerMax::TheManager.DestroyScope(tempScopeID);
 	tempScopeID = -1;
 
-	if (requestDestroyLoadedAssets.Wait(0))
+	if (mRequestDestroyLoadedAssets)
 	{
 		DestroyLoadedAssets();
 		ScopeManagerMax::TheManager.DestroyScope(matballScopeID);
 		matballScopeID = -1;
-		requestDestroyLoadedAssets.Reset();
 	}
 
-	if (exitImmediately.Wait(0))
-		return 0;
+	mRenderingPreview = false;
 
-	return 1;
+	return mPreviewReady ? 1 : 0;
 }
 
 void MPManagerMax::UpdateMaterial()
@@ -597,7 +570,7 @@ RefResult MPManagerMax::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS)
 		case REFMSG_TARGET_DELETED:
 		case REFMSG_REF_DELETED:
 		case REFMSG_REF_ADDED:
-			eRestart.Fire();
+			mRestart = true;
 			break;
 		}
 	}
