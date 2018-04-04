@@ -106,7 +106,6 @@ FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRende
 	this->iRendParams = ir;
 	this->renderer = renderer;
 	this->isReadOnly = readOnly;
-	std::wstring strProductName, strProductVersion;
 
 	mGeneralSettings.Init(ir, IDD_RENDER_GENERALSETTINGS, (const MCHAR*)_T("General"), this, false, &kSettingsTabID);
 		
@@ -130,11 +129,14 @@ FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRende
 
 	mQualitySettings.setupUIFromData();
 
+	std::wstring strProductName;
+	std::wstring strProductVersion;
+	std::wstring strCoreVersion;
 	std::wstring strVersion;
 
-	if (GetProductAndVersion(strProductName, strProductVersion))
+	if (GetProductAndVersion(strProductName, strProductVersion, strCoreVersion))
 	{
-		strVersion = strProductName + L" " + strProductVersion;
+		strVersion = strProductName + L" " + strProductVersion + L" (core " + strCoreVersion + L")";
 	}
 
 	SetDlgItemText(mAdvancedSettings.Hwnd(), IDC_VERSION, strVersion.c_str());

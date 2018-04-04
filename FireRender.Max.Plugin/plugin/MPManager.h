@@ -11,19 +11,11 @@
 #include <max.h>
 #include <guplib.h>
 #include <notify.h>
-#include <iparamb2.h>
-#include "Common.h"
-#include "frWrap.h"
-#include "frScope.h"
-#include <string>
-#include <map>
-#include <set>
-#include <algorithm>
-#include <string> 
-#include "plugin/ManagerBase.h"
+
 #include "parser/RenderParameters.h"
-#include "parser/SceneCallbacks.h"
 #include "plugin/FireRenderer.h"
+
+#include <atomic> 
 
 /*
 	This class is responsible for drawing thumbnails in Material Editor.
@@ -33,7 +25,7 @@
 	the scene from Core must be synchronized (made in one thread in this implementation).
 */
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 class FireRenderer;
 
@@ -64,6 +56,12 @@ public:
 	void UpdateMaterial();
 
 private:
+	enum FramebufferType
+	{
+		FramebufferColor = 0x100,
+		FramebufferColorNormalized = 0x101,
+	};
+
 	enum ShapeKeys
 	{
 		BallShape1,
@@ -97,9 +95,8 @@ private:
 		TexturedBgMaterial,
 	};
 
-	ScopeID matballScopeID; // holds the basic matball scene, we won't delete this until we have to
-	ScopeID tempScopeID; // holds temporary translated materials and operations within one rendering cycle
-	
+	ScopeID matballScopeID = -1; // holds the basic matball scene, we won't delete this until we have to
+	ScopeID tempScopeID = -1; // holds temporary translated materials and operations within one rendering cycle
 	
 	// these hold pointers to the stuff loaded from the matball scene
 	std::vector<rpr_image> imageList;
@@ -139,13 +136,27 @@ private:
 
 	RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override;
 
-	void renderingThreadProc(Bitmap*);
+	void renderingThreadProc(int width, int height, std::vector<float>& fbData);
 
-	Event mRenderingPreview;
-	Event exitImmediately;
-	Event requestDestroyLoadedAssets;
-	Event bmDone;
-	Event eRestart;
+	std::atomic<bool> mRenderingPreview = false;
+	std::atomic<bool> mExitImmediately = false;
+	std::atomic<bool> mRequestDestroyLoadedAssets = false;
+	std::atomic<bool> mPreviewReady = false;
+	std::atomic<bool> mRestart = false;
 };
 
-FIRERENDER_NAMESPACE_END;
+class CActiveShadeLocker
+{
+public:
+	CActiveShadeLocker()
+	{
+		ActiveShader::mGlobalLocker.Fire();
+	}
+
+	~CActiveShadeLocker()
+	{
+		ActiveShader::mGlobalLocker.Reset();
+	}
+};
+
+FIRERENDER_NAMESPACE_END

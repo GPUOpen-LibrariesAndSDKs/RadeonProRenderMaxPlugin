@@ -688,11 +688,13 @@ std::wstring GetCPUName()
 	return L"Unknown CPU";
 }
 
-bool GetProductAndVersion(std::wstring &strProductName, std::wstring &strProductVersion)
+bool GetProductAndVersion(std::wstring& strProductName, std::wstring& strProductVersion, std::wstring& strCoreVersion)
 {
 	static bool versionChecked = false;
+
 	static std::wstring cachedProductName;
 	static std::wstring cachedProductVersion;
+	static std::wstring cachedCoreVersion;
 
 	if (!versionChecked)
 	{
@@ -729,10 +731,21 @@ bool GetProductAndVersion(std::wstring &strProductName, std::wstring &strProduct
 		// cache information
 		cachedProductName = (LPCTSTR)pvProductName;
 		cachedProductVersion = (LPCTSTR)pvProductVersion;
+
+		// get core information
+		int mj = (RPR_API_VERSION & 0xFFFF00000) >> 28;
+		int mn = (RPR_API_VERSION & 0xFFFFF) >> 8;
+
+		std::wostringstream oss;
+
+		oss << std::hex << mj << "." << mn;
+
+		cachedCoreVersion = oss.str();
 	}
 
 	strProductName = cachedProductName;
 	strProductVersion = cachedProductVersion;
+	strCoreVersion = cachedCoreVersion;
 
 	return true;
 }

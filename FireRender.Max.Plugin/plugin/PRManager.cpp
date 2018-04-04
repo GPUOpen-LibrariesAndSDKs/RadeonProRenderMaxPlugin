@@ -39,7 +39,7 @@ extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN;
 
-Event PRManagerMax::bmDone;
+static Event PRManagerMaxDone(false);
 
 class ProductionRenderCore : public BaseThread
 {
@@ -125,6 +125,7 @@ private:
 		std::wstring cpuName;
 		std::wstring product;
 		std::wstring version;
+		std::wstring coreVersion;
 		int lightsCount;
 		int shapesCount;
 		bool isCacheCreated;
@@ -148,7 +149,7 @@ public:
 		errorCode = err;
 		rpr_int errorCode = RPR_SUCCESS;
 		result = res;
-		PRManagerMax::bmDone.Fire();
+		PRManagerMaxDone.Fire();
 
 		if(bImmediateAbort)
 			scope.DestroyFrameBuffers();
@@ -578,7 +579,7 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 		m_stampCachedData.cpuName = GetCPUName();
 		m_stampCachedData.lightsCount = scene.LightCount();
 		m_stampCachedData.shapesCount = scene.ShapeCount();
-		GetProductAndVersion(m_stampCachedData.product, m_stampCachedData.version);
+		GetProductAndVersion(m_stampCachedData.product, m_stampCachedData.version, m_stampCachedData.coreVersion);
 	}
 
 	// parse string
@@ -688,7 +689,7 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 		break;
 		case 'b': // build number
 		{
-			str += m_stampCachedData.version;
+			str += m_stampCachedData.version + L" (core " + m_stampCachedData.coreVersion + L")";
 		}
 		break;
 		default:
@@ -834,7 +835,7 @@ void PRManagerMax::CleanUpRender(FireRenderer* pRenderer)
 
 			if (!data->bRenderThreadDone)
 			{
-				bmDone.Wait();
+				PRManagerMaxDone.Wait();
 			}
 
 			delete data->renderThread;
@@ -1315,7 +1316,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	}
 
 	// bmDone event will be fired when renderThread finished his job
-	bmDone.Reset();
+	PRManagerMaxDone.Reset();
 
 	// Start rendering
 	data->renderThread->Start();
@@ -1439,7 +1440,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		}
 
 		// Render thread finished
-		data->bRenderThreadDone |= bmDone.Wait(0);
+		data->bRenderThreadDone |= PRManagerMaxDone.Wait(0);
 
 		// Render thread finished, but wait till all frameData got blitted
 		if (data->bRenderThreadDone && !data->bitmapUpdated)

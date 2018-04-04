@@ -98,7 +98,6 @@ class PRManagerMax : public GUP, public ReferenceMaker
 {
 public:
 	static PRManagerMax TheManager;
-	static Event bmDone;
 
 public:
 	PRManagerMax();

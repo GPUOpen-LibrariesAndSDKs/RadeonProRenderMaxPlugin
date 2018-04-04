@@ -1999,9 +1999,9 @@ namespace frw
 			m->Attach(h);
 		}
 
-		void Resolve(FrameBuffer dest)
+		void Resolve(FrameBuffer dest, bool normalizeOnly = false)
 		{
-			auto res = rprContextResolveFrameBuffer(GetContext().Handle(), Handle(), dest.Handle());
+			auto res = rprContextResolveFrameBuffer(GetContext().Handle(), Handle(), dest.Handle(), normalizeOnly);
 			FCHECK(res);
 		}
 
