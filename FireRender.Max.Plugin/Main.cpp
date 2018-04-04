@@ -47,6 +47,7 @@
 #include "FireRenderAnalyticalSun.h"
 #include "FireRenderPortalLight.h"
 #include "FireRenderIESLight.h"
+#include "physical\FireRenderPhysicalLight.h"
 
 #include "BgManager.h"
 #include "TmManager.h"
@@ -180,9 +181,6 @@ EXPORT_TO_MAX int LibInitialize()
 
 		return 0;
 	}
-
-	DWORD pathSize = 1024;
-	const DWORD reasonablePathSize = 4096;
 
 	std::wstring pluginPath = FireRender::GetModuleFolder();
 
@@ -329,6 +327,8 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.push_back(FireRender::PRManagerMax::GetClassDesc());
 
 	gClassInstances.push_back(FireRender::FireRenderIESLight::GetClassDesc());
+
+	gClassInstances.push_back(FireRender::FireRenderPhysicalLight::GetClassDesc());
 
 	for(int i = 0; i < GetAOVElementClassDescCount(); i++)
 	{

@@ -144,7 +144,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
@@ -166,7 +166,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
@@ -188,7 +188,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
@@ -213,7 +213,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
@@ -238,7 +238,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;$(ADSK_3DSMAX_SDK_2017)\lib\x64\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
@@ -263,7 +263,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
@@ -314,6 +314,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IFireRenderLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderArithmMtl.h" />
@@ -407,6 +408,11 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIES_Volume.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderLight.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLight.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightDisplay.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightExport.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightMouseCallback.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightPBlock.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderArithmMtl.cpp" />
