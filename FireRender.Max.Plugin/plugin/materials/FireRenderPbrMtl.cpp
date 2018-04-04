@@ -247,6 +247,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	mul = toInvert ? 1.0f - mul : mul;
 	value = toUseMap ? mtlParser.createMap(map, MAP_FLAG_NOGAMMA) : color;
 	value = materialSystem.ValueMul(value, mul);
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, value);
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, value);
 
 	// METALNESS
@@ -257,9 +258,18 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, diffuseColorValue);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, 1.0f);
-	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, value);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, value);
+	
+	if (mul > 0.0f)
+	{
+		shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, value);
+	}
+	else
+	{
+		shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_PBR);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_IOR, value);
+	}
 
 	// MATERIAL NORMAL
 	std::tie(useMap, map, color, mul) = GetParametersNoColor(FRPBRMTL_NORMAL_USEMAP, FRPBRMTL_NORMAL_MAP,
