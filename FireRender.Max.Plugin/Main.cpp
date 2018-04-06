@@ -47,7 +47,7 @@
 #include "FireRenderAnalyticalSun.h"
 #include "FireRenderPortalLight.h"
 #include "FireRenderIESLight.h"
-#include "physical\FireRenderPhysicalLight.h"
+#include "physical/FireRenderPhysicalLight.h"
 
 #include "BgManager.h"
 #include "TmManager.h"

@@ -29,7 +29,6 @@ frw::Shape CreateMeshShape(frw::Context& context, Mesh* mesh, float masterScale)
 		points.push_back(Point3(meshVerts[idx] * masterScale));
 	}
 
-	//std::vector<Point3> normals;
 	std::vector<int> indices;
 	indices.reserve(countFaces * 3);
 	for (int idx = 0; idx < countFaces; ++idx)
@@ -39,7 +38,6 @@ frw::Shape CreateMeshShape(frw::Context& context, Mesh* mesh, float masterScale)
 		indices.push_back(meshFaces[idx].v[2]);
 	}
 
-	//std::vector<int> normal_indices;
 	std::vector<int> faces;
 	faces.reserve(countFaces);
 	for (int idx = 0; idx < countFaces; ++idx)
@@ -98,6 +96,14 @@ frw::Shape CreateRectShape(frw::Context& context, Point3& corner1, Point3& corne
 
 constexpr size_t pointsPerArc = 16;
 constexpr float da = 2.0f * PI / pointsPerArc;
+
+size_t pointsPerCircle(ViewExp *vpt, const Matrix3& tm)
+{
+	float scaleFactor = vpt->NonScalingObjectSize() * vpt->GetVPWorldWidth(tm.GetTrans()) / 360.0f;
+
+	size_t adjustedPointsPerCircle = scaleFactor * pointsPerArc;
+	return adjustedPointsPerCircle;
+}
 
 frw::Shape CreateCylinderShape(frw::Context& context, float radius, float cylinderHeight)
 {
@@ -381,6 +387,7 @@ frw::Shape CreateSphereShape(frw::Context& context, float radius)
 	CalculateSphere(radius, vertices, normals, triangles);
 
 	std::vector<int> normal_indices;
+	normal_indices.reserve(triangles.size());
 	for (int i = 0; i < triangles.size(); i++)
 		normal_indices.push_back(triangles[i]);
 
@@ -726,7 +733,7 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 			material.SetColor(frw::Value(colour.r, colour.g, colour.b));
 
 			shape.SetShader(material);
-			shape.SetShadowFlag(true);
+			shape.SetShadowFlag(false);
 
 			{
 				// - light emmiter visibility
