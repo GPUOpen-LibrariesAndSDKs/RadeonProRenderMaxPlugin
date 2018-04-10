@@ -101,19 +101,26 @@ static std::unordered_map<PhysLightRolloutWindow, TSTR> rolloutWindowsTable =
 	{ ROLLOUT_MAX,			_T("Dummy") },
 };
 
-int GetRolloutWindowActualIndex(PhysLightRolloutWindow rollWindowID, IRollupWindow* pRollWindow)
+// commented out because GetPanelTitle(int) function doesn't exist in MAX 2016 SDK
+// will be restored when we will eventually drop support of MAX 2016
+/*int GetRolloutWindowActualIndex(PhysLightRolloutWindow rollWindowID, IRollupWindow* pRollWindow)
 {
 	TSTR rollWindowName = rolloutWindowsTable[rollWindowID];
 
-	for (int idx = 0; idx < pRollWindow->GetNumPanels(); ++idx)
+	for (int idx = 0; idx < pRollWindow->GetNumPanels(); ++idx) // ROLLOUT_MAX + shift?
 		if (pRollWindow->GetPanelTitle(idx) == rollWindowName)
 			return idx;
 	
 	FASSERT(false); // failed
 
 	return -1; // dummy return for compiler
-}
+}*/
 
+// dummy function that will be used until we drop support of MAX 2016
+int GetRolloutWindowActualIndex(PhysLightRolloutWindow rollWindowID, IRollupWindow* pRollWindow)
+{
+	return rollWindowID;
+}
 
 const int ROLLOUT_MAX_GENERAL_SHIFT = 2;
 const int ROLLOUTS_PHYS_LIGHT_COUNT = 7;
@@ -765,6 +772,8 @@ INT_PTR PhysLightGeneralParamsDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWN
 		{ WM_INITDIALOG, MsgProcInitDialog },
 		{ WM_CLOSE, MsgProcClose },
 		{ WM_COMMAND, MsgProcCommand },
+		{ WM_UPDATEUISTATE, MsgProcCommand },
+		{ WM_SHOWWINDOW, MsgProcCommand },
 	};
 
 	auto msgProcIt = msgProc.find(msg);
@@ -780,10 +789,6 @@ void PhysLightGeneralParamsDlgProc::DeleteThis()
 
 INT_PTR PhysLightGeneralParamsDlgProc::MsgProcInitDialog(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
-	// setup controls
-	IParamBlock2* pBlock = map->GetParamBlock();
-	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
-
 	return 1;
 }
 
@@ -798,7 +803,6 @@ INT_PTR PhysLightGeneralParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* m
 
 	IRollupWindow* pRolloutWIndow = map->GetIRollup();
 	// shift is different when light is created and when it is edited
-
 	int shift = 0;
 	int count = pRolloutWIndow->GetNumPanels();
 	const int physLightRolloutWindowsCount = ROLLOUTS_PHYS_LIGHT_COUNT + ROLLOUT_MAX_GENERAL_SHIFT;
@@ -810,21 +814,56 @@ INT_PTR PhysLightGeneralParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* m
 	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
 
 	// grey out sections not needed for selected light type
-	if (FRPhysicalLight_AREA == lightType)
+	IParamMap2* pAreaMap = pBlock->GetMap(ROLLOUT_AREALIGHT);
+	IParamMap2* pSpotLMap = pBlock->GetMap(ROLLOUT_SPOTLIGHT);
+	if (pAreaMap && pSpotLMap)
 	{
-		pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift);
-		pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
+		if (FRPhysicalLight_AREA == lightType)
+		{
+			//pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift); // I'm not removing commented out code because we want it back after 2016 supposrt is discontinued
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, TRUE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, TRUE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, TRUE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, TRUE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, TRUE);
+
+			//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
+		}
+		else if (FRPhysicalLight_SPOT == lightType)
+		{
+			//pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
+
+			//pRolloutWIndow->Show(ROLLOUT_SPOTLIGHT + shift);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, TRUE);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, TRUE);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, TRUE);
+		}
+		else
+		{
+			//pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
+			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
+
+			//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
+			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
+		}
+		pAreaMap->Invalidate();
+		pSpotLMap->Invalidate();
 	}
-	else if (FRPhysicalLight_SPOT == lightType)
-	{
-		pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-		pRolloutWIndow->Show(ROLLOUT_SPOTLIGHT + shift);
-	}
-	else
-	{
-		pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-		pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
-	}
+
 
 	return 1; // processed;
 }
@@ -954,15 +993,24 @@ INT_PTR PhysLightsAreaLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 	IParamBlock2* pBlock = map->GetParamBlock();
 	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
 
+	// shift is different when light is created and when it is edited
+	int shift = 0;
+	int count = pRolloutWIndow->GetNumPanels();
+	const int physLightRolloutWindowsCount = ROLLOUTS_PHYS_LIGHT_COUNT + ROLLOUT_MAX_GENERAL_SHIFT;
+	if (count == physLightRolloutWindowsCount)
+		shift = ROLLOUT_MAX_GENERAL_SHIFT;
+
 	// hide sections not needed for selected light type
-	if (FRPhysicalLight_AREA != lightType)
-	{
-		pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow));
-	}
-	else
-	{
-		pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow));
-	}
+	//if (FRPhysicalLight_AREA != lightType)
+	//{
+		//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
+
+	//}
+	//else
+	//{
+		//pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
+
+	//}
 
 	// disable/enable mesh selection button
 	if (FRPhysicalLight_AREA != lightType)
@@ -1032,14 +1080,14 @@ INT_PTR PhysLightsSpotLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
 
 	// hide sections not needed for selected light type
-	if (FRPhysicalLight_SPOT != lightType)
+	/*if (FRPhysicalLight_SPOT != lightType)
 	{
 		pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
 	}
 	else
 	{
 		pRolloutWIndow->Show(ROLLOUT_SPOTLIGHT + shift);
-	}
+	}*/
 
 	return 1; // processed;
 }
@@ -1052,27 +1100,70 @@ INT_PTR PhysLightsVolumeDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd
 	{
 		IRollupWindow* pRolloutWIndow = map->GetIRollup();
 
+		pRolloutWIndow->Show(); // reset rollout display
+
+		// shift is different when light is created and when it is edited
+		int shift = 0;
+		int count = pRolloutWIndow->GetNumPanels();
+		const int physLightRolloutWindowsCount = ROLLOUTS_PHYS_LIGHT_COUNT + ROLLOUT_MAX_GENERAL_SHIFT;
+		if (count == physLightRolloutWindowsCount)
+			shift = ROLLOUT_MAX_GENERAL_SHIFT;
+
 		// hide windows depending on selected light type
 		IParamBlock2* pBlock = map->GetParamBlock();
 		int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
 
-		if (FRPhysicalLight_AREA == lightType)
+		IParamMap2* pAreaMap = pBlock->GetMap(ROLLOUT_AREALIGHT);
+		IParamMap2* pSpotLMap = pBlock->GetMap(ROLLOUT_SPOTLIGHT);
+		if (pAreaMap && pSpotLMap)
 		{
-			pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow));
-			pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow));
-		}
-		else if (FRPhysicalLight_SPOT == lightType)
-		{
-			pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow));
-			pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow));
-		}
-		else
-		{
-			pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow));
-			pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow));
+			if (FRPhysicalLight_AREA == lightType)
+			{
+				//pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, TRUE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, TRUE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, TRUE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, TRUE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, TRUE);
+
+				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow) + shift);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
+			}
+			else if (FRPhysicalLight_SPOT == lightType)
+			{
+				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
+
+				//pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow) + shift);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, TRUE);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, TRUE);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, TRUE);
+			}
+			else
+			{
+				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
+				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
+
+				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow) + shift);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
+				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
+			}
+			pAreaMap->Invalidate();
+			pSpotLMap->Invalidate();
 		}
 
-		HWND intensityDlg = pRolloutWIndow->GetPanelDlg(GetRolloutWindowActualIndex(ROLLOUT_INTENSITY, pRolloutWIndow));
+		HWND intensityDlg = pRolloutWIndow->GetPanelDlg(GetRolloutWindowActualIndex(ROLLOUT_INTENSITY, pRolloutWIndow) + shift);
 		int intensUnitsType = GetFromPb<int>(pBlock, FRPhysicalLight_INTENSITY_UNITS);
 		if (FRPhysicalLight_LUMINANCE == intensUnitsType)
 		{
