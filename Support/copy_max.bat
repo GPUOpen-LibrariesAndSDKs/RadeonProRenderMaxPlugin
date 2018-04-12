@@ -21,7 +21,7 @@ echo	Max version: %MAX_VERSION%
 REM the following call allows for some extra indirection, 2 escape passes
 
 set DIST_PATH=dist
-set PLUGIN_PATH=bin\x64\%CONFIG_NAME%\RadeonProRenderMaxPlugin.dll
+set PLUGIN_PATH=bin\x64\%CONFIG_NAME%\RadeonProRenderMaxPlugin.dlr
 
 ::Copy silent, confirm overwrite and copy if different
 set xCopyFlags=/S /Y
@@ -66,7 +66,7 @@ for %%b in (%PluginBundle%) do (
 	)
 )
 
-xcopy %PLUGIN_PATH% "%DIST_PATH%\plug-ins\%MAX_VERSION%\RadeonProRender%MAX_VERSION%.dlr*" %xCopyFlags%
+xcopy %PLUGIN_PATH% "%DIST_PATH%\plug-ins\%MAX_VERSION%\*" %xCopyFlags%
 
 pushd Support
 powershell -executionPolicy bypass -file RprSetup.ps1 %MAX_VERSION%
