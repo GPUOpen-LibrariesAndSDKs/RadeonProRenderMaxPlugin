@@ -91,14 +91,14 @@ enum PhysLightRolloutWindow
 
 static std::unordered_map<PhysLightRolloutWindow, TSTR> rolloutWindowsTable =
 {
-	{ ROLLOUT_GENERAL,		_T("General") },
-	{ ROLLOUT_INTENSITY,	_T("Intensity") },
-	{ ROLLOUT_AREALIGHT,	_T("Light Area") },
-	{ ROLLOUT_SPOTLIGHT,	_T("Spot Light") },
-	{ ROLLOUT_LIGHTDECAY,	_T("Light Decay") },
-	{ ROLLOUT_SHADOWS,		_T("Light Shadows") },
-	{ ROLLOUT_VOLUME,		_T("Light Volume") },
-	{ ROLLOUT_MAX,			_T("Dummy") },
+	{ ROLLOUT_GENERAL,    _T("General") },
+	{ ROLLOUT_INTENSITY,  _T("Intensity") },
+	{ ROLLOUT_AREALIGHT,  _T("Light Area") },
+	{ ROLLOUT_SPOTLIGHT,  _T("Spot Light") },
+	{ ROLLOUT_LIGHTDECAY, _T("Light Decay") },
+	{ ROLLOUT_SHADOWS,    _T("Light Shadows") },
+	{ ROLLOUT_VOLUME,     _T("Light Volume") },
+	{ ROLLOUT_MAX,        _T("Dummy") },
 };
 
 // commented out because GetPanelTitle(int) function doesn't exist in MAX 2016 SDK
@@ -797,6 +797,44 @@ INT_PTR PhysLightGeneralParamsDlgProc::MsgProcClose(TimeValue t, IParamMap2* map
 	return 1;
 }
 
+static const std::unordered_map<FRPhysicalLight_LightType, std::vector<FRPhysicalLight_ParamID>> uiPanelsDepend =
+{
+	{ FRPhysicalLight_AREA, { FRPhysicalLight_SPOTLIGHT_ISVISIBLE , 
+							  FRPhysicalLight_SPOTLIGHT_INNERCONE , 
+							  FRPhysicalLight_SPOTLIGHT_OUTERCONE 
+							} 
+	},
+	{ FRPhysicalLight_SPOT, { FRPhysicalLight_AREALIGHT_ISVISIBLE , 
+							  FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,
+							  FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,
+							  FRPhysicalLight_AREALIGHT_LIGHTMESH ,
+							  FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION 
+							} 
+	},
+	{ FRPhysicalLight_POINT, { FRPhysicalLight_AREALIGHT_ISVISIBLE ,
+							   FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,
+							   FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,
+							   FRPhysicalLight_AREALIGHT_LIGHTMESH ,
+							   FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION,
+							   FRPhysicalLight_SPOTLIGHT_ISVISIBLE , 
+							   FRPhysicalLight_SPOTLIGHT_INNERCONE , 
+							   FRPhysicalLight_SPOTLIGHT_OUTERCONE 
+							 }
+	},
+	{ FRPhysicalLight_DIRECTIONAL, { FRPhysicalLight_AREALIGHT_ISVISIBLE ,
+									 FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,
+									 FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,
+									 FRPhysicalLight_AREALIGHT_LIGHTMESH ,
+									 FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION,
+									 FRPhysicalLight_SPOTLIGHT_ISVISIBLE , 
+									 FRPhysicalLight_SPOTLIGHT_INNERCONE , 
+									 FRPhysicalLight_SPOTLIGHT_OUTERCONE 
+								   }
+	}
+};
+
+#define FRPhysicalLight_AllLightPanels FRPhysicalLight_POINT 
+
 INT_PTR PhysLightGeneralParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
 	INT_PTR processed = FALSE;
@@ -816,54 +854,37 @@ INT_PTR PhysLightGeneralParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* m
 	// grey out sections not needed for selected light type
 	IParamMap2* pAreaMap = pBlock->GetMap(ROLLOUT_AREALIGHT);
 	IParamMap2* pSpotLMap = pBlock->GetMap(ROLLOUT_SPOTLIGHT);
-	if (pAreaMap && pSpotLMap)
+	if (pAreaMap && pSpotLMap) // ensure that both rollouts exist
 	{
-		if (FRPhysicalLight_AREA == lightType)
+		std::unordered_map<FRPhysicalLight_ParamID, IParamMap2*> id2map =
 		{
-			//pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift); // I'm not removing commented out code because we want it back after 2016 supposrt is discontinued
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, TRUE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, TRUE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, TRUE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, TRUE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, TRUE);
+			{ FRPhysicalLight_AREALIGHT_ISVISIBLE ,				   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,		   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,			   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_LIGHTMESH ,				   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION , pAreaMap },
 
-			//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
-		}
-		else if (FRPhysicalLight_SPOT == lightType)
-		{
-			//pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
+			{ FRPhysicalLight_SPOTLIGHT_ISVISIBLE , pSpotLMap },
+			{ FRPhysicalLight_SPOTLIGHT_INNERCONE , pSpotLMap },
+			{ FRPhysicalLight_SPOTLIGHT_OUTERCONE , pSpotLMap },
+		};
+		
+		// enable all
+		auto it = uiPanelsDepend.find(FRPhysicalLight_AllLightPanels);
+		for (FRPhysicalLight_ParamID id : it->second)
+			id2map[id]->Enable(id, TRUE);
 
-			//pRolloutWIndow->Show(ROLLOUT_SPOTLIGHT + shift);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, TRUE);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, TRUE);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, TRUE);
-		}
-		else
-		{
-			//pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
-			pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
-
-			//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
-			pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
-		}
-		pAreaMap->Invalidate();
+		// disable panels that should not be visible with selected light type
+		it = uiPanelsDepend.find((FRPhysicalLight_LightType)lightType);
+		for (FRPhysicalLight_ParamID id : it->second)
+			id2map[id]->Enable(id, FALSE);
+		
+		//pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift); // I'm not removing commented out code because we want it back after 2016 support is discontinued
+		//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
+		
+		pAreaMap->Invalidate(); // ui won't update without these calls
 		pSpotLMap->Invalidate();
 	}
-
 
 	return 1; // processed;
 }
@@ -1001,6 +1022,8 @@ INT_PTR PhysLightsAreaLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 		shift = ROLLOUT_MAX_GENERAL_SHIFT;
 
 	// hide sections not needed for selected light type
+	// - commented out because we disable control elements instead of hiding rollouts for now
+	// - will be uncommented when we drop support of MAX 2016 (when we will have necessary functions to work with rollouts in SDK)
 	//if (FRPhysicalLight_AREA != lightType)
 	//{
 		//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
@@ -1009,7 +1032,6 @@ INT_PTR PhysLightsAreaLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 	//else
 	//{
 		//pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
-
 	//}
 
 	// disable/enable mesh selection button
@@ -1080,6 +1102,8 @@ INT_PTR PhysLightsSpotLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
 
 	// hide sections not needed for selected light type
+	// - commented out because we disable control elements instead of hiding rollouts for now
+	// - will be uncommented when we drop support of MAX 2016 (when we will have necessary functions to work with rollouts in SDK)
 	/*if (FRPhysicalLight_SPOT != lightType)
 	{
 		pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
@@ -1117,49 +1141,33 @@ INT_PTR PhysLightsVolumeDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd
 		IParamMap2* pSpotLMap = pBlock->GetMap(ROLLOUT_SPOTLIGHT);
 		if (pAreaMap && pSpotLMap)
 		{
-			if (FRPhysicalLight_AREA == lightType)
+			std::unordered_map<FRPhysicalLight_ParamID, IParamMap2*> id2map =
 			{
-				//pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, TRUE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, TRUE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, TRUE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, TRUE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, TRUE);
+				{ FRPhysicalLight_AREALIGHT_ISVISIBLE ,				   pAreaMap },
+				{ FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,		   pAreaMap },
+				{ FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,			   pAreaMap },
+				{ FRPhysicalLight_AREALIGHT_LIGHTMESH ,				   pAreaMap },
+				{ FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION , pAreaMap },
 
-				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow) + shift);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
-			}
-			else if (FRPhysicalLight_SPOT == lightType)
-			{
-				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
+				{ FRPhysicalLight_SPOTLIGHT_ISVISIBLE , pSpotLMap },
+				{ FRPhysicalLight_SPOTLIGHT_INNERCONE , pSpotLMap },
+				{ FRPhysicalLight_SPOTLIGHT_OUTERCONE , pSpotLMap },
+			};
 
-				//pRolloutWIndow->Show(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow) + shift);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, TRUE);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, TRUE);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, TRUE);
-			}
-			else
-			{
-				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_AREALIGHT, pRolloutWIndow) + shift);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISVISIBLE, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_LIGHTMESH, FALSE);
-				pAreaMap->Enable(FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, FALSE);
+			// enable all
+			auto it = uiPanelsDepend.find(FRPhysicalLight_AllLightPanels);
+			for (FRPhysicalLight_ParamID id : it->second)
+				id2map[id]->Enable(id, TRUE);
 
-				//pRolloutWIndow->Hide(GetRolloutWindowActualIndex(ROLLOUT_SPOTLIGHT, pRolloutWIndow) + shift);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_ISVISIBLE, FALSE);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_INNERCONE, FALSE);
-				pSpotLMap->Enable(FRPhysicalLight_SPOTLIGHT_OUTERCONE, FALSE);
-			}
-			pAreaMap->Invalidate();
+			// disable panels that should not be visible with selected light type
+			it = uiPanelsDepend.find((FRPhysicalLight_LightType)lightType);
+			for (FRPhysicalLight_ParamID id : it->second)
+				id2map[id]->Enable(id, FALSE);
+
+			//pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift); // I'm not removing commented out code because we want it back after 2016 support is discontinued
+			//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
+
+			pAreaMap->Invalidate(); // ui won't update without these calls
 			pSpotLMap->Invalidate();
 		}
 

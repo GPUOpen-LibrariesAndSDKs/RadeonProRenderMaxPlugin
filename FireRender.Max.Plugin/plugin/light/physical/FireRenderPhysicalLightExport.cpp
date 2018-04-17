@@ -386,10 +386,7 @@ frw::Shape CreateSphereShape(frw::Context& context, float radius)
 
 	CalculateSphere(radius, vertices, normals, triangles);
 
-	std::vector<int> normal_indices;
-	normal_indices.reserve(triangles.size());
-	for (int i = 0; i < triangles.size(); i++)
-		normal_indices.push_back(triangles[i]);
+	std::vector<int>& normal_indices = triangles;
 
 	std::vector<int> faces(triangles.size() / 3);
 	for (size_t i = 0; i < triangles.size() / 3; i++)
