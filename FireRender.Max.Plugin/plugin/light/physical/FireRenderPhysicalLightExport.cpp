@@ -588,7 +588,13 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 		return;
 
 	INode* thisNode = GetThisNode();
-	FASSERT(thisNode);
+	if(!thisNode)
+	{
+		// in case node is not initialized
+		thisNode = FindNodeRef(this);
+		FASSERT(thisNode);
+		SetThisNode(thisNode);
+	}
 
 	// setup position
 	// - should depend on targeted/not targeted because of how look at contoller works

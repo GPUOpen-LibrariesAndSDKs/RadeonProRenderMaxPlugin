@@ -44,23 +44,15 @@ INode* FindNodeRef(ReferenceTarget *rt)
 	return nullptr;
 }
 
-ReferenceTarget* MakeNodeTransformMonitor()
-{
-	Interface* ip = GetCOREInterface();
-	return static_cast<ReferenceTarget*>(ip->CreateInstance(REF_TARGET_CLASS_ID, NODETRANSFORMMONITOR_CLASS_ID));
-}
-
 FireRenderPhysicalLight::FireRenderPhysicalLight()
-	: m_pblock(nullptr)
-	, m_thisNode(MakeNodeTransformMonitor())
-	, m_targNode(MakeNodeTransformMonitor())
-	, m_isPreview(true)
+	: m_isPreview(true)
 	, m_isTargetPreview(false)
 {
-	ReplaceLocalReference(IndirectReference::ThisNode, m_thisNode);
-	ReplaceLocalReference(IndirectReference::TargetNode, m_targNode);
+	ReplaceLocalReference(IndirectReference::ThisNode, m_thisNodeMonitor);
+	ReplaceLocalReference(IndirectReference::TargetNode, m_targNodeMonitor);
 
 	GetFireRenderPhysicalLightDesc()->MakeAutoParamBlocks(this);
+
 	FASSERT(m_pblock != NULL);
 }
 
@@ -180,23 +172,6 @@ RefTargetHandle FireRenderPhysicalLight::Clone(RemapDir& remap)
 	return newob;
 }
 
-int FireRenderPhysicalLight::NumRefs()
-{
-	return LightObject::NumRefs() + static_cast<int>(IndirectReference::indirectRefEnd);
-}
-
-void FireRenderPhysicalLight::SetReference(int i, RefTargetHandle rtarg)
-{
-	FASSERT(unsigned(i) < unsigned(NumRefs()));
-	this->m_pblock = dynamic_cast<IParamBlock2*>(rtarg);
-}
-
-RefTargetHandle FireRenderPhysicalLight::GetReference(int i)
-{
-	FASSERT(unsigned(i) < unsigned(NumRefs()));
-	return m_pblock;
-}
-
 void FireRenderPhysicalLight::BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev)
 {
 	GetFireRenderPhysicalLightDesc()->BeginEditParams(ip, this, flags, prev);
@@ -286,50 +261,50 @@ Point3 FireRenderPhysicalLight::GetHSVColor(TimeValue t, Interval &valid)
 
 void FireRenderPhysicalLight::SetThisNode(INode* node)
 {
-	FASSERT(m_thisNode);
-	dynamic_cast<INodeTransformMonitor*>(m_thisNode)->SetNode(node);
+	FASSERT(m_thisNodeMonitor);
+	dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->SetNode(node);
 }
 
 void FireRenderPhysicalLight::SetTargetNode(INode* node)
 {
-	FASSERT(m_targNode);
-	dynamic_cast<INodeTransformMonitor*>(m_targNode)->SetNode(node);
+	FASSERT(m_targNodeMonitor);
+	dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->SetNode(node);
 }
 
 INode* FireRenderPhysicalLight::GetThisNode()
 {
 	// back-off
-	if (m_thisNode == nullptr)
+	if (m_thisNodeMonitor == nullptr)
 		return nullptr;
 
-	return dynamic_cast<INodeTransformMonitor*>(m_thisNode)->GetNode();
+	return dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
 }
 
 INode* FireRenderPhysicalLight::GetTargetNode()
 {
 	// back-off
-	if (m_targNode == nullptr)
+	if (m_targNodeMonitor == nullptr)
 		return nullptr;
 
-	return dynamic_cast<INodeTransformMonitor*>(m_targNode)->GetNode();
+	return dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
 }
 
 const INode* FireRenderPhysicalLight::GetThisNode() const
 {
 	// back-off
-	if (m_targNode == nullptr)
+	if (m_targNodeMonitor == nullptr)
 		return nullptr;
 
-	return dynamic_cast<INodeTransformMonitor*>(m_thisNode)->GetNode();
+	return dynamic_cast<INodeTransformMonitor*>(m_thisNodeMonitor)->GetNode();
 }
 
 const INode* FireRenderPhysicalLight::GetTargetNode() const
 {
 	// back-off
-	if (m_targNode == nullptr)
+	if (m_targNodeMonitor == nullptr)
 		return nullptr;
 
-	return dynamic_cast<INodeTransformMonitor*>(m_targNode)->GetNode();
+	return dynamic_cast<INodeTransformMonitor*>(m_targNodeMonitor)->GetNode();
 }
 
 void FireRenderPhysicalLight::SetLightPoint(const Point3& p, const TimeValue& time)
@@ -465,6 +440,14 @@ bool FireRenderPhysicalLight::IsEnabled() const
 void FireRenderPhysicalLight::AddTarget(TimeValue t, bool fromCreateCallback)
 {
 	INode* thisNode = GetThisNode();
+	if (!thisNode)
+	{
+		// in case node is not initialized 
+		thisNode = FindNodeRef(this);
+		FASSERT(thisNode);
+		SetThisNode(thisNode);
+	}
+
 	Interface* core = GetCOREInterface();
 	INode* targNode = core->CreateObjectNode(new LookAtTarget);
 

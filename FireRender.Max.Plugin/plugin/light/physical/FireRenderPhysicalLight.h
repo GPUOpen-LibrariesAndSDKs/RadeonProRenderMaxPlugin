@@ -157,31 +157,11 @@ protected:
 	void RemoveTarget(TimeValue t);
 	bool IsEnabled(void) const;
 
-	void SetThisNode(INode*);
-	void SetTargetNode(INode*);
-
 	float GetIntensity(void) const;
 	float GetLightSourceArea(void) const;
 	Color GetLightColour(void) const;
 
 public:
-	enum StrongReference
-	{
-		ParamBlock = 0,
-
-		// This should be always last
-		strongRefEnd
-	};
-
-	enum IndirectReference
-	{
-		ThisNode = StrongReference::strongRefEnd,
-		TargetNode,
-
-		// This should be always last
-		indirectRefEnd
-	};
-
 	FireRenderPhysicalLight(void);
 	~FireRenderPhysicalLight(void);
 
@@ -193,6 +173,9 @@ public:
 	INode* GetTargetNode(void);
 	const INode* GetThisNode(void) const;
 	const INode* GetTargetNode(void) const;
+
+	void SetThisNode(INode*);
+	void SetTargetNode(INode*);
 
 	void SetLightPoint(const Point3& p, const TimeValue& time);
 	const Point3 GetLightPoint(const TimeValue& time) const;
@@ -234,9 +217,6 @@ public:
 	IParamBlock2* GetParamBlock(int i) override;
 
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
-	int NumRefs(void) override;
-	void SetReference(int i, RefTargetHandle rtarg) override;
-	RefTargetHandle GetReference(int i) override;
 
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
@@ -261,9 +241,7 @@ protected:
 	ExclList m_exclList;
 
 private:
-	IParamBlock2* m_pblock;
-	ReferenceTarget* m_thisNode;
-	ReferenceTarget* m_targNode;
+
 	bool m_isPreview; // light representation should be displayed in a different way during preview
 	bool m_isTargetPreview; // same for target
 

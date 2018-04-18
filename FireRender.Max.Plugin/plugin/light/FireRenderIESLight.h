@@ -19,7 +19,6 @@
 #include "parser/SceneParser.h"
 #include "parser/RenderParameters.h"
 #include "frScope.h"
-#include "INodeTransformMonitor.h"
 
 class LookAtTarget;
 
@@ -29,23 +28,6 @@ class FireRenderIESLight :
 	public FireRenderLight
 {
 public:
-	enum StrongReference
-	{
-		ParamBlock = 0,
-
-		// This should be always last
-		strongRefEnd
-	};
-
-	enum IndirectReference
-	{
-		ThisNode = StrongReference::strongRefEnd,
-		TargetNode,
-
-		// This should be always last
-		indirectRefEnd
-	};
-
 	struct IntensitySettings :
 		public MaxSpinner::DefaultFloatSettings
 	{
@@ -97,9 +79,6 @@ public:
 	IParamBlock2* GetParamBlock(int i) override;
 
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
-	int NumRefs() override;
-	void SetReference(int i, RefTargetHandle rtarg) override;
-	RefTargetHandle GetReference(int i) override;
 
 	void DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel = FALSE, BOOL frozen = FALSE);
 	bool DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected = false, bool isFrozen = false); 
@@ -222,11 +201,6 @@ private:
 	bool m_BBoxCalculated;
 	std::vector<std::vector<Point3> > m_preview_plines;
 	bool m_isPreviewGraph; // photometric web should be rotated differently when look target is not created yet (during preview) compared to when look at target is reomved/disabled
-
-	// References
-	IParamBlock2* m_pblock2;
-	ReferenceTarget* m_thisNodeMonitor;
-	ReferenceTarget* m_targNodeMonitor;
 };
 
 #undef IES_DELCARE_PARAM_SET

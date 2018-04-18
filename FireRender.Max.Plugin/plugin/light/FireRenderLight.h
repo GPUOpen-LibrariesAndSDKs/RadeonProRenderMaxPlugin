@@ -2,6 +2,7 @@
 
 #include "IFireRenderLight.h"
 #include "object.h"
+#include "INodeTransformMonitor.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -12,6 +13,30 @@ class FireRenderLight :
 	public IFireRenderLight
 {
 public:
+	FireRenderLight(void);
+	~FireRenderLight(void);
+
+	enum StrongReference
+	{
+		ParamBlock = 0,
+
+		// This should be always last
+		strongRefEnd
+	};
+
+	enum IndirectReference
+	{
+		ThisNode = StrongReference::strongRefEnd,
+		TargetNode,
+
+		// This should be always last
+		indirectRefEnd
+	};
+
+	int NumRefs() override;
+	void SetReference(int i, RefTargetHandle rtarg) override;
+	RefTargetHandle GetReference(int i) override;
+
 	using BaseMaxType = LightObject;
 
 	void SetAttenDisplay(int) override;
@@ -59,6 +84,12 @@ public:
 	void UpdateTargDistance(TimeValue t, INode* inode) override;
 	void SetTDist(TimeValue time, float f) override;
 	float GetTDist(TimeValue t, Interval& valid) override;
+
+protected:
+	// References
+	IParamBlock2* m_pblock;
+	RefTargetHandle m_thisNodeMonitor;
+	RefTargetHandle m_targNodeMonitor;
 };
 
 FIRERENDER_NAMESPACE_END
