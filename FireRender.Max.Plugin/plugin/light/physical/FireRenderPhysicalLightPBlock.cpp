@@ -228,7 +228,14 @@ ClassDesc2* FireRenderPhysicalLight::GetClassDesc()
 
 void *FireRenderPhysicalLightClassDesc::Create(BOOL loading)
 {
-	return new FireRenderPhysicalLight();
+	FireRenderPhysicalLight* pLight = new FireRenderPhysicalLight();
+
+	if (loading)
+	{
+		pLight->FinishPreview();
+	}
+
+	return pLight;
 }
 
 static ParamBlockDesc2 pbDesc(
@@ -704,7 +711,7 @@ RefResult FireRenderPhysicalLight::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETER
 			}
 		}
 	}
-	else if (hTarget == m_targNode)
+	else if (hTarget == m_targNodeMonitor)
 	{
 		// update target position
 		const INode* targetNode = GetTargetNode();
@@ -717,7 +724,7 @@ RefResult FireRenderPhysicalLight::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETER
 		float distToTarg = GetTargetDistance(time);
 		SetDist(distToTarg, time);
 	}
-	else if (hTarget == m_thisNode)
+	else if (hTarget == m_thisNodeMonitor)
 	{
 		// update ui
 		if (IsTargeted())

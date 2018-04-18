@@ -572,10 +572,7 @@ FireRenderIESLight::FireRenderIESLight() :
 	m_isPreviewGraph(true),
 	m_bbox(),
 	m_invlidProfileMessageShown(false),
-	m_BBoxCalculated(false),
-	m_pblock2(nullptr),
-	m_thisNodeMonitor(MakeNodeTransformMonitor()),
-	m_targNodeMonitor(MakeNodeTransformMonitor())
+	m_BBoxCalculated(false)
 {
 	ReplaceLocalReference(IndirectReference::ThisNode, m_thisNodeMonitor);
 	ReplaceLocalReference(IndirectReference::TargetNode, m_targNodeMonitor);
@@ -662,9 +659,9 @@ RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTarg
 		{
 			updatePoint(&FireRenderIESLight::GetTargetNode, &FireRenderIESLight::SetTargetPoint);
 		}
-		else if (hTarget == m_pblock2)
+		else if (hTarget == m_pblock)
 		{
-			ParamID p = m_pblock2->LastNotifyParamID();
+			ParamID p = m_pblock->LastNotifyParamID();
 			TimeValue time = GetCOREInterface()->GetTime();
 
 			switch (p)
@@ -782,109 +779,13 @@ RefTargetHandle FireRenderIESLight::Clone(RemapDir& remap)
 IParamBlock2* FireRenderIESLight::GetParamBlock(int i)
 {
     FASSERT(i == 0);
-    return m_pblock2;
+    return m_pblock;
 }
 
 IParamBlock2* FireRenderIESLight::GetParamBlockByID(BlockID id)
 {
-    FASSERT(m_pblock2->ID() == id);
-    return m_pblock2;
-}
-
-int FireRenderIESLight::NumRefs()
-{
-	return BaseMaxType::NumRefs() + static_cast<int>(IndirectReference::indirectRefEnd);
-}
-
-void FireRenderIESLight::SetReference(int i, RefTargetHandle rtarg)
-{
-	int baseRefs = BaseMaxType::NumRefs();
-
-	if (i < baseRefs)
-	{
-		BaseMaxType::SetReference(i, rtarg);
-		return;
-	}
-
-	int local_i = i - baseRefs;
-	bool referenceFound = false;
-
-	static_assert(
-		static_cast<int>(IndirectReference::indirectRefEnd) == 3,
-		"Light references enumeration has been updated. Please, implement here");
-
-	switch (static_cast<StrongReference>(local_i))
-	{
-		case StrongReference::ParamBlock:
-			m_pblock2 = dynamic_cast<IParamBlock2*>(rtarg);
-			referenceFound = true;
-			break;
-	}
-
-	switch (static_cast<IndirectReference>(local_i))
-	{
-		case IndirectReference::ThisNode:
-			m_thisNodeMonitor = rtarg;
-			referenceFound = true;
-			break;
-
-		case IndirectReference::TargetNode:
-			m_targNodeMonitor = rtarg;
-			referenceFound = true;
-			break;
-	}
-
-	if (!referenceFound)
-	{
-		FASSERT(!"Invalid reference request");
-	}
-}
-
-RefTargetHandle FireRenderIESLight::GetReference(int i)
-{
-	int baseRefs = BaseMaxType::NumRefs();
-
-	if (i < baseRefs)
-	{
-		return BaseMaxType::GetReference(i);
-	}
-
-	int local_i = i - baseRefs;
-
-	RefTargetHandle result = nullptr;
-	bool referenceFound = false;
-
-	static_assert(
-		static_cast<int>(IndirectReference::indirectRefEnd) == 3,
-		"Light references enumeration has been updated. Please, implement here");
-
-	switch (static_cast<StrongReference>(local_i))
-	{
-		case StrongReference::ParamBlock:
-			result = m_pblock2;
-			referenceFound = true;
-			break;
-	}
-
-	switch (static_cast<IndirectReference>(local_i))
-	{
-		case IndirectReference::ThisNode:
-			result = m_thisNodeMonitor;
-			referenceFound = true;
-			break;
-
-		case IndirectReference::TargetNode:
-			result = m_targNodeMonitor;
-			referenceFound = true;
-			break;
-	}
-
-	if (!referenceFound)
-	{
-		FASSERT(!"Invalid reference request");
-	}
-
-	return result;
+    FASSERT(m_pblock->ID() == id);
+    return m_pblock;
 }
 
 const float IES_DEFAULT_LIGHT_RADIUS = 2.0f;
@@ -1386,11 +1287,11 @@ Color FireRenderIESLight::GetFinalColor(TimeValue t, Interval& i) const
 	switch (GetColorMode(t))
 	{
 		case IES_LIGHT_COLOR_MODE_COLOR:
-			result = GetBlockValue<IES_PARAM_COLOR>(m_pblock2, t, i);
+			result = GetBlockValue<IES_PARAM_COLOR>(m_pblock, t, i);
 			break;
 
 		case IES_LIGHT_COLOR_MODE_TEMPERATURE:
-			result = KelvinToColor(GetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock2, t, i));
+			result = KelvinToColor(GetBlockValue<IES_PARAM_TEMPERATURE>(m_pblock, t, i));
 			break;
 
 		default:
@@ -1458,14 +1359,14 @@ void FireRenderIESLight::SetTargetNode(INode* node)
 #define IES_DEFINE_PARAM_SET($paramName, $paramType, $enum)				\
 bool FireRenderIESLight::Set##$paramName($paramType value, TimeValue t)	\
 {																		\
-	return SetBlockValue<$enum>(m_pblock2, value, t);					\
+	return SetBlockValue<$enum>(m_pblock, value, t);					\
 }
 
 // Makes default implementation for parameter getter
 #define IES_DEFINE_PARAM_GET($paramName, $paramType, $enum)							\
 $paramType FireRenderIESLight::Get##$paramName(TimeValue t, Interval& valid) const	\
 {																					\
-	return static_cast<$paramType>(GetBlockValue<$enum>(m_pblock2, t, valid));		\
+	return static_cast<$paramType>(GetBlockValue<$enum>(m_pblock, t, valid));		\
 }
 
 // Makes default implementations for parameter setter and getter
