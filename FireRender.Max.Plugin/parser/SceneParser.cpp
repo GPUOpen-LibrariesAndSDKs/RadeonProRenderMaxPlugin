@@ -1067,17 +1067,22 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 						displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(this->params.t, mtlParser, currentMtl,
 							minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
 
-					if (displImageNode)
-						{
+					if (displImageNode && shape.IsUVCoordinatesSet())
+					{
 						if (notAccurate)
+						{
 							hasDirectDisplacements = true;
-						shape.SetDisplacement(displImageNode, minHeight, maxHeight);
-							shape.SetSubdivisionFactor(subdivision);
-							shape.SetSubdivisionCreaseWeight(creaseWeight);
-							shape.SetSubdivisionBoundaryInterop(boundary);
 						}
-						else 
-							shape.RemoveDisplacement();
+
+						shape.SetDisplacement(displImageNode, minHeight, maxHeight);
+						shape.SetSubdivisionFactor(subdivision);
+						shape.SetSubdivisionCreaseWeight(creaseWeight);
+						shape.SetSubdivisionBoundaryInterop(boundary);
+					}
+					else
+					{
+						shape.RemoveDisplacement();
+					}
 
 					shape.SetShadowFlag(castsShadows);
 					shape.SetShadowCatcherFlag(shadowCatcher);
