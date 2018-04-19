@@ -77,7 +77,7 @@ namespace
 	static const float VolumeScaleMax = FLT_MAX;
 }
 
-enum
+enum PhysLightRolloutWindow
 {
 	ROLLOUT_GENERAL,
 	ROLLOUT_INTENSITY,
@@ -88,6 +88,39 @@ enum
 	ROLLOUT_VOLUME,
 	ROLLOUT_MAX
 };
+
+static std::unordered_map<PhysLightRolloutWindow, TSTR> rolloutWindowsTable =
+{
+	{ ROLLOUT_GENERAL,    _T("General") },
+	{ ROLLOUT_INTENSITY,  _T("Intensity") },
+	{ ROLLOUT_AREALIGHT,  _T("Light Area") },
+	{ ROLLOUT_SPOTLIGHT,  _T("Spot Light") },
+	{ ROLLOUT_LIGHTDECAY, _T("Light Decay") },
+	{ ROLLOUT_SHADOWS,    _T("Light Shadows") },
+	{ ROLLOUT_VOLUME,     _T("Light Volume") },
+	{ ROLLOUT_MAX,        _T("Dummy") },
+};
+
+// commented out because GetPanelTitle(int) function doesn't exist in MAX 2016 SDK
+// will be restored when we will eventually drop support of MAX 2016
+/*int GetRolloutWindowActualIndex(PhysLightRolloutWindow rollWindowID, IRollupWindow* pRollWindow)
+{
+	TSTR rollWindowName = rolloutWindowsTable[rollWindowID];
+
+	for (int idx = 0; idx < pRollWindow->GetNumPanels(); ++idx) // ROLLOUT_MAX + shift?
+		if (pRollWindow->GetPanelTitle(idx) == rollWindowName)
+			return idx;
+	
+	FASSERT(false); // failed
+
+	return -1; // dummy return for compiler
+}*/
+
+// dummy function that will be used until we drop support of MAX 2016
+int GetRolloutWindowActualIndex(PhysLightRolloutWindow rollWindowID, IRollupWindow* pRollWindow)
+{
+	return rollWindowID;
+}
 
 const int ROLLOUT_MAX_GENERAL_SHIFT = 2;
 const int ROLLOUTS_PHYS_LIGHT_COUNT = 7;
@@ -428,7 +461,7 @@ static ParamBlockDesc2 pbDesc(
 	PB_END,
 
 	//IDC_FIRERENDER_PHYS_LIGHT_INTENSITYNORM
-	FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, _T("IsIntensityNormalization"), TYPE_BOOL, P_ANIMATABLE, 0,
+	FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION, _T("IsIntensityNormalized"), TYPE_BOOL, P_ANIMATABLE, 0,
 	p_default, FALSE,
 	p_ui, ROLLOUT_AREALIGHT,
 	TYPE_SINGLECHEKBOX, IDC_FIRERENDER_PHYS_LIGHT_INTENSITYNORM,
@@ -761,10 +794,6 @@ void PhysLightGeneralParamsDlgProc::DeleteThis()
 
 INT_PTR PhysLightGeneralParamsDlgProc::MsgProcInitDialog(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
-	// setup controls
-	IParamBlock2* pBlock = map->GetParamBlock();
-	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
-
 	return 1;
 }
 
@@ -773,39 +802,109 @@ INT_PTR PhysLightGeneralParamsDlgProc::MsgProcClose(TimeValue t, IParamMap2* map
 	return 1;
 }
 
-INT_PTR PhysLightGeneralParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
+static const std::unordered_map<FRPhysicalLight_LightType, std::vector<FRPhysicalLight_ParamID>> uiPanelsToHide =
 {
-	INT_PTR processed = FALSE;
+	{ 
+		FRPhysicalLight_AREA, 
+		{
+			FRPhysicalLight_SPOTLIGHT_ISVISIBLE , 
+			FRPhysicalLight_SPOTLIGHT_INNERCONE , 
+			FRPhysicalLight_SPOTLIGHT_OUTERCONE 
+		} 
+	},
+	{ 
+		FRPhysicalLight_SPOT, 
+		{
+			FRPhysicalLight_AREALIGHT_ISVISIBLE , 
+			FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,
+			FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,
+			FRPhysicalLight_AREALIGHT_LIGHTMESH ,
+			FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION 
+		} 
+	},
+	{ 
+		FRPhysicalLight_POINT, 
+		{
+			FRPhysicalLight_AREALIGHT_ISVISIBLE ,
+			FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,
+			FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,
+			FRPhysicalLight_AREALIGHT_LIGHTMESH ,
+			FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION,
+			FRPhysicalLight_SPOTLIGHT_ISVISIBLE , 
+			FRPhysicalLight_SPOTLIGHT_INNERCONE , 
+			FRPhysicalLight_SPOTLIGHT_OUTERCONE 
+		}
+	},
+	{ 
+		FRPhysicalLight_DIRECTIONAL, 
+		{
+			FRPhysicalLight_AREALIGHT_ISVISIBLE ,
+			FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,
+			FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,
+			FRPhysicalLight_AREALIGHT_LIGHTMESH ,
+			FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION,
+			FRPhysicalLight_SPOTLIGHT_ISVISIBLE , 
+			FRPhysicalLight_SPOTLIGHT_INNERCONE , 
+			FRPhysicalLight_SPOTLIGHT_OUTERCONE 
+		}
+	}
+};
 
+#define FRPhysicalLight_AllLightPanels FRPhysicalLight_POINT 
+
+void UpdatePhysLightUI(IParamMap2* map)
+{
 	IRollupWindow* pRolloutWIndow = map->GetIRollup();
-	// shift is different when light is created and when it is edited
-
-	int shift = 0;
-	int count = pRolloutWIndow->GetNumPanels();
-	const int physLightRolloutWindowsCount = ROLLOUTS_PHYS_LIGHT_COUNT + ROLLOUT_MAX_GENERAL_SHIFT;
-	if (count == physLightRolloutWindowsCount)
-		shift = ROLLOUT_MAX_GENERAL_SHIFT;
 
 	// get light type
 	IParamBlock2* pBlock = map->GetParamBlock();
 	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
 
 	// grey out sections not needed for selected light type
-	if (FRPhysicalLight_AREA == lightType)
+	IParamMap2* pAreaMap = pBlock->GetMap(ROLLOUT_AREALIGHT);
+	IParamMap2* pSpotLMap = pBlock->GetMap(ROLLOUT_SPOTLIGHT);
+	if (pAreaMap && pSpotLMap) // ensure that both rollouts exist
 	{
-		pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift);
-		pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
+		std::unordered_map<FRPhysicalLight_ParamID, IParamMap2*> id2map =
+		{
+			{ FRPhysicalLight_AREALIGHT_ISVISIBLE ,				   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL ,		   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_LIGHTSHAPE ,			   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_LIGHTMESH ,				   pAreaMap },
+			{ FRPhysicalLight_AREALIGHT_ISINTENSITYNORMALIZATION , pAreaMap },
+
+			{ FRPhysicalLight_SPOTLIGHT_ISVISIBLE , pSpotLMap },
+			{ FRPhysicalLight_SPOTLIGHT_INNERCONE , pSpotLMap },
+			{ FRPhysicalLight_SPOTLIGHT_OUTERCONE , pSpotLMap },
+		};
+
+		// enable all
+		auto it = uiPanelsToHide.find(FRPhysicalLight_AllLightPanels);
+		for (FRPhysicalLight_ParamID id : it->second)
+			id2map[id]->Enable(id, TRUE);
+
+		// disable panels that should not be visible with selected light type
+		it = uiPanelsToHide.find((FRPhysicalLight_LightType)lightType);
+		for (FRPhysicalLight_ParamID id : it->second)
+			id2map[id]->Enable(id, FALSE);
+
+		//pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift); // I'm not removing commented out code because we want it back after 2016 support is discontinued
+		//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
+
+		// trigger ui update in editor
+		pAreaMap->Invalidate(); // ui won't update without these calls
+		pSpotLMap->Invalidate();
 	}
-	else if (FRPhysicalLight_SPOT == lightType)
-	{
-		pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-		pRolloutWIndow->Show(ROLLOUT_SPOTLIGHT + shift);
-	}
-	else
-	{
-		pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-		pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
-	}
+}
+
+INT_PTR PhysLightGeneralParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	// don't need to change ui display if message comes not from light type combo box
+	int paramId = LOWORD(wParam); // IDC_FIRERENDER_PHYS_LIGHT_TYPE  1594
+	if (IDC_FIRERENDER_PHYS_LIGHT_TYPE != paramId)
+		return 1; // back-off
+
+	UpdatePhysLightUI(map);
 
 	return 1; // processed;
 }
@@ -819,8 +918,6 @@ INT_PTR PhysLightIntensityDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hW
 		{ WM_INITDIALOG, MsgProcInitDialog },
 		{ WM_CLOSE, MsgProcClose },
 		{ WM_COMMAND, MsgProcCommand },
-		{ WM_UPDATEUISTATE, MsgProcCommand },
-		{ WM_SHOWWINDOW, MsgProcCommand },
 	};
 
 	auto msgProcIt = msgProc.find(msg);
@@ -846,7 +943,7 @@ INT_PTR PhysLightIntensityDlgProc::MsgProcClose(TimeValue t, IParamMap2* map, HW
 	return 1;
 }
 
-INT_PTR PhysLightIntensityDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
+void UpdatePhysLightIntensityTemperatureControls(IParamMap2* map, HWND hDlg)
 {
 	IParamBlock2* pBlock = map->GetParamBlock();
 	int intensUnitsType = GetFromPb<int>(pBlock, FRPhysicalLight_INTENSITY_UNITS);
@@ -884,12 +981,20 @@ INT_PTR PhysLightIntensityDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, 
 		EnableWindow(hEditBox, TRUE);
 		HWND hSpinner = GetDlgItem(hDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE_S);
 		EnableWindow(hSpinner, TRUE);
-		HWND hPicker = GetDlgItem(hDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE_C);
-		//EnableWindow(hPicker, TRUE);
 
 		HWND hColourPicker = GetDlgItem(hDlg, IDC_FIRERENDER_PHYS_LIGHT_COLOR);
 		EnableWindow(hColourPicker, FALSE);
 	}
+}
+
+INT_PTR PhysLightIntensityDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
+{
+	// don't need to change ui display if message comes not from light type combo box
+	int paramId = LOWORD(wParam);
+	if ((IDC_FIRERENDER_PHYS_LIGHT_INTENS_UNITS != paramId) && (IDC_FIRERENDER_PHYS_LIGHT_COLOUR_MODE != paramId))
+		return 1; // back-off
+
+	UpdatePhysLightIntensityTemperatureControls(map, hDlg);
 
 	return 1; // processed;
 }
@@ -934,25 +1039,15 @@ INT_PTR PhysLightsAreaLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 
 	IRollupWindow* pRolloutWIndow = map->GetIRollup();
 
+	IParamBlock2* pBlock = map->GetParamBlock();
+	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
+
 	// shift is different when light is created and when it is edited
 	int shift = 0;
 	int count = pRolloutWIndow->GetNumPanels();
 	const int physLightRolloutWindowsCount = ROLLOUTS_PHYS_LIGHT_COUNT + ROLLOUT_MAX_GENERAL_SHIFT;
 	if (count == physLightRolloutWindowsCount)
 		shift = ROLLOUT_MAX_GENERAL_SHIFT;
-
-	IParamBlock2* pBlock = map->GetParamBlock();
-	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
-
-	// hide sections not needed for selected light type
-	if (FRPhysicalLight_AREA != lightType)
-	{
-		pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-	}
-	else
-	{
-		pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift);
-	}
 
 	// disable/enable mesh selection button
 	if (FRPhysicalLight_AREA != lightType)
@@ -1007,30 +1102,6 @@ INT_PTR PhysLightsSpotLightsDlgProc::MsgProcClose(TimeValue t, IParamMap2* map, 
 
 INT_PTR PhysLightsSpotLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
-	INT_PTR processed = FALSE;
-
-	IRollupWindow* pRolloutWIndow = map->GetIRollup();
-
-	// shift is different when light is created and when it is edited
-	int shift = 0;
-	int count = pRolloutWIndow->GetNumPanels();
-	const int physLightRolloutWindowsCount = ROLLOUTS_PHYS_LIGHT_COUNT + ROLLOUT_MAX_GENERAL_SHIFT;
-	if (count == physLightRolloutWindowsCount)
-		shift = ROLLOUT_MAX_GENERAL_SHIFT;
-
-	IParamBlock2* pBlock = map->GetParamBlock();
-	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
-
-	// hide sections not needed for selected light type
-	if (FRPhysicalLight_SPOT != lightType)
-	{
-		pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
-	}
-	else
-	{
-		pRolloutWIndow->Show(ROLLOUT_SPOTLIGHT + shift);
-	}
-
 	return 1; // processed;
 }
 
@@ -1042,6 +1113,10 @@ INT_PTR PhysLightsVolumeDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd
 	{
 		IRollupWindow* pRolloutWIndow = map->GetIRollup();
 
+		IParamBlock2* pBlock = map->GetParamBlock();
+
+		UpdatePhysLightUI(map);
+
 		// shift is different when light is created and when it is edited
 		int shift = 0;
 		int count = pRolloutWIndow->GetNumPanels();
@@ -1049,60 +1124,9 @@ INT_PTR PhysLightsVolumeDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd
 		if (count == physLightRolloutWindowsCount)
 			shift = ROLLOUT_MAX_GENERAL_SHIFT;
 
-		// hide windows depending on selected light type
-		IParamBlock2* pBlock = map->GetParamBlock();
-		int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
+		HWND intensityDlg = pRolloutWIndow->GetPanelDlg(GetRolloutWindowActualIndex(ROLLOUT_INTENSITY, pRolloutWIndow) + shift);
 
-		if (FRPhysicalLight_AREA == lightType)
-		{
-			pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift);
-			pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
-		}
-		else if (FRPhysicalLight_SPOT == lightType)
-		{
-			pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-			pRolloutWIndow->Show(ROLLOUT_SPOTLIGHT + shift);
-		}
-		else
-		{
-			pRolloutWIndow->Hide(ROLLOUT_AREALIGHT + shift);
-			pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
-		}
-
-		HWND intensityDlg = pRolloutWIndow->GetPanelDlg(ROLLOUT_INTENSITY + ROLLOUT_MAX_GENERAL_SHIFT);
-		int intensUnitsType = GetFromPb<int>(pBlock, FRPhysicalLight_INTENSITY_UNITS);
-		if (FRPhysicalLight_LUMINANCE == intensUnitsType)
-		{
-			HWND hEditBox = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_LUM_EFF);
-			EnableWindow(hEditBox, FALSE);
-			HWND hSpinner = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_LUM_EFF_S);
-			EnableWindow(hSpinner, FALSE);
-		}
-
-		int intensColourMode = GetFromPb<int>(pBlock, FRPhysicalLight_COLOUR_MODE);
-		if (FRPhysicalLight_COLOUR == intensColourMode)
-		{
-			HWND hColourPicker = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_COLOR);
-			EnableWindow(hColourPicker, TRUE);
-			HWND hEditBox = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE);
-			EnableWindow(hEditBox, FALSE);
-			HWND hSpinner = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE_S);
-			EnableWindow(hSpinner, FALSE);
-			HWND hPicker = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE_C);
-			EnableWindow(hPicker, FALSE);
-		}
-		else
-		{
-			HWND hEditBox = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE);
-			EnableWindow(hEditBox, TRUE);
-			HWND hSpinner = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE_S);
-			EnableWindow(hSpinner, TRUE);
-			HWND hPicker = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_TEMPERATURE_C);
-			//EnableWindow(hPicker, TRUE);
-
-			HWND hColourPicker = GetDlgItem(intensityDlg, IDC_FIRERENDER_PHYS_LIGHT_COLOR);
-			EnableWindow(hColourPicker, FALSE);
-		}
+		UpdatePhysLightIntensityTemperatureControls(map, intensityDlg);
 
 		processed = TRUE;
 	}
