@@ -187,17 +187,23 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 						bool notAccurate;
 						displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, pMat,
 								minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
-						if (displImageNode)
+
+						if (displImageNode && shape->Get().IsUVCoordinatesSet())
 						{
 							if (notAccurate)
+							{
 								mFlags.mHasDirectDisplacements = true;
+							}
+
 							shape->Get().SetDisplacement(displImageNode, minHeight, maxHeight);
 							shape->Get().SetSubdivisionFactor(subdivision);
 							shape->Get().SetSubdivisionCreaseWeight(creaseWeight);
 							shape->Get().SetSubdivisionBoundaryInterop(boundary);
 						}
 						else
+						{
 							shape->Get().RemoveDisplacement();
+						}
 
 						shape->Get().SetShadowFlag(castsShadows);
 						shape->Get().SetShadowCatcherFlag(shadowCatcher);
