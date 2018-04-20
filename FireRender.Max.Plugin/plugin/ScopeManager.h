@@ -21,7 +21,7 @@
 #include <set>
 #include <algorithm>
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 #define SCOPEMANAGER_VERSION 1
 
@@ -49,8 +49,7 @@ public:
 	static ScopeManagerMax TheManager;
 	static GpuInfoArray gpuInfoArray;
 
-	std::string rootCacheFolder;
-	std::string subCacheFolder;
+	std::string mCacheFolder;
 
 	static bool CoronaOK;
 
@@ -94,9 +93,10 @@ public:
 private:
 	void EnableRPRTrace(IParamBlock2 *pblock, bool enable);
 	bool CreateContext(rpr_creation_flags createFlags, rpr_context& result);
+	void SetupCacheFolder();
 
 	std::map<ScopeID, frw::Scope> scopes;
 	static ScopeID nextScopeId;
 };
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END
