@@ -455,17 +455,23 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 				if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
 					displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, currentMtl,
 						minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
-				if (displImageNode)
+
+				if (displImageNode && shape.IsUVCoordinatesSet())
 				{
 					if (notAccurate)
+					{
 						mFlags.mHasDirectDisplacements = true;
+					}
+
 					shape.SetDisplacement(displImageNode, minHeight, maxHeight);
 					shape.SetSubdivisionFactor(subdivision);
 					shape.SetSubdivisionCreaseWeight(creaseWeight);
 					shape.SetSubdivisionBoundaryInterop(boundary);
 				}
 				else
+				{
 					shape.RemoveDisplacement();
+				}
 
 				shape.SetShadowFlag(castsShadows);
 				shape.SetShadowCatcherFlag(false);
@@ -737,17 +743,23 @@ bool Synchronizer::ResetMaterial(INode *node)
 		if (currentMtl != GEOM_DISABLED_MATERIAL)
 			displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, currentMtl,
 				minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
-		if (displImageNode)
+
+		if (displImageNode && shape->Get().IsUVCoordinatesSet())
 		{
 			if (notAccurate)
+			{
 				mFlags.mHasDirectDisplacements = true;
+			}
+
 			shape->Get().SetDisplacement(displImageNode, minHeight, maxHeight);
 			shape->Get().SetSubdivisionFactor(subdivision);
 			shape->Get().SetSubdivisionCreaseWeight(creaseWeight);
 			shape->Get().SetSubdivisionBoundaryInterop(boundary);
 		}
 		else
+		{
 			shape->Get().RemoveDisplacement();
+		}
 
 		shape->Get().SetShadowFlag(castsShadows);
 		shape->Get().SetShadowCatcherFlag(false);
