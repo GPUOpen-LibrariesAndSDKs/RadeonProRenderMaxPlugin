@@ -261,10 +261,6 @@ EXPORT_TO_MAX int LibInitialize()
 
 	SetDllDirectory(NULL);
 
-    // We create a dedicated folder for our logs/config in a location 3ds Max designates for us.
-    const std::wstring folder = FireRender::GetDataStoreFolder();
-    _wmkdir(folder.c_str());
-
 	LoadLibrary(TEXT("Msftedit.dll"));
 
 	// initialize class descriptors
