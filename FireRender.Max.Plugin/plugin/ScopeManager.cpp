@@ -27,7 +27,7 @@
 
 extern HINSTANCE hInstance;
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 ScopeManagerMax ScopeManagerMax::TheManager;
 
@@ -96,20 +96,38 @@ ScopeManagerMax::ScopeManagerMax()
 {
 	gpuComputed = false;
 
-	char suffix[128 + 1] = {};
-	sprintf_s(suffix, 128, "%x", RPR_API_VERSION);
-	auto cacheFolder = ToAscii(GetDataStoreFolder());
-	cacheFolder += "cache";
-	rootCacheFolder = cacheFolder;
-	cacheFolder += "\\";
-	cacheFolder += suffix;
-	cacheFolder += "\\";
-	subCacheFolder = cacheFolder;
-
-	CreateDirectoryA(rootCacheFolder.c_str(), NULL);
-	CreateDirectoryA(subCacheFolder.c_str(), NULL);
+	SetupCacheFolder();
 }
 
+void ScopeManagerMax::SetupCacheFolder()
+{
+	std::ostringstream oss;
+
+	oss << std::hex << RPR_API_VERSION;
+
+	std::string versionedCacheFolder = oss.str();
+	std::string dataStoreFolder = ToAscii(GetDataStoreFolder());
+	std::string cacheRootFolder = dataStoreFolder + "cache\\";
+	mCacheFolder = cacheRootFolder + versionedCacheFolder + "\\";
+
+	BOOL rc = CreateDirectoryA(dataStoreFolder.c_str(), NULL);
+	DWORD lastError = GetLastError();
+
+	if (rc || ERROR_ALREADY_EXISTS == lastError)
+	{
+		rc = CreateDirectoryA(cacheRootFolder.c_str(), NULL);
+		lastError = GetLastError();
+
+		if (rc || ERROR_ALREADY_EXISTS == lastError)
+		{
+			rc = CreateDirectoryA(mCacheFolder.c_str(), NULL);
+			lastError = GetLastError();
+		}
+	}
+
+	if (!rc && lastError != ERROR_ALREADY_EXISTS)
+		MessageBox(GetCOREInterface()->GetMAXHWnd(), L"Failed to create cache folder", L"Radeon ProRender", MB_OK | MB_ICONERROR);
+}
 
 static void NotifyProc(void *param, NotifyInfo *info)
 {
@@ -138,12 +156,10 @@ static void NotifyProc(void *param, NotifyInfo *info)
 }
 
 // Activate and Stay Resident
-//
-
 DWORD ScopeManagerMax::Start()
 {
-	int res;
-	res = RegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_STARTUP);
+	int res = RegisterNotification(NotifyProc, this, NOTIFY_SYSTEM_STARTUP);
+
 	return GUPRESULT_KEEP;
 }
 
@@ -161,6 +177,7 @@ ScopeID ScopeManagerMax::nextScopeId = 0;
 ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 {
 	static bool dumpTrace = false;
+
 	if (GetFromPb<bool>(pblock, PARAM_TRACEDUMP_BOOL) != dumpTrace)
 	{
 		dumpTrace = !dumpTrace;
@@ -201,6 +218,7 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 
 		BOOL useIrradianceClamp = FALSE;
 		pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());
+		
 		if (useIrradianceClamp)
 		{
 			float irradianceClamp = FLT_MAX;
@@ -217,6 +235,7 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 	scopes.insert(std::make_pair(nextScopeId, theScope));
 
 	ScopeID ret = nextScopeId;
+	
 	if (nextScopeId == INT_MAX)
 		nextScopeId = 0;
 	else
@@ -228,38 +247,48 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 ScopeID ScopeManagerMax::CreateLocalScope(ScopeID parent)
 {
 	frw::Scope theParent = GetScope(parent);
+	
 	if (!theParent.IsValid())
 		return -1;
+
 	frw::Scope theScope = theParent.CreateLocalScope();
+
 	if (!theScope.IsValid())
 		return -1;
 
 	scopes.insert(std::make_pair(nextScopeId, theScope));
 
 	ScopeID ret = nextScopeId;
+
 	if (nextScopeId == INT_MAX)
 		nextScopeId = 0;
 	else
 		nextScopeId++;
+	
 	return ret;
 }
 
 ScopeID ScopeManagerMax::CreateChildScope(ScopeID parent)
 {
 	frw::Scope theParent = GetScope(parent);
+
 	if (!theParent.IsValid())
 		return -1;
+
 	frw::Scope theScope = theParent.CreateChildScope();
+
 	if (!theScope.IsValid())
 		return -1;
 
 	scopes.insert(std::make_pair(nextScopeId, theScope));
 
 	ScopeID ret = nextScopeId;
+	
 	if (nextScopeId == INT_MAX)
 		nextScopeId = 0;
 	else
 		nextScopeId++;
+	
 	return ret;
 }
 
@@ -277,13 +306,15 @@ void ScopeManagerMax::EnableRPRTrace(IParamBlock2 *pblock, bool enable)
 
 		if (!CreateDirectory(traceFolder.c_str(), NULL))
 		{
-			auto error = GetLastError();
+			DWORD error = GetLastError();
+
 			if (ERROR_ALREADY_EXISTS != error)
 			{
+				MessageBox(GetCOREInterface()->GetMAXHWnd(), L"Failed to create trace folder", L"Radeon ProRender", MB_OK | MB_ICONERROR);
 			}
 		}
 
-		auto res = rprContextSetParameterString(nullptr, "tracingfolder", ToAscii(traceFolder).c_str());
+		rpr_int res = rprContextSetParameterString(nullptr, "tracingfolder", ToAscii(traceFolder).c_str());
 		FCHECK(res);
 	}
 
@@ -300,26 +331,28 @@ std::wstring ScopeManagerMax::GetRPRTraceDirectory(IParamBlock2 *pblock)
 	{
 		path = GetDataStoreFolder();
 	}
+
 	path += L"trace\\";
+	
 	return path;
 }
 
 int ScopeManagerMax::GetCompiledShadersCount()
 {
-	bool x = true;
+	std::string searchMask = mCacheFolder + "*.bin";
+
+	WIN32_FIND_DATAA FindFileData{ 0 };
+	HANDLE hFind = FindFirstFileA(searchMask.c_str(), &FindFileData);
+
 	int count = 0;
-	std::string asd = subCacheFolder;
-	asd += "*.bin";
-	const char* file = asd.c_str();
-	WIN32_FIND_DATAA FindFileData;
-	HANDLE hFind;
-	hFind = FindFirstFileA(file, &FindFileData);
 
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
 		count++;
-		while ((x = FindNextFileA(hFind, &FindFileData)) == TRUE)
+
+		while (FindNextFileA(hFind, &FindFileData) != 0)
 			count++;
+
 		FindClose(hFind);
 	}
 
@@ -330,6 +363,7 @@ void ScopeManagerMax::ValidateParamBlock(IParamBlock2 *pblock)
 {
 	//set CPU mode if GPU is not compatible even before opening settings dialog
 	int numCompatibleGPUs = 0;
+	
 	if (!hasGpuCompatibleWithFR(numCompatibleGPUs))
 	{
 		SetInPb(pblock, PARAM_RENDER_DEVICE, RPR_RENDERDEVICE_CPUONLY);
@@ -423,22 +457,26 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 int ScopeManagerMax::getGpuUsedCount()
 {
 	int count = 0;
+
 	for (int i = 0; i < gpuInfoArray.size(); i++)
 	{
 		if (gpuInfoArray[i].isUsed)
 			count++;
 	}
+
 	return count;
 }
 
 int ScopeManagerMax::getUncertifiedGpuCount()
 {
 	int count = 0;
+
 	for (int i = 0; i < gpuInfoArray.size(); i++)
 	{
-		if ( ! gpuInfoArray[i].isWhiteListed)
+		if (!gpuInfoArray[i].isWhiteListed)
 			count++;
 	}
+
 	return count;
 }
 
@@ -597,6 +635,7 @@ const std::vector<std::string> &ScopeManagerMax::getGpuNamesThatHaveOldDriver()
 		pEnumerator->Release();
 		CoUninitialize();
 	}
+
 	return mResult;
 }
 
@@ -610,7 +649,7 @@ rpr_creation_flags ScopeManagerMax::getContextCreationFlags(bool useGpu, bool us
 
 	rpr_creation_flags flags = 0;
 
-	if(useGpu)
+	if (useGpu)
 	{
 		for (int i = 0; i < gpuInfoArray.size(); i++)
 		{
@@ -621,7 +660,8 @@ rpr_creation_flags ScopeManagerMax::getContextCreationFlags(bool useGpu, bool us
 		}
 	}
 	
-	if (useCpu || !useGpu) {
+	if (useCpu || !useGpu)
+	{
 		flags |= RPR_CREATION_FLAGS_ENABLE_CPU;
 	}
 
@@ -630,7 +670,9 @@ rpr_creation_flags ScopeManagerMax::getContextCreationFlags(bool useGpu, bool us
 
 bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context& result)
 {
-	debugPrint(subCacheFolder + " <- cache folder\n");
+	debugPrint(mCacheFolder + " <- cache folder\n");
+
+	SetupCacheFolder();
 
 	rpr_int tahoePluginID = rprRegisterPlugin("Tahoe64.dll");
 	assert(tahoePluginID != -1);
@@ -639,16 +681,21 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 	size_t pluginCount = sizeof(plugins) / sizeof(plugins[0]);
 
 	rpr_context context = nullptr;
-	int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, NULL, subCacheFolder.c_str(), &context);
-	switch (res) {
+	rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, NULL, mCacheFolder.c_str(), &context);
+	
+	switch (res)
+	{
 	case RPR_SUCCESS:
 		result = context;
 		return true;
+
 	case RPR_ERROR_UNSUPPORTED:
 		return false;
 	}
+
 	AssertImpl((std::wstring(L"rprCreateContext returned error:") + std::to_wstring(res)).c_str(), _T(__FILE__), __LINE__);
+	
 	return false;
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END
