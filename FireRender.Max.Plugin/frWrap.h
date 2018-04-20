@@ -783,7 +783,7 @@ namespace frw
 		{
 			return data().isUVCoordinatesSet;
 		}
-		void SetUVCoordinatesSetFlag(bool flag)
+		void SetUVCoordinatesFlag(bool flag)
 		{
 			data().isUVCoordinatesSet = flag;
 		}
@@ -2708,7 +2708,7 @@ namespace frw
 		FCHECK(res);
 
 		Shape shapeObj(shape, *this);
-		shapeObj.SetUVCoordinatesSetFlag(texcoords != nullptr && num_texcoords > 0);
+		shapeObj.SetUVCoordinatesFlag(texcoords != nullptr && num_texcoords > 0);
 
 		return shapeObj;
 	}
@@ -2744,7 +2744,7 @@ namespace frw
 		FCHECK(res);
 
 		Shape shapeObj(shape, *this);
-		shapeObj.SetUVCoordinatesSetFlag(numberOfTexCoordLayers > 0);
+		shapeObj.SetUVCoordinatesFlag(numberOfTexCoordLayers > 0);
 
 		return shapeObj;
 	}
