@@ -2068,6 +2068,8 @@ namespace frw
 				float mShadowWeight = 1.0f;
 				bool mBgIsEnv = false;
 			};
+
+
 		public:
 			virtual ~Data()
 			{
@@ -2076,6 +2078,7 @@ namespace frw
 					auto res = rprxMaterialDelete(context, material);
 					FCHECK(res);
 					DebugPrint(L"\tDeleted RPRX material %08X\n", material);
+					material = nullptr;
 				}
 			}
 
@@ -2332,13 +2335,14 @@ namespace frw
 	{
 		if (handle)
 		{
+			DebugPrint(L"\tFR- %s %08X%s (%d total)\n", GetTypeName(), handle, destroyOnDelete ? L"" : L" (unmanaged)", allocatedObjects);
 			if (destroyOnDelete)
 			{
 				auto res = rprObjectDelete(handle);
 				FCHECK(res);
+				handle = nullptr;
 			}
 			allocatedObjects--;
-			DebugPrint(L"\tFR- %s %08X%s (%d total)\n", GetTypeName(), handle, destroyOnDelete ? L"" : L" (unmanaged)", allocatedObjects);
 		}
 
 		if (h)
