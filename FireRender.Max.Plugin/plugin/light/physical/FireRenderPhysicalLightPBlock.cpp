@@ -586,17 +586,20 @@ RefResult FireRenderPhysicalLight::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETER
 			// target added / removed
 			case FRPhysicalLight_IS_TARGETED:
 			{
-				if (IsTargeted())
+				if (!theHold.RestoreOrRedoing())
 				{
-					// changed to is targeted => create target
-					AddTarget(time, false);
+					if (IsTargeted())
+					{
+						// changed to is targeted => create target
+						AddTarget(time, false);
+					}
+					else
+					{
+						// changed to not is targeted => remove target
+						RemoveTarget(time);
+					}
+					GetCOREInterface()->RedrawViews(time);
 				}
-				else
-				{
-					// changed to not is targeted => remove target
-					RemoveTarget(time);
-				}
-				GetCOREInterface()->RedrawViews(time);
 
 				break;
 			}

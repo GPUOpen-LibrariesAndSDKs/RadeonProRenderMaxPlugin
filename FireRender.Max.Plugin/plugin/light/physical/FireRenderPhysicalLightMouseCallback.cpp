@@ -22,6 +22,8 @@ FireRenderPhysicalLight::CreateCallBack::CreateCallBack()
 
 const float defaultCylinderHeight = 3.0f;
 
+const Point3 defaultSecondPos(0.0f, 10.0f, 0.0f);
+
 bool FireRenderPhysicalLight::CreateCallBack::IntersectMouseRayWithPlane(Point3& intersectionPoint, ViewExp *vpt, const IPoint2& m)
 {
 	Ray intersectRay;
@@ -90,11 +92,12 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 			Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
 
 			m_light->SetLightPoint(p, time);
-			m_light->SetSecondPoint(p, time);
+			m_light->SetSecondPoint(p + defaultSecondPos, time); // need initialize second point with some value not eqaul to first point in case point light will be changed to other type of light
 			m_light->SetThirdPoint(p + Point3(0.0f, 0.0f, defaultCylinderHeight), time);
 			m_light->SetTargetPoint(p, time);
 
 			state = FIN;
+			m_light->FinishPreview();
 			break;
 		}
 
