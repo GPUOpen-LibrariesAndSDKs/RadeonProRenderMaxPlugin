@@ -144,8 +144,8 @@ public:
 	IParamBlock2 *pblock2 = 0;
 
 private:
-	INode *mEnvironmentNode = 0;
-	INode *mAnalyticalSkyNode = 0;
+	RefTargetHandle m_EnvironmentNodeMonitor = 0;
+	RefTargetHandle m_AnalyticalSkyNodeMonitor = 0; // aka Sun
 
 public:
 	enum
@@ -157,7 +157,8 @@ public:
 		TEX_SKYBACKPLATE,
 		TEX_SKYREFROVERRIDE,
 		TEX_SKYREFLOVERRIDE,
-		OBJ_SUNOBJECT,
+		OBJ_SUNOBJECT, // aka analytical sky
+		OBJ_ENVIRONMENT,
 		TEX_LASTREF
 	};
 
@@ -173,26 +174,7 @@ public:
 
 	void FactoryReset();
 
-	void ResetToDefaults() override
-	{
-		mEnvironmentNode = 0;
-		mAnalyticalSkyNode = 0;
-
-		if (pblock2)
-			pblock2->ResetAll();
-
-		prev_sun_direction = Point3(0.f, 0.f, 0.f);
-		prev_sun_altitude = 0.f;
-		prev_haze = 0.f;
-		prev_ground_color = Color(0.f, 0.f, 0.f);
-		prev_ground_albedo = Color(0.f, 0.f, 0.f);
-		prev_filter_color = Color(0.f, 0.f, 0.f);
-		prev_sun_disk_scale = 0.f;
-		prev_saturation = 0.f;
-
-		delete[] mSkyBuffer;
-		mSkyBuffer = 0;
-	}
+	void ResetToDefaults() override;
 
 private:
 	RefTargetHandle iblMap = 0;
@@ -324,16 +306,8 @@ public:
 	INode *FindAnalyticalSunNode();
 
 	// set the viewport objects when created by something else (eg a file loader)
-	void SetEnvironmentNode(INode *node)
-	{
-		mEnvironmentNode = node;
-	}
-	
-	void SetAnalyticalSunNode(INode *node)
-	{
-		ReplaceReference(OBJ_SUNOBJECT, node);
-		mAnalyticalSkyNode = node;
-	}
+	void SetEnvironmentNode(INode *node);	
+	void SetAnalyticalSunNode(INode *node);
 
 	// called when an external entity (eg UI) modifies the sun's location
 	// so we can refresh the position of the widget accordingly
