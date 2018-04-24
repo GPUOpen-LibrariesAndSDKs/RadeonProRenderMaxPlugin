@@ -23,6 +23,8 @@
 #include "assetmanagement/AssetType.h"
 #include "Assetmanagement/iassetmanager.h"
 
+#include "INodeTransformMonitor.h"
+
 extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN;
@@ -213,8 +215,11 @@ namespace
 	);
 };
 
+ReferenceTarget* MakeNodeTransformMonitor();
 
 BgManagerMax::BgManagerMax()
+	: m_AnalyticalSkyNodeMonitor(MakeNodeTransformMonitor())
+	, m_EnvironmentNodeMonitor(MakeNodeTransformMonitor())
 {
 	ResetToDefaults();
 }
@@ -269,6 +274,44 @@ void BgManagerMax::FactoryReset()
 	ResetToDefaults();
 }
 
+void BgManagerMax::ResetToDefaults()
+{
+	{
+		RefResult ret = ReplaceReference(OBJ_SUNOBJECT, m_AnalyticalSkyNodeMonitor);
+		FASSERT(ret == REF_SUCCEED);
+	}
+	{
+		RefResult ret = ReplaceReference(OBJ_ENVIRONMENT, m_EnvironmentNodeMonitor);
+		FASSERT(ret == REF_SUCCEED);
+	}
+
+	if (pblock2)
+		pblock2->ResetAll();
+
+	prev_sun_direction = Point3(0.f, 0.f, 0.f);
+	prev_sun_altitude = 0.f;
+	prev_haze = 0.f;
+	prev_ground_color = Color(0.f, 0.f, 0.f);
+	prev_ground_albedo = Color(0.f, 0.f, 0.f);
+	prev_filter_color = Color(0.f, 0.f, 0.f);
+	prev_sun_disk_scale = 0.f;
+	prev_saturation = 0.f;
+
+	delete[] mSkyBuffer;
+	mSkyBuffer = 0;
+}
+
+void BgManagerMax::SetEnvironmentNode(INode *node)
+{
+	FASSERT(m_EnvironmentNodeMonitor);
+	dynamic_cast<INodeTransformMonitor*>(m_EnvironmentNodeMonitor)->SetNode(node);
+}
+
+void BgManagerMax::SetAnalyticalSunNode(INode *node)
+{
+	FASSERT(m_AnalyticalSkyNodeMonitor);
+	dynamic_cast<INodeTransformMonitor*>(m_AnalyticalSkyNodeMonitor)->SetNode(node);
+}
 
 // Activate and Stay Resident
 //
@@ -536,13 +579,13 @@ RefResult BgManagerMax::NotifyRefChanged(Interval changeInt, RefTargetHandle hTa
 	PartID& partID, RefMessage message)
 #endif
 {
-	if ((REFMSG_CHANGE == message) && (hTarget == mAnalyticalSkyNode))
+	if ((REFMSG_CHANGE == message) && (hTarget == GetAnalyticalSunNode())) 
 	{
 		if (!updatingSunFromProperty)
 		{
 			Interface *ip = GetCOREInterface();
-			Matrix3 sunTm = mAnalyticalSkyNode->GetObjTMAfterWSM(ip->GetTime());
-			Matrix3 envTm = mEnvironmentNode->GetObjTMAfterWSM(ip->GetTime());
+			Matrix3 sunTm = GetAnalyticalSunNode()->GetObjTMAfterWSM(ip->GetTime());
+			Matrix3 envTm = GetEnvironmentNode()->GetObjTMAfterWSM(ip->GetTime());
 			sunTm = sunTm * Inverse(envTm);
 
 			Point3 vec = sunTm.GetTrans();
@@ -597,7 +640,8 @@ RefTargetHandle BgManagerMax::GetReference(int i)
 		case TEX_SKYBACKPLATE: return skyBackplate;
 		case TEX_SKYREFROVERRIDE: return skyReflOverride;
 		case TEX_SKYREFLOVERRIDE: return skyRefrOverride;
-		case OBJ_SUNOBJECT: return mAnalyticalSkyNode;
+		case OBJ_SUNOBJECT: return m_AnalyticalSkyNodeMonitor;
+		case OBJ_ENVIRONMENT: return m_EnvironmentNodeMonitor;
 	}
 	return 0;
 }
@@ -614,7 +658,8 @@ void BgManagerMax::SetReference(int i, RefTargetHandle rtarg)
 		case TEX_SKYBACKPLATE: skyBackplate = (Texmap*)rtarg; break;
 		case TEX_SKYREFROVERRIDE: skyReflOverride = (Texmap*)rtarg; break;
 		case TEX_SKYREFLOVERRIDE: skyRefrOverride = (Texmap*)rtarg; break;
-		case OBJ_SUNOBJECT: mAnalyticalSkyNode = (INode*)rtarg; break;
+		case OBJ_SUNOBJECT: m_AnalyticalSkyNodeMonitor = rtarg; break;
+		case OBJ_ENVIRONMENT: m_EnvironmentNodeMonitor = rtarg; break;
 	}
 }
 
@@ -623,50 +668,64 @@ void BgManagerMax::SetReference(int i, RefTargetHandle rtarg)
 //
 INode *BgManagerMax::GetEnvironmentNode()
 {
-	return mEnvironmentNode;
+	// back-off
+	if (m_EnvironmentNodeMonitor == nullptr)
+		return nullptr;
+
+	return dynamic_cast<INodeTransformMonitor*>(m_EnvironmentNodeMonitor)->GetNode();
 }
 
-INode *BgManagerMax::GetAnalyticalSunNode()
+INode *BgManagerMax::GetAnalyticalSunNode() // mAnalyticalSkyNode
 {
-	return mAnalyticalSkyNode;
+	// back-off
+	if (m_AnalyticalSkyNodeMonitor == nullptr)
+		return nullptr;
+
+	return dynamic_cast<INodeTransformMonitor*>(m_AnalyticalSkyNodeMonitor)->GetNode();
 }
 
 INode *BgManagerMax::CreateEnvironmentNode()
 {
-	if (!mEnvironmentNode)
+	if (!GetEnvironmentNode())
 	{
 		Object* obj = reinterpret_cast<Object*>(CreateInstance(LIGHT_CLASS_ID, FIRERENDER_ENVIRONMENT_CLASS_ID));
-		mEnvironmentNode = GetCOREInterface()->CreateObjectNode(obj);
+		INode* mEnvironmentNode = GetCOREInterface()->CreateObjectNode(obj);
 		Matrix3 tm(1);
 		mEnvironmentNode->SetNodeTM(0, tm);
+
+		SetEnvironmentNode(mEnvironmentNode);
+
 		GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 	}
-	return mEnvironmentNode;
+	return GetEnvironmentNode();
 }
 
 INode *BgManagerMax::CreateAnalyticalSunNode()
 {
-	if (mEnvironmentNode)
+	if (GetEnvironmentNode())
 	{
-		if (!mAnalyticalSkyNode)
+		if (!GetAnalyticalSunNode())
 		{
 			Object* obj = reinterpret_cast<Object*>(CreateInstance(LIGHT_CLASS_ID, FIRERENDER_ANALYTICALSUN_CLASS_ID));
-			mAnalyticalSkyNode = GetCOREInterface()->CreateObjectNode(obj);
-			mEnvironmentNode->AttachChild(mAnalyticalSkyNode, 0);
+			INode* mAnalyticalSkyNode = GetCOREInterface()->CreateObjectNode(obj);
+			GetEnvironmentNode()->AttachChild(mAnalyticalSkyNode, 0);
+
+			SetAnalyticalSunNode(mAnalyticalSkyNode);
+
 			UpdateAnalyticalSunNode();
 			GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 			ReplaceReference(OBJ_SUNOBJECT, mAnalyticalSkyNode);
 		}
 	}
-	return mAnalyticalSkyNode;
+	return GetAnalyticalSunNode();
 }
 
 void BgManagerMax::UpdateAnalyticalSunNode()
 {
-	if (mAnalyticalSkyNode)
+	if (GetAnalyticalSunNode())
 	{
-		Matrix3 nodeTM = mAnalyticalSkyNode->GetNodeTM(0);
-		INode* parent = mAnalyticalSkyNode->GetParentNode();
+		Matrix3 nodeTM = GetAnalyticalSunNode()->GetNodeTM(0);
+		INode* parent = GetAnalyticalSunNode()->GetParentNode();
 		Matrix3 parentTM = parent->GetNodeTM(0);
 		Matrix3 localTM = nodeTM*Inverse(parentTM);
 		
@@ -692,8 +751,8 @@ void BgManagerMax::UpdateAnalyticalSunNode()
 		rot.PreTranslate(Point3(0.f, radius, 0.f));
 		nodeTM = rot * parentTM;
 
-		mAnalyticalSkyNode->SetNodeTM(0, nodeTM);
-		mAnalyticalSkyNode->InvalidateTM();
+		GetAnalyticalSunNode()->SetNodeTM(0, nodeTM);
+		GetAnalyticalSunNode()->InvalidateTM();
 
 		GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 	}
@@ -701,19 +760,19 @@ void BgManagerMax::UpdateAnalyticalSunNode()
 
 void BgManagerMax::DeleteEnvironmentNode()
 {
-	if (mEnvironmentNode)
+	if (GetEnvironmentNode())
 	{
-		GetCOREInterface()->DeleteNode(mEnvironmentNode);
-		mEnvironmentNode = 0;
+		GetCOREInterface()->DeleteNode(GetEnvironmentNode());
+		//mEnvironmentNode = 0;
 		GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 	}
 }
 
 void BgManagerMax::DeleteAnalyticalSunNode()
 {
-	if (mAnalyticalSkyNode)
+	if (GetAnalyticalSunNode())
 	{
-		GetCOREInterface()->DeleteNode(mAnalyticalSkyNode);
+		GetCOREInterface()->DeleteNode(GetAnalyticalSunNode());
 		GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 	}
 }
@@ -872,7 +931,7 @@ BOOL BgManagerMax::GetProperty(int param, int &value)
 {
 	if (param == PARAM_BG_USE)
 	{
-		value = (mEnvironmentNode == 0) ? FALSE : TRUE;
+		value = (GetEnvironmentNode() == 0) ? FALSE : TRUE;
 		return TRUE;
 	}
 	BOOL res = pblock2->GetValue(param, GetCOREInterface()->GetTime(), value, FOREVER);
