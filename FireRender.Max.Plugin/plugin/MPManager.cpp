@@ -107,15 +107,30 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 	frameBufferMain.Clear();
 
 	// initialize core
-	auto res = rprContextSetAOV(scope.GetContext().Handle(), RPR_AOV_COLOR, frameBufferMain.Handle());
-	FCHECK(res);
+	rpr_int res = rprContextSetAOV(scope.GetContext().Handle(), RPR_AOV_COLOR, frameBufferMain.Handle());
+
+	if (res != RPR_SUCCESS)
+	{
+		mExitImmediately = true;
+		return;
+	}
 
 	res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
-	FCHECK(res);
+
+	if (res != RPR_SUCCESS)
+	{
+		mExitImmediately = true;
+		return;
+	}
 
 	// render
-	int passesDone = 0;
-	int passLimit = GetFromPb<int>(parameters.pblock, PARAM_MTL_PREVIEW_PASSES);
+	unsigned int passesDone = 0;
+	unsigned int passLimit = GetFromPb<int>(parameters.pblock, PARAM_MTL_PREVIEW_PASSES);
+
+	const unsigned int maxReasonablePassesCount = 16;
+
+	if (passLimit > maxReasonablePassesCount)
+		passLimit = maxReasonablePassesCount;
 
 	for (; passesDone < passLimit; passesDone++)
 	{
@@ -136,6 +151,7 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 		if (res != RPR_SUCCESS)
 		{
 			Max()->Log()->LogEntry(SYSLOG_WARN, NO_DIALOG, L"Radeon ProRender - Warning", L"rprContextRender returned '%d'\n", res);
+			mExitImmediately = true;
 			break;
 		}
 	}
@@ -150,6 +166,10 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 		fbData = normalizedFrameBuffer.GetPixelData();
 
 		mPreviewReady = true;
+	}
+	else
+	{
+		mExitImmediately = true;
 	}
 }
 
