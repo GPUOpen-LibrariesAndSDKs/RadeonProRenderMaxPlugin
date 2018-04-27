@@ -9,14 +9,17 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
+wchar_t* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode);
+
 namespace
 {
-	bool ProfileIsValid(const wchar_t* profilePath)
+	bool ProfileIsValid(const wchar_t* profilePath, IESProcessor::ErrorCode& parseRes)
 	{
 		IESProcessor processor;
 		IESProcessor::IESLightData lightData;
 
-		if (processor.Parse(lightData, profilePath) == IESProcessor::ErrorCode::SUCCESS)
+		parseRes = processor.Parse(lightData, profilePath);
+		if (parseRes == IESProcessor::ErrorCode::SUCCESS)
 		{
 			return true;
 		}
@@ -24,11 +27,15 @@ namespace
 		return false;
 	}
 
-	void ShowInvalidProfileWarning()
+	void ShowInvalidProfileWarning(IESProcessor::ErrorCode parseRes)
 	{
+		std::basic_string<TCHAR> failReason;
+		failReason = _T("Failed to import IES light source: ");
+		failReason += IESErrorCodeToMessage(parseRes);
+
 		MessageBox(
 			GetCOREInterface()->GetMAXHWnd(),
-			_T("Failed to import IES light source!"),
+			failReason.c_str(),
 			_T("Warning"),
 			MB_ICONWARNING | MB_OK);
 	}
@@ -168,9 +175,10 @@ bool IES_General::HandleControlCommand(TimeValue t, WORD code, WORD controlId)
 			std::wstring profileName = m_profilesComboBox.GetItemText(index);
 			std::wstring profilePath = FireRenderIES_Profiles::ProfileNameToPath(profileName.c_str());
 			
-			if (!ProfileIsValid(profilePath.c_str()))
+			IESProcessor::ErrorCode parseRes;
+			if (!ProfileIsValid(profilePath.c_str(), parseRes))
 			{
-				ShowInvalidProfileWarning();
+				ShowInvalidProfileWarning(parseRes);
 
 				if (m_parent->ProfileIsSelected(t))
 				{
@@ -402,9 +410,10 @@ void IES_General::ImportProfile()
 
 		if (FireRenderIES_Profiles::CopyIES_File(filename.c_str(), nameOffset))
 		{
-			if (!ProfileIsValid(pathAndName))
+			IESProcessor::ErrorCode parseRes;
+			if (!ProfileIsValid(pathAndName, parseRes))
 			{
-				ShowInvalidProfileWarning();
+				ShowInvalidProfileWarning(parseRes);
 			}
 			else
 			{
