@@ -17,7 +17,7 @@
 
 FIRERENDER_NAMESPACE_BEGIN
 
-static wchar_t* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
+extern wchar_t* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
 {
 	switch (errorCode)
 	{
@@ -38,6 +38,9 @@ static wchar_t* IESErrorCodeToMessage(IESProcessor::ErrorCode errorCode)
 
 		case IESProcessor::ErrorCode::UNEXPECTED_END_OF_FILE:
 			return L"have reached end of file before parse was complete";
+
+		case IESProcessor::ErrorCode::NOT_SUPPORTED:
+			return L"file has data that is not supported by RPR core";
 	}
 
 	assert(!"IESErrorCodeToMessage invalid usage");
