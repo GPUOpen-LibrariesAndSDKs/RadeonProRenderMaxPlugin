@@ -634,107 +634,114 @@ int FireRenderIESLight::DoOwnSelectHilite()
 
 RefResult FireRenderIESLight::NotifyRefChanged(const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate)
 {
-	if (REFMSG_CHANGE == msg)
+	if (REFMSG_CHANGE != msg)
 	{
-		auto updatePoint = [&](
-			INode* (FireRenderIESLight::* nodeGetter)(),
-			bool (FireRenderIESLight::* pointSetter)(Point3, TimeValue))
-		{
-			TimeValue time = GetCOREInterface()->GetTime();
-			INode* node = (this->*nodeGetter)();
-			Control* nodeController = node->GetTMController();
+		return REF_SUCCEED;
+	}
 
-			if (!nodeController->TestAFlag(A_HELD))
-			{
-				Matrix3 thisTm = node->GetNodeTM(time);
-				(this->*pointSetter)(thisTm.GetTrans(), time);
-			}
-		};
+	if (m_isPreviewGraph)
+	{
+		return REF_SUCCEED;
+	}
 
-		if (hTarget == m_thisNodeMonitor)
+	auto updatePoint = [&](
+		INode* (FireRenderIESLight::* nodeGetter)(),
+		bool (FireRenderIESLight::* pointSetter)(Point3, TimeValue))
+	{
+		TimeValue time = GetCOREInterface()->GetTime();
+		INode* node = (this->*nodeGetter)();
+		Control* nodeController = node->GetTMController();
+
+		if (!nodeController->TestAFlag(A_HELD))
 		{
-			updatePoint(&FireRenderIESLight::GetThisNode, &FireRenderIESLight::SetLightPoint);
+			Matrix3 thisTm = node->GetNodeTM(time);
+			(this->*pointSetter)(thisTm.GetTrans(), time);
 		}
-		else if (hTarget == m_targNodeMonitor)
-		{
-			updatePoint(&FireRenderIESLight::GetTargetNode, &FireRenderIESLight::SetTargetPoint);
-		}
-		else if (hTarget == m_pblock)
-		{
-			ParamID p = m_pblock->LastNotifyParamID();
-			TimeValue time = GetCOREInterface()->GetTime();
+	};
 
-			switch (p)
+	if (hTarget == m_thisNodeMonitor)
+	{
+		updatePoint(&FireRenderIESLight::GetThisNode, &FireRenderIESLight::SetLightPoint);
+	}
+	else if (hTarget == m_targNodeMonitor)
+	{
+		updatePoint(&FireRenderIESLight::GetTargetNode, &FireRenderIESLight::SetTargetPoint);
+	}
+	else if (hTarget == m_pblock)
+	{
+		ParamID p = m_pblock->LastNotifyParamID();
+		TimeValue time = GetCOREInterface()->GetTime();
+
+		switch (p)
+		{
+			case IES_PARAM_PROFILE:
 			{
-				case IES_PARAM_PROFILE:
+				m_invlidProfileMessageShown = false;
+
+				if (ProfileIsSelected(time))
 				{
-					m_invlidProfileMessageShown = false;
-
-					if (ProfileIsSelected(time))
+					if (CalculateLightRepresentation(GetActiveProfile(time)))
 					{
-						if (CalculateLightRepresentation(GetActiveProfile(time)))
-						{
-							CalculateBBox();
-						}
-						else
-						{
-							SetActiveProfile(_T(""), time);
-						}
+						CalculateBBox();
 					}
 					else
 					{
-						m_BBoxCalculated = false;
-						m_plines.clear();
-						m_preview_plines.clear();
+						SetActiveProfile(_T(""), time);
 					}
 				}
+				else
+				{
+					m_BBoxCalculated = false;
+					m_plines.clear();
+					m_preview_plines.clear();
+				}
+			}
+			break;
+
+			case IES_PARAM_TARGETED:
+				if(!theHold.RestoreOrRedoing())
+					OnTargetedChanged(time, false);
+				break;
+		}
+
+		// Update panels
+		switch (p)
+		{
+			case IES_PARAM_P0:
+			case IES_PARAM_P1:
+			case IES_PARAM_ENABLED:
+			case IES_PARAM_PROFILE:
+			case IES_PARAM_AREA_WIDTH:
+			case IES_PARAM_LIGHT_ROTATION_X:
+			case IES_PARAM_LIGHT_ROTATION_Y:
+			case IES_PARAM_LIGHT_ROTATION_Z:
+			case IES_PARAM_TARGETED:
+				m_general.UpdateUI(time);
 				break;
 
-				case IES_PARAM_TARGETED:
-					if(!theHold.RestoreOrRedoing())
-						OnTargetedChanged(time, false);
-					break;
-			}
+			case IES_PARAM_INTENSITY:
+			case IES_PARAM_COLOR_MODE:
+			case IES_PARAM_COLOR:
+			case IES_PARAM_TEMPERATURE:
+				m_intensity.UpdateUI(time);
+				break;
 
-			// Update panels
-			switch (p)
-			{
-				case IES_PARAM_P0:
-				case IES_PARAM_P1:
-				case IES_PARAM_ENABLED:
-				case IES_PARAM_PROFILE:
-				case IES_PARAM_AREA_WIDTH:
-				case IES_PARAM_LIGHT_ROTATION_X:
-				case IES_PARAM_LIGHT_ROTATION_Y:
-				case IES_PARAM_LIGHT_ROTATION_Z:
-				case IES_PARAM_TARGETED:
-					m_general.UpdateUI(time);
-					break;
+			case IES_PARAM_SHADOWS_ENABLED:
+			case IES_PARAM_SHADOWS_SOFTNESS:
+			case IES_PARAM_SHADOWS_TRANSPARENCY:
+				m_shadows.UpdateUI(time);
+				break;
 
-				case IES_PARAM_INTENSITY:
-				case IES_PARAM_COLOR_MODE:
-				case IES_PARAM_COLOR:
-				case IES_PARAM_TEMPERATURE:
-					m_intensity.UpdateUI(time);
-					break;
-
-				case IES_PARAM_SHADOWS_ENABLED:
-				case IES_PARAM_SHADOWS_SOFTNESS:
-				case IES_PARAM_SHADOWS_TRANSPARENCY:
-					m_shadows.UpdateUI(time);
-					break;
-
-				case IES_PARAM_VOLUME_SCALE:
-					m_volume.UpdateUI(time);
-					break;
-			}
+			case IES_PARAM_VOLUME_SCALE:
+				m_volume.UpdateUI(time);
+				break;
 		}
-		
-		//some params have changed - should redraw all
-		if(GetCOREInterface())
-		{
-			GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
-		}
+	}
+	
+	//some params have changed - should redraw all
+	if(GetCOREInterface())
+	{
+		GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 	}
 
     return REF_SUCCEED;
@@ -1210,7 +1217,9 @@ void FireRenderIESLight::AddTarget(TimeValue t, bool fromCreateCallback)
 		targtm.SetTrans(GetTargetPoint(t));
 		targNode->SetNodeTM(t, targtm);
 	}
+	targNode->InvalidateTM();
 
+	// Colour
 	Color lightWireColor(thisNode->GetWireColor());
 	targNode->SetWireColor(lightWireColor.toRGB());
 
