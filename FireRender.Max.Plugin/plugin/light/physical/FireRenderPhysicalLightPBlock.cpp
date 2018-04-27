@@ -134,8 +134,8 @@ PhysLightIntensityDlgProc dlgProcPhysLightIntensity;
 PhysLightsVolumeDlgProc dlgProcPhysLightsVolume;
 
 const TCHAR* FIRERENDER_PHYSICALLIGHT_CATEGORY = _T("Radeon ProRender");
-const TCHAR* FIRERENDER_PHYSICALLIGHT_INTERNAL_NAME = _T("RPRPhysicalLight");
-const TCHAR* FIRERENDER_PHYSICALLIGHT_CLASS_NAME = _T("RPRPhysicalLight");
+const TCHAR* FIRERENDER_PHYSICALLIGHT_INTERNAL_NAME = _T("Physical Light");
+const TCHAR* FIRERENDER_PHYSICALLIGHT_CLASS_NAME = _T("Physical Light");
 
 class FireRenderPhysicalLightClassDesc : public ClassDesc2
 {
