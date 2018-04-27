@@ -714,7 +714,6 @@ INode *BgManagerMax::CreateAnalyticalSunNode()
 
 			UpdateAnalyticalSunNode();
 			GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
-			ReplaceReference(OBJ_SUNOBJECT, mAnalyticalSkyNode);
 		}
 	}
 	return GetAnalyticalSunNode();
@@ -763,7 +762,6 @@ void BgManagerMax::DeleteEnvironmentNode()
 	if (GetEnvironmentNode())
 	{
 		GetCOREInterface()->DeleteNode(GetEnvironmentNode());
-		//mEnvironmentNode = 0;
 		GetCOREInterface()->RedrawViews(GetCOREInterface()->GetTime());
 	}
 }
