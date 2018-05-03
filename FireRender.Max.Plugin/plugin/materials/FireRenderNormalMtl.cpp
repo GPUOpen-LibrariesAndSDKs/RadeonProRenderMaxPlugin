@@ -14,6 +14,7 @@
 
 #include <emmintrin.h>
 #include <functional>
+#include <smmintrin.h> // for  _mm_packus_epi32
 
 FIRERENDER_NAMESPACE_BEGIN;
 
