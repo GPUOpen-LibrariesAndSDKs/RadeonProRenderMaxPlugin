@@ -1023,9 +1023,9 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 			rpr_scene scene = scope.GetScene().Handle();
 			std::vector<rpr_scene> scenes{ scene };
 
-			bool exportOk = rprExportToGLTF( exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size() );
+			int exportOk = rprExportToGLTF( exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size() );
 
-			if (!exportOk)
+			if (exportOk != GLTF_SUCCESS)
 			{
 				MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("gltf::Export failed"), _T("Radeon ProRender warning"), MB_OK);
 			}
