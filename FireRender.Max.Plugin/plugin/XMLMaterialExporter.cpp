@@ -15,7 +15,7 @@
 #include <vector>
 #include <set>
 
-extern bool exportMat(Mtl *max_mat, const std::wstring &path);
+extern bool exportMat(Mtl *max_mat, INode* node, const std::wstring &path);
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -110,6 +110,31 @@ public:
 
 //////////////////////////////////////////////////////////////////////////////
 //
+
+
+/*
+
+
+
+
+
+
+// AFAIK - this  FireRenderClassDesc_MaterialExport  is not supported by plugin anymore
+// the good way to export material is to use the exportFrMat_cf script.
+// PM me on Slack (Richard Ge) if need to be discussed
+
+
+
+
+
+
+
+*/
+
+
+
+
+
 
 void* FireRenderClassDesc_MaterialExport::Create(BOOL loading)
 {
@@ -267,7 +292,11 @@ namespace
 							if (!notFound)
 							{
 							std::wstring mat_name = mat_folder + L"\\" + safefname + L".xml";
-							exportMat(m, mat_name);
+							
+							// AFAIK - this  FireRenderClassDesc_MaterialExport  is not supported by plugin anymore
+							// the good way to export material is to use the exportFrMat_cf script.
+							// PM me on Slack (Richard Ge) if need to be discussed
+							////// exportMat(m, mat_name);
 						}
 					}
 
@@ -309,7 +338,11 @@ namespace
 										if (!notFound)
 										{
 											std::wstring mat_name = mat_folder + L"\\" + safefname + L".xml";
-											exportMat(m, mat_name);
+											
+											// AFAIK - this  FireRenderClassDesc_MaterialExport  is not supported by plugin anymore
+											// the good way to export material is to use the exportFrMat_cf script.
+											// PM me on Slack (Richard Ge) if need to be discussed
+											//exportMat(m, mat_name);
 										}
 									}
 
