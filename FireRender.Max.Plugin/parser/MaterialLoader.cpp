@@ -402,10 +402,15 @@ namespace
     }
 }
 
-void ExportMaterials(const std::string& filename, rpr_material_node* materials, int mat_count)
+void ExportMaterials(const std::string& filename,
+	const std::set<rpr_material_node>& nodeList,
+	const std::set<rprx_material>& nodeListX ,
+	const std::vector<RPRX_DEFINE_PARAM_MATERIAL>& rprxParamList,
+	rprx_context contextX 
+)
 {
     XmlWriter writer(filename);
-    if (!materials)
+    if (nodeListX.size() == 0 && nodeList.size() == 0)
     {
         cout << "MaterialExport error: materials input array is nullptr" << endl;
         return;
@@ -430,9 +435,9 @@ void ExportMaterials(const std::string& filename, rpr_material_node* materials, 
         std::set<std::string> used_names; // to avoid duplicating node names
 
 		// fill materials first
-        for (int i = 0; i < mat_count; ++i)
+		for(const auto& iNode : nodeList )
         {
-            rpr_material_node mat = materials[i];
+            rpr_material_node mat = iNode;
             if (objects.count(mat))
                 continue;
             size_t name_size = 0;
@@ -451,10 +456,31 @@ void ExportMaterials(const std::string& filename, rpr_material_node* materials, 
             used_names.insert(mat_node_name);
         }
 
+
+		for(const auto& iNode : nodeListX )
+		{
+			rprx_material mat = iNode;
+			if (objects.count(mat))
+			continue;
+
+			int postfix_id = 0;
+			std::string mat_node_name = "Uber_" + std::to_string(postfix_id);
+
+			while (used_names.count(mat_node_name))
+            {
+                mat_node_name = "Uber_" + std::to_string(postfix_id);
+                ++postfix_id;
+            }
+
+			
+			objects[mat] = mat_node_name;
+			used_names.insert(mat_node_name);
+		}
+
         // look for images
-        for (int i = 0; i < mat_count; ++i)
+		for(const auto& iNode : nodeList )
         {
-            rpr_material_node mat = materials[i];
+            rpr_material_node mat = iNode;
             size_t input_count = 0;
             CHECK_NO_ERROR(rprMaterialNodeGetInfo(mat, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &input_count, nullptr));
             for (int input_id = 0; input_id < input_count; ++input_id)
@@ -484,9 +510,9 @@ void ExportMaterials(const std::string& filename, rpr_material_node* materials, 
         // optionally write description (at the moment there is no description)
         writer.writeTextElement("description", "");
 
-        for (int i = 0; i < mat_count; ++i)
+		for(const auto& iNode : nodeList )
         {
-            rpr_material_node node = materials[i];
+            rpr_material_node node = iNode;
 
             rpr_material_node_type type;
             size_t input_count = 0;
@@ -578,6 +604,87 @@ void ExportMaterials(const std::string& filename, rpr_material_node* materials, 
             writer.endElement();
         }
 
+
+		for(const auto& iNode : nodeListX )
+        {
+			rprx_material materialX = iNode;
+
+			writer.startElement("node");
+            writer.writeAttribute("name", objects[materialX]);
+            writer.writeAttribute("type", "UBER");
+
+			for(int iParam=0; iParam<rprxParamList.size(); iParam++)
+			{
+				std::string type = "";
+                std::string value = "";
+
+				rprx_parameter_type input_type = 0;
+				CHECK_NO_ERROR( rprxMaterialGetParameterType(contextX,materialX,rprxParamList[iParam].param,&input_type));
+
+				if ( input_type == RPRX_PARAMETER_TYPE_FLOAT4 )
+				{
+					rpr_float fvalue[4] = { 0.f, 0.f, 0.f, 0.f };
+					CHECK_NO_ERROR( rprxMaterialGetParameterValue(contextX,materialX,rprxParamList[iParam].param,&fvalue) );
+
+                    //fvalue converted to string
+                    std::stringstream ss;
+                    ss << fvalue[0] << ", " <<
+                        fvalue[1] << ", " <<
+                        fvalue[2] << ", " <<
+                        fvalue[3];
+                    type = "float4";
+                    value = ss.str();
+
+
+				}
+				else if ( input_type == RPRX_PARAMETER_TYPE_UINT )
+				{
+
+					rpr_int uivalue = RPR_SUCCESS;
+					
+                    CHECK_NO_ERROR( rprxMaterialGetParameterValue(contextX,materialX,rprxParamList[iParam].param,&uivalue));
+
+					//value converted to string
+                    type = "uint";
+                    value = std::to_string(uivalue);
+
+
+				}
+				else if ( input_type == RPRX_PARAMETER_TYPE_NODE )
+				{
+					rprx_material valueN = 0;
+					CHECK_NO_ERROR( rprxMaterialGetParameterValue(contextX,materialX,rprxParamList[iParam].param,&valueN));
+
+					rpr_material_node connection = nullptr;
+                    rpr_int res = rprMaterialNodeGetInputInfo(materialX, rprxParamList[iParam].param, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(connection), &connection, nullptr);
+                    CHECK_NO_ERROR(rprMaterialNodeGetInputInfo(materialX, rprxParamList[iParam].param, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(connection), &connection, nullptr));
+                    type = "connection";
+                    if (!objects.count(connection) && connection)
+                    {
+                        throw std::runtime_error("input material node is missing");
+                    }
+                    value = objects[connection];
+				}
+				else
+				{
+					throw std::runtime_error("unexpected material nodeX input type " + std::to_string(input_type));
+                }
+                if (!value.empty())
+                {
+                    writer.startElement("param");
+                    writer.writeAttribute("name", rprxParamList[iParam].nameInXML  );
+                    writer.writeAttribute("type", type);
+                    writer.writeAttribute("value", value);
+                    writer.endElement();
+                }
+
+			}
+
+			writer.endElement();
+		}
+
+
+
         for (const auto& tex : textures)
         {
             writer.startElement("node");
@@ -596,6 +703,8 @@ void ExportMaterials(const std::string& filename, rpr_material_node* materials, 
     {
         cout << "MaterialExport error: " << ex.what() << endl;
     }
+
+	return;
 }
 
 bool ImportMaterials(const std::string& filename, rpr_context context, rpr_material_system sys, rpr_material_node** out_materials, int* out_mat_count)
