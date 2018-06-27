@@ -25,6 +25,8 @@
 
 #include "INodeTransformMonitor.h"
 
+#include "SunPosition/SPA.h"
+
 extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN;
@@ -965,88 +967,75 @@ void BgManagerMax::GetSunPosition(IParamBlock2 *pb, const TimeValue &t, float& o
 	}
 
 	// compute sun azimuth and altitude from Earth location and time
-	int skyHours;
-	int skyMinutes;
-	int skySeconds;
-	int skyDay;
-	int skyMonth;
-	int skyYear;
-	float skyTimezone;
-	float skyLatitude;
-	float skyLongitude;
-	BOOL skyDaysaving;
+	int hours;
+	int minutes;
+	int seconds;
+	int day;
+	int month;
+	int year;
+	float timezone;
+	float latitude;
+	float longitude;
+	BOOL daylightSaving;
 
-	pb->GetValue(TRPARAM_BG_SKY_HOURS, t, skyHours, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_MINUTES, t, skyMinutes, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_SECONDS, t, skySeconds, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_DAY, t, skyDay, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_MONTH, t, skyMonth, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_YEAR, t, skyYear, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_TIMEZONE, t, skyTimezone, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_LATITUDE, t, skyLatitude, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_LONGITUDE, t, skyLongitude, FOREVER);
-	pb->GetValue(TRPARAM_BG_SKY_DAYLIGHTSAVING, t, skyDaysaving, FOREVER);
-
-	SunPositionCalculator SunPos;
+	pb->GetValue(TRPARAM_BG_SKY_HOURS, t, hours, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_MINUTES, t, minutes, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_SECONDS, t, seconds, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_DAY, t, day, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_MONTH, t, month, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_YEAR, t, year, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_TIMEZONE, t, timezone, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_LATITUDE, t, latitude, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_LONGITUDE, t, longitude, FOREVER);
+	pb->GetValue(TRPARAM_BG_SKY_DAYLIGHTSAVING, t, daylightSaving, FOREVER);
 
 	// DST adjustment
-	if (skyDaysaving)
+	if (daylightSaving)
 	{
-		static const int MonthDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+		AdjustDaylightSavingTime(hours, day, month, year);
+	}
 
-		skyHours--;
-		if (skyHours == -1)
+	JulianDate date = julian_day(year, month, day, hours, minutes, seconds, timezone);
+
+	AzimuthZenithAngle pos = calculateSolarPosition(date, latitude, longitude, 0.0, 0.0, 820, 11);
+
+	outAzimuth = pos.Azimuth;
+	outAltitude = 90.0f - pos.Zenith;
+}
+
+void BgManagerMax::AdjustDaylightSavingTime(int& hours, int& day, int& month, int& year) const
+{
+	static const int monthDays[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+	hours--;
+	if (hours == -1)
+	{
+		hours = 23;
+		day--;
+		if (day == 0)
 		{
-			skyHours = 23;
-			skyDay--;
-			if (skyDay == 0)
+			month--;
+			if (month == 0)
 			{
-				skyMonth--;
-				if (skyMonth == 0)
+				month = 12;
+				day = 31;
+				year--;
+			}
+			else
+			{
+				if (month == 2)
 				{
-					skyMonth = 12;
-					skyDay = 31;
-					skyYear--;
+					bool leapdays = (year % 4 == 0) && (year % 400 == 0 || year % 100 != 0);
+					if (leapdays)
+						day = 29;
+					else
+						day = 28;
 				}
 				else
-				{
-					if (skyMonth == 2)
-					{
-						bool leapdays = (skyYear % 4 == 0) && (skyYear % 400 == 0 || skyYear % 100 != 0);
-						if (leapdays)
-							skyDay = 29;
-						else
-							skyDay = 28;
-					}
-					else
-						skyDay = MonthDays[skyMonth - 1];
-				}
+					day = monthDays[month - 1];
 			}
 		}
 	}
-
-	SunPos.year = skyYear;
-	SunPos.month = skyMonth;
-	SunPos.day = skyDay;
-	SunPos.hour = skyHours;
-	SunPos.minute = skyMinutes;
-	SunPos.second = skySeconds;
-	SunPos.timezone = skyTimezone;
-	SunPos.delta_ut1 = 0;
-	SunPos.delta_t = 67;
-	SunPos.longitude = skyLongitude;
-	SunPos.latitude = skyLatitude;
-	SunPos.elevation = 0.0;
-	SunPos.pressure = 820;
-	SunPos.temperature = 11;
-	SunPos.slope = 0;
-	SunPos.azm_rotation = 0;
-	SunPos.atmos_refract = 0.5667;
-	SunPos.function = SunPositionCalculator::SPA_ALL;
-	int res = SunPos.calculate();
-	
-	outAzimuth = SunPos.azimuth;
-	outAltitude = SunPos.e;
 }
 
 // Compare 2 floats with some equality threshold
@@ -2043,192 +2032,6 @@ const double PE_TERMS[Y_COUNT][TERM_PE_COUNT] = {
 			(360.0*cos(deg2rad(delta_prime[sun]))*cos(deg2rad(latitude))*sin(deg2rad(h_prime[sun])));
 	}
 };
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-// Calculate required SPA parameters to get the right ascension (alpha) and declination (delta)
-// Note: JD must be already calculated and in structure
-////////////////////////////////////////////////////////////////////////////////////////////////
-void SunPositionCalculator::calculate_geocentric_sun_right_ascension_and_declination()
-{
-	double x[TERM_X_COUNT];
-
-	jc = julian_century(jd);
-
-	jde = julian_ephemeris_day(jd, delta_t);
-	jce = julian_ephemeris_century(jde);
-	jme = julian_ephemeris_millennium(jce);
-
-	l = earth_heliocentric_longitude(jme);
-	b = earth_heliocentric_latitude(jme);
-	r = earth_radius_vector(jme);
-
-	theta = geocentric_longitude(l);
-	beta = geocentric_latitude(b);
-
-	x[TERM_X0] = x0 = mean_elongation_moon_sun(jce);
-	x[TERM_X1] = x1 = mean_anomaly_sun(jce);
-	x[TERM_X2] = x2 = mean_anomaly_moon(jce);
-	x[TERM_X3] = x3 = argument_latitude_moon(jce);
-	x[TERM_X4] = x4 = ascending_longitude_moon(jce);
-
-	nutation_longitude_and_obliquity(jce, x, &(del_psi), &(del_epsilon));
-
-	epsilon0 = ecliptic_mean_obliquity(jme);
-	epsilon = ecliptic_true_obliquity(del_epsilon, epsilon0);
-
-	del_tau = aberration_correction(r);
-	lamda = apparent_sun_longitude(theta, del_psi, del_tau);
-	nu0 = greenwich_mean_sidereal_time(jd, jc);
-	nu = greenwich_sidereal_time(nu0, del_psi, epsilon);
-
-	alpha = geocentric_right_ascension(lamda, epsilon, beta);
-	delta = geocentric_declination(beta, epsilon, lamda);
-}
-
-////////////////////////////////////////////////////////////////////////
-// Calculate Equation of Time (EOT) and Sun Rise, Transit, & Set (RTS)
-////////////////////////////////////////////////////////////////////////
-
-void SunPositionCalculator::calculate_eot_and_sun_rise_transit_set()
-{
-	double nu_, m, h0, n;
-	double alpha_[JD_COUNT], delta_[JD_COUNT];
-	double m_rts[SUN_COUNT], nu_rts[SUN_COUNT], h_rts[SUN_COUNT];
-	double alpha_prime[SUN_COUNT], delta_prime[SUN_COUNT], h_prime[SUN_COUNT];
-	double h0_prime = -1 * (SUN_RADIUS + atmos_refract);
-	int i;
-
-	m = sun_mean_longitude(jme);
-	eot = eotf(m, alpha, del_psi, epsilon);
-
-	hour = minute = second = 0;
-	delta_ut1 = timezone = 0.0;
-
-	jd = julian_day(year, month, day, hour,
-		minute, second, delta_ut1, timezone);
-
-	calculate_geocentric_sun_right_ascension_and_declination();
-	nu_ = nu;
-
-	delta_t = 0;
-	jd--;
-	for (i = 0; i < JD_COUNT; i++) {
-		calculate_geocentric_sun_right_ascension_and_declination();
-		alpha_[i] = alpha;
-		delta_[i] = delta;
-		jd++;
-	}
-
-	m_rts[SUN_TRANSIT] = approx_sun_transit_time(alpha_[JD_ZERO], longitude, nu_);
-	h0 = sun_hour_angle_at_rise_set(latitude, delta_[JD_ZERO], h0_prime);
-
-	if (h0 >= 0) {
-
-		approx_sun_rise_and_set(m_rts, h0);
-
-		for (i = 0; i < SUN_COUNT; i++) {
-
-			nu_rts[i] = nu_ + 360.985647*m_rts[i];
-
-			n = m_rts[i] + delta_t / 86400.0;
-			alpha_prime[i] = rts_alpha_delta_prime(alpha_, n);
-			delta_prime[i] = rts_alpha_delta_prime(delta_, n);
-
-			h_prime[i] = limit_degrees180pm(nu_rts[i] + longitude - alpha_prime[i]);
-
-			h_rts[i] = rts_sun_altitude(latitude, delta_prime[i], h_prime[i]);
-		}
-
-		srha = h_prime[SUN_RISE];
-		ssha = h_prime[SUN_SET];
-		sta = h_rts[SUN_TRANSIT];
-
-		suntransit = dayfrac_to_local_hr(m_rts[SUN_TRANSIT] - h_prime[SUN_TRANSIT] / 360.0,
-			timezone);
-
-		sunrise = dayfrac_to_local_hr(sun_rise_and_set(m_rts, h_rts, delta_prime,
-			latitude, h_prime, h0_prime, SUN_RISE), timezone);
-
-		sunset = dayfrac_to_local_hr(sun_rise_and_set(m_rts, h_rts, delta_prime,
-			latitude, h_prime, h0_prime, SUN_SET), timezone);
-
-	}
-	else srha = ssha = sta = suntransit = sunrise = sunset = -99999;
-}
-
-
-int SunPositionCalculator::validate_inputs()
-{
-	if ((year        < -2000) || (year        > 6000)) return 1;
-	if ((month       < 1) || (month       > 12)) return 2;
-	if ((day         < 1) || (day         > 31)) return 3;
-	if ((hour        < 0) || (hour        > 24)) return 4;
-	if ((minute      < 0) || (minute      > 59)) return 5;
-	if ((second      < 0) || (second >= 60)) return 6;
-	if ((pressure    < 0) || (pressure    > 5000)) return 12;
-	if ((temperature <= -273) || (temperature > 6000)) return 13;
-	if ((delta_ut1 <= -1) || (delta_ut1 >= 1)) return 17;
-	if ((hour == 24) && (minute      > 0)) return 5;
-	if ((hour == 24) && (second      > 0)) return 6;
-
-	if (fabs(delta_t)       > 8000) return 7;
-	if (fabs(timezone)      > 18) return 8;
-	if (fabs(longitude)     > 180) return 9;
-	if (fabs(latitude)      > 90) return 10;
-	if (fabs(atmos_refract) > 5) return 16;
-	if (elevation      < -6500000) return 11;
-
-	if ((function == SPA_ZA_INC) || (function == SPA_ALL))
-	{
-		if (fabs(slope)         > 360) return 14;
-		if (fabs(azm_rotation)  > 360) return 15;
-	}
-
-	return 0;
-}
-
-int SunPositionCalculator::calculate()
-{
-	int result;
-
-	result = validate_inputs();
-
-	if (result == 0)
-	{
-		jd = julian_day(year, month, day, hour,
-			minute, second, delta_ut1, timezone);
-
-		calculate_geocentric_sun_right_ascension_and_declination();
-
-		h = observer_hour_angle(nu, longitude, alpha);
-		xi = sun_equatorial_horizontal_parallax(r);
-
-		right_ascension_parallax_and_topocentric_dec(latitude, elevation, xi,
-			h, delta, &(del_alpha), &(delta_prime));
-
-		alpha_prime = topocentric_right_ascension(alpha, del_alpha);
-		h_prime = topocentric_local_hour_angle(h, del_alpha);
-
-		e0 = topocentric_elevation_angle(latitude, delta_prime, h_prime);
-		del_e = atmospheric_refraction_correction(pressure, temperature,
-			atmos_refract, e0);
-		e = topocentric_elevation_angle_corrected(e0, del_e);
-
-		zenith = topocentric_zenith_angle(e);
-		azimuth_astro = topocentric_azimuth_angle_astro(h_prime, latitude,
-			delta_prime);
-		azimuth = topocentric_azimuth_angle(azimuth_astro);
-
-		if ((function == SPA_ZA_INC) || (function == SPA_ALL))
-			incidence = surface_incidence_angle(zenith, azimuth_astro,
-				azm_rotation, slope);
-
-		if ((function == SPA_ZA_RTS) || (function == SPA_ALL))
-			calculate_eot_and_sun_rise_transit_set();
-	}
-
-	return result;
-}
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCATION PICKER CUSTOM STATIC CONTROL
