@@ -282,6 +282,7 @@
     <ClInclude Include="FireRender.Components\cpp\IESLight\IESprocessor.h" />
     <ClInclude Include="FireRender.Components\cpp\ImageFilter\ImageFilter.h" />
     <ClInclude Include="FireRender.Components\cpp\PluginContext\PluginContext.h" />
+    <ClInclude Include="FireRender.Components\cpp\SunPosition\SPA.h" />
     <ClInclude Include="FireRender.Max.Plugin\3dsMaxDeclarations.h" />
     <ClInclude Include="FireRender.Max.Plugin\autotesting\Testing.h" />
     <ClInclude Include="FireRender.Max.Plugin\Common.h" />
@@ -378,6 +379,7 @@
     <ClCompile Include="FireRender.Components\cpp\IESLight\IESprocessor.cpp" />
     <ClCompile Include="FireRender.Components\cpp\ImageFilter\ImageFilter.cpp" />
     <ClCompile Include="FireRender.Components\cpp\PluginContext\PluginContext.cpp" />
+    <ClCompile Include="FireRender.Components\cpp\SunPosition\SPA.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Plugin.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\autotesting\Testing.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\FrScope.cpp" />

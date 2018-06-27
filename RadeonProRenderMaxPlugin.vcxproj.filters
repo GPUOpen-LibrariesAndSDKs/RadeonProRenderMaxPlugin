@@ -49,6 +49,9 @@
     <Filter Include="Plugin\light\ies">
       <UniqueIdentifier>{38a4fabe-7698-4fe8-84a5-590b6608188b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FireRender.Components\SunPosition">
+      <UniqueIdentifier>{ddf81630-d879-4b1a-9b7b-95147068a324}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FireRender.Max.Plugin\FrScope.h" />
@@ -315,6 +318,9 @@
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h">
       <Filter>Plugin\light\ies</Filter>
+    </ClInclude>
+    <ClInclude Include="FireRender.Components\cpp\SunPosition\SPA.h">
+      <Filter>FireRender.Components\SunPosition</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -584,6 +590,9 @@
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLightImpl.cpp">
       <Filter>Plugin\light\ies</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Components\cpp\SunPosition\SPA.cpp">
+      <Filter>FireRender.Components\SunPosition</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
