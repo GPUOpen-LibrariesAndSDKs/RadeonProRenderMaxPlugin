@@ -99,6 +99,8 @@ inline void SetSpinnerScale(ISpinnerControl* spin, float scale)
 	spin->SetScale(scale);
 }
 
+bool FireRenderParamDlg::mIsUncertifiedMessageShown = false;
+
 FireRenderParamDlg::FireRenderParamDlg(IRendParams* ir, BOOL readOnly, FireRenderer* renderer)
 {
 	IParamBlock2* p = renderer->GetParamBlock(0);
@@ -213,29 +215,32 @@ void FireRenderParamDlg::setWarningSuppress(bool value)
 void FireRenderParamDlg::processUncertifiedGpuWarning()
 {
 	IParamBlock2* pb = renderer->GetParamBlock(0);
-	BOOL gpuWasCompatible = GetFromPb<bool>(pb, PARAM_GPU_WAS_COMPATIBLE);
-	if (!gpuWasCompatible)
+	
+	if (mIsUncertifiedMessageShown)
 		return;
 	
 	int uncertifiedGpuNum = 0;
-	uncertifiedGpuNames = "";
+	
+	uncertifiedGpuNames.clear();
+
 	GpuInfoArray& gpuInfoArray = ScopeManagerMax::TheManager.gpuInfoArray;
+	
 	for (int i = 0; i < gpuInfoArray.size(); i++)
 	{
-		const GpuInfo &cpuInfo = gpuInfoArray[i];
+		const GpuInfo& gpuInfo = gpuInfoArray[i];
 
-		if (!cpuInfo.isWhiteListed)
+		if (!gpuInfo.isWhiteListed)
 		{
 			if (uncertifiedGpuNum == 0)
-				uncertifiedGpuNames += cpuInfo.name;
+				uncertifiedGpuNames += gpuInfo.name;
 			else
-				uncertifiedGpuNames += std::string(", ") + cpuInfo.name;
+				uncertifiedGpuNames += std::string(", ") + gpuInfo.name;
 
 			++uncertifiedGpuNum;
 		}
 	}
 
-	if (uncertifiedGpuNames != "")
+	if (!uncertifiedGpuNames.empty())
 	{
 		const std::string attrName = "Uncertified Device Notification";
 		std::string val = FRSettingsFileHandler::getAttributeSettingsFor(attrName);
@@ -243,13 +248,17 @@ void FireRenderParamDlg::processUncertifiedGpuWarning()
 		if (val.length() == 0 || std::stoi(val) == 0)
 		{
 
-			std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + uncertifiedGpuNames + " }\r\n\r\n" + std::string("have not been certified for use with Radeon ProRender.\r\n"
-				"Only certified rendering devices will used by default to avoid any potential rendering or stability issues. CPU rendering will instead be used.\r\n"
-				"You can override this behavior in the Radeon ProRender Settings Dialog.");
+			std::string warningText = "Your graphics card(s) :\r\n{ " + uncertifiedGpuNames + " }\r\n\r\n" +
+				"have not been certified for use with Radeon ProRender.\r\n"
+				"Only certified rendering devices will used by default to avoid any potential rendering or stability issues."
+				" CPU rendering will instead be used.\r\n"
+				"You can override this behavior in the Radeon ProRender Settings Dialog.";
 
 			MessageBoxA(GetCOREInterface()->GetMAXHWnd(), warningText.c_str(), "Warning", MB_OK);
 
 			FRSettingsFileHandler::setAttributeSettingsFor(attrName, "1");
+
+			mIsUncertifiedMessageShown = true;
 		}
 	}
 
@@ -260,8 +269,10 @@ void FireRenderParamDlg::processUncertifiedGpuWarning()
 
 		if (val.length() == 0 || std::stoi(val) == 0)
 		{
-			outDatedDriverGpuNames = "";
 			const std::vector<std::string>& vec = ScopeManagerMax::TheManager.getGpuNamesThatHaveOldDriver();
+
+			outDatedDriverGpuNames.clear();
+
 			for (int i = 0; i < vec.size(); i++)
 			{
 				const std::string &gpuName = vec[i];
@@ -272,13 +283,17 @@ void FireRenderParamDlg::processUncertifiedGpuWarning()
 					outDatedDriverGpuNames += std::string(", ") + gpuName;
 			}
 
-			std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + outDatedDriverGpuNames + " }\r\n\r\n" + std::string("have too old drivers for Radeon ProRender.\r\n"
-				"Only rendering devices that have up to date drivers will used by default to avoid any potential rendering or stability issues. CPU rendering will instead be used.\r\n"
-				"Please update your drivers.");
+			std::string warningText = "Your graphics card(s) :\r\n{ " + outDatedDriverGpuNames + " }\r\n\r\n" + 
+				"have too old drivers for Radeon ProRender.\r\n"
+				"Only rendering devices that have up to date drivers will used by default to avoid any potential"
+				" rendering or stability issues. CPU rendering will instead be used.\r\n"
+				"Please update your drivers.";
 
 			MessageBoxA(GetCOREInterface()->GetMAXHWnd(), warningText.c_str(), "Warning", MB_OK);
 
 			FRSettingsFileHandler::setAttributeSettingsFor(attrName, "1");
+
+			mIsUncertifiedMessageShown = true;
 		}
 	}
 }
@@ -491,101 +506,51 @@ void FireRenderParamDlg::CGeneralSettings::EnableRenderLimitControls(BOOL enable
 
 INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
 	switch (msg)
 	{
-		case WM_COMMAND:
+	case WM_COMMAND:
+		if (mIsReady && HIWORD(wParam) == BN_CLICKED)
 		{
-			switch (HIWORD(wParam))
+			int idButton = (int) LOWORD(wParam);
+
+			if (IDC_CPU_OVERRIDE_THREADS == idButton)
 			{
-			case CBN_SELCHANGE:
-			{
-				if (mIsReady)
-				{
-					int idComboBox = (int)LOWORD(wParam);
-					if (idComboBox == IDC_RENDER_DEVICE)
-					{
-						HWND hwndComboBox = (HWND)lParam;
-						int sel = int(SendMessage(hwndComboBox, CB_GETCURSEL, 0, 0));
-						FASSERT(sel != CB_ERR);
-						const int renderDevice = int(SendMessage(hwndComboBox, CB_GETITEMDATA, WPARAM(sel), 0));
-						FASSERT(renderDevice != CB_ERR);
-
-						if (renderDevice == RPR_RENDERDEVICE_CPUGPU)
-						{
-							MessageBox(0, L"CPU + GPU Mode is currently not available, but it will be soon.", L"Radeon ProRender", MB_ICONWARNING | MB_OK);
-							int dev;
-							pb->GetValue(PARAM_RENDER_DEVICE, 0, dev, Interval());
-							if (dev == RPR_RENDERDEVICE_GPUONLY)
-								SendMessage(hwndComboBox, CB_SETCURSEL, 2, 0);
-							else if (dev == RPR_RENDERDEVICE_CPUONLY)
-								SendMessage(hwndComboBox, CB_SETCURSEL, 1, 0);
-						}
-						else
-						{
-							BOOL res = pb->SetValue(PARAM_RENDER_DEVICE, 0, renderDevice);
-							FASSERT(res);
-
-							res = pb->SetValue(PARAM_GPU_SELECTED_BY_USER, 0, TRUE);
-							FASSERT(res);
-						}
-
-						if ( (renderDevice == RPR_RENDERDEVICE_CPUGPU || renderDevice == RPR_RENDERDEVICE_GPUONLY))
-						{
-							if (mOwner->uncertifiedGpuNames != "")
-							{
-								const std::string attrName = "Uncertified Device Select Notification";
-								std::string val = FRSettingsFileHandler::getAttributeSettingsFor(attrName);
-
-								if (val.length() == 0 || std::stoi(val) == 0)
-								{
-									std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + mOwner->uncertifiedGpuNames + " }\r\n\r\n" + std::string("have not been certified for use with Radeon ProRender so you may encounter rendering or stability issues.");
-									MessageBoxA(GetCOREInterface()->GetMAXHWnd(), warningText.c_str(), "Warning", MB_OK);
-									FRSettingsFileHandler::setAttributeSettingsFor(attrName, "1");
-								}
-							}
-
-							if (mOwner->outDatedDriverGpuNames != "")
-							{
-								const std::string attrName = "Device Old Driver Select Notification";
-								std::string val = FRSettingsFileHandler::getAttributeSettingsFor(attrName);
-
-								if (val.length() == 0 || std::stoi(val) == 0)
-								{
-									std::string warningText = std::string("Your graphics card(s) :\r\n{ ") + mOwner->outDatedDriverGpuNames + " }\r\n\r\n" + std::string("have outdated drivers for use with Radeon ProRender so you may encounter rendering or stability issues. Please update your drivers.");
-									MessageBoxA(GetCOREInterface()->GetMAXHWnd(), warningText.c_str(), "Warning", MB_OK);
-									FRSettingsFileHandler::setAttributeSettingsFor(attrName, "1");
-								}
-							}
-						}
-
-						UpdateUI();
-					}
-				}
+				BOOL isChecked = IsDlgButtonChecked(mHwnd, IDC_CPU_OVERRIDE_THREADS);
+				
+				isChecked ? controls.spinnerCpuThreadsNum->Enable() : controls.spinnerCpuThreadsNum->Disable();
+				ScopeManagerMax::TheManager.cpuInfo.isCpuThreadsNumOverriden = isChecked;
 			}
-			break;
-			}
+		}
+		break;
+	
+	case CC_SPINNER_CHANGE:
+		if (mIsReady)
+		{
+			int idSpinner = (int) LOWORD(wParam);
+			ScopeManagerMax::TheManager.cpuInfo.numCpuThreads = controls.spinnerCpuThreadsNum->GetIVal();
 		}
 		break;
 
 		case WM_NOTIFY:
 		{
-			if (LOWORD(wParam) == IDC_LIST1)
+			if (LOWORD(wParam) == IDC_LIST_HW)
 			{
 				if (((LPNMHDR)lParam)->code == LVN_ITEMCHANGED)
 				{
 					LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
+
 					if (pnmv->uChanged & LVIF_STATE)
 					{
 						switch (pnmv->uNewState & LVIS_STATEIMAGEMASK)
 						{
 						case INDEXTOSTATEIMAGEMASK(2):
 							// pnmv->iItem was checked
-							UpdateGPUSelected(pnmv->iItem);
+							UpdateHwSelected(pnmv->iItem);
 							break;
+
 						case INDEXTOSTATEIMAGEMASK(1):
-							//pnmv->iItem was unchecked
-							UpdateGPUSelected(pnmv->iItem);
+							// pnmv->iItem was unchecked
+							UpdateHwSelected(pnmv->iItem);
 							break;
 						}
 					}
@@ -594,74 +559,54 @@ INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, 
 		}
 		break;
 
-		default:
-			return FALSE;
+	default:
+		return FALSE;
 	}
+
 	return TRUE;
 }
 
 void FireRenderParamDlg::CHardwareSettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
-	LRESULT n;
-		
-	//Render device
-	HWND renderDevice = GetDlgItem(mHwnd, IDC_RENDER_DEVICE);
-	FASSERT(renderDevice);
-	SendMessage(renderDevice, CB_RESETCONTENT, 0L, 0L);
-
-	n = SendMessage(renderDevice, CB_ADDSTRING, 0L, (LPARAM)_T("CPU Only"));
-	SendMessage(renderDevice, CB_SETITEMDATA, n, RPR_RENDERDEVICE_CPUONLY);
-
-	int renderDeviceValue = pb->GetInt(PARAM_RENDER_DEVICE);
-	int numberCompatibleGPUs = 0;
-	BOOL gpuIsCompatible = ScopeManagerMax::TheManager.hasGpuCompatibleWithFR(numberCompatibleGPUs);
-	if (gpuIsCompatible)
-	{
-		n = SendMessage(renderDevice, CB_ADDSTRING, 0L, (LPARAM)_T("GPU Only"));
-		SendMessage(renderDevice, CB_SETITEMDATA, n, RPR_RENDERDEVICE_GPUONLY);
-		n = SendMessage(renderDevice, CB_ADDSTRING, 0L, (LPARAM)_T("CPU + GPU (COMING SOON)"));
-		SendMessage(renderDevice, CB_SETITEMDATA, n, RPR_RENDERDEVICE_CPUGPU);
-	}
-		
-	bool bUncertifiedDevicesNotification = ScopeManagerMax::TheManager.getUncertifiedGpuCount() > 0;
-		
-	if (!bUncertifiedDevicesNotification)
-		bUncertifiedDevicesNotification = !FRSettingsFileHandler::getAttributeSettingsFor("Uncertified Device Notification").empty();
-
-	bool bUserSelection = pb->GetInt(PARAM_GPU_SELECTED_BY_USER);
 	
-	if(!gpuIsCompatible || (bUncertifiedDevicesNotification && !bUserSelection))
+	int numCpuThreads = ScopeManagerMax::TheManager.cpuInfo.numCpuThreads;
+
+	if (0 == numCpuThreads)
 	{
-		//no compatible GPU, reset device selection to CPU
-		if (renderDeviceValue != RPR_RENDERDEVICE_CPUONLY)
-		{
-			renderDeviceValue = RPR_RENDERDEVICE_CPUONLY;
-			pb->SetValue(PARAM_RENDER_DEVICE, 0, RPR_RENDERDEVICE_CPUONLY);
-		}
+		numCpuThreads = std::thread::hardware_concurrency();
+		ScopeManagerMax::TheManager.cpuInfo.numCpuThreads = numCpuThreads;
 	}
 
-	setListboxValue(renderDevice, renderDeviceValue);
+	// setup spinner
+	HWND textControl = GetDlgItem(mHwnd, IDC_CPU_NUM_THREADS);
+	HWND spinControl = GetDlgItem(mHwnd, IDC_CPU_NUM_THREADS_S);
 
-	//shows warning dialog if GPU is not compatible(if the dialog wasn't displayed before
-	//of GPU support was present before)
-	BOOL gpuWasCompatible = GetFromPb<bool>(pb, PARAM_GPU_WAS_COMPATIBLE);
-	if (!gpuIsCompatible)
+	controls.spinnerCpuThreadsNum = GetISpinner(spinControl);
+	controls.spinnerCpuThreadsNum->LinkToEdit(textControl, EDITTYPE_INT);
+	controls.spinnerCpuThreadsNum->SetResetValue(numCpuThreads);
+	controls.spinnerCpuThreadsNum->SetLimits(cpuThreadsMin, cpuThreadsMax);
+	controls.spinnerCpuThreadsNum->SetAutoScale(TRUE);
+	controls.spinnerCpuThreadsNum->SetValue(numCpuThreads, FALSE);
+
+	// setup checkbox
+	bool isCpuThreadsOverriden = ScopeManagerMax::TheManager.cpuInfo.isCpuThreadsNumOverriden;
+
+	SetCheckboxValue(isCpuThreadsOverriden, IDC_CPU_OVERRIDE_THREADS);
+	isCpuThreadsOverriden ? controls.spinnerCpuThreadsNum->Enable() : controls.spinnerCpuThreadsNum->Disable();
+
+	// fill in devices lists
+	int numberCompatibleGPUs = 0;
+	bool hasCompatibleGPU = ScopeManagerMax::TheManager.hasGpuCompatibleWithFR(numberCompatibleGPUs);
+	
+	// if there is no compatible GPU select CPU
+	if (!hasCompatibleGPU)
 	{
-		bool shouldShowNoGPUWarning = gpuWasCompatible || !GetFromPb<bool>(pb, PARAM_GPU_INCOMPATIBILITY_WARNING_WAS_SHOWN);
-		if (shouldShowNoGPUWarning)
-		{
-			MessageBox(GetCOREInterface()->GetMAXHWnd(),
-				_T("Your graphics card or driver is not compatible with Radeon ProRender.\r\n"
-					"OpenCL 1.2+ is required along with a compatible driver.\r\n"
-					"CPU rendering will be used by default."), _T("Warning"), MB_OK);
-			pb->SetValue(PARAM_GPU_INCOMPATIBILITY_WARNING_WAS_SHOWN, 0, TRUE);
-		}
+		ScopeManagerMax::TheManager.cpuInfo.isUsed = true;
 	}
-	pb->SetValue(PARAM_GPU_WAS_COMPATIBLE, 0, gpuIsCompatible);
 
 	InitGPUCompatibleList();
-	
+
 	mIsReady = true;
 }
 
@@ -670,64 +615,84 @@ void FireRenderParamDlg::CHardwareSettings::DestroyDialog()
 	if (mIsReady)
 	{
 		mIsReady = false;
-		RemoveAllSpinnerAssociations();
+		ReleaseISpinner(controls.spinnerCpuThreadsNum);
 	}
 }
 
 void FireRenderParamDlg::CHardwareSettings::InitGPUCompatibleList()
 {
-	HWND hListView = GetDlgItem(mHwnd, IDC_LIST1);
+	HWND hListView = GetDlgItem(mHwnd, IDC_LIST_HW);
 	ListView_SetExtendedListViewStyle(hListView, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 
-	for (int i = 0; i < ScopeManagerMax::TheManager.gpuInfoArray.size(); i++)
-	{
-		const GpuInfo &cpuInfo = ScopeManagerMax::TheManager.gpuInfoArray[i];
+	const int numGPU = ScopeManagerMax::TheManager.gpuInfoArray.size();
 
-		LVITEMA item;
-		memset(&item, 0, sizeof(item));
+	// add GPU(s) info
+	for (int i = 0; i < numGPU; i++)
+	{
+		const GpuInfo& gpuInfo = ScopeManagerMax::TheManager.gpuInfoArray[i];
+
+		LVITEMA item{ 0 };
 		item.mask = LVIF_TEXT;
 		item.iItem = i;
 
-		std::string fullNameItem = cpuInfo.name;
-		if ( !cpuInfo.isWhiteListed )
+		std::string fullNameItem = gpuInfo.name;
+		
+		if ( !gpuInfo.isWhiteListed )
 		{
 			fullNameItem += " (Device NOT certified)";
 		}
-		item.pszText = (char*)fullNameItem.c_str();
 
-		bool checked = cpuInfo.isUsed;
-		SNDMSG(hListView, LVM_INSERTITEMA, 0, (LPARAM)&item);
-		if (checked)
+		item.pszText = (char*) fullNameItem.c_str();
+
+		bool isUsed = gpuInfo.isUsed;
+
+		SendMessage(hListView, LVM_INSERTITEMA, 0, (LPARAM) &item);
+
+		if (isUsed)
+		{
 			ListView_SetCheckState(hListView, i, 1);
+		}
 	}
 
-	UpdateUI();
+	// add CPU info
+	int cpuIndex = numGPU;
+
+	LVITEMA item{ 0 };
+	item.mask = LVIF_TEXT;
+	item.iItem = cpuIndex;
+	item.pszText = (char*) "CPU";
+
+	bool isUsed = ScopeManagerMax::TheManager.cpuInfo.isUsed;
+
+	SendMessage(hListView, LVM_INSERTITEMA, 0, (LPARAM) &item);
+	
+	if (isUsed)
+	{
+		ListView_SetCheckState(hListView, cpuIndex, 1);
+	}
 }
 
-void FireRenderParamDlg::CHardwareSettings::UpdateGPUSelected(int gpuIndex)
+void FireRenderParamDlg::CHardwareSettings::UpdateHwSelected(int deviceIndex)
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
 	FASSERT(pb);
 
-	HWND hListView = GetDlgItem(mHwnd, IDC_LIST1);
+	HWND hListView = GetDlgItem(mHwnd, IDC_LIST_HW);
 
 	if (ListView_GetItemCount(hListView) == 0)
 		return;
 
-	GpuInfo& gpuInfo = ScopeManagerMax::TheManager.gpuInfoArray[gpuIndex];
-	gpuInfo.isUsed = ListView_GetCheckState(hListView, gpuIndex);
+	if (ScopeManagerMax::TheManager.gpuInfoArray.size() == deviceIndex)
+	{
+		ScopeManagerMax::TheManager.cpuInfo.isUsed = ListView_GetCheckState(hListView, deviceIndex);
+	}
+	else
+	{
+		GpuInfo& gpuInfo = ScopeManagerMax::TheManager.gpuInfoArray[deviceIndex];
+		gpuInfo.isUsed = ListView_GetCheckState(hListView, deviceIndex);
+	}
 }
 
-void FireRenderParamDlg::CHardwareSettings::UpdateUI()
-{
-	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
-	int renderDevice = GetFromPb<int>(pb, PARAM_RENDER_DEVICE);
-
-	// Gpu list user interface is only enabled when we are using gpus for rendering
-	bool gpuEnable = (renderDevice == RPR_RENDERDEVICE_GPUONLY) || (renderDevice == RPR_RENDERDEVICE_CPUGPU);
-	HWND hListView = GetDlgItem(mHwnd, IDC_LIST1);
-	EnableWindow(hListView, gpuEnable);
-}
 
 //////////////////////////////////////////////////////////////////////////////
 // CAMERA SETTINGS ROLLOUT
@@ -1064,7 +1029,6 @@ void FireRenderParamDlg::CTonemapSettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
 	LRESULT n;
-
 
 	TmManagerMax::TheManager.RegisterPropertyChangeCallback(this);
 

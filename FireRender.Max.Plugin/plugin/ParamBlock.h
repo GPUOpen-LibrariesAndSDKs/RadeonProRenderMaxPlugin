@@ -10,7 +10,7 @@
 #include "Common.h"
 #include "iparamm2.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 /// IDs of different versions of the plugin. The ID is written in the saved files and can be read later during loading to
 /// potentially run a legacy-porting script.
@@ -25,10 +25,6 @@ enum PbDescVersion
 
 #define RPR_QUALITY_PRESET_PRODUCTION 0x1
 #define RPR_QUALITY_PRESET_PREVIEW 0x2
-
-#define RPR_RENDERDEVICE_CPUONLY 0x1
-#define RPR_RENDERDEVICE_GPUONLY 0x2
-#define RPR_RENDERDEVICE_CPUGPU 0x3
 
 #define RPR_RENDER_LIMIT_PASS		0x01
 #define RPR_RENDER_LIMIT_TIME        0x02
@@ -276,4 +272,4 @@ class BgAccessor : public PBAccessor
 	ParamID TranslateParamID(ParamID id);
 }; 
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

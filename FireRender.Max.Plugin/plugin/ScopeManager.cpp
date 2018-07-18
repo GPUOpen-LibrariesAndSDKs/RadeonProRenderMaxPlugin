@@ -32,6 +32,7 @@ FIRERENDER_NAMESPACE_BEGIN
 ScopeManagerMax ScopeManagerMax::TheManager;
 
 GpuInfoArray ScopeManagerMax::gpuInfoArray;
+CpuInfo ScopeManagerMax::cpuInfo;
 
 bool ScopeManagerMax::CoronaOK = false;
 
@@ -187,12 +188,7 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 	// fix any GPU count issues to prevent errors when creating context
 	ValidateParamBlock(pblock);
 
-	auto renderDevice = GetFromPb<int>(pblock, PARAM_RENDER_DEVICE);
-
-	auto useGpu = (renderDevice == RPR_RENDERDEVICE_GPUONLY) || (renderDevice == RPR_RENDERDEVICE_CPUGPU);
-	bool useCpu = (renderDevice == RPR_RENDERDEVICE_CPUONLY) || (renderDevice == RPR_RENDERDEVICE_CPUGPU);
-
-	int createFlags = getContextCreationFlags(useGpu, useCpu);
+	rpr_creation_flags createFlags = getContextCreationFlags();
 
 	rpr_context context;
 	bool contextCreated = CreateContext(createFlags, context);
@@ -359,14 +355,14 @@ int ScopeManagerMax::GetCompiledShadersCount()
 	return count;
 }
 
-void ScopeManagerMax::ValidateParamBlock(IParamBlock2 *pblock)
+void ScopeManagerMax::ValidateParamBlock(IParamBlock2* pblock)
 {
-	//set CPU mode if GPU is not compatible even before opening settings dialog
+	// set CPU mode if GPU is not compatible even before opening settings dialog
 	int numCompatibleGPUs = 0;
-	
-	if (!hasGpuCompatibleWithFR(numCompatibleGPUs))
+
+	if ( !hasGpuCompatibleWithFR(numCompatibleGPUs) )
 	{
-		SetInPb(pblock, PARAM_RENDER_DEVICE, RPR_RENDERDEVICE_CPUONLY);
+		cpuInfo.isUsed = true;
 	}
 }
 
@@ -444,6 +440,7 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 
 			gpuComputed = true;
 		}
+
 		numberCompatibleGPUs = gpuInfoArray.size();
 	}
 	catch (int res)
@@ -639,7 +636,7 @@ const std::vector<std::string> &ScopeManagerMax::getGpuNamesThatHaveOldDriver()
 	return mResult;
 }
 
-rpr_creation_flags ScopeManagerMax::getContextCreationFlags(bool useGpu, bool useCpu)
+rpr_creation_flags ScopeManagerMax::getContextCreationFlags()
 {
 	if (!gpuComputed)
 	{
@@ -649,18 +646,20 @@ rpr_creation_flags ScopeManagerMax::getContextCreationFlags(bool useGpu, bool us
 
 	rpr_creation_flags flags = 0;
 
-	if (useGpu)
+	for (int i = 0; i < gpuInfoArray.size(); i++)
 	{
-		for (int i = 0; i < gpuInfoArray.size(); i++)
-		{
-			if (!gpuInfoArray[i].isUsed)
-				continue;
+		if (!gpuInfoArray[i].isUsed)
+			continue;
 
-			flags |= gpuIdFlags[i];
-		}
+		flags |= gpuIdFlags[i];
+	}
+
+	if (0 == flags)
+	{
+		ScopeManagerMax::TheManager.cpuInfo.isUsed = true;
 	}
 	
-	if (useCpu || !useGpu)
+	if (ScopeManagerMax::TheManager.cpuInfo.isUsed)
 	{
 		flags |= RPR_CREATION_FLAGS_ENABLE_CPU;
 	}
@@ -680,8 +679,22 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 	rpr_int plugins[] = { tahoePluginID };
 	size_t pluginCount = sizeof(plugins) / sizeof(plugins[0]);
 
+	rpr_context_properties* contextProperties = nullptr;
+	rpr_context_properties ctxProperties[3] = { 0 };
+
+	if ( (createFlags & RPR_CREATION_FLAGS_ENABLE_CPU) && 
+		cpuInfo.isCpuThreadsNumOverriden && cpuInfo.numCpuThreads > 0)
+	{
+		ctxProperties[0] = (rpr_context_properties) RPR_CONTEXT_CREATEPROP_CPU_THREAD_LIMIT;
+		ctxProperties[1] = (rpr_context_properties) cpuInfo.numCpuThreads;
+		ctxProperties[2] = (rpr_context_properties) 0;
+		contextProperties = ctxProperties;
+
+		debugPrint( "RPR_CONTEXT_CREATEPROP_CPU_THREAD_LIMIT : " + std::to_string(cpuInfo.numCpuThreads) );
+	}
+
 	rpr_context context = nullptr;
-	rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, NULL, mCacheFolder.c_str(), &context);
+	rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
 	
 	switch (res)
 	{

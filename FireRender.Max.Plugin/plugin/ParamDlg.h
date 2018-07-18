@@ -316,13 +316,16 @@ static Class_ID kScriptsTabID(0x1cae4307, 0x18c26f6b);
 class FireRenderParamDlg : public RendParamDlg
 {
 	friend class CRollout;
+
+public:
+	static bool mIsUncertifiedMessageShown;
+
 protected:
     FireRenderer* renderer;
 
     /// 3ds Max interface that adds and deletes rollouts in the render dialog
     IRendParams* iRendParams;
 
-protected:
 	BOOL isReadOnly;
 
 	class CGeneralSettings : public CRollout
@@ -349,9 +352,18 @@ protected:
 
 	class CHardwareSettings : public CRollout
 	{
+		const int cpuThreadsDefault = 0;
+		const int cpuThreadsMin = 1;
+		const int cpuThreadsMax = 128; // as defined in RPR on Jul 2018
+
 	public:
+		struct {
+			ISpinnerControl* spinnerCpuThreadsNum;
+		} controls;
+
 		CHardwareSettings()
 		{
+			controls.spinnerCpuThreadsNum = nullptr;
 		}
 
 		void InitDialog() override;
@@ -359,8 +371,7 @@ protected:
 		INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 		void InitGPUCompatibleList();
-		void UpdateGPUSelected(int gpuIdx);
-		void UpdateUI();
+		void UpdateHwSelected(int gpuIdx);
 	};
 
 	class CCameraSettings : public CRollout
@@ -529,7 +540,8 @@ protected:
 	class CAntialiasSettings : public CRollout
 	{
 	public:
-		struct {
+		struct
+		{
 			ISpinnerControl* aaFilterWidth;
 			ISpinnerControl* aaSampleCount;
 			ISpinnerControl* aaGridSize;
@@ -550,7 +562,8 @@ protected:
 	class CQualitySettings : public CRollout
 	{
 	public:
-		struct {
+		struct
+		{
 			ISpinnerControl* raycastEpsilon;
 		} controls;
 
