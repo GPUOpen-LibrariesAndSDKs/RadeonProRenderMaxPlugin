@@ -13,7 +13,8 @@
 #include "resource.h"
 #include <RadeonProRender.h>
 #include <map>
-FIRERENDER_NAMESPACE_BEGIN;
+
+FIRERENDER_NAMESPACE_BEGIN
 
 FireRenderClassDesc fireRenderClassDesc;
 
@@ -141,13 +142,13 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
     p_range, 0, FRCameraType_Count-1, p_default, FRCameraType_Default,
 	PB_END,
 
-    PARAM_LOCK_MAX, _T("lockMax"), TYPE_BOOL, P_ANIMATABLE|P_OBSOLETE | P_INVISIBLE, 0,
+    PARAM_LOCK_MAX, _T("lockMax"), TYPE_BOOL, P_OBSOLETE, 0,
     p_default, FALSE, PB_END,
 
-    PARAM_USE_CPU, _T("useCpu"), TYPE_BOOL, P_OBSOLETE | P_ANIMATABLE | P_INVISIBLE, 0,
+    PARAM_USE_CPU, _T("useCpu"), TYPE_BOOL, P_OBSOLETE, 0,
     p_default, FALSE, PB_END,
 
-    PARAM_GPU_COUNT, _T("useGpu"), TYPE_INT, 0, 0,
+    PARAM_GPU_COUNT, _T("useGpu"), TYPE_INT, P_OBSOLETE, 0,
     p_range, 1, 4, p_default, 1, PB_END,
 
     PARAM_MTL_PREVIEW_PASSES, _T("mtlPreviewPasses"), TYPE_INT, 0, 0,
@@ -239,11 +240,8 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	p_range, 1, 5, p_default, 4,
 	PB_END,
 
-	// RPR_RENDERDEVICE_CPUONLY 0x1
-	// RPR_RENDERDEVICE_GPUONLY 0x2
-	// RPR_RENDERDEVICE_CPUGPU 0x3
-	PARAM_RENDER_DEVICE, _T("renderDevice"), TYPE_INT, 0, 0,
-	p_range, RPR_RENDERDEVICE_CPUONLY, RPR_RENDERDEVICE_CPUGPU, p_default, RPR_RENDERDEVICE_GPUONLY,
+	PARAM_RENDER_DEVICE, _T("renderDevice"), TYPE_INT, P_OBSOLETE | P_ANIMATABLE | P_INVISIBLE, 0,
+	p_range, 0, 0, p_default, 0,
 	PB_END,
 
 	PARAM_USE_IRRADIANCE_CLAMP, _T("useIrradianceClamp"), TYPE_BOOL, 0, 0,
@@ -255,7 +253,7 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	OBSOLETE_PARAM_TONEMAP_PHOTOLINEAR_ISO, _T("tonemapPhotoISO"), TYPE_INT, P_ANIMATABLE | P_INVISIBLE | P_OBSOLETE, 0,
 	p_default, 100, p_range, 1, 100000, PB_END,
 
-	PARAM_GPU_WAS_COMPATIBLE, _T("gpuWasCompatible"), TYPE_BOOL, 0, 0, p_default, TRUE, PB_END,
+	PARAM_GPU_WAS_COMPATIBLE, _T("gpuWasCompatible"), TYPE_BOOL, P_OBSOLETE, 0, p_default, TRUE, PB_END,
 	PARAM_GPU_INCOMPATIBILITY_WARNING_WAS_SHOWN, _T("gpuIncompatibilityWarningWasShown"), TYPE_BOOL, 0, 0, p_default, FALSE, PB_END,
 
 	OBSOLETE_PARAM_USE_MOTION_BLUR, _T("enableMotionblur"), TYPE_BOOL, 0, 0,
@@ -264,7 +262,7 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	OBSOLETE_PARAM_MOTION_BLUR_SCALE, _T("motionblurScale"), TYPE_FLOAT, P_ANIMATABLE, IDS_STRING236,
 	p_default, 100.0, p_range, 0.0, 10e20f, PB_END,
 
-	PARAM_GPU_SELECTED_BY_USER, _T("gpuUserSelection"), TYPE_BOOL, 0, 0,
+	PARAM_GPU_SELECTED_BY_USER, _T("gpuUserSelection"), TYPE_BOOL, P_OBSOLETE, 0,
 	p_default, FALSE, PB_END,
 
 	PARAM_WARNING_DONTSHOW, _T("warning_DoNotShow"), TYPE_BOOL, 0, 0,
@@ -628,4 +626,4 @@ ParamID BgAccessor::TranslateParamID(ParamID id)
 	}
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

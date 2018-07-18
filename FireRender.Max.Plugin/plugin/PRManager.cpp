@@ -27,6 +27,8 @@
 #include <gamma.h>
 
 #include <mutex>
+#include <ctime>
+#include <iomanip>
 
 #include "RprComposite.h"
 
@@ -123,14 +125,15 @@ private:
 	{
 		std::wstring gpuName;
 		std::wstring cpuName;
+		std::wstring computerName;
 		std::wstring product;
 		std::wstring version;
 		std::wstring coreVersion;
-		int lightsCount;
-		int shapesCount;
-		bool isCacheCreated;
-
-		StampCachedData() : isCacheCreated(false) {}
+		int lightsCount = 0;
+		int shapesCount = 0;
+		bool hasGpuContext = false;
+		bool hasCpuContext = false;
+		bool isCacheCreated = false;
 	} m_stampCachedData;
 
 public:
@@ -567,157 +570,180 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 	
 	if (!timeStampString || !timeStampString[0])
 		return; // empty string
-	const TCHAR *str2 = timeStampString;
+
+	const TCHAR* sourceStr = timeStampString;
 
 	auto scene = scope.GetScene();
 
 	if (!m_stampCachedData.isCacheCreated)
 	{
 		// cache not created yet => write values to cache
-		m_stampCachedData.isCacheCreated = true;
 		m_stampCachedData.gpuName = GetFriendlyUsedGPUName();
 		m_stampCachedData.cpuName = GetCPUName();
+		m_stampCachedData.computerName = ComputerName();
 		m_stampCachedData.lightsCount = scene.LightCount();
 		m_stampCachedData.shapesCount = scene.ShapeCount();
 		GetProductAndVersion(m_stampCachedData.product, m_stampCachedData.version, m_stampCachedData.coreVersion);
+
+		m_stampCachedData.hasCpuContext = ScopeManagerMax::TheManager.cpuInfo.isUsed;
+		m_stampCachedData.hasGpuContext = ScopeManagerMax::TheManager.getGpuUsedCount() > 0;
+
+		m_stampCachedData.isCacheCreated = true;
 	}
 
 	// parse string
-	std::wstring str;
-	str.reserve(256);
-	while (MCHAR c = *str2++)
+	std::wstringstream outStream;
+
+	while (MCHAR c = *sourceStr++)
 	{
 		if (c != '%')
 		{
-			str += c;
+			outStream << c;
 			continue;
 		}
+
 		// here we have escape sequence
-		c = *str2++;
+		c = *sourceStr++;
+
 		if (!c)
 		{
-			str += L'%'; // this was a last character in string
+			outStream << L'%'; // this was a last character in string
 			break;
 		}
 
-		static const int uninitNumericValue = 0xDDAABBAA;
-		int numericValue = uninitNumericValue;
 		switch (c)
 		{
 		case '%': // %% - add single % character
-			str += c;
+			outStream << c;
 			break;
+
 		case 'p': // performance
 		{
-			c = *str2++;
+			c = *sourceStr++;
+
 			switch (c)
 			{
 			case 't': // %pt - total elapsed time
 			{
-				wchar_t buffer[32];
-				unsigned int secs = (int)frameData->timePassed;
-				int hrs = secs / (60 * 60);
+				unsigned int secs = (int) frameData->timePassed;
+				unsigned int hrs = secs / (60 * 60);
 				secs = secs % (60 * 60);
-				int mins = secs / 60;
+				unsigned int mins = secs / 60;
 				secs = secs % 60;
-				wsprintf(buffer, _T("%d:%02d:%02d"), hrs, mins, secs);
-				str += buffer;
+
+				outStream << std::setw(2) << std::setfill(L'0') << std::to_wstring(hrs) << L":"
+					<< std::setw(2) << std::setfill(L'0') << std::to_wstring(mins) << L":"
+					<< std::setw(2) << std::setfill(L'0') << std::to_wstring(secs);
 			}
 			break;
+
 			case 'p': // %pp - passes
-				numericValue = frameData->passesDone;
+				outStream << std::to_wstring(frameData->passesDone);
 				break;
 			}
 		}
 		break;
+
 		case 's': // scene information
 		{
-			c = *str2++;
+			c = *sourceStr++;
+
 			switch (c)
 			{
 			case 'l': // %sl - number of light primitives
-				numericValue = m_stampCachedData.lightsCount;
+				outStream << std::to_wstring(m_stampCachedData.lightsCount);
 				break;
+
 			case 'o': // %so - number of objects
-				numericValue = m_stampCachedData.shapesCount;
+				outStream << std::to_wstring(m_stampCachedData.shapesCount);
 				break;
 			}
 		}
 		break;
+
 		case 'c': // CPU name
-			str += m_stampCachedData.cpuName;
+			outStream << m_stampCachedData.cpuName;
 			break;
+
 		case 'g': // GPU name
-			str += m_stampCachedData.gpuName;
+			outStream << m_stampCachedData.gpuName;
 			break;
+
 		case 'r': // rendering mode
 		{
-			if (renderDevice == RPR_RENDERDEVICE_CPUONLY)
-				str += _T("CPU");
-			else if (renderDevice == RPR_RENDERDEVICE_GPUONLY)
-				str += _T("GPU");
-			else
-				str += _T("CPU/GPU");
+			if (m_stampCachedData.hasCpuContext && m_stampCachedData.hasGpuContext)
+			{
+				outStream << L"CPU/GPU";
+			}
+			else if (m_stampCachedData.hasCpuContext)
+			{
+				outStream << L"CPU";
+			}
+			else if (m_stampCachedData.hasGpuContext)
+			{
+				outStream << L"GPU";
+			}
 		}
 		break;
+
 		case 'h': // used hardware
 		{
-			if (renderDevice == RPR_RENDERDEVICE_CPUONLY)
-				str += m_stampCachedData.cpuName;
-			else if (renderDevice == RPR_RENDERDEVICE_GPUONLY)
-				str += m_stampCachedData.gpuName;
-			else
-				str += m_stampCachedData.cpuName + _T(" / ") + m_stampCachedData.gpuName;
+			if (m_stampCachedData.hasCpuContext && m_stampCachedData.hasGpuContext)
+			{
+				outStream << m_stampCachedData.cpuName + L" / " + m_stampCachedData.gpuName;
+			}
+			else if (m_stampCachedData.hasCpuContext)
+			{
+				outStream << m_stampCachedData.cpuName;
+			}
+			else if (m_stampCachedData.hasGpuContext)
+			{
+				outStream << m_stampCachedData.gpuName;
+			}
 		}
 		break;
+
 		case 'i': // computer name
-		{
-			wchar_t buffer[256];
-			DWORD size = 256;
-			GetComputerName(buffer, &size);
-			str += buffer;
-		}
-		break;
+			outStream << m_stampCachedData.computerName;
+			break;
+
 		case 'd': // current date
 		{
-			char buffer[256];
-			time_t itime;
-			time(&itime);
-			ctime_s(buffer, 256, &itime);
-			str += ToUnicode(buffer);
+			auto now = std::chrono::system_clock::now();
+			auto in_time_t = std::chrono::system_clock::to_time_t(now);
+			std::tm tmBuffer;
+
+			localtime_s(&tmBuffer, &in_time_t);
+			outStream << std::put_time(&tmBuffer, L"%Y %b %d, %X"); // e.g. 2018 Jul 11, 11:42:30
 		}
 		break;
+
 		case 'b': // build number
 		{
-			str += m_stampCachedData.version + L" (core " + m_stampCachedData.coreVersion + L")";
+			outStream << m_stampCachedData.version << L" (core " << m_stampCachedData.coreVersion << L")";
 		}
 		break;
+
 		default:
 			// wrong escape sequence, add character
 			if (c)
 			{
-				str += L'%';
-				str += c;
+				outStream << L'%' << c;
 			}
 		}
 
-		if (!c) break; // could happen when string ends with multi-character escape sequence, like immediately after "%p" etc
-
-		if (numericValue != uninitNumericValue)
+		if (!c)
 		{
-			// the value was represented as simple number, add it here
-			wchar_t buffer[32];
-			wsprintf(buffer, _T("%d"), numericValue);
-			str += buffer;
+			break; // could happen when string ends with multi-character escape sequence, like immediately after "%p" etc
 		}
 	}
 
-	Bitmap* bmp = RenderTextToBitmap(str.c_str());
+	Bitmap* bmp = RenderTextToBitmap(outStream.str().c_str());
+	
 	// copy 'bmp' to 'DstBuffer' at bottom-right corner
-	int x = DstBuffer->Width() - bmp->Width();
-	int y = DstBuffer->Height() - bmp->Height();
-	if (x < 0) x = 0;
-	if (y < 0) y = 0;
+	int x = DstBuffer->Width() > bmp->Width() ? DstBuffer->Width() - bmp->Width() : 0;
+	int y = DstBuffer->Height() - bmp->Height() ? DstBuffer->Height() - bmp->Height() : 0;
+	
 	BlitBitmap(DstBuffer, bmp, x, y, 0.5f);
 
 	bmp->DeleteThis();

@@ -666,26 +666,57 @@ void BlitBitmap(Bitmap* Dst, Bitmap* Src, int x, int y, float alpha)
 	delete[] bufferDst;
 }
 
+std::wstring trim(const std::wstring& in, const std::wstring& delimiters = L" \f\n\r\t\v")
+{
+	std::wstring out;
+
+	auto first = in.find_first_not_of(delimiters);
+	auto last = in.find_last_not_of(delimiters);
+
+	if (first != std::string::npos && last != std::string::npos)
+	{
+		out = in.substr(first, last + 1);
+	}
+
+	return out;
+}
+
 std::wstring GetCPUName()
 {
 	HKEY hKey = NULL;
 
 	UINT uiRetVal = RegOpenKeyEx(HKEY_LOCAL_MACHINE, TEXT("HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0"), 0, KEY_READ, &hKey);
-	if (uiRetVal == ERROR_SUCCESS)
+	
+	if (ERROR_SUCCESS == uiRetVal)
 	{
 		wchar_t CpuName[256];
 		DWORD valueSize = 256;
+
 		uiRetVal = RegQueryValueEx(hKey, TEXT("ProcessorNameString"), NULL, NULL, (LPBYTE)CpuName, &valueSize);
-		if (uiRetVal == ERROR_SUCCESS)
+	
+		if (ERROR_SUCCESS == uiRetVal)
 		{
 			RegCloseKey(hKey);
-			return CpuName;
+			return trim(CpuName);
 		}
 
 		RegCloseKey(hKey);
 	}
 
 	return L"Unknown CPU";
+}
+
+std::wstring ComputerName()
+{
+	std::vector<wchar_t> buffer(MAX_COMPUTERNAME_LENGTH + 1);
+	DWORD size = buffer.size();
+
+	if (GetComputerName(buffer.data(), &size) != 0)
+	{
+		return trim(buffer.data());
+	}
+
+	return L"Unknown Computer";
 }
 
 bool GetProductAndVersion(std::wstring& strProductName, std::wstring& strProductVersion, std::wstring& strCoreVersion)

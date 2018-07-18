@@ -25,21 +25,23 @@ FIRERENDER_NAMESPACE_BEGIN
 
 #define SCOPEMANAGER_VERSION 1
 
-typedef struct sGpuInfo
+struct GpuInfo
 {
 	std::string name;
-	bool		isUsed;
-	bool		isCompatible;
-	bool		isWhiteListed;
-	rpr_creation_flags frFlags;
-
-	sGpuInfo() : isUsed(false), isCompatible(false), isWhiteListed(false), frFlags(0)
-	{
-	}
-
-} GpuInfo;
+	bool isUsed = false;
+	bool isCompatible = false;
+	bool isWhiteListed = false;
+	rpr_creation_flags frFlags = 0;
+};
 
 typedef std::vector<GpuInfo> GpuInfoArray;
+
+struct CpuInfo
+{
+	bool isUsed = false;
+	bool isCpuThreadsNumOverriden = false;
+	std::uint64_t numCpuThreads = 0;
+};
 
 typedef int ScopeID;
 
@@ -48,6 +50,7 @@ class ScopeManagerMax : public GUP
 public:
 	static ScopeManagerMax TheManager;
 	static GpuInfoArray gpuInfoArray;
+	static CpuInfo cpuInfo;
 
 	std::string mCacheFolder;
 
@@ -83,7 +86,7 @@ public:
 	static int getUncertifiedGpuCount();
 	static const std::vector<std::string> &getGpuNamesThatHaveOldDriver();
 
-	rpr_creation_flags getContextCreationFlags(bool useGpu, bool useCpu);
+	rpr_creation_flags getContextCreationFlags();
 	bool hasGpuCompatibleWithFR(int& numberCompatibleGPUs);
 	void ValidateParamBlock(IParamBlock2 *pblock);
 	std::wstring GetRPRTraceDirectory(IParamBlock2 *pblock);

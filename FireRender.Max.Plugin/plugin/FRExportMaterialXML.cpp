@@ -328,16 +328,12 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 	params.t = GetCOREInterface()->GetTime();
 
 	// compute the context creation flags based on hardware capabilities
-	int renderDevice;
-	params.pblock->GetValue(FireRender::PARAM_RENDER_DEVICE, params.t, renderDevice, FOREVER);
-	bool useGpu = (renderDevice == RPR_RENDERDEVICE_GPUONLY) || (renderDevice == RPR_RENDERDEVICE_CPUGPU);
-	bool useCpu = (renderDevice == RPR_RENDERDEVICE_CPUONLY) || (renderDevice == RPR_RENDERDEVICE_CPUGPU);
-	int createFlags = FireRender::ScopeManagerMax::TheManager.getContextCreationFlags(useGpu, useCpu);
+	rpr_creation_flags createFlags = FireRender::ScopeManagerMax::TheManager.getContextCreationFlags();
 	
 	// create a temporary context
 	fr_int status = RPR_SUCCESS;
 	fr_int plugs = 0;
-	const char pluginsPath[512] = { "Tahoe64.dll" };
+	const char pluginsPath[] = "Tahoe64.dll";
 	static fr_int plug = frRegisterPlugin(pluginsPath);
 	fr_context context = nullptr;
 	status = rprCreateContext(RPR_API_VERSION, &plug, 1, createFlags, NULL, NULL, &context);
