@@ -164,14 +164,14 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 						else if (pMat && pMat->ClassID() == FIRERENDER_MATERIALMTL_CID)
 						{
 							IParamBlock2* pb = pMat->GetParamBlock(0);
-							castsShadows = GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t);
-							shadowCatcher = GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t);
+							castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t) );
+							shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t) );
 						}
 						else if (pMat && pMat->ClassID() == FIRERENDER_UBERMTL_CID)
 						{
 							IParamBlock2* pb = pMat->GetParamBlock(0);
-							castsShadows = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t);
-							shadowCatcher = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t);
+							castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t) );
+							shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t) );
 						}
 						else if (pMat && pMat->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 						{

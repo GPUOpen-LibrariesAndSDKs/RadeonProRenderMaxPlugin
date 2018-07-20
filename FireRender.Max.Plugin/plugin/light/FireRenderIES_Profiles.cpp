@@ -119,7 +119,7 @@ bool FireRenderIES_Profiles::CopyIES_File(const TCHAR* from, size_t nameOffset)
 	BOOL res = CopyFile(from, rawNewName, FALSE);
 	FASSERT(res);
 
-	return replace ? false : res;
+	return replace ? false : bool_cast(res);
 }
 
 void FireRenderIES_Profiles::ForEachProfile(std::function<void(const TCHAR* name)> f)

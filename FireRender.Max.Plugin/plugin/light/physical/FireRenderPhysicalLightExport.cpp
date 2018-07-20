@@ -372,9 +372,10 @@ void CalculateSphere(float radius,
 	// Bottom Cap
 	for (int lon = 0; lon < nbLong; lon++)
 	{
-		triangles[i++] = vsize - 1;
-		triangles[i++] = vsize - (lon + 2) - 1;
-		triangles[i++] = vsize - (lon + 1) - 1;
+		// TODO: triangles is int32 but vsize is int64, change vsize to int32?
+		triangles[i++] = int_cast(vsize - 1);
+		triangles[i++] = int_cast(vsize - (lon + 2) - 1);
+		triangles[i++] = int_cast(vsize - (lon + 1) - 1);
 	}
 }
 
@@ -569,14 +570,14 @@ Color FireRenderPhysicalLight::GetLightColour(void) const
 	{
 		case FRPhysicalLight_COLOUR:
 		{
-			bool ok = m_pblock->GetValue(FRPhysicalLight_INTENSITY_COLOUR, time, colour, valid);
+			BOOL ok = m_pblock->GetValue(FRPhysicalLight_INTENSITY_COLOUR, time, colour, valid);
 			FASSERT(ok);
 			break;
 		}
 
 		case FRPhysicalLight_TEMPERATURE:
 		{
-			bool ok = m_pblock->GetValue(FRPhysicalLight_INTENSITY_TEMPERATURE_COLOUR, time, colour, valid);
+			BOOL ok = m_pblock->GetValue(FRPhysicalLight_INTENSITY_TEMPERATURE_COLOUR, time, colour, valid);
 			FASSERT(ok);
 			break;
 		}
@@ -727,7 +728,7 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 				int value;
 				Interval valid = FOREVER;
 				m_pblock->GetValue(FRPhysicalLight_AREALIGHT_ISBIDIRECTIONAL, TimeValue(0), value, valid);
-				bool isDoubleSided = static_cast<bool>(value);
+				bool isDoubleSided = bool_cast(value);
 				// not supported in Core!
 			}
 
@@ -743,7 +744,7 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 				int value;
 				Interval valid = FOREVER;
 				m_pblock->GetValue(FRPhysicalLight_AREALIGHT_ISVISIBLE, TimeValue(0), value, valid);
-				bool isVisible = static_cast<bool>(value);
+				bool isVisible = bool_cast(value);
 				shape.SetPrimaryVisibility(isVisible);
 			}
 
@@ -766,14 +767,14 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 
 			float iAngle = 0.0f;
 			{
-				bool success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_INNERCONE, time, iAngle, valid);
+				BOOL success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_INNERCONE, time, iAngle, valid);
 				FASSERT(success);
 			}
 			iAngle *= DEG_TO_RAD * 0.5f;
 
 			float oAngle = 0.0f;
 			{
-				bool success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_OUTERCONE, time, oAngle, valid);
+				BOOL success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_OUTERCONE, time, oAngle, valid);
 				FASSERT(success);
 			}
 			oAngle *= DEG_TO_RAD * 0.5f;

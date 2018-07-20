@@ -1137,7 +1137,7 @@ INT_PTR BasicParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map, HWND hD
 
 			if (isClicked)
 			{
-				bool isLinkChecked = IsDlgButtonChecked(hDlg, IDC_UBER_REFRACTION_LINK_TO_REFLECTION);
+				bool isLinkChecked = bool_cast( IsDlgButtonChecked(hDlg, IDC_UBER_REFRACTION_LINK_TO_REFLECTION) );
 				BOOL enable = !isLinkChecked;
 				HWND hCombo = GetDlgItem(hDlg, IDC_UBER_REFLECTION_MODE);
 				ComboBox_Enable(hCombo, enable);

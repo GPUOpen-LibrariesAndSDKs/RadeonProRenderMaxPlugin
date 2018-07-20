@@ -481,7 +481,7 @@ void ActiveShadeRenderCore::Worker()
 	bool clearFramebuffer = true;
 
 	bool useRegion = false;
-	int rxmin, rxmax, rymin, rymax;
+	int rxmin = 0, rxmax = 0, rymin = 0, rymax = 0;
 
 	int prevbmw = 0;
 	int prevbmh = 0;
@@ -772,8 +772,6 @@ void ActiveShader::Begin()
 
 	mRunning = true;
 
-	int res;
-	
 	auto bm = mOutputBitmap.load();
 
 	auto rend = GetCOREInterface()->GetRenderer(RS_IReshade);
@@ -838,7 +836,7 @@ void ActiveShader::Begin()
 	BOOL alphaEnabled;
 	BgManagerMax::TheManager.GetProperty(PARAM_BG_ENABLEALPHA, alphaEnabled);
 
-	mRenderThread = new ActiveShadeRenderCore(this, scope, writer, alphaEnabled);
+	mRenderThread = new ActiveShadeRenderCore(this, scope, writer, bool_cast(alphaEnabled));
 	mRenderThread->SetLimitType(renderLimitType);
 	mRenderThread->SetTimeLimit(timeLimit);
 	mRenderThread->SetPassLimit(passLimit);
@@ -1125,7 +1123,7 @@ ParsedView ActiveShadeSynchronizer::ParseView()
 		}
 #endif
 		if (!physicalCameraUsed) {
-			output.useDof = cam->GetMultiPassEffectEnabled(t, Interval());
+			output.useDof = bool_cast( cam->GetMultiPassEffectEnabled(t, Interval()) );
 			//sensor width is 36mm on default
 			output.sensorWidth = 36;
 			if (output.useDof)
@@ -1133,7 +1131,7 @@ ParsedView ActiveShadeSynchronizer::ParseView()
 				//use dof possible
 				IMultiPassCameraEffect *mpCE = cam->GetIMultiPassCameraEffect();
 
-				for (size_t i = 0; i < mpCE->NumSubs(); i++)
+				for (int i = 0; i < mpCE->NumSubs(); i++)
 				{
 					Animatable *animatableMP = mpCE->SubAnim(i);
 					MSTR animatableNameMP = mpCE->SubAnimName(i);

@@ -1304,7 +1304,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	std::tie(isDenoiserEnabled, denoiserType ) = IsDenoiserEnabled(parameters.pblock);
 
 	// setup ProductionRenderCore data
-	data->renderThread = new ProductionRenderCore(scope, renderWidth, renderHeight, bRenderAlpha, isDenoiserEnabled);
+	data->renderThread = new ProductionRenderCore(scope, renderWidth, renderHeight, bool_cast(bRenderAlpha), bool_cast(isDenoiserEnabled));
 	data->renderThread->term = data->termCriteria;
 	data->renderThread->passLimit = data->passLimit;
 	data->renderThread->timeLimit = data->timeLimit;
@@ -1316,7 +1316,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->renderThread->exposure = data->toneMappingExposure;
 	data->renderThread->useMaxTonemapper = isShadowCatcherEnabled ? false : !overrideTonemappers;
 	data->renderThread->regionMode = (parameters.rendParams.rendType == RENDTYPE_REGION);
-	data->isAlphaEnabled = bRenderAlpha;
+	data->isAlphaEnabled = bool_cast(bRenderAlpha);
 	data->isDenoiserEnabled = isDenoiserEnabled;
 
 	if (data->renderThread->regionMode)
@@ -1562,7 +1562,7 @@ std::tuple<bool, DenoiserType> PRManagerMax::IsDenoiserEnabled(IParamBlock2* pb)
 		isDenoiserEnabled = denoiserType != DenoiserNone;
 	}
 
-	return std::make_tuple(static_cast<bool>(isDenoiserEnabled), static_cast<DenoiserType>(denoiserType));
+	return std::make_tuple(bool_cast(isDenoiserEnabled), static_cast<DenoiserType>(denoiserType));
 }
 
 

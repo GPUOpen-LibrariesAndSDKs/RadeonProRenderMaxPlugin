@@ -81,7 +81,7 @@ namespace
 				{  halfSide, -halfSide,  height }
 			};
 
-			const std::array<size_t, 3> sideFaces[]
+			const std::array<int, 3> sideFaces[]
 			{
 				{ 0, 2, 1 },
 				{ 0, 3, 2 },
@@ -89,21 +89,21 @@ namespace
 				{ 0, 1, 4 }
 			};
 
-			const std::array<size_t, 3> baseFaces[]
+			const std::array<int, 3> baseFaces[]
 			{
 				{ 3, 1, 2 },
 				{ 1, 3, 4 }
 			};
 
-			const size_t vertsCount = StaticArraySize(verts);
-			const size_t sideFacesCount = StaticArraySize(sideFaces);
-			const size_t baseFacesCount = StaticArraySize(baseFaces);
+			const int vertsCount = int_cast(StaticArraySize(verts));
+			const int sideFacesCount = int_cast(StaticArraySize(sideFaces));
+			const int baseFacesCount = int_cast(StaticArraySize(baseFaces));
 
 			m_mesh.setNumVerts(vertsCount);
 			m_mesh.setNumFaces(sideFacesCount + baseFacesCount);
 
 			// Set vertices
-			for (size_t i = 0; i < vertsCount; ++i)
+			for (int i = 0; i < vertsCount; ++i)
 			{
 				const std::array<float, 3>& v = verts[i];
 				m_mesh.setVert(i, v[0], v[1], v[2]);
@@ -113,9 +113,9 @@ namespace
 			size_t nextFaceIndex = 0;
 
 			// Set side faces
-			for (size_t i = 0; i < sideFacesCount; ++i)
+			for (int i = 0; i < sideFacesCount; ++i)
 			{
-				const std::array<size_t, 3>& f = sideFaces[i];
+				const std::array<int, 3>& f = sideFaces[i];
 				Face& meshFace = m_mesh.faces[nextFaceIndex++];
 
 				meshFace.setVerts(f[0], f[1], f[2]);
@@ -124,9 +124,9 @@ namespace
 			}
 
 			// Set base faces
-			for (size_t i = 0; i < baseFacesCount; ++i)
+			for (int i = 0; i < baseFacesCount; ++i)
 			{
-				const std::array<size_t, 3>& f = baseFaces[i];
+				const std::array<int, 3>& f = baseFaces[i];
 				Face& meshFace = m_mesh.faces[nextFaceIndex++];
 
 				meshFace.setVerts(f[0], f[1], f[2]);
@@ -152,7 +152,7 @@ namespace
 				{  halfEdge,  halfEdge,  halfEdge },
 			};
 
-			const std::array<size_t, 3> faces[]
+			const std::array<int, 3> faces[]
 			{
 				// XY FACES (-Z)
 				{ 2, 1, 0 },
@@ -179,21 +179,21 @@ namespace
 				{ 5, 3, 7 }
 			};
 
-			const size_t vertsCount = StaticArraySize(verts);
-			const size_t facesCount = StaticArraySize(faces);
+			const int vertsCount = int_cast(StaticArraySize(verts));
+			const int facesCount = int_cast(StaticArraySize(faces));
 
 			m_mesh.setNumVerts(vertsCount);
 			m_mesh.setNumFaces(facesCount);
 
-			for (size_t i = 0; i < vertsCount; ++i)
+			for (int i = 0; i < vertsCount; ++i)
 			{
 				const std::array<float, 3>& v = verts[i];
 				m_mesh.setVert(i, v[0], v[1], v[2]);
 			}
 
-			for (size_t i = 0; i < facesCount; ++i)
+			for (int i = 0; i < facesCount; ++i)
 			{
-				const std::array<size_t, 3>& f = faces[i];
+				const std::array<int, 3>& f = faces[i];
 				Face& meshFace = m_mesh.faces[i];
 
 				meshFace.setVerts(f[0], f[1], f[2]);

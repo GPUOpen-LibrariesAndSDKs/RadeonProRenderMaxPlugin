@@ -441,7 +441,7 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 			gpuComputed = true;
 		}
 
-		numberCompatibleGPUs = gpuInfoArray.size();
+		numberCompatibleGPUs = int_cast(gpuInfoArray.size());
 	}
 	catch (int res)
 	{

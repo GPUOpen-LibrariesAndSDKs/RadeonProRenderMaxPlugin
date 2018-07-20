@@ -366,7 +366,7 @@ public:
 
 		BOOL IsActive = FALSE;
 		BgManagerMax::TheManager.GetProperty(PARAM_GROUND_ACTIVE, IsActive);
-		handleActivated(IsActive);
+		handleActivated( bool_cast(IsActive) );
 	}
 	
 	~FireRenderEnvironment() {
@@ -653,7 +653,6 @@ public:
 			return;
 		}
 	
-		int nv;
 		Matrix3 tm;
 		
 		tm = inode->GetObjectTM(t);
@@ -696,18 +695,15 @@ public:
 				return;
 			ObjectState state = node->EvalWorldState(0);
 			if (state.obj) {
-				switch(state.obj->SuperClassID()){
-				default:
-					if(!node->IsNodeHidden()
-						&& node->Renderable()
-						&& state.obj->IsRenderable()
-						){
-						Box3 bb;
-						Matrix3 tm = node->GetObjTMAfterWSM(getEditTime());
-						state.obj->GetDeformBBox(getEditTime(), bb, &tm);
-						result += bb;
-					}
-				};
+				if(!node->IsNodeHidden()
+					&& node->Renderable()
+					&& state.obj->IsRenderable()
+					){
+					Box3 bb;
+					Matrix3 tm = node->GetObjTMAfterWSM(getEditTime());
+					state.obj->GetDeformBBox(getEditTime(), bb, &tm);
+					result += bb;
+				}
 			}
 		};
 		traverseNode(GetCOREInterface()->GetRootNode(), visit);
@@ -727,7 +723,7 @@ public:
 		DependentIterator di(rt);
 		ReferenceMaker *rm;
 		INode *nd = NULL;
-		while (rm = di.Next())
+		while (bool_cast(rm = di.Next()))
 		{
 			nd = GetNodeRef(rm);
 			if (nd) return nd;

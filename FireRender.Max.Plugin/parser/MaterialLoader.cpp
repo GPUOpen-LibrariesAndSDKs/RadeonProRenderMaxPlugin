@@ -109,7 +109,7 @@ namespace
         std::cout << "name " << mat_name + ", type: " << kMaterialTypeNames.at(type) << std::endl;
         size_t count = 0;
         CHECK_NO_ERROR(rprMaterialNodeGetInfo(node, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &count, nullptr));
-        for (size_t i = 0; i < count; ++i)
+        for (int i = 0; i < count; ++i)
         {
             size_t str_size = 0;
             CHECK_NO_ERROR(rprMaterialNodeGetInputInfo(node, i, RPR_MATERIAL_NODE_INPUT_NAME_STRING, NULL, nullptr, &str_size));
@@ -155,7 +155,7 @@ namespace
         }
         void endDocument()
         {
-            int size = m_nodes.size();
+            int size = int_cast(m_nodes.size());
             for (int i = 0; i < size; ++i)
             {
                 endElement();
@@ -866,7 +866,7 @@ bool ImportMaterials(const std::string& filename, rpr_context context, rpr_mater
             memcpy(*out_materials, material_nodes.data(), material_nodes.size() * sizeof(rpr_material_node));
         }
         if (out_mat_count)
-            *out_mat_count = material_nodes.size();
+            *out_mat_count = int_cast(material_nodes.size());
     }
     catch (const std::exception& e)
     {

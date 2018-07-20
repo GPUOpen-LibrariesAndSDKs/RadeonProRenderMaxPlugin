@@ -390,7 +390,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 		// draw web
 		for (std::vector<Point3>& pline : preview_plines)
 		{
-			gw->polyline(pline.size(), &pline.front(), NULL, NULL, false, NULL);
+			gw->polyline( int_cast(pline.size()), &pline.front(), NULL, NULL, false, NULL);
 		}
 
 		return true;
@@ -427,7 +427,7 @@ bool FireRenderIESLight::DrawWeb(TimeValue t, ViewExp *pVprt, bool isSelected /*
 	// draw web
 	for (std::vector<Point3>& pline : plines)
 	{
-		gw->polyline(pline.size(), &pline.front(), NULL, NULL, false, NULL);
+		gw->polyline(int_cast(pline.size()), &pline.front(), NULL, NULL, false, NULL);
 	}	
 
 	return true;

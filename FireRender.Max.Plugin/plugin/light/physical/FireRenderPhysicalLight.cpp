@@ -316,7 +316,7 @@ const Point3 FireRenderPhysicalLight::GetLightPoint(const TimeValue& time) const
 {
 	Point3 lightPoint (0.0f, 0.0f, 0.0f);
 	Interval valid = FOREVER;
-	bool success = m_pblock->GetValue(FRPhysicalLight_LIGHT_POINT, time, lightPoint, valid);
+	BOOL success = m_pblock->GetValue(FRPhysicalLight_LIGHT_POINT, time, lightPoint, valid);
 	FASSERT(success);
 	return lightPoint;
 }
@@ -330,7 +330,7 @@ const Point3 FireRenderPhysicalLight::GetTargetPoint(const TimeValue& time) cons
 {
 	Point3 targPoint (0.0f, 0.0f, 0.0f);
 	Interval valid = FOREVER;
-	bool success = m_pblock->GetValue(FRPhysicalLight_TARGET_POINT, time, targPoint, valid);
+	BOOL success = m_pblock->GetValue(FRPhysicalLight_TARGET_POINT, time, targPoint, valid);
 	FASSERT(success);
 	return targPoint;
 }
@@ -344,7 +344,7 @@ const Point3 FireRenderPhysicalLight::GetSecondPoint(const TimeValue& time) cons
 {
 	Point3 secondPoint (0.0f, 0.0f, 0.0f);
 	Interval valid = FOREVER;
-	bool success = m_pblock->GetValue(FRPhysicalLight_SECOND_POINT, time, secondPoint, valid);
+	BOOL success = m_pblock->GetValue(FRPhysicalLight_SECOND_POINT, time, secondPoint, valid);
 	FASSERT(success);
 	return secondPoint;
 }
@@ -358,7 +358,7 @@ const Point3 FireRenderPhysicalLight::GetThirdPoint(const TimeValue& time) const
 {
 	Point3 thirdPoint (0.0f, 0.0f, 0.0f);
 	Interval valid = FOREVER;
-	bool success = m_pblock->GetValue(FRPhysicalLight_THIRD_POINT, time, thirdPoint, valid);
+	BOOL success = m_pblock->GetValue(FRPhysicalLight_THIRD_POINT, time, thirdPoint, valid);
 	FASSERT(success);
 	return thirdPoint;
 }
@@ -372,7 +372,7 @@ float FireRenderPhysicalLight::GetLength(const TimeValue& time) const
 {
 	float length = 0.0f;
 	Interval valid = FOREVER;
-	bool success = m_pblock->GetValue(FRPhysicalLight_AREA_LENGTHS, time, length, valid);
+	BOOL success = m_pblock->GetValue(FRPhysicalLight_AREA_LENGTHS, time, length, valid);
 	FASSERT(success);
 	return length;
 }
@@ -386,7 +386,7 @@ float FireRenderPhysicalLight::GetWidth(const TimeValue& time) const
 {
 	float width = 0.0f;
 	Interval valid = FOREVER;
-	bool success = m_pblock->GetValue(FRPhysicalLight_AREA_WIDTHS, time, width, valid);
+	BOOL success = m_pblock->GetValue(FRPhysicalLight_AREA_WIDTHS, time, width, valid);
 	FASSERT(success);
 	return width;
 }
@@ -400,7 +400,7 @@ float FireRenderPhysicalLight::GetDist(const TimeValue& time) const
 {
 	float dist = 0.0f;
 	Interval valid = FOREVER;
-	bool success = m_pblock->GetValue(FRPhysicalLight_TARGET_DIST, time, dist, valid);
+	BOOL success = m_pblock->GetValue(FRPhysicalLight_TARGET_DIST, time, dist, valid);
 	FASSERT(success);
 	return dist;
 }
@@ -426,7 +426,7 @@ bool FireRenderPhysicalLight::IsTargeted() const
 	Interval valid = FOREVER;
 	int boolValue;
 	m_pblock->GetValue(FRPhysicalLight_IS_TARGETED, 0, boolValue, valid);
-	return static_cast<bool>(boolValue);
+	return bool_cast(boolValue);
 }
 
 bool FireRenderPhysicalLight::IsEnabled() const
@@ -434,7 +434,7 @@ bool FireRenderPhysicalLight::IsEnabled() const
 	Interval valid = FOREVER;
 	int boolValue;
 	m_pblock->GetValue(FRPhysicalLight_ISENABLED, 0, boolValue, valid);
-	return static_cast<bool>(boolValue);
+	return bool_cast(boolValue);
 }
 
 void FireRenderPhysicalLight::AddTarget(TimeValue t, bool fromCreateCallback)

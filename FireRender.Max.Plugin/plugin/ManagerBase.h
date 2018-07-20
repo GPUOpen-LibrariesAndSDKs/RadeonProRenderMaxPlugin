@@ -35,6 +35,7 @@ private:
 	int mSender = -1;
 
 public:
+	virtual ~ManagerMaxBase() {}
 	virtual BOOL GetProperty(int param, Texmap*& value) { return FALSE; }
 	virtual BOOL GetProperty(int param, float& value) { return FALSE; }
 	virtual BOOL GetProperty(int param, int& value) { return FALSE; }

@@ -189,7 +189,7 @@ public:
 
 	bool InMaterialEditor() const
 	{
-		return parameters.rendParams.inMtlEdit;
+		return bool_cast(parameters.rendParams.inMtlEdit);
 	}
 	bool InExposureControlPreview()
 	{
@@ -197,7 +197,7 @@ public:
 	}
 	bool InActiveShade()
 	{
-		return isActiveShade;
+		return bool_cast( isActiveShade );
 	}
 
 	void SetFireRenderExportSceneFilename(std::wstring fileName)

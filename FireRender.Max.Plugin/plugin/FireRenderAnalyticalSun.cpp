@@ -211,7 +211,7 @@ public:
 		
 		size_t vsize = vertices.size();
 		
-		displayShape.setNumVerts(vsize);
+		displayShape.setNumVerts( int_cast(vsize) );
 
 		// triangles
 		int nbTriangles = nbLong * 2 + (nbLat - 1)*nbLong * 2;//2 caps and one middle
@@ -248,9 +248,10 @@ public:
 		//Bottom Cap
 		for (int lon = 0; lon < nbLong; lon++)
 		{
-			triangles[i++] = vsize - 1;
-			triangles[i++] = vsize - (lon + 2) - 1;
-			triangles[i++] = vsize - (lon + 1) - 1;
+			// TODO: triangles is int32 but vsize is in64, change vsize to 32?
+			triangles[i++] = int_cast(vsize - 1);
+			triangles[i++] = int_cast(vsize - (lon + 2) - 1);
+			triangles[i++] = int_cast(vsize - (lon + 1) - 1);
 		}
 
 
@@ -376,7 +377,7 @@ public:
 		DependentIterator di(rt);
 		ReferenceMaker *rm;
 		INode *nd = NULL;
-		while (rm = di.Next())
+		while (bool_cast(rm = di.Next()))
 		{
 			nd = GetNodeRef(rm);
 			if (nd) return nd;
@@ -504,7 +505,6 @@ public:
 			return;
 		}
 
-		int nv;
 		Matrix3 tm;
 
 		tm = inode->GetObjectTM(t);

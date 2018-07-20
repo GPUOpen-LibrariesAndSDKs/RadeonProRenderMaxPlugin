@@ -54,7 +54,7 @@ FIRERENDER_NAMESPACE_BEGIN;
 // Returns true if the input node is hidden in rendering
 inline bool isHidden(INode* node, const RenderParameters& params)
 {
-	return node->IsNodeHidden(TRUE);
+	return bool_cast( node->IsNodeHidden(TRUE) );
 
     // 3ds Max has 2 global switches we need to consider:
     // - hide frozen: causes frozen objects to behave as hidden objects during rendering (= invisible by default)
@@ -196,7 +196,7 @@ ParsedView SceneParser::ParseView()
 		}
 #endif
 		if (!physicalCameraUsed) {
-			output.useDof = cam->GetMultiPassEffectEnabled(params.t, Interval());
+			output.useDof = bool_cast( cam->GetMultiPassEffectEnabled(params.t, Interval()) );
 			//sensor width is 36mm on default
 			output.sensorWidth = 36;
 			//output.focalLength = output.sensorWidth / (2.f * std::tan(output.perspectiveFov / 2.f));
@@ -205,7 +205,7 @@ ParsedView SceneParser::ParseView()
 				IMultiPassCameraEffect *mpCE = cam->GetIMultiPassCameraEffect();
 				//mpCE->IsAnimated
 
-				for (size_t i = 0; i < mpCE->NumSubs(); i++)
+				for (int i = 0; i < mpCE->NumSubs(); i++)
 				{
 					Animatable *animatableMP = mpCE->SubAnim(i);
 					MSTR animatableNameMP = mpCE->SubAnimName(i);
@@ -684,7 +684,7 @@ ParsedNode::ParsedNode(size_t id, INode* node, const Matrix3& tm): node(node), i
 {
 	if (node)
 	{
-		if ((material = node->GetMtl()))
+		if (bool_cast(material = node->GetMtl()))
 		{
 			// if the material is a Shell mtl, we pick its correct sub-material for rendering
 			while (material && material->ClassID() == Class_ID(BAKE_SHELL_CLASS_ID, 0))
@@ -698,7 +698,7 @@ ParsedNode::ParsedNode(size_t id, INode* node, const Matrix3& tm): node(node), i
 				matId = Animatable::GetHandleByAnim(material);
 		}
 
-		if ((object = node->GetObjectRef()))
+		if (bool_cast(object = node->GetObjectRef()))
 		{
 			objectId = Animatable::GetHandleByAnim(object);
 		}
@@ -943,9 +943,9 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 		
         // determine the maximal number of sub-materials
 
-        size_t numMtls = 0; 
+        int numMtls = 0; 
         for (auto& parsedNode : nodes) 
-            numMtls = std::max(numMtls, parsedNode.GetAllMaterials(params.t).size());
+            numMtls = std::max(numMtls, int_cast(parsedNode.GetAllMaterials(params.t).size()) );
 
         // Evaluate the mesh of first node in the group
 
@@ -998,7 +998,6 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 			Motion motion = getMotion(view, parsedNode);
 
             const auto& nodeMtls = parsedNode.GetAllMaterials(params.t);
-            int res;
             FASSERT(numMtls == shapes.size());
 
             // now go over all mtl IDs, set transforms and materials for shapes and handle special cases
@@ -1042,14 +1041,14 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID) 
 					{
 						IParamBlock2* pb = currentMtl->GetParamBlock(0);
-						castsShadows = GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, this->params.t);
-						shadowCatcher = GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, this->params.t);
+						castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, this->params.t) );
+						shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, this->params.t) );
 					}
 					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_UBERMTL_CID)
 					{
 						IParamBlock2* pb = currentMtl->GetParamBlock(0);
-						castsShadows = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, this->params.t);
-						shadowCatcher = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, this->params.t);
+						castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, this->params.t) );
+						shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, this->params.t) );
 					}
 					else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 					{
@@ -1062,7 +1061,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					}
 
 					frw::Value displImageNode;
-					bool notAccurate;
+					bool notAccurate = false;
 					if (currentMtl != DISABLED_MATERIAL)
 						displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(this->params.t, mtlParser, currentMtl,
 							minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
@@ -1436,12 +1435,12 @@ Mtl* SceneParser::parseMaterialPreview(frw::Shader& surfaceShader, frw::Shader& 
 				}
 				else if (root && root->ClassID() == FIRERENDER_MATERIALMTL_CID) {
 					IParamBlock2* pb = root->GetParamBlock(0);
-					castShadows = GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, this->params.t);
+					castShadows = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, this->params.t) );
 				}
 				else if (root && root->ClassID() == FIRERENDER_UBERMTL_CID)
 				{
 					IParamBlock2* pb = root->GetParamBlock(0);
-					castShadows = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, this->params.t);
+					castShadows = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, this->params.t) );
 				}
 				else if (root && root->ClassID() == PHYSICALMATERIAL_CID)
 				{
@@ -1720,7 +1719,7 @@ void SceneParser::useFRGround()
 
 bool SceneParser::parseFRGround()
 {
-	bool res;
+	BOOL res;
 	res = params.pblock->GetValue(TRPARAM_GROUND_ACTIVE, params.t, parsed.frGround.enabled, FOREVER); FASSERT(res);
 	res = params.pblock->GetValue(TRPARAM_GROUND_RADIUS, params.t, parsed.frGround.radius, FOREVER); FASSERT(res);
 	res = params.pblock->GetValue(TRPARAM_GROUND_GROUND_HEIGHT, params.t, parsed.frGround.groundHeight, FOREVER); FASSERT(res);
@@ -2223,7 +2222,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2243,7 +2242,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 						points[numpoints + i].z -= 0.0005f;
 					}
 
-					int centerTop = points.size() - 1;
+					int centerTop = int_cast(points.size() - 1);
 					int centerBottom = centerTop - 1;
 					points[centerTop] = Point3(0.f, 0.f, 0.0005f);
 					points[centerBottom] = Point3(0.f, 0.f, -0.0005f);
@@ -2299,7 +2298,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2377,9 +2376,10 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					//Bottom Cap
 					for (int lon = 0; lon < nbLong; lon++)
 					{
-						triangles[i++] = vsize - 1;
-						triangles[i++] = vsize - (lon + 2) - 1;
-						triangles[i++] = vsize - (lon + 1) - 1;
+						// TODO: triangles is array of int32, but vsize is int64, should vsize be int32? 
+						triangles[i++] = int_cast( vsize - 1 );
+						triangles[i++] = int_cast( vsize - (lon + 2) - 1 );
+						triangles[i++] = int_cast( vsize - (lon + 1) - 1 );
 					}
 
 					std::vector<int> normal_indices;
@@ -2417,7 +2417,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2438,7 +2438,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					for (int i = 0; i < segments; i++, angle += step)
 						pshape.push_back(Point3(radius * sin(angle), 0.f, radius * cos(angle)));
 
-					int numPointsShape = pshape.size();
+					int numPointsShape = int_cast(pshape.size());
 					int numPoints = numPointsShape << 1;
 					std::vector<Point3> points(numPoints);
 					std::vector<Point3> normals(numPoints);
@@ -2500,7 +2500,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2521,7 +2521,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					for (int i = 0; i < segments; i++, angle += step)
 						pshape.push_back(Point3(radius * sin(angle), 0.f, radius * cos(angle)));
 
-					int numPointsShape = pshape.size();
+					int numPointsShape = int_cast(pshape.size());
 					int numPoints = numPointsShape << 1;
 					std::vector<Point3> points(numPoints);
 					std::vector<Point3> normals(numPoints);
@@ -2584,7 +2584,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2753,7 +2753,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2820,7 +2820,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2930,7 +2930,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);
@@ -2951,7 +2951,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					for (int i = 0; i <=segments; i++, angle += step)
 						pshape.push_back(Point3(radius * cos(angle), 0.f, -radius * sin(angle)));
 
-					int numPointsShape = pshape.size();
+					int numPointsShape = int_cast(pshape.size());
 					int numPoints = numPointsShape << 1;
 					std::vector<Point3> points(numPoints);
 					std::vector<Point3> normals(numPoints);
@@ -3013,7 +3013,7 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 					shape.SetShader(material);
 
 					shape.SetShadowFlag(false);
-					shape.SetPrimaryVisibility(visibleInRender);
+					shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 					SetNameFromNode(node, shape);
 					scene.Attach(shape);

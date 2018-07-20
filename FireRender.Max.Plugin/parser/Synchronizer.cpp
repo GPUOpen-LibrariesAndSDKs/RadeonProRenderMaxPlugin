@@ -514,7 +514,7 @@ void BgPropertyCallback::propChangedCallback(class ManagerMaxBase *owner, int pa
 
 int Synchronizer::NumRefs()
 {
-	return mRefsMapI.size();
+	return int_cast(mRefsMapI.size());
 }
 
 RefTargetHandle Synchronizer::GetReference(int i)
@@ -924,7 +924,7 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 
 		// object rebuilding: progress report
 		{
-			int numInstances = instances.size();
+			int numInstances = int_cast(instances.size());
 			wchar_t tempStr[1024];
 			int i = 1;
 			for (auto ii : instances)

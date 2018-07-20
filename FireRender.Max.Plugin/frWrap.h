@@ -525,7 +525,7 @@ namespace frw
 			size_t n = 0;
 			auto res = rprMaterialNodeGetInfo(Handle(), NodeInfoInputCount, sizeof(n), &n, nullptr);
 			FCHECK(res);
-			return n;
+			return int_cast( n );
 		}
 
 		class ParameterInfo
@@ -812,7 +812,7 @@ namespace frw
 			size_t n = 0;
 			auto res = rprMeshGetInfo(shape, RPR_MESH_POLYGON_COUNT, sizeof(n), &n, nullptr);
 			FCHECK(res);
-			return n;
+			return int_cast( n );
 		}
 		
 		// to allow use with hash structures
@@ -1015,7 +1015,7 @@ namespace frw
 		{
 			size_t count = 0;
 			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_COUNT, sizeof(count), &count, nullptr); FCHECK(res);
-			return count;
+			return int_cast( count );
 		}
 
 		void DetachShapes()
@@ -1048,7 +1048,7 @@ namespace frw
 		{
 			size_t count = 0;
 			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_COUNT, sizeof(count), &count, nullptr); FCHECK(res);
-			return count;
+			return int_cast( count );
 		}
 
 		std::list<Light> GetLights()
@@ -1263,7 +1263,7 @@ namespace frw
 			size_t info = 0;
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_MATERIAL_STACK_SIZE, sizeof(info), &info, nullptr);
 			FCHECK(res);
-			return info;
+			return int_cast( info );
 		}
 
 		int GetParameterCount() const
@@ -1271,7 +1271,7 @@ namespace frw
 			size_t info = 0;
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_PARAMETER_COUNT, sizeof(info), &info, nullptr);
 			FCHECK(res);
-			return info;
+			return int_cast( info );
 		}
 
 		rpr_scene GetScene() const

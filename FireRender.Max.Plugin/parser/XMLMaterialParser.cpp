@@ -247,7 +247,7 @@ public:
 
 	void toLowerTCHAR(TCHAR *pStr)
 	{
-		while (*pStr++ = _totlower(*pStr));
+		while (bool_cast(*pStr++ = _totlower(*pStr)));
 	}
 
 	typedef std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR> > TString;

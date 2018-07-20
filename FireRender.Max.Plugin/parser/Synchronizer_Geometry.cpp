@@ -327,14 +327,14 @@ std::vector<frw::Shape> Synchronizer::parseMesh(INode* inode, Object* evaluatedO
 
 void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 {
-	size_t numMtls = 0;
+	int numMtls = 0;
 
 	auto t = mBridge->t();
 
 	for (auto& parsedNode : nodes)
 	{
 		RemoveMaterialsFromNode(parsedNode);
-		numMtls = std::max(numMtls, GetAllMaterials(parsedNode, t).size());
+		numMtls = std::max(numMtls, int_cast(GetAllMaterials(parsedNode, t).size()) );
 	}
 
 	// Evaluate the mesh of first node in the group
@@ -387,7 +387,6 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 		//Motion motion = getMotion(view, parsedNode);
 
 		const auto& nodeMtls = GetAllMaterials(parsedNode, t);
-		int res;
 		FASSERT(numMtls == shapes.size());
 
 		// now go over all mtl IDs, set transforms and materials for shapes and handle special cases
@@ -435,14 +434,14 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 				else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID)
 				{
 					IParamBlock2* pb = currentMtl->GetParamBlock(0);
-					castsShadows = GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t);
-					shadowCatcher = GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t);
+					castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t) );
+					shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t) );
 				}
 				else if (currentMtl && currentMtl->ClassID() == FIRERENDER_UBERMTL_CID)
 				{
 					IParamBlock2* pb = currentMtl->GetParamBlock(0);
-					castsShadows = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t);
-					shadowCatcher = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t);
+					castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t) );
+					shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t) );
 				}
 				else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 				{
@@ -451,7 +450,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 				}
 
 				frw::Value displImageNode;
-				bool notAccurate;
+				bool notAccurate = false;
 				if (currentMtl && currentMtl != GEOM_DISABLED_MATERIAL)
 					displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, currentMtl,
 						minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
@@ -663,7 +662,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 	if (ss != mShapes.end())
 	{
 		Mtl *currentMtl = node->GetMtl();
-		bool isMultiple = currentMtl->IsMultiMtl();
+		bool isMultiple = bool_cast( currentMtl->IsMultiMtl() );
 
 		if (isMultiple || wasMultiple)
 		{
@@ -723,14 +722,14 @@ bool Synchronizer::ResetMaterial(INode *node)
 		else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID)
 		{
 			IParamBlock2* pb = currentMtl->GetParamBlock(0);
-			castsShadows = GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t);
-			shadowCatcher = GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t);
+			castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_CAUSTICS, t) );
+			shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRMaterialMtl_SHADOWCATCHER, t) );
 		}
 		else if (currentMtl && currentMtl->ClassID() == FIRERENDER_UBERMTL_CID)
 		{
 			IParamBlock2* pb = currentMtl->GetParamBlock(0);
-			castsShadows = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t);
-			shadowCatcher = GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t);
+			castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, t) );
+			shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, t) );
 		}
 		else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 		{
@@ -739,7 +738,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 		}
 
 		frw::Value displImageNode;
-		bool notAccurate;
+		bool notAccurate = false;
 		if (currentMtl != GEOM_DISABLED_MATERIAL)
 			displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(t, mtlParser, currentMtl,
 				minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);

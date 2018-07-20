@@ -25,6 +25,14 @@
 #define FIRERENDER_NAMESPACE_BEGIN namespace FireRender {
 #define FIRERENDER_NAMESPACE_END }
 
+inline bool bool_cast( int x ) { return (x? true:false); }
+inline bool bool_cast( UINT x ) { return (x? true:false); }
+inline bool bool_cast( WORD x ) { return (x? true:false); }
+inline bool bool_cast( wchar_t x ) { return (x? true:false); }
+inline bool bool_cast( void* x ) { return (x!=NULL? true:false); }
+inline DWORD DWORD_cast( size_t x ) { return (DWORD)x; }
+inline int int_cast( size_t x ) { return (int)x; }
+inline int int_cast( wchar_t x ) { return (int)x; }
 
 FIRERENDER_NAMESPACE_BEGIN;
 
