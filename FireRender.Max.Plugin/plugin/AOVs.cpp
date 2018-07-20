@@ -378,7 +378,7 @@ static std::vector<AOVElementXXX> AOVRenderElements =
 
 int GetAOVElementClassDescCount()
 { 
-	return AOVRenderElements.size();
+	return int_cast( AOVRenderElements.size() );
 }
 
 ClassDesc2& GetAOVElementClassDesc(int i)

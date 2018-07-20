@@ -181,7 +181,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -208,7 +208,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					points[numpoints + i].z -= 0.0005f;
 				}
 
-				int centerTop = points.size() - 1;
+				int centerTop = int_cast( points.size() - 1 );
 				int centerBottom = centerTop - 1;
 				points[centerTop] = Point3(0.f, 0.f, 0.0005f);
 				points[centerBottom] = Point3(0.f, 0.f, -0.0005f);
@@ -263,7 +263,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -348,9 +348,10 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				//Bottom Cap
 				for (int lon = 0; lon < nbLong; lon++)
 				{
-					triangles[i++] = vsize - 1;
-					triangles[i++] = vsize - (lon + 2) - 1;
-					triangles[i++] = vsize - (lon + 1) - 1;
+					// TODO: triangles is int32 but vsize is int64, change vsize of int32?
+					triangles[i++] = int_cast(vsize - 1);
+					triangles[i++] = int_cast(vsize - (lon + 2) - 1);
+					triangles[i++] = int_cast(vsize - (lon + 1) - 1);
 				}
 
 				std::vector<int> normal_indices;
@@ -387,7 +388,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -415,7 +416,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				for (int i = 0; i < segments; i++, angle += step)
 					pshape.push_back(Point3(radius * sin(angle), 0.f, radius * cos(angle)));
 
-				int numPointsShape = pshape.size();
+				int numPointsShape = int_cast(pshape.size());
 				int numPoints = numPointsShape << 1;
 				std::vector<Point3> points(numPoints);
 				std::vector<Point3> normals(numPoints);
@@ -475,7 +476,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -503,7 +504,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				for (int i = 0; i < segments; i++, angle += step)
 					pshape.push_back(Point3(radius * sin(angle), 0.f, radius * cos(angle)));
 
-				int numPointsShape = pshape.size();
+				int numPointsShape = int_cast(pshape.size());
 				int numPoints = numPointsShape << 1;
 				std::vector<Point3> points(numPoints);
 				std::vector<Point3> normals(numPoints);
@@ -563,7 +564,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -744,7 +745,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -817,7 +818,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -937,7 +938,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())
@@ -965,7 +966,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				for (int i = 0; i <= segments; i++, angle += step)
 					pshape.push_back(Point3(radius * cos(angle), 0.f, -radius * sin(angle)));
 
-				int numPointsShape = pshape.size();
+				int numPointsShape = int_cast(pshape.size());
 				int numPoints = numPointsShape << 1;
 				std::vector<Point3> points(numPoints);
 				std::vector<Point3> normals(numPoints);
@@ -1026,7 +1027,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 				shape.SetShader(material);
 
 				shape.SetShadowFlag(false);
-				shape.SetPrimaryVisibility(visibleInRender);
+				shape.SetPrimaryVisibility( bool_cast(visibleInRender) );
 
 				auto ll = mLightShapes.find(node);
 				if (ll != mLightShapes.end())

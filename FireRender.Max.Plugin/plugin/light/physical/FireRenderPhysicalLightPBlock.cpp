@@ -202,7 +202,7 @@ class PickNodeAreaLightMeshValidator : public PBValidator
 		int numFaces = 0;
 		int numVerts = 0;
 		TimeValue time = GetCOREInterface()->GetTime();
-		bool havePolys = pObj->PolygonCount(time, numFaces, numVerts);
+		BOOL havePolys = pObj->PolygonCount(time, numFaces, numVerts);
 		if (!havePolys || (numFaces == 0))
 		{
 			return FALSE;

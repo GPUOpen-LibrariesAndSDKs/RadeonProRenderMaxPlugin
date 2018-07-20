@@ -711,7 +711,7 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParse
 				mtlParser.getScope().SetImage(hash, normalImage);
 		}
 		else
-			requireGrayScaleBump = isBump;
+			requireGrayScaleBump = bool_cast(isBump);
 
 		// create the actual shader node
 		//

@@ -606,7 +606,6 @@ ParamID BgAccessor::TranslateParamID(ParamID id)
 	// Previously, it was possible to have a direct
 	// mapping between parameter IDs, but newly
 	// added parameters need to be mapped explicitly.
-	ParamID bgParam;
 	switch (id)
 	{
 		case TRPARAM_BG_SKY_FILTER_COLOR:

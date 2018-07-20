@@ -239,13 +239,13 @@ public:
 		if (!handle)
 			return false;
 		liDueTime.QuadPart = -(10000 * msecs);
-		return (bool)SetWaitableTimer(handle, &liDueTime, msecs, NULL, NULL, FALSE);
+		return bool_cast(SetWaitableTimer(handle, &liDueTime, msecs, NULL, NULL, FALSE));
 	}
 
 	inline bool Cancel() {
 		if (!handle)
 			return false;
-		return (bool)CancelWaitableTimer(handle);
+		return bool_cast(CancelWaitableTimer(handle));
 	}
 
 	inline bool Wait(DWORD timeout = INFINITE) {
@@ -273,7 +273,7 @@ public:
 	inline int Wait(const DWORD &milliseconds = INFINITE, bool waitAll = false)
 	{
 		DWORD res = WaitForMultipleObjects(
-			handles.size(),
+			DWORD_cast( handles.size() ),
 			&handles[0],
 			waitAll,
 			milliseconds);

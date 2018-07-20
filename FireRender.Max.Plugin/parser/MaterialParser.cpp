@@ -284,7 +284,7 @@ frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue &kkey, co
 
 	if (!image)
 	{
-		floatingPoint = bitmap->IsHighDynamicRange();
+		floatingPoint = bool_cast(bitmap->IsHighDynamicRange());
 
 		rpr_image_desc imgDesc = {};
 
@@ -302,7 +302,7 @@ frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue &kkey, co
 				buffer = new BMM_Color_fl[imgDesc.image_width];
 				buffer32 = new RgbFloat32[bufsize];
 			}
-			catch (const std::bad_alloc& e)
+			catch (const std::bad_alloc&)
 			{
 				MessageBox(GetCOREInterface()->GetMAXHWnd(), L"Out of memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your hardware", L"Radeon ProRender", MB_OK | MB_ICONERROR);
 				mScope.SetImage(key, image);
@@ -383,7 +383,7 @@ frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue &kkey, co
 				buffer = new BMM_Color_fl[bmWidth];
 				buffer8 = new RgbByte[bmWidth * bmHeight];
 			}
-			catch (const std::bad_alloc& e)
+			catch (const std::bad_alloc&)
 			{
 				MessageBox(GetCOREInterface()->GetMAXHWnd(), L"Out of memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your hardware", L"Radeon ProRender", MB_OK | MB_ICONERROR);
 				mScope.SetImage(key, image);
@@ -1956,8 +1956,6 @@ frw::Shader FireRender::MaterialParser::parseCoronaLightObject(INode* node)
 {
 	Corona::IFireMaxLightInterface* ip = dynamic_cast<Corona::IFireMaxLightInterface*>(node->GetObjectRef()->GetInterface(Corona::IFIREMAX_LIGHT_INTERFACE));
 
-	int res;
-
 	shaderData.mNumEmissive++;
 
 	frw::EmissiveShader emissive(materialSystem);
@@ -2468,7 +2466,7 @@ void TryImageSetTextureGamma(const frw::Value &v, float gammaRGB)
 		{
 			void* hRef = (*it)->Handle();
 			const TCHAR* typeName = (*it)->GetTypeName();
-			if (L"Image" == typeName)
+			if (_tcscmp(L"Image", typeName) == 0)
 			{
 				rpr_int res = rprImageSetGamma(hRef, gammaRGB);
 				FASSERT(RPR_SUCCESS == res);

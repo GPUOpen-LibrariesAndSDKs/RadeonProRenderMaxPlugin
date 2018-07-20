@@ -295,7 +295,7 @@ public:
 	bool PointIsOver(POINT pt) const
 	{
 		RECT rect = GetRect();
-		return PtInRect(&rect, pt);
+		return bool_cast(PtInRect(&rect, pt));
 	}
 
 	bool CursorIsOver() const
@@ -829,7 +829,7 @@ private:
 					BeginUndoDelta();
 				}
 
-				bool accept = _this->OnSpinnerChange(time, spinner, spinnerId, isDragging);
+				bool accept = _this->OnSpinnerChange(time, spinner, spinnerId, bool_cast(isDragging));
 
 				if (!isDragging)
 				{
@@ -850,7 +850,7 @@ private:
 				TimeValue time = GetCOREInterface()->GetTime();
 				bool retVal = _this->OnSpinnerChange(time, spinner, spinnerId, false);
 
-				EndUndoDelta(accept, _this, spinnerId);
+				EndUndoDelta( bool_cast(accept), _this, spinnerId);
 			}
 			break;
 

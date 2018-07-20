@@ -118,6 +118,7 @@
 #   pragma comment (lib, "Release/DefaultRenderItems.lib")
 #   pragma comment (lib, "Release/maxscrpt.lib")
 #   pragma comment (lib, "Release/gup.lib")
+#   pragma comment (lib, "Release/ManipSys.lib")
 #endif
 
 extern "C" void DisableGltfExport();
@@ -150,7 +151,7 @@ EXPORT_TO_MAX const TCHAR* LibDescription() {
 
 /// Tells 3ds Max how many plugins are implemented in this DLL. Determines the indices with which LibClassDesc is called later
 EXPORT_TO_MAX int LibNumberClasses() {
-	return gClassInstances.size();
+	return int_cast(gClassInstances.size());
 }
 
 /// Returns the class descriptors for all plugins implemented in this DLL

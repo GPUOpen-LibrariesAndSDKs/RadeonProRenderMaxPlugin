@@ -15,6 +15,11 @@
     <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2016)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2019|x64'">
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2019)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2019)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">
     <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2017)\3dsmax.exe</LocalDebuggerCommand>
     <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2017)</LocalDebuggerWorkingDirectory>
@@ -28,6 +33,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'">
     <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2016)\3dsmax.exe</LocalDebuggerCommand>
     <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2016)</LocalDebuggerWorkingDirectory>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2019|x64'">
+    <LocalDebuggerCommand>$(ADSK_3DSMAX_x64_2019)\3dsmax.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ADSK_3DSMAX_x64_2019)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

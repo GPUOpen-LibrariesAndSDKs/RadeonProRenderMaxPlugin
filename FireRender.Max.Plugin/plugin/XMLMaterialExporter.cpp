@@ -405,7 +405,7 @@ namespace
 									continue;
 								data->matLibsInStore.insert(path);
 
-								int thisLibrary = data->matLibs.size();
+								int thisLibrary = int_cast(data->matLibs.size());
 								data->matLibs.push_back(path);
 																
 								MtlBaseLib lib;

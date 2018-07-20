@@ -34,7 +34,7 @@ std::wstring ToUnicode(const std::string& input) {
     const size_t len = MultiByteToWideChar(CP_ACP, 0, &input[0], int(input.size()), 0, 0);
     std::wstring output;
     output.resize(len);
-    MultiByteToWideChar(CP_ACP, 0, input.data(), input.size(), const_cast<wchar_t*>(output.data()), int(len));
+    MultiByteToWideChar(CP_ACP, 0, input.data(), int_cast(input.size()), const_cast<wchar_t*>(output.data()), int_cast(len));
     return output;
 }
 
@@ -438,14 +438,15 @@ void UpdateBitmapWithToneOperator(Bitmap *bitmap) {
 
 void DumpFRContents(const rpr_material_node& node)
 {
-	size_t num_params = 0;
-	int status = rprMaterialNodeGetInfo(node, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &num_params, NULL);
+	size_t _num_params = 0;
+	int status = rprMaterialNodeGetInfo(node, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &_num_params, NULL);
 	assert(status == RPR_SUCCESS);
+	int num_params = int_cast(_num_params);
 
 	DebugPrint(L"Number of shader parameters: %d\n", num_params);
 
 	// For each parameter
-	for (size_t i = 0; i < num_params; ++i)
+	for (int i = 0; i < num_params; ++i)
 	{
 		// Get name
 		size_t name_length = 0;
@@ -505,14 +506,15 @@ void DumpFRContents(const rpr_material_node& node)
 void DumpFRParms(const rpr_material_node& node)
 {
 	// Get the number of shader parameters for the shader
-	size_t num_params = 0;
-	int status = rprMaterialNodeGetInfo(node, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &num_params, NULL);
+	size_t _num_params = 0;
+	int status = rprMaterialNodeGetInfo(node, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &_num_params, NULL);
 	assert(status == RPR_SUCCESS);
+	int num_params = int_cast(_num_params);
 
 	DebugPrint(L"Number of shader parameters: %d\n", num_params);
 
 	// For each parameter
-	for (size_t i = 0; i < num_params; ++i)
+	for (int i = 0; i < num_params; ++i)
 	{
 		// Get name
 		size_t name_length = 0;
@@ -560,7 +562,7 @@ Bitmap* RenderTextToBitmap(const MCHAR* text)
 
 	// compute text size
 	SIZE textSize;
-	GetTextExtentPoint32(dc, text, wcslen(text), &textSize);
+	GetTextExtentPoint32(dc, text, int_cast(wcslen(text)), &textSize);
 	int width = textSize.cx + 6;	 // add some margins
 	int height = textSize.cy + 6;
 
@@ -709,7 +711,7 @@ std::wstring GetCPUName()
 std::wstring ComputerName()
 {
 	std::vector<wchar_t> buffer(MAX_COMPUTERNAME_LENGTH + 1);
-	DWORD size = buffer.size();
+	DWORD size = DWORD_cast( buffer.size() );
 
 	if (GetComputerName(buffer.data(), &size) != 0)
 	{

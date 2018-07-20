@@ -32,6 +32,8 @@
 #include <Richedit.h>
 #include "maxscript/maxscript.h"
 
+inline LONG LONG_cast( size_t x ) { return (LONG)x; }
+
 FIRERENDER_NAMESPACE_BEGIN
 
 #define ID_MAPCLEAR_IBL				WM_USER + 101
@@ -424,7 +426,6 @@ INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, L
 void FireRenderParamDlg::CGeneralSettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
-	LRESULT n;
 
 	controls.passLimit = SetupSpinner(pb, PARAM_PASS_LIMIT, IDC_PASSES, IDC_PASSES_S);
 	controls.timeLimitH = SetupSpinner(pb, PARAM_TIME_LIMIT, IDC_TIME_H, IDC_TIME_H_S);
@@ -518,7 +519,7 @@ INT_PTR FireRenderParamDlg::CHardwareSettings::DlgProc(UINT msg, WPARAM wParam, 
 				BOOL isChecked = IsDlgButtonChecked(mHwnd, IDC_CPU_OVERRIDE_THREADS);
 				
 				isChecked ? controls.spinnerCpuThreadsNum->Enable() : controls.spinnerCpuThreadsNum->Disable();
-				ScopeManagerMax::TheManager.cpuInfo.isCpuThreadsNumOverriden = isChecked;
+				ScopeManagerMax::TheManager.cpuInfo.isCpuThreadsNumOverriden = bool_cast( isChecked );
 			}
 		}
 		break;
@@ -624,7 +625,7 @@ void FireRenderParamDlg::CHardwareSettings::InitGPUCompatibleList()
 	HWND hListView = GetDlgItem(mHwnd, IDC_LIST_HW);
 	ListView_SetExtendedListViewStyle(hListView, LVS_EX_CHECKBOXES | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
 
-	const int numGPU = ScopeManagerMax::TheManager.gpuInfoArray.size();
+	const int numGPU = int_cast( ScopeManagerMax::TheManager.gpuInfoArray.size() );
 
 	// add GPU(s) info
 	for (int i = 0; i < numGPU; i++)
@@ -684,12 +685,12 @@ void FireRenderParamDlg::CHardwareSettings::UpdateHwSelected(int deviceIndex)
 
 	if (ScopeManagerMax::TheManager.gpuInfoArray.size() == deviceIndex)
 	{
-		ScopeManagerMax::TheManager.cpuInfo.isUsed = ListView_GetCheckState(hListView, deviceIndex);
+		ScopeManagerMax::TheManager.cpuInfo.isUsed = bool_cast( ListView_GetCheckState(hListView, deviceIndex) );
 	}
 	else
 	{
 		GpuInfo& gpuInfo = ScopeManagerMax::TheManager.gpuInfoArray[deviceIndex];
-		gpuInfo.isUsed = ListView_GetCheckState(hListView, deviceIndex);
+		gpuInfo.isUsed = bool_cast( ListView_GetCheckState(hListView, deviceIndex) );
 	}
 }
 
@@ -703,8 +704,8 @@ void FireRenderParamDlg::CCameraSettings::ApplyFOV(BOOL useFOV)
 	controls.cameraFOV->Enable(useFOV);
 	controls.cameraFocalLength->Enable(!useFOV);
 
-	SetVisibleDlg(!useFOV, IDC_DOF_STATIC_FL);
-	SetVisibleDlg(useFOV, IDC_DOF_STATIC_SF);
+	SetVisibleDlg( bool_cast(!useFOV), IDC_DOF_STATIC_FL);
+	SetVisibleDlg( bool_cast(useFOV), IDC_DOF_STATIC_SF);
 
 	float sensorWidth = controls.cameraSensorSize->GetFVal();
 	float FOVvalue = controls.cameraFOV->GetFVal() * PI / 180.f;
@@ -739,7 +740,6 @@ INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LP
 		{
 			int controlId = LOWORD(wParam);
 			int submsg = HIWORD(wParam);
-			BOOL res;
 			if (submsg == CBN_SELCHANGE)
 			{
 				int idComboBox = (int)LOWORD(wParam);
@@ -768,7 +768,7 @@ INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LP
 					{
 						BOOL useDOF = BOOL(IsDlgButtonChecked(mHwnd, IDC_USE_DOF));
 						BOOL res = CamManagerMax::TheManager.SetProperty(PARAM_CAM_USE_DOF, useDOF); FASSERT(res);
-						SetVisibleDOFSettings(useDOF);
+						SetVisibleDOFSettings( bool_cast(useDOF) );
 					}
 					break;
 
@@ -850,7 +850,6 @@ INT_PTR FireRenderParamDlg::CCameraSettings::DlgProc(UINT msg, WPARAM wParam, LP
 void FireRenderParamDlg::CCameraSettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
-	LRESULT n;
 	
 	SetupCheckbox(CamManagerMax::TheManager, PARAM_CAM_USE_FOV, IDC_USE_FOV);
 	SetupCheckbox(CamManagerMax::TheManager, PARAM_CAM_USE_DOF, IDC_USE_DOF);
@@ -1028,7 +1027,6 @@ INT_PTR FireRenderParamDlg::CTonemapSettings::DlgProc(UINT msg, WPARAM wParam, L
 void FireRenderParamDlg::CTonemapSettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
-	LRESULT n;
 
 	TmManagerMax::TheManager.RegisterPropertyChangeCallback(this);
 
@@ -1135,7 +1133,7 @@ namespace
 
 		if (vecByte->size() < cb)
 		{
-			*pcb = vecByte->size();
+			*pcb = LONG_cast( vecByte->size() );
 			memcpy(lpBuff, vecByte->data(), *pcb);
 			vecByte->clear();
 		}
@@ -1460,7 +1458,7 @@ void FireRenderParamDlg::CAdvancedSettings::InitDialog()
 		bool warningsSuppressGlobal = false;
 		std::string temp = FRSettingsFileHandler::getAttributeSettingsFor(FRSettingsFileHandler::GlobalDontShowNotification);
 		if (temp.length() > 0) {
-			warningsSuppressGlobal = std::stoi(temp);
+			warningsSuppressGlobal = bool_cast( std::stoi(temp) );
 		}
 		SetCheckboxValue(warningsSuppressGlobal, IDC_WARNINGS_SUPPRESS_GLOBAL);
 	}
@@ -2197,7 +2195,6 @@ void FireRenderParamDlg::CBackgroundSettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
 	TimeValue t = GetCOREInterface()->GetTime();
-	LRESULT n;
 
 	BgManagerMax::TheManager.RegisterPropertyChangeCallback(this);
 
@@ -2749,7 +2746,6 @@ void FireRenderParamDlg::CQualitySettings::setupUIFromData()
 void FireRenderParamDlg::CQualitySettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
-	LRESULT n;
 	
 	HWND qualityPreset = GetDlgItem(mHwnd, IDC_GLOBAL_QUALITY_PRESETS);
 	FASSERT(qualityPreset);

@@ -495,7 +495,7 @@ bool FireRenderPhysicalLight::DisplayLight(TimeValue t, INode* inode, ViewExp *v
 {
 	// do draw
 	GraphicsWindow* graphicsWindow = vpt->getGW();
-	graphicsWindow->setColor(LINE_COLOR, GetWireColor(inode->Selected(), inode->IsFrozen()));
+	graphicsWindow->setColor(LINE_COLOR, GetWireColor( bool_cast(inode->Selected()), bool_cast(inode->IsFrozen()) ));
 
 	Point3 dirMesh[2];
 	dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);

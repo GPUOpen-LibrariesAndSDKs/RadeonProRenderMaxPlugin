@@ -218,7 +218,7 @@ static Class_ID kScriptsTabID(0x1cae4307, 0x18c26f6b);
 		bool GetRadioButtonValue(const int16_t controlId)
 		{
 			FASSERT(GetDlgItem(mHwnd, controlId));
-			return IsDlgButtonChecked(mHwnd, controlId);
+			return bool_cast(IsDlgButtonChecked(mHwnd, controlId));
 		}
 
 		CTexmapButton* SetupTexmapButton(IParamBlock2* pb, const ParamID paramId, const int16_t controlIdEdit);  // background manager version
@@ -259,7 +259,7 @@ static Class_ID kScriptsTabID(0x1cae4307, 0x18c26f6b);
 			BOOL res = pb->GetValue(paramId, GetCOREInterface()->GetTime(), value, FOREVER);
 			FASSERT(res);
 			res = res;
-			SetCheckboxValue(value, controlId);
+			SetCheckboxValue( bool_cast(value), controlId);
 		}
 
 		void SetupCheckbox(ManagerMaxBase &man, const ParamID paramId, const int16_t controlId) // background manager version
@@ -268,7 +268,7 @@ static Class_ID kScriptsTabID(0x1cae4307, 0x18c26f6b);
 			BOOL res = man.GetProperty(paramId, value);
 			FASSERT(res);
 			res = res;
-			SetCheckboxValue(value, controlId);
+			SetCheckboxValue( bool_cast(value), controlId);
 		}
 
 		int GetComboBoxValue(const int16_t controlId)

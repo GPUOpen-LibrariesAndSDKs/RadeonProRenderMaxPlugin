@@ -200,6 +200,8 @@ namespace
 		using T1 = BOOL;
 		using T2 = bool;
 		using TCache = T2;
+		inline static T2 t2_cast( T1 x ) { return (x? true:false); };
+		inline static T2 t2_cast( TCache x ) { return x; };
 	};
 
 	template<IESLightParameter p>
@@ -211,6 +213,7 @@ namespace
 		using T1 = INT;
 		using T2 = int;
 		using TCache = T2;
+		inline static T2 t2_cast( T1 x ) { return x; };
 	};
 
 	template<IESLightParameter p>
@@ -230,6 +233,7 @@ namespace
 		using T1 = FLOAT;
 		using T2 = float;
 		using TCache = T2;
+		inline static T2 t2_cast( T1 x ) { return x; };
 	};
 
 	template<IESLightParameter p>
@@ -241,6 +245,7 @@ namespace
 		using T1 = Color;
 		using T2 = T1;
 		using TCache = T2;
+		inline static T2 t2_cast( T1 x ) { return x; };
 	};
 
 	template<IESLightParameter p>
@@ -253,6 +258,7 @@ namespace
 		using T1 = Point3;
 		using T2 = T1;
 		using TCache = T2;
+		inline static T2 t2_cast( T1 x ) { return x; };
 	};
 
 	template<IESLightParameter p>
@@ -264,6 +270,8 @@ namespace
 		using T1 = const TCHAR*;
 		using T2 = T1;
 		using TCache = std::basic_string<TCHAR>;
+		inline static T2 t2_cast( T2 x ) { return x; };
+		inline static T2 t2_cast( TCache x ) { return x.data(); };
 	};
 
 	template<IESLightParameter parameter>
@@ -275,7 +283,7 @@ namespace
 		BOOL ok = pBlock->GetValue(parameter, t, result, valid);
 		FASSERT(ok);
 
-		return static_cast<typename Helper::T2>(result);
+		return Helper::t2_cast( result ); // bool_cast
 	}
 
 	template<typename From, typename To>
@@ -335,11 +343,11 @@ namespace
 	void InitializeDefaultBlockValue(IParamBlock2* pBlock)
 	{
 		using From = typename GetBlockValueHelper<p>::TCache;
-		using To = typename GetBlockValueHelper<p>::T1;
+		using To = typename GetBlockValueHelper<p>::T2;
+		To t2 = GetBlockValueHelper<p>::t2_cast(
+			ParameterCache<p>::GetValue(pBlock));
 
-		SetBlockValue<p>(pBlock,
-			CastParameter<From, To>(
-				ParameterCache<p>::GetValue(pBlock)));
+		SetBlockValue<p>(pBlock, t2 );
 	}
 
 	template<IESLightParameter... params>
@@ -801,7 +809,7 @@ void FireRenderIESLight::DrawSphere(TimeValue t, ViewExp *vpt, BOOL sel, BOOL fr
 {
 	GraphicsWindow* graphicsWindow = vpt->getGW();
 
-	graphicsWindow->setColor(LINE_COLOR, GetWireColor(frozen, sel));
+	graphicsWindow->setColor(LINE_COLOR, GetWireColor( bool_cast(frozen), bool_cast(sel)));
 
 	Point3 dirMesh[]
 	{
@@ -900,7 +908,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 		tm.Scale(Point3(scaleFactor, scaleFactor, scaleFactor));
 
 		graphicsWindow->setTransform(tm);
-		result = DrawWeb(t, vpt, inode->Selected(), inode->IsFrozen());
+		result = DrawWeb(t, vpt, bool_cast(inode->Selected()), bool_cast(inode->IsFrozen()));
 	}
 	else
 	{
@@ -910,7 +918,7 @@ bool FireRenderIESLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, i
 
 	vpt->getGW()->setTransform(prevtm);
 
-	return result;
+	return bool_cast(result);
 }
 
 int FireRenderIESLight::Display(TimeValue t, INode* inode, ViewExp *vpt, int flags)

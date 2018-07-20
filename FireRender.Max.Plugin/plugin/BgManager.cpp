@@ -415,7 +415,7 @@ void BgManagerMax::BuildWorldCitiesDatabase()
 
 		for (int i = 0; i < numRecords; i++)
 		{
-			int curRecord = mTzDb.size();
+			int curRecord = int_cast( mTzDb.size() );
 			mTzDb.resize(curRecord + 1);
 
 			int len;
@@ -459,7 +459,7 @@ namespace
 	bool isPointInPoly(const std::vector<Point2> &poly, const float &x, const float &y)
 	{
 		bool inside = false;
-		int numVerts = poly.size();
+		int numVerts = int_cast(poly.size());
 		for (int i = 0, j = numVerts - 1; i < numVerts; j = i++)
 		{
 			if (((poly[i].y > y) != (poly[j].y > y)) &&
@@ -536,7 +536,7 @@ void BgManagerMax::LookUpWorldCity(const std::string &searchTerm, HWND inquirer)
 	std::string search = searchTerm;
 	std::transform(search.begin(), search.end(), search.begin(), ::tolower);
 
-	int numCities = mCitiesData.size();
+	int numCities = int_cast(mCitiesData.size());
 
 #pragma omp parallel for
 	for (int ii = 0; ii < numCities; ii++)
@@ -2056,8 +2056,6 @@ namespace
 	void CustomPaint(CustomLPData* pData, HDC hDC, RECT* rcDirty, BOOL bErase)
 	{
 		int x, y;
-		RECT r;
-		HBRUSH hBrush;
 
 		HDC hSRC = CreateCompatibleDC(hDC);
 		HBITMAP hbmOld = (HBITMAP)SelectObject(hSRC, pData->hBitmap);
@@ -2242,7 +2240,6 @@ void BgManagerMax::CustomLocationPickerUnregister()
 IOResult BgManagerMax::Save(ISave *isave)
 {
 	ULONG nb;
-	Texmap *iblMap;
 	IOResult res = IO_OK;
 
 	SAVE_TEX(PARAM_BG_IBL_MAP, BGMANAGER_IBLMAP_CHUNK);
@@ -2353,7 +2350,6 @@ IOResult BgManagerMax::Load(ILoad *iload)
 	iload->RegisterPostLoadCallback(plcb);
 
 	Class_ID cid;
-	SClass_ID sid;
 
 	while (IO_OK == (res = iload->OpenChunk()))
 	{

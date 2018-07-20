@@ -9,7 +9,8 @@ if (-not (Test-Path $targetPath)) {
 	return
 }
 
-$rootPath = Split-Path $PSScriptRoot -Parent
+$rootPath = Split-Path $MyInvocation.MyCommand.Path -Parent
+$rootPath = Split-Path $rootPath -Parent
 
 $pluginPath = "$rootPath\dist\plug-ins\$cfg"
 
