@@ -70,6 +70,9 @@ public:
 	Event terminationReached;
 	std::atomic<DWORD> timeLimit = 100;
 	std::atomic<unsigned int> passLimit = 1;
+	std::atomic<unsigned int> passesDone = 0;
+	std::atomic<unsigned int> restartsDone = 0;
+
 	volatile TerminationCriteria termination = Termination_None;
 	typedef enum
 	{
@@ -372,6 +375,8 @@ ActiveShadeRenderCore::ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::S
 	, eRestart(true)
 	, mShaderCacheReady(false)
 	, mAlphaEnabled(initialAlpha)
+	, passesDone(0)
+	, restartsDone(0)
 	, terminationReached(false)
 {
 	mShaderCacheReady.Fire();
@@ -476,7 +481,8 @@ void ActiveShadeRenderCore::Worker()
 
 	AccumulationTimer timer;
 
-	unsigned int passesDone = 0;
+	passesDone = 0;
+	restartsDone = 0;
 
 	bool clearFramebuffer = true;
 
@@ -623,6 +629,8 @@ void ActiveShadeRenderCore::Worker()
 		if (eRestart.Wait(0))
 		{
 			clearFramebuffer = true;
+			if( passesDone>0 ) // only count as a restart if some rendering was completed
+				restartsDone++;
 			passesDone = 0;
 			timer.Reset();
 			terminationReached.Reset();
@@ -1267,8 +1275,19 @@ void ActiveShadeSynchronizer::CustomCPUSideSynch()
 			mActiveShader->mRenderThread->writer->TryBlitToWindow();
 	}
 
+	unsigned int passesDone = 0, restartsDone = 0;
+	if (mActiveShader->mRenderThread!=nullptr )
+	{
+		passesDone = mActiveShader->mRenderThread->passesDone;
+		restartsDone = mActiveShader->mRenderThread->restartsDone;
+	}
+
 	// Handle shader cache dialog box
-	if (ScopeManagerMax::TheManager.GetCompiledShadersCount() < 17)
+	// If either passesDone (iteration count) or restartsDone is greater than zero,
+	// then at least one iteration was completed in the past, dialog may be closed.
+	// If not closed, the dialog prevents further iterations from proceeding.
+	if ( (passesDone==0) && (restartsDone==0) &&
+		 (ScopeManagerMax::TheManager.GetCompiledShadersCount() < 17) )
 	{
 		if (mActiveShader->mShaderCacheDlg == NULL)
 		{
