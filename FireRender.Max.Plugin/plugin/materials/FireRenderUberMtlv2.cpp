@@ -858,10 +858,12 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupRefraction(MaterialParser& mtlParser, frw::
 	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFRACTION_THIN_SURFACE, bThinSuraface);
 
 	// REFRACTION IOR MODE
+#if (RPR_API_VERSION < 0x010031000)
 	BOOL linked = GetFromPb<BOOL>(pblock, FRUBERMTLV2_REFRACTION_LINK_TO_REFLECTION);
 	rpr_uint paramValue = linked ? RPRX_UBER_MATERIAL_REFRACTION_MODE_LINKED : RPRX_UBER_MATERIAL_REFRACTION_MODE_SEPARATE;
 
 	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFRACTION_IOR_MODE, paramValue);
+#endif
 }
 
 void FRMTLCLASSNAME(UberMtlv2)::SetupCoating(MaterialParser& mtlParser, frw::Shader& shader)
@@ -929,8 +931,10 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupSSS(MaterialParser& mtlParser, frw::Shader&
 	parameters = GetParameters(FRUBERMTLV2_SSS_SUBSURFACE_COLOR_USEMAP,
 		FRUBERMTLV2_SSS_SUBSURFACE_COLOR_MAP, FRUBERMTLV2_SSS_SUBSURFACE_COLOR, FRUBERMTLV2_SSS_SUBSURFACE_COLOR_MUL);
 
+#if (RPR_API_VERSION < 0x010031000)
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
 	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SUBSURFACE_COLOR, value);
+#endif
 
 	// SSS WEIGHT
 	parameters = GetParameters(FRUBERMTLV2_SSS_WEIGHT_USEMAP,
@@ -972,17 +976,21 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupSSS(MaterialParser& mtlParser, frw::Shader&
 	parameters = GetParameters(FRUBERMTLV2_SSS_ABSORPTION_USEMAP,
 		FRUBERMTLV2_SSS_ABSORPTION_MAP, FRUBERMTLV2_SSS_ABSORPTION, FRUBERMTLV2_SSS_ABSORPTION_MUL);
 
+#if (RPR_API_VERSION < 0x010031000)
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOFLAGS);
 	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_ABSORPTION_COLOR, value);
-	
+#endif
+
 	// SSS ABSORPTION DISTANCE
 	parameters = GetParametersNoColor(FRUBERMTLV2_SSS_ABSORPTION_DIST_USEMAP,
 		FRUBERMTLV2_SSS_ABSORPTION_DIST_MAP, FRUBERMTLV2_SSS_ABSORPTION_DIST_MUL);
 
 	std::get<2>(parameters) = Color(1.0f, 1.0f, 1.0f);
 
+#if (RPR_API_VERSION < 0x010031000)
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_ABSORPTION_DISTANCE, value);
+#endif
 }
 
 void FRMTLCLASSNAME(UberMtlv2)::SetupEmissive(MaterialParser& mtlParser, frw::Shader& shader)
@@ -1034,9 +1042,11 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP);
 
+#if (RPR_API_VERSION < 0x010031000)
 	if ( value.IsNode() ) // a map must be connected
 		shader.xSetValue(RPRX_UBER_MATERIAL_NORMAL, value);
-	
+#endif
+
 	// MATERIAL DISPLACE
 	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_DISPLACE_USEMAP, FRUBERMTLV2_MAT_DISPLACE_MAP, FRUBERMTLV2_MAT_DISPLACE_MUL);
 
@@ -1054,8 +1064,10 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA | MAP_FLAG_BUMPMAP);
 	
+#if (RPR_API_VERSION < 0x010031000)
 	if (value.IsNode()) // a map must be connected
 		shader.xSetValue(RPRX_UBER_MATERIAL_BUMP, value);
+#endif
 }
 
 INT_PTR BasicParamsDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
