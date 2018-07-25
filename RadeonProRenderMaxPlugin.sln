@@ -21,12 +21,10 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
-		Debug-2016|x64 = Debug-2016|x64
 		Debug-2017|x64 = Debug-2017|x64
 		Debug-2018|x64 = Debug-2018|x64
 		Debug-2019|x64 = Debug-2019|x64
 		Release|x64 = Release|x64
-		Release-2016|x64 = Release-2016|x64
 		Release-2017|x64 = Release-2017|x64
 		Release-2018|x64 = Release-2018|x64
 		Release-2019|x64 = Release-2019|x64
@@ -34,8 +32,6 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug|x64.ActiveCfg = Release-2016|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug|x64.Build.0 = Release-2016|x64
-		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2016|x64.ActiveCfg = Debug-2016|x64
-		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2016|x64.Build.0 = Debug-2016|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2017|x64.ActiveCfg = Debug-2017|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2017|x64.Build.0 = Debug-2017|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2018|x64.ActiveCfg = Debug-2018|x64
@@ -44,8 +40,6 @@ Global
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Debug-2019|x64.Build.0 = Debug-2019|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release|x64.ActiveCfg = Release-2016|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release|x64.Build.0 = Release-2016|x64
-		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2016|x64.ActiveCfg = Release-2016|x64
-		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2016|x64.Build.0 = Release-2016|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2017|x64.ActiveCfg = Release-2017|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2017|x64.Build.0 = Release-2017|x64
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2018|x64.ActiveCfg = Release-2018|x64
@@ -54,8 +48,6 @@ Global
 		{1589B416-D7A7-48EE-988E-7191B5B24D28}.Release-2019|x64.Build.0 = Release-2019|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug|x64.ActiveCfg = Debug|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug|x64.Build.0 = Debug|x64
-		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2016|x64.ActiveCfg = Debug|x64
-		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2016|x64.Build.0 = Debug|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2017|x64.ActiveCfg = Debug|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2017|x64.Build.0 = Debug|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2018|x64.ActiveCfg = Debug|x64
@@ -64,8 +56,6 @@ Global
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Debug-2019|x64.Build.0 = Debug|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release|x64.ActiveCfg = Release|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release|x64.Build.0 = Release|x64
-		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2016|x64.ActiveCfg = Release|x64
-		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2016|x64.Build.0 = Release|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2017|x64.ActiveCfg = Release|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2017|x64.Build.0 = Release|x64
 		{EF133AA3-21E3-465C-89CA-3C346591B55C}.Release-2018|x64.ActiveCfg = Release|x64
@@ -75,5 +65,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {48DD4B32-1A90-4739-9680-31779838FF02}
 	EndGlobalSection
 EndGlobal
