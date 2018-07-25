@@ -38,14 +38,20 @@ class FireRenderMtlBase : public Mtl
 protected:
 	IParamBlock2* pblock;
 	TimeValue currentTime = 0;
+	std::uint64_t changedCounter; // Incremented whenever material or submaterials/subtextures are modified
+	std::uint64_t changedCounterForRequirements;
+	ULONG cacheForRequirements; // Optimization: Cache result of Mtl::Requirements(),
 public:
+	FireRenderMtlBase() : pblock(nullptr), currentTime(0), changedCounter(1), changedCounterForRequirements(0)
+	{}
 	void SetCurrentTime(TimeValue t){	
 		currentTime = t;
 	}
 	virtual void DeleteThis() override {
 			delete this;
 	}
-	virtual RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override {
+	virtual RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) final override {
+			changedCounter++; // Must be incremented whenever material or submaterials/subtextures are modified
 			return REF_SUCCEED;
 	}
 	virtual int NumRefs() override {
@@ -72,6 +78,20 @@ public:
 	virtual int SubNumToRefNum(int subNum) override {
 			return subNum;
 	}
+	virtual ULONG Requirements(int subMtlNum)
+	{
+		// Optimization: Cache result of Mtl::Requirements(),
+		// Needed because this may be called excessively by the system, once per polygon on each object
+		if( changedCounterForRequirements != changedCounter )
+		{
+			// Cache should remain valid until the material or submaterials/subtextures are modified.
+			// This is currently detected as any call to NotifyRefChanged()
+			changedCounterForRequirements = changedCounter;
+			cacheForRequirements = Mtl::Requirements(subMtlNum);
+		}
+		return cacheForRequirements;
+	}
+
 	template<class Type>
 	inline Type GetFromPb(IParamBlock2* pb, const ParamID id) {
 		return FireRender::GetFromPb<Type>(pb, id, currentTime);
