@@ -276,11 +276,13 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 		FRPBRMTL_NORMAL, FRPBRMTL_NORMAL_MUL);
 	toUseMap = (useMap && map != nullptr);
 
+#if (RPR_API_VERSION < 0x010031000)
 	if (toUseMap && mul > 0.0f)
 	{
 		value = materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP), mul);
 		shader.xSetValue(RPRX_UBER_MATERIAL_NORMAL, value);
 	}
+#endif
 
 	// OPACITY
 	std::tie(useMap, map, color, mul) = GetParametersNoColor(FRPBRMTL_OPACITY_USEMAP, FRPBRMTL_OPACITY_MAP,
