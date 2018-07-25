@@ -497,9 +497,7 @@ void ActiveShadeRenderCore::Worker()
 	normalizationFilter = frw::PostEffect(scope.GetContext(), frw::PostEffectTypeNormalization);
 	scope.GetContext().Attach(normalizationFilter);
 
-#ifdef ACTIVESHADER_PREVIEW_QUALITY
 	FCHECK(rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1));
-#endif
 
 	// render all passes, unless the render is cancelled (and even then render at least a single pass)
 	while (1)
