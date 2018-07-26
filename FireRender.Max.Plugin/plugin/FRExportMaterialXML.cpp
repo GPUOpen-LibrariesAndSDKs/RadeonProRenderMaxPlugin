@@ -281,7 +281,9 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT,"refraction.weight"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS,"refraction.roughness"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_IOR,"refraction.ior"));
+#if (RPR_API_VERSION < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_IOR_MODE,"refraction.iorMode"));
+#endif
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_THIN_SURFACE,"refraction.thinSurface"));
 
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_COLOR,"coating.color"));
@@ -296,17 +298,27 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_EMISSION_MODE,"emission.mode"));
 
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_TRANSPARENCY,"transparency"));
+#if (RPR_API_VERSION < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_NORMAL,"normal"));
+#endif
+#if (RPR_API_VERSION < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_BUMP,"bump"));
+#endif
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_DISPLACEMENT,"displacement"));
 
+#if (RPR_API_VERSION < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_ABSORPTION_COLOR,"sss.absorptionColor"));
+#endif
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR,"sss.scatterColor"));
+#if (RPR_API_VERSION < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_ABSORPTION_DISTANCE,"sss.absorptionDistance"));
+#endif
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE,"sss.scatterDistance"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_SCATTER_DIRECTION,"sss.scatterDirection"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_WEIGHT,"sss.weight"));
+#if (RPR_API_VERSION < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_SUBSURFACE_COLOR,"sss.subsurfaceColor"));
+#endif
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_MULTISCATTER,"sss.multiscatter"));
 	}
 
