@@ -179,8 +179,10 @@ frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getShader(const TimeValue t, Mater
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP);
 
+#if (RPR_API_VERSION < 0x010031000)
 	if (value.IsNode()) // a map must be connected
 		shader.xSetValue(RPRX_UBER_MATERIAL_NORMAL, value);
+#endif
 
 	// Displacement Map
 	float displacementMul = 0.0f;
