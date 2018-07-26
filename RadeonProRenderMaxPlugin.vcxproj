@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug-2016|x64">
-      <Configuration>Debug-2016</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug-2017|x64">
       <Configuration>Debug-2017</Configuration>
       <Platform>x64</Platform>
@@ -15,10 +11,6 @@
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug-2019|x64">
       <Configuration>Debug-2019</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release-2016|x64">
-      <Configuration>Release-2016</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release-2017|x64">
@@ -44,9 +36,6 @@
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'" Label="Configuration">
-    <UseDebugLibraries>true</UseDebugLibraries>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
@@ -57,10 +46,6 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <MaxSDK>$(ADSK_3DSMAX_SDK_2019)</MaxSDK>
     <MAX_VERSION>2019</MAX_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'" Label="Configuration">
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -91,17 +76,11 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'" Label="PropertySheets">
-    <Import Project="Max2016.props" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'" Label="PropertySheets">
     <Import Project="Max2017.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'" Label="PropertySheets">
     <Import Project="Max2018.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'" Label="PropertySheets">
-    <Import Project="Max2016.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'" Label="PropertySheets">
     <Import Project="Max2017.props" />
@@ -125,29 +104,6 @@
     <IntDir>$(ProjectDir)\bin\intermediate\$(Configuration)\</IntDir>
     <TargetExt>.dlr</TargetExt>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2016|x64'">
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>FIREMAX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <MinimalRebuild>false</MinimalRebuild>
-      <FloatingPointModel>Fast</FloatingPointModel>
-      <OpenMPSupport>true</OpenMPSupport>
-      <ExceptionHandling>Async</ExceptionHandling>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
-    </Link>
-    <PostBuildEvent />
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -206,31 +162,6 @@
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
       <AdditionalLibraryDirectories>$(MaxSdkLib);$(MaxSdkDir)lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-    <PostBuildEvent />
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2016|x64'">
-    <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <FloatingPointModel>Fast</FloatingPointModel>
-      <OpenMPSupport>true</OpenMPSupport>
-      <ExceptionHandling>Async</ExceptionHandling>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;RprSupport64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
     <ResourceCompile>
