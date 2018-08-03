@@ -177,8 +177,6 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 				m_light->SetLength(length, time);
 				float width = abs(m_light->GetSecondPoint(time).y - m_light->GetLightPoint(time).y);
 				m_light->SetWidth(width, time);
-
-				m_light->FinishPreview();
 			}
 
 			if (FRPhysicalLight_CYLINDER == areaLightShapeMode)
@@ -204,6 +202,10 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 			{
 				state = AREA_TARGET_POINT;
 
+				// Lookat controller will cause z-axis to point opposite direction away from target
+				// Flip transform into final orientation right now; avoids special-cases when drawing the gizmo
+				mat.PreRotateX(-pi); // 180 degress about x-axis
+
 				Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
 				bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
 				FASSERT(gotIntersection);
@@ -225,16 +227,6 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 		{
 			if (!m_light->IsTargeted())
 			{
-				Point3 lookDir = m_light->GetSecondPoint(time) - m_light->GetLightPoint(time);
-				lookDir = lookDir.Normalize();
-				Matrix3 rot1 = RotAngleAxisMatrix(Point3(0.0f, 1.0f, 0.0f), -PI/2);
-				float dotProduct = DotProd(Point3(1.0f, 0.0f, 0.0f), lookDir);
-				float rotAngle = acos(dotProduct);
-				Point3 normal = (Point3(1.0f, 0.0f, 0.0f) ^ lookDir).Normalize(); // cross product, axis of rotation
-				Matrix3 rot2 = RotAngleAxisMatrix(normal, rotAngle);
-				mat = rot1 * rot2;
-				mat.SetTrans(m_light->GetLightPoint(time));
-
 				m_light->BeginTargetPreview();
 			}
 			// no break intentionally!
@@ -248,6 +240,11 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 				// move light root so that center of disk becomes center of light
 				Point3 diskCenter = m_light->GetLightPoint(time) + (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)) / 2;
 				mat.SetTrans(diskCenter);
+
+				// Lookat controller will cause z-axis to point opposite direction away from target
+				// Flip transform into final orientation right now; avoids special-cases when drawing the gizmo
+				if (m_light->IsTargeted())
+					mat.PreRotateX(-pi); // 180 degress about x-axis
 			}
 
 			// proceed with targeted / non-targeted
@@ -291,18 +288,53 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 
 void FireRenderPhysicalLight::CreateCallBack::ProcessMouseMove(ViewExp *vpt, IPoint2& m, Matrix3& mat)
 {
-	TimeValue time = GetCOREInterface()->GetTime();
+	TimeValue t = GetCOREInterface()->GetTime();
 	Interval valid = FOREVER;
+	FRPhysicalLight_AreaLight_LightShape lightShapeMode = m_light->GetLightShapeMode(t);
+	FRPhysicalLight_LightType lightType = m_light->GetLightType(t);
 
 	// process FSM
 	switch (state)
 	{
 		case AREA_SECOND_POINT:
+		{
+			Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
+			m_light->SetSecondPoint(p, t);
+
+			// Set length and width params interactively during mouse drag
+			if ((FRPhysicalLight_DISC == lightShapeMode) || (FRPhysicalLight_SPHERE == lightShapeMode) || (FRPhysicalLight_CYLINDER == lightShapeMode))
+			{
+				float width = (m_light->GetSecondPoint(t) - m_light->GetLightPoint(t)).Length();
+				m_light->SetWidth( width, t );
+			}
+			if (FRPhysicalLight_RECTANGLE == lightShapeMode)
+			{
+				float length = abs(m_light->GetSecondPoint(t).x - m_light->GetLightPoint(t).x);
+				float width = abs(m_light->GetSecondPoint(t).y - m_light->GetLightPoint(t).y);
+				m_light->SetLength( length, t );
+				m_light->SetWidth( width, t );
+			}
+
+			break;
+		}
 		case SECOND_SPOT:
 		case SECOND_DIRECT:
 		{
 			Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
-			m_light->SetSecondPoint(p, time);
+			m_light->SetSecondPoint(p, t);
+
+			// Set spotlight cone distance param interactively during mouse drag
+			Point3 lookVec = m_light->GetSecondPoint(t) - m_light->GetLightPoint(t);
+			m_light->SetDist( lookVec.Length(), t );
+
+			Point3 lookDir = lookVec.Normalize();
+			Matrix3 rot1 = RotAngleAxisMatrix(Point3(0.0f, 1.0f, 0.0f), -PI/2);
+			float dotProduct = DotProd(Point3(1.0f, 0.0f, 0.0f), lookDir);
+			float rotAngle = acos(dotProduct);
+			Point3 normal = (Point3(1.0f, 0.0f, 0.0f) ^ lookDir).Normalize(); // cross product, axis of rotation
+			Matrix3 rot2 = RotAngleAxisMatrix(normal, rotAngle);
+			mat = rot1 * rot2;
+			mat.SetTrans(m_light->GetLightPoint(t));
 
 			break;
 		}
@@ -313,7 +345,14 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseMove(ViewExp *vpt, IPo
 			bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
 			FASSERT(gotIntersection);
 
-			m_light->SetThirdPoint(intersectionPoint, time);
+			m_light->SetThirdPoint(intersectionPoint, t);
+
+			// Set cylinder height param (length) interactively during mouse drag
+			if(FRPhysicalLight_CYLINDER == lightShapeMode)
+			{
+				float length = m_light->GetThirdPoint(t).z - m_light->GetSecondPoint(t).z;
+				m_light->SetLength( length, t);
+			}
 
 			break;
 		}
@@ -324,7 +363,16 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseMove(ViewExp *vpt, IPo
 			bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
 			FASSERT(gotIntersection);
 
-			m_light->SetTargetPoint(intersectionPoint, time);
+			m_light->SetTargetPoint(intersectionPoint, t);
+
+			// Set target distance param interactively during mouse drag
+			float dist = 0;
+			if (lightType == FRPhysicalLight_AREA )
+				dist = m_light->GetTargetPoint(t).z - m_light->GetSecondPoint(t).z;
+			else if ((lightType==FRPhysicalLight_SPOT) || (lightType==FRPhysicalLight_DIRECTIONAL) )
+				dist = (m_light->GetTargetPoint(t)-m_light->GetLightPoint(t)).Length();
+
+			m_light->SetDist( dist, t );
 
 			break;
 		}
@@ -339,6 +387,19 @@ int FireRenderPhysicalLight::CreateCallBack::proc(ViewExp *vpt, int msg, int poi
 	{
 		case MOUSE_POINT:
 		{
+			// Set the initial light color to yellow, instead of the default random object color
+			if( point == 0 )
+			{
+				ULONG handle;
+				m_light->NotifyDependents( FOREVER, (PartID)&handle, REFMSG_GET_NODE_HANDLE );
+				INode* node = GetCOREInterface()->GetINodeByHandle( handle );
+				if( node!=nullptr ) 
+				{
+					Point3 color = GetUIColor( COLOR_LIGHT_OBJ );	// yellow wire color
+					node->SetWireColor( RGB( color.x*255.0f, color.y*255.0f, color.z*255.0f ) );
+				}
+			}
+
 			ProcessMouseClicked(vpt, m, mat); // all click handle logic is done here
 			if (FIN == state)
 				result = CREATE_STOP;

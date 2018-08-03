@@ -153,6 +153,14 @@ protected:
 		void SetLight(FireRenderPhysicalLight* light);
 	};
 
+	class LoadCallback : public PostLoadCallback {
+	private:
+		FireRenderPhysicalLight* m_light;
+	public:
+		LoadCallback(FireRenderPhysicalLight *light);
+		void proc(ILoad *iload);
+	};
+
 	void AddTarget(TimeValue t, bool fromCreateCallback);
 	void RemoveTarget(TimeValue t);
 	bool IsEnabled(void) const;
@@ -170,6 +178,7 @@ public:
 
 	INode* GetThisNode(void);
 	bool IsTargeted(void) const;
+	bool HasTargetNode(void) const;
 	INode* GetTargetNode(void);
 	const INode* GetThisNode(void) const;
 	const INode* GetTargetNode(void) const;
@@ -207,6 +216,9 @@ public:
 	const MCHAR *GetObjectName(void) override;
 	Interval ObjectValidity(TimeValue t) override;
 
+	IOResult Save( ISave *isave );
+	IOResult Load( ILoad *iload );
+
 	RefResult NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS) override;
 
 	void DeleteThis(void) override;
@@ -217,13 +229,19 @@ public:
 	IParamBlock2* GetParamBlock(int i) override;
 
 	IParamBlock2* GetParamBlockByID(BlockID id) override;
+	IParamBlock2* GetParamBlockByID(BlockID id) const;
 
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
 
 	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params) override;
-	void GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box) override;
+
+	float GetSpotLightYon(TimeValue t) const; // for spot and directional, distance to end of cone
+	bool GetAreaLightUpright(TimeValue t) const; // for cylinder area lights, whether shape topside is upward in local z-axis
+	Box3 GetSpotLightBoundBox(TimeValue t) const; // for spot lights, dimensions in local space
+	Box3 GetAreaLightBoundBox(TimeValue t) const; // for all area lights, corner-to-corner dimensions in local space
+	void GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& bbox) override;
 	int HitTest(TimeValue t, INode* inode, int type, int crossing, int flags, IPoint2 *p, ViewExp *vpt) override;
 
 	static ClassDesc2* GetClassDesc();
@@ -244,6 +262,8 @@ private:
 
 	bool m_isPreview; // light representation should be displayed in a different way during preview
 	bool m_isTargetPreview; // same for target
+	bool m_isNotifyMoveLight; // true while processing NotifyRefChanged() for the light node
+	bool m_isNotifyMoveTarget; // true while processing NotifyRefChanged() for the target node
 
 	using BaseMaxType = LightObject;
 	template<typename T_Id>

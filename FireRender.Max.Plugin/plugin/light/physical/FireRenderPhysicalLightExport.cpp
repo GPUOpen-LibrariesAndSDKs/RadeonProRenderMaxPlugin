@@ -419,31 +419,30 @@ float FireRenderPhysicalLight::GetLightSourceArea(void) const
 	{
 		case FRPhysicalLight_DISC:
 		{
-			float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length();
+			float radius = GetWidth(time)/2.0f;
 			area = PI * radius * radius;
 			break;
 		}
 
 		case FRPhysicalLight_CYLINDER:
 		{
-			float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length();
-			float height = abs(GetThirdPoint(time).z - GetLightPoint(time).z);
+			float radius = GetWidth(time)/2.0f;
+			float height = GetLength(time);
 			area = 2 * PI * radius * radius + height * 2 * PI * radius;
 			break;
 		}
 
 		case FRPhysicalLight_SPHERE:
 		{
-			float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length();
+			float radius = GetWidth(time)/2.0f;
 			area = 4 * PI * radius * radius;
 			break;
 		}
 
 		case FRPhysicalLight_RECTANGLE:
 		{
-			Point3 corner = GetSecondPoint(time) - GetLightPoint(time);
-			float length = abs(corner.y);
-			float width = abs(corner.x);
+			float length = GetLength(time);
+			float width = GetWidth(time);
 			area = length * width;
 			break;
 		}
@@ -609,7 +608,7 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
 
-	TimeValue time = GetCOREInterface()->GetTime();
+	TimeValue t = GetCOREInterface()->GetTime();
 
 	// intensity
 	float watts = GetIntensity();
@@ -618,19 +617,19 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 	// create light
 	frw::Context context = scope.GetContext();
 	// different type of RPR lights should be created for different types of physical lights
-	FRPhysicalLight_LightType lightType = GetLightType(time);
+	FRPhysicalLight_LightType lightType = GetLightType(t);
 	switch (lightType)
 	{
 		case FRPhysicalLight_AREA:
 		{
 			frw::Shape shape = NULL;
-			FRPhysicalLight_AreaLight_LightShape lightShape = GetLightShapeMode(time);
+			FRPhysicalLight_AreaLight_LightShape lightShape = GetLightShapeMode(t);
 			switch (lightShape)
 			{
 				case FRPhysicalLight_DISC:
 				{
 					// create geom
-					float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length() / 2;
+					float radius = GetWidth(t)/2.0f;
 					float masterScale = GetUnitScale();
 					radius *= masterScale;
 					shape = CreateDiscShape(context, radius);
@@ -642,16 +641,16 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 				{
 					// create geom
 					// - radius
-					float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length() / 2;
+					float radius = GetWidth(t)/2.0f;
 					float masterScale = GetUnitScale();
 					radius *= masterScale;
 					// - height
-					float height = GetThirdPoint(time).z - GetSecondPoint(time).z;
+					float height = GetLength(t);
 					height *= masterScale;
-					if (!IsTargeted())
-						height = -height;
-					else if (GetTargetPoint(time).z < GetThirdPoint(time).z)
-						height = -height;
+
+					if ( GetAreaLightUpright(t) )
+						height = -height; // height direction for export is reversed from main scene
+
 					shape = CreateCylinderShape(context, radius, height);
 					break;
 				}
@@ -659,7 +658,7 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 				case FRPhysicalLight_SPHERE:
 				{
 					// create geom
-					float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length() / 2;
+					float radius = GetWidth(t)/2.0f;
 					float masterScale = GetUnitScale();
 					radius *= masterScale;
 					shape = CreateSphereShape(context, radius);
@@ -670,11 +669,11 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 				{
 					// create geom
 					float masterScale = GetUnitScale();
-					Point3 rectCenter = Point3(0.0f, 0.0f, 0.0f) + (GetSecondPoint(time) - GetLightPoint(time)) / 2;
-					rectCenter *= masterScale;
-					Point3 corner = GetSecondPoint(time) - GetLightPoint(time);
-					corner *= masterScale;
-					shape = CreateRectShape(context, Point3(0.0f, 0.0f, 0.0f) - rectCenter, corner - rectCenter);
+					float length = GetLength(t);
+					float width = GetWidth(t);
+					Point3 halfSpan( length/2.0f, width/2.0f, 0.0f );
+					halfSpan *= masterScale;
+					shape = CreateRectShape(context, -halfSpan, halfSpan);
 
 					break;
 				}
@@ -683,9 +682,8 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 				{
 					// create geom
 					ReferenceTarget* pRef = nullptr;
-					TimeValue time = GetCOREInterface()->GetTime();
 					Interval valid = FOREVER;
-					m_pblock->GetValue(FRPhysicalLight_AREALIGHT_LIGHTMESH, time, pRef, valid);
+					m_pblock->GetValue(FRPhysicalLight_AREALIGHT_LIGHTMESH, t, pRef, valid);
 					if (pRef != nullptr)
 					{
 						INode* pNode = static_cast<INode*>(pRef);
@@ -706,7 +704,7 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 						Mesh* mesh = nullptr;
 						BOOL needDelete = FALSE;
 						FireRender::RenderParameters params;
-						mesh = pShape->GetRenderMesh(time, pNode, params.view, needDelete);
+						mesh = pShape->GetRenderMesh(t, pNode, params.view, needDelete);
 
 						float masterScale = GetUnitScale();
 						shape = CreateMeshShape(context, mesh, masterScale);
@@ -743,7 +741,7 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 				// - light emmiter visibility
 				int value;
 				Interval valid = FOREVER;
-				m_pblock->GetValue(FRPhysicalLight_AREALIGHT_ISVISIBLE, TimeValue(0), value, valid);
+				m_pblock->GetValue(FRPhysicalLight_AREALIGHT_ISVISIBLE, t, value, valid);
 				bool isVisible = bool_cast(value);
 				shape.SetPrimaryVisibility(isVisible);
 			}
@@ -767,14 +765,14 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 
 			float iAngle = 0.0f;
 			{
-				BOOL success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_INNERCONE, time, iAngle, valid);
+				BOOL success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_INNERCONE, t, iAngle, valid);
 				FASSERT(success);
 			}
 			iAngle *= DEG_TO_RAD * 0.5f;
 
 			float oAngle = 0.0f;
 			{
-				BOOL success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_OUTERCONE, time, oAngle, valid);
+				BOOL success = m_pblock->GetValue(FRPhysicalLight_SPOTLIGHT_OUTERCONE, t, oAngle, valid);
 				FASSERT(success);
 			}
 			oAngle *= DEG_TO_RAD * 0.5f;

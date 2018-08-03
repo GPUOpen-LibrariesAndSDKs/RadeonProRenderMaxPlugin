@@ -20,6 +20,8 @@
 #   undef min
 #endif
 
+#define MAX(a,b) ((a)>=(b)?(a):(b))
+
 // We use these to put all our code in a namespace. This prevents name clashes with 3ds Max API which tends to define some very 
 // common words as its classes.
 #define FIRERENDER_NAMESPACE_BEGIN namespace FireRender {

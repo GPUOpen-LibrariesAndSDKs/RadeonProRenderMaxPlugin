@@ -47,6 +47,8 @@ INode* FindNodeRef(ReferenceTarget *rt)
 FireRenderPhysicalLight::FireRenderPhysicalLight()
 	: m_isPreview(true)
 	, m_isTargetPreview(false)
+	, m_isNotifyMoveLight(false)
+	, m_isNotifyMoveTarget(false)
 {
 	ReplaceLocalReference(IndirectReference::ThisNode, m_thisNodeMonitor);
 	ReplaceLocalReference(IndirectReference::TargetNode, m_targNodeMonitor);
@@ -145,6 +147,12 @@ IParamBlock2* FireRenderPhysicalLight::GetParamBlockByID(BlockID id)
 	return m_pblock;
 }
 
+IParamBlock2* FireRenderPhysicalLight::GetParamBlockByID(BlockID id) const
+{
+	FASSERT(m_pblock->ID() == id);
+	return m_pblock;
+}
+
 Interval FireRenderPhysicalLight::ObjectValidity(TimeValue t)
 {
 	Interval valid;
@@ -187,8 +195,9 @@ bool FireRenderPhysicalLight::SetTargetDistance(float value, TimeValue time)
 	INode* thisNode = GetThisNode(); 
 	FASSERT(thisNode);
 	INode* targetNode = GetTargetNode();
-	FASSERT(targetNode);
 
+	// Allow safe handling when no target exists yet;
+	// Occurs in create mode during taget positioning mouse drag, and may occur via MaxScript
 	if (thisNode == nullptr || targetNode == nullptr ||
 		std::abs(GetTargetDistance(time) - value) < std::numeric_limits<float>::epsilon())
 	{
@@ -211,7 +220,6 @@ bool FireRenderPhysicalLight::SetTargetDistance(float value, TimeValue time)
 	targetNode->SetNodeTM(time, targetTm);
 
 	// Update UI
-	SetTargetPoint(targPos+lightPos, time);
 	SetDist(GetTargetDistance(time), time);
 
 	return true;
@@ -429,6 +437,11 @@ bool FireRenderPhysicalLight::IsTargeted() const
 	return bool_cast(boolValue);
 }
 
+bool FireRenderPhysicalLight::HasTargetNode() const
+{
+	return (IsTargeted() && (GetTargetNode()!=nullptr));
+}
+
 bool FireRenderPhysicalLight::IsEnabled() const
 {
 	Interval valid = FOREVER;
@@ -467,50 +480,28 @@ void FireRenderPhysicalLight::AddTarget(TimeValue t, bool fromCreateCallback)
 	SetTargetNode(targNode);
 
 	// Set target node transform
-	Point3 p1 = GetLightPoint(t);
+	float targetDist;
 	FRPhysicalLight_LightType lightType = GetLightType(t);
-	if (FRPhysicalLight_SPOT == lightType)
-	{
-		Point3 dir = (GetSecondPoint(t) - GetLightPoint(t)).Normalize();
-		float rx = -dir.y;
-		float ry = dir.x;
-		Point3 rdir(rx, ry, 0.0f); // rdir is vector normal to vector from zero to center of the cone
-		rdir = rdir.Normalize();
-		Matrix3 tilt = RotAngleAxisMatrix(rdir, PI / 2);
-		dir = tilt * dir;
-
-		if (!fromCreateCallback)
-		{
-			float dist = (GetSecondPoint(t) - GetLightPoint(t)).Length() * 2;
-			p1 = dir * dist;
-		}
-		else
-		{
-			float dist = (GetTargetPoint(t) - GetLightPoint(t)).Length();
-			p1 = dir * dist;
-		}
+	if( (!fromCreateCallback) && (FRPhysicalLight_AREA == lightType) )
+	{	// Target added after creation for an Area Light, calculate appropriate target distance
+		Box3 bbox = GetAreaLightBoundBox(t);
+		float length = bbox.pmax.x-bbox.pmin.x;
+		float width = bbox.pmax.y-bbox.pmin.y;
+		targetDist = MAX(length,width);
 	}
-	else
-	{
-		if (fromCreateCallback)
-		{
-			p1.z = GetTargetPoint(t).z;
-		}
-		else
-		{
-			float dist = (GetSecondPoint(t) - GetLightPoint(t)).Length();
-			Point3 dir2targ (0.0f, 0.0f, -1.0f);
-			p1.z = (dir2targ*dist).z;
-		}
+	else if( (!fromCreateCallback) && ((FRPhysicalLight_SPOT == lightType) || (FRPhysicalLight_DIRECTIONAL == lightType)) )
+	{	// Target added after creation for a Spot Light, calculate appropriate target distance
+		targetDist = GetSpotLightYon(t) * 2.0f;
 	}
+	else // all other cases
+		targetDist = GetDist(t);
 
-	Point3 p0 = GetLightPoint(t);
-	Point3 r = p1 - p0;
+	Point3 p1( 0.0f, 0.0f, -targetDist );
 
-	Matrix3 targtm = thisNode->GetNodeTM(t);
-	targtm.PreTranslate(r);
+	Matrix3 mat = thisNode->GetNodeTM(t);
+	mat.PreTranslate(p1); // Current position in world space, plus local space offset to target 
 
-	targNode->SetNodeTM(t, targtm);
+	targNode->SetNodeTM(t, mat);
 	targNode->InvalidateTM();
 
 	// Colour
@@ -519,8 +510,6 @@ void FireRenderPhysicalLight::AddTarget(TimeValue t, bool fromCreateCallback)
 
 	targNode->NotifyDependents(FOREVER, PART_OBJ, REFMSG_CHANGE);
 	targNode->NotifyDependents(FOREVER, PART_OBJ, REFMSG_NUM_SUBOBJECTTYPES_CHANGED);
-
-	SetTargetPoint(p1, t);
 }
 
 void FireRenderPhysicalLight::RemoveTarget(TimeValue t)
@@ -570,103 +559,140 @@ bool FireRenderPhysicalLight::CalculateBBox(void)
 	return true;
 }
 
-void CalculateBBoxForSpotLight(Point3& bboxMin, Point3& bboxMax, const TimeValue& time, FireRenderPhysicalLight* light)
-{
-	if (light == nullptr)
-		return;
 
+// For spot and directional, distance to end of cone of viewport gizmo
+float FireRenderPhysicalLight::GetSpotLightYon(TimeValue t) const
+{
+	FRPhysicalLight_LightType lightType = GetLightType(t);
+	if( (lightType==FRPhysicalLight_SPOT) || (lightType==FRPhysicalLight_DIRECTIONAL) )
+	{
+		// Special case: "Yon" value for cone length is set during create mode and cannot be changed.
+		// Calculated from creation mouse click points, because no other official param exists.
+		float yon = (GetSecondPoint(t)-GetLightPoint(t)).Length();
+		return yon;
+	}
+	return 0.0f;
+}
+
+// For cylinder area lights, whether shape topside is upward in local z-axis
+bool FireRenderPhysicalLight::GetAreaLightUpright(TimeValue t) const
+{
+	// Always true for shapes other than cylinder.
+	// Normally true for cylinder light without target.
+	// Normally false for cylinder with target, unless flipped (see below)
+	// Note that if cylinder is targeted and height is negative, it may look upright when actually not.
+	bool upright = true;
+
+	bool isTargetPreview = m_isPreview && m_isTargetPreview;
+	bool isEditMode = !m_isPreview;
+	bool isDisplayTarget = (isEditMode && HasTargetNode()) || (isTargetPreview && IsTargeted());
+
+	if( isDisplayTarget )
+	{
+		if( isTargetPreview )
+			upright = false;
+		else
+			// Special case: If target cylinder light has target below the object, orientation flips.
+			// Check using creation mouse click points, because no formal param exists.
+			// Note local z-axis is downward when target point is set; higher value is mouse downward.
+			upright = (GetTargetPoint(t).z <= GetLightPoint(t).z);
+	}
+	return upright;
+}
+
+Box3 FireRenderPhysicalLight::GetSpotLightBoundBox(TimeValue t) const
+{
 	float angle = 0.0f;
 	Interval valid = FOREVER;
-	light->GetParamBlockByID(0)->GetValue(FRPhysicalLight_SPOTLIGHT_OUTERCONE, 0, angle, valid);
+	GetParamBlockByID(0)->GetValue(FRPhysicalLight_SPOTLIGHT_OUTERCONE, 0, angle, valid);
 
-	float length = (light->GetSecondPoint(time) - light->GetLightPoint(time)).Length();
+	float length = GetSpotLightYon(t);
 	float tanAlpha = tan(angle * PI / 180);
 	float coneRad = length * tanAlpha;
 
-	bboxMin = { -coneRad, -coneRad, -length };
-	bboxMax = { coneRad, coneRad, 0.0f };
+	return Box3(
+		Point3( -coneRad, -coneRad, -length ),
+		Point3(  coneRad,  coneRad, 0.0f ) );
 }
 
-void CalculateBBoxForAreaLight(Point3& bboxMin, Point3& bboxMax, const TimeValue& time, FireRenderPhysicalLight* light)
+
+// For area lights, corner-to-corner dimensions in local space of viewport gizmo
+Box3 FireRenderPhysicalLight::GetAreaLightBoundBox(TimeValue t) const
 {
-	FRPhysicalLight_AreaLight_LightShape lightShape = light->GetLightShapeMode(time);
-	switch (lightShape)
+	Point3 p[2] = { Point3( 0.0f, 0.0f, 0.0f ), Point3( 0.0f, 0.0f, 0.0f ) };
+	FRPhysicalLight_LightType lightType = GetLightType(t);
+	FRPhysicalLight_AreaLight_LightShape lightShape = GetLightShapeMode(t);
+
+	// mesh not handled here because we'd need to call GetWorldBoundBox on object mesh light refers to
+	if( (lightType==FRPhysicalLight_AREA) && (lightShape!=FRPhysicalLight_MESH) )
 	{
-		case FRPhysicalLight_DISC:
-		{
-			float radius = (light->GetSecondPoint(time) - light->GetLightPoint(time)).Length() / 2;
-			bboxMin = { -radius, -radius, 0.0f };
-			bboxMax = { radius, radius, 0.1f };
+		// Special case: Offset transform axis during create mode (preview)
+		// Offset applies to Area lights only, not Spot or directional lights
+		// Offset applies during initial mouse drag, before target positioning mouse drag
+		// During this time, transform axis is located at "upper left" corner of the shape
+		bool isInitialPreview = m_isPreview && !m_isTargetPreview;
+		//if( isInitialPreview )
+		//	centerPos = Point3( previewSpan.x/2.0f, previewSpan.y/2.0f, 0.0f ); // offset in x and y only
 
-			break;
-		}
+		Point3 origin( 0.0f, 0.0f, 0.0f );
+		Point3 preview1Span = (GetSecondPoint(t)-GetLightPoint(t));
+		Point3 preview2Span = (GetThirdPoint(t)-GetSecondPoint(t));
+		Point3 preview1Center = preview1Span/2.0f;
+		float preview1Length = preview1Span.Length();
 
-		case FRPhysicalLight_CYLINDER:
+		// Set the x-value and y-value for rectangle
+		if( lightShape==FRPhysicalLight_RECTANGLE )
 		{
-			float radius = (light->GetSecondPoint(time) - light->GetLightPoint(time)).Length() / 2;
-			float height = light->GetThirdPoint(time).z - light->GetSecondPoint(time).z;
-			if (light->IsTargeted())
+			if( isInitialPreview ) // Use mouse click points in create mode during mouse drag (preview)
 			{
-				height = -height; // because cylinder is "mirrored" for inteface convinience when target is present
-				if (light->GetTargetPoint(time).z < light->GetThirdPoint(time).z)
-					height = -height;
+				p[0] = origin;
+				p[1] = Point3( preview1Span.x, preview1Span.y, 0.0f );
 			}
-			bboxMin = { -radius, -radius, (height <= 0) ? height : 0.0f };
-			bboxMax = { radius, radius, (height > 0) ? height : 0.0f };
-
-			break;
+			else {
+				Point3  offsetFromCenter = Point3( GetLength(t)/2.0f, GetWidth(t)/2.0f, 0.0f );
+				p[0] = -offsetFromCenter;
+				p[1] =  offsetFromCenter;
+			}
 		}
 
-		case FRPhysicalLight_SPHERE:
+		// Set the x-value and y-value for circular gizmos
+		if( (lightShape==FRPhysicalLight_DISC) || (lightShape==FRPhysicalLight_SPHERE) || (lightShape==FRPhysicalLight_CYLINDER) )
 		{
-			float radius = (light->GetSecondPoint(time) - light->GetLightPoint(time)).Length() / 2;
-			bboxMin = { -radius, -radius, -radius };
-			bboxMax = { radius, radius, radius };
-
-			break;
-		}
-
-		case FRPhysicalLight_RECTANGLE:
-		{
-			Point3 rectCenter = Point3(0.0f, 0.0f, 0.0f) + (light->GetSecondPoint(time) - light->GetLightPoint(time)) / 2;
-			std::vector<Point3> bbox = { Point3(0.0f, 0.0f, 0.0f) - rectCenter , light->GetSecondPoint(time) - light->GetLightPoint(time) - rectCenter };
-			// 3DMax can accept ONLY (Xmin < Xmax, Ymin < Ymax, Zmin < Zmax)
-			bboxMin = { INFINITY, INFINITY, INFINITY };
-			bboxMax = { -INFINITY, -INFINITY, -INFINITY };
-
-			for (const Point3& tPoint : bbox)
+			if( isInitialPreview ) // Use mouse click points in create mode during mouse drag (preview)
 			{
-				if (tPoint.x > bboxMax.x)
-					bboxMax.x = tPoint.x;
-
-				if (tPoint.y > bboxMax.y)
-					bboxMax.y = tPoint.y;
-
-				if (tPoint.x < bboxMin.x)
-					bboxMin.x = tPoint.x;
-
-				if (tPoint.y < bboxMin.y)
-					bboxMin.y = tPoint.y;
+				Point3 offsetFromCenter( preview1Length/2.0f, preview1Length/2.0f, 0.0f );
+				p[0] = preview1Center - offsetFromCenter;
+				p[1] = preview1Center + offsetFromCenter;
 			}
-			bboxMin.z = 0.0f;
-			bboxMax.z = 0.1f;
-
-			break;
+			else
+			{
+				Point3  offsetFromCenter = Point3( GetWidth(t)/2.0f, GetWidth(t)/2.0f, 0.0f );
+				p[0] = -offsetFromCenter;
+				p[1] =  offsetFromCenter;
+			}
 		}
 
-		case FRPhysicalLight_MESH:
+		// Set the z-value for cylinder only
+		if( lightShape==FRPhysicalLight_CYLINDER )
 		{
-			// should not be handled here
-
-			break; 
+			if( isInitialPreview ) // Use mouse click points in create mode during mouse drag (preview)
+				 p[1].z = p[0].z + preview2Span.z;
+			else if( GetAreaLightUpright(t) )
+				 p[1].z = p[0].z + GetLength(t);
+			else p[1].z = p[0].z - GetLength(t);
 		}
 	}
+
+	Box3 bbox;
+	bbox.IncludePoints(p,2);
+
+	return bbox;
 }
 
-void FireRenderPhysicalLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& box)
+void FireRenderPhysicalLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewExp* vpt, Box3& bbox)
 {
 	//set default output result
-	box.Init();
+	bbox.Init();
 
 	// back-off
 	if (!vpt || !vpt->IsAlive())
@@ -681,8 +707,7 @@ void FireRenderPhysicalLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewEx
 
 	// different bbox for different types of light
 	FRPhysicalLight_LightType lightType = GetLightType(time);
-	Point3 bboxMin(0.0f, 0.0f, 0.0f);
-	Point3 bboxMax(0.0f, 0.0f, 0.0f);
+
 	switch (lightType)
 	{
 		case FRPhysicalLight_AREA:
@@ -724,12 +749,12 @@ void FireRenderPhysicalLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewEx
 				Matrix3 thisTM = thisNode->GetNodeTM(t);
 				thisTM.Invert();
 
-				bboxMin = thisTM * objBox.Min();
-				bboxMax = thisTM * objBox.Max();
+				bbox.pmin = thisTM * objBox.Min();
+				bbox.pmin = thisTM * objBox.Max();
 			}
 			else
 			{
-				CalculateBBoxForAreaLight(bboxMin, bboxMax, time, this);
+				bbox = GetAreaLightBoundBox(t);
 			}
 
 			break;
@@ -737,7 +762,7 @@ void FireRenderPhysicalLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewEx
 
 		case FRPhysicalLight_SPOT:
 		{
-			CalculateBBoxForSpotLight(bboxMin, bboxMax, time, this);
+			bbox = GetSpotLightBoundBox(t);
 
 			break;
 		}
@@ -745,59 +770,55 @@ void FireRenderPhysicalLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewEx
 		case FRPhysicalLight_POINT:
 		case FRPhysicalLight_DIRECTIONAL:
 		{
-			bboxMin = { -2.0f, -2.0f, -2.0f };
-			bboxMax = { 2.0f, 2.0f, 2.0f };
+			bbox.pmin = { -2.0f, -2.0f, -2.0f };
+			bbox.pmax = {  2.0f,  2.0f,  2.0f };
 
 			break;
 		}
 	}
 
 	// rotate calculated bbox
-	std::vector<Point3> bbox = {
-		Point3(bboxMin.x, bboxMin.y, bboxMin.z),
-		Point3(bboxMax.x, bboxMin.y, bboxMin.z),
-		Point3(bboxMin.x, bboxMax.y, bboxMin.z),
-		Point3(bboxMin.x, bboxMin.y, bboxMax.z),
-		Point3(bboxMax.x, bboxMax.y, bboxMax.z),
-		Point3(bboxMin.x, bboxMax.y, bboxMax.z),
-		Point3(bboxMax.x, bboxMin.y, bboxMax.z),
-		Point3(bboxMax.x, bboxMax.y, bboxMin.z)
+	std::vector<Point3> bboxPts = {
+		Point3(bbox.pmin.x, bbox.pmin.y, bbox.pmin.z),
+		Point3(bbox.pmax.x, bbox.pmin.y, bbox.pmin.z),
+		Point3(bbox.pmin.x, bbox.pmax.y, bbox.pmin.z),
+		Point3(bbox.pmin.x, bbox.pmin.y, bbox.pmax.z),
+		Point3(bbox.pmax.x, bbox.pmax.y, bbox.pmax.z),
+		Point3(bbox.pmin.x, bbox.pmax.y, bbox.pmax.z),
+		Point3(bbox.pmax.x, bbox.pmin.y, bbox.pmax.z),
+		Point3(bbox.pmax.x, bbox.pmax.y, bbox.pmin.z)
 	};
 
-	for (Point3& tPoint : bbox)
+	for (Point3& tPoint : bboxPts)
 	{
 		tPoint = tPoint * tm;
 	}
 
 	// adjust box after it is rotated
 	{
-		bboxMin = { INFINITY, INFINITY, INFINITY };
-		bboxMax = { -INFINITY, -INFINITY, -INFINITY };
-		for (const Point3& tPoint : bbox)
+		bbox.pmin = {  INFINITY,  INFINITY,  INFINITY };
+		bbox.pmax = { -INFINITY, -INFINITY, -INFINITY };
+		for (const Point3& tPoint : bboxPts)
 		{
-			if (tPoint.x > bboxMax.x)
-				bboxMax.x = tPoint.x;
+			if (tPoint.x > bbox.pmax.x)
+				bbox.pmax.x = tPoint.x;
 
-			if (tPoint.y > bboxMax.y)
-				bboxMax.y = tPoint.y;
+			if (tPoint.y > bbox.pmax.y)
+				bbox.pmax.y = tPoint.y;
 
-			if (tPoint.z > bboxMax.z)
-				bboxMax.z = tPoint.z;
+			if (tPoint.z > bbox.pmax.z)
+				bbox.pmax.z = tPoint.z;
 
-			if (tPoint.x < bboxMin.x)
-				bboxMin.x = tPoint.x;
+			if (tPoint.x < bbox.pmin.x)
+				bbox.pmin.x = tPoint.x;
 
-			if (tPoint.y < bboxMin.y)
-				bboxMin.y = tPoint.y;
+			if (tPoint.y < bbox.pmin.y)
+				bbox.pmin.y = tPoint.y;
 
-			if (tPoint.z < bboxMin.z)
-				bboxMin.z = tPoint.z;
+			if (tPoint.z < bbox.pmin.z)
+				bbox.pmin.z = tPoint.z;
 		}
 	}
-
-	// output result
-	box.pmin = bboxMin;
-	box.pmax = bboxMax;
 }
 
 void PhysLightsVolumeDlgProc::DeleteThis()
