@@ -125,7 +125,7 @@ int GetRolloutWindowActualIndex(PhysLightRolloutWindow rollWindowID, IRollupWind
 const int ROLLOUT_MAX_GENERAL_SHIFT = 2;
 const int ROLLOUTS_PHYS_LIGHT_COUNT = 7;
 const float DEFAULT_DIST_TO_TARGET = 5.0f;
-static const int VERSION = 1;
+static const int VERSION = 2;
 
 PhysLightGeneralParamsDlgProc dlgProcPhysLightGeneralParams;
 PhysLightsAreaLightsDlgProc dlgProcPhysLightsAreaLights;
@@ -349,7 +349,9 @@ static ParamBlockDesc2 pbDesc(
 	p_default, Point3(0.0f, 0.0f, 0.0f),
 	PB_END,
 
-	FRPhysicalLight_TARGET_POINT, _T("TargetPoint"), TYPE_POINT3, 0, 0,
+	FRPhysicalLight_TARGET_POINT, _T("TargetPoint"), TYPE_POINT3,
+	P_RESET_DEFAULT, 0, // reset default so "upright" mode always resets when created,
+	// avoids unpredictable behaior when toggling the Targeted setting after creation
 	p_default, Point3(0.0f, 0.0f, 0.0f),
 	PB_END,
 
@@ -565,6 +567,51 @@ std::map<int, std::pair<ParamID, MCHAR*>> FireRenderPhysicalLight::TEXMAP_MAPPIN
 	{ FRPhysicalLight_MAP_INTENSITY_COLOUR,{ FRPhysicalLight_INTENSITY_COLOUR_MAP, _T("Intensity Color") } },
 };
 
+// class LoadCallback, used by Load() method
+FireRenderPhysicalLight::LoadCallback::LoadCallback(FireRenderPhysicalLight *light)
+	: m_light(light)
+{}
+
+void FireRenderPhysicalLight::LoadCallback::proc(ILoad *iload)
+{
+	FASSERT(m_light);
+	IParamBlock2* pblock = (m_light==nullptr? nullptr : m_light->GetParamBlock(0));
+
+	// Update parameters from older paramblock versions
+	if( pblock!=nullptr )
+	{
+		IParamBlock2PostLoadInfo* postLoadInfo =
+			(IParamBlock2PostLoadInfo*)pblock->GetInterface(IPARAMBLOCK2POSTLOADINFO_ID);
+
+		// Check version number from loaded file
+		if( (postLoadInfo!=NULL) && (postLoadInfo->GetVersion()<=1) )
+		{
+			TimeValue t(0);
+			FRPhysicalLight_LightType lightType = m_light->GetLightType(t);
+			FRPhysicalLight_AreaLight_LightShape lightShape = m_light->GetLightShapeMode(t);
+
+			// Cylinder lights now use formal parameter instead of mouse points for height
+			if( (lightType==FRPhysicalLight_AREA) && (lightShape==FRPhysicalLight_CYLINDER) )
+			{
+				float length = (m_light->GetThirdPoint(t).z-m_light->GetSecondPoint(t).z);
+				m_light->SetLength(length,t); // Apply newer-style value
+			}
+		}
+	}
+	delete this; // object is expected to delete itself when proc() is finished
+}
+
+IOResult FireRenderPhysicalLight::Save( ISave *isave )
+{	// nothing to do, call superclass method
+	return __super::Save(isave); 
+}
+IOResult FireRenderPhysicalLight::Load( ILoad *iload )
+{	// register our post-load callback, then call superclass method
+	iload->RegisterPostLoadCallback(new LoadCallback(this));
+	return __super::Load(iload);
+}
+
+
 RefResult FireRenderPhysicalLight::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS)
 //define NOTIFY_REF_CHANGED_PARAMETERS const Interval& interval, RefTargetHandle hTarget, PartID& partId, RefMessage msg, BOOL propagate
 {
@@ -633,115 +680,14 @@ RefResult FireRenderPhysicalLight::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETER
 				break;
 			}
 
-			// lengths and widths changes
-			case FRPhysicalLight_AREA_LENGTHS:
-			case FRPhysicalLight_AREA_WIDTHS:
-			case FRPhysicalLight_AREALIGHT_LIGHTSHAPE:
-			{
-				FRPhysicalLight_LightType lightType = GetLightType(time);
-				switch (lightType)
-				{
-					case FRPhysicalLight_AREA:
-					{
-						FRPhysicalLight_AreaLight_LightShape lightShape = GetLightShapeMode(time);
-						switch (lightShape)
-						{
-							case FRPhysicalLight_DISC:
-							case FRPhysicalLight_SPHERE:
-							{
-								Point3 lightPoint = GetLightPoint(time);
-								Point3 secondPoint = GetSecondPoint(time);
-								Point3 dir = (secondPoint - lightPoint).Normalize();
-								Point3 newSecondPoint;
-								if (p == FRPhysicalLight_AREA_LENGTHS)
-									newSecondPoint = lightPoint + dir * (GetLength(time)/2);
-								else //(p == FRPhysicalLight_AREA_WIDTHS)
-									newSecondPoint = lightPoint + dir * (GetWidth(time)/2);
-
-								SetSecondPoint(newSecondPoint, time);
-
-								// update displayed values
-								float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length();
-								SetLength(radius * 2, time);
-								SetWidth(radius * 2, time);
-
-								break;
-							}
-
-							case FRPhysicalLight_RECTANGLE:
-							{
-								Point3 newSecondPoint = GetSecondPoint(time);
-								if (p == FRPhysicalLight_AREA_LENGTHS)
-								{
-									if (newSecondPoint.x < 0)
-										newSecondPoint.x = GetLightPoint(time).x - GetLength(time);
-									else
-										newSecondPoint.x = GetLightPoint(time).x + GetLength(time);
-								}
-								else //(p == FRPhysicalLight_AREA_WIDTHS)
-								{
-									if (newSecondPoint.y < 0)
-										newSecondPoint.y = GetLightPoint(time).y - GetWidth(time);
-									else
-										newSecondPoint.y = GetLightPoint(time).y + GetWidth(time);
-								}
-
-								SetSecondPoint(newSecondPoint, time);
-
-								break;
-							}
-
-							case FRPhysicalLight_CYLINDER:
-							{
-								Point3 lightPoint = GetLightPoint(time);
-								Point3 secondPoint = GetSecondPoint(time);
-								Point3 dir = (secondPoint - lightPoint).Normalize();
-								Point3 newSecondPoint;
-								if (p == FRPhysicalLight_AREA_LENGTHS)
-									newSecondPoint = lightPoint + dir * (GetLength(time) / 2);
-								else //(p == FRPhysicalLight_AREA_WIDTHS)
-									newSecondPoint = lightPoint + dir * (GetWidth(time) / 2);
-
-								SetSecondPoint(newSecondPoint, time);
-
-								Point3 secondDiskCenter = GetLightPoint(time);
-								secondDiskCenter.z = GetThirdPoint(time).z;
-								dir = (GetThirdPoint(time) - secondDiskCenter).Normalize();
-								Point3 newThirdPoint;
-								if (p == FRPhysicalLight_AREA_LENGTHS)
-									newThirdPoint = secondDiskCenter + dir * (GetLength(time) / 2);
-								else //(p == FRPhysicalLight_AREA_WIDTHS)
-									newThirdPoint = secondDiskCenter + dir * (GetWidth(time) / 2);
-
-								SetThirdPoint(newThirdPoint, time);
-
-								// update displayed values
-								float radius = (GetSecondPoint(time) - GetLightPoint(time)).Length();
-								SetLength(radius * 2, time);
-								SetWidth(radius * 2, time);
-
-								break;
-							}
-						}
-						break;
-					}
-
-					case FRPhysicalLight_SPOT:
-					{
-						break;
-					}
-
-					case FRPhysicalLight_POINT:
-					case FRPhysicalLight_DIRECTIONAL:
-						break;
-				}
-				break;
-			}
-
 			// distance to target
 			case FRPhysicalLight_TARGET_DIST:
 			{
-				SetTargetDistance(GetDist(time), time);
+				// Don't move the target if...
+				// - User is moving the light or the target, and notify processing is underway
+				// - Performing an Undo operation, as the system sets the target position separately
+				if( (!m_isNotifyMoveLight) && (!m_isNotifyMoveTarget) && (!theHold.RestoreOrRedoing()) )
+					SetTargetDistance(GetDist(time), time);
 
 				break;
 			}
@@ -749,24 +695,21 @@ RefResult FireRenderPhysicalLight::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETER
 	}
 	else if (hTarget == m_targNodeMonitor)
 	{
-		// update target position
-		const INode* targetNode = GetTargetNode();
-		FASSERT(targetNode);
-		Matrix3 targTm = const_cast<INode*>(targetNode)->GetNodeTM(time);
-		Point3 targTrans = targTm.GetTrans();
-		SetTargetPoint(targTrans, time);
-		
+		m_isNotifyMoveTarget = true;
 		// update UI
 		float distToTarg = GetTargetDistance(time);
 		SetDist(distToTarg, time);
+		m_isNotifyMoveTarget = false;
 	}
 	else if (hTarget == m_thisNodeMonitor)
 	{
 		// update ui
-		if (IsTargeted())
+		if (HasTargetNode())
 		{
-			//float distToTarg = GetTargetDistance(time);
-			//SetDist(distToTarg, time);
+			m_isNotifyMoveLight = true;
+			float distToTarg = GetTargetDistance(time);
+			SetDist(distToTarg, time);
+			m_isNotifyMoveLight = false;
 		}
 	}
 

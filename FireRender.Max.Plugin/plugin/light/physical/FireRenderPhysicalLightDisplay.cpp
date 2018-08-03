@@ -10,21 +10,19 @@
 #include "FireRenderPhysicalLight.h"
 #include <math.h>
 #include <array>
+#include <IViewportShadingMgr.h>
 #include "Common.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
-namespace
+// Calculates z-axis transform scaling for a node;
+// transforms unit vector in local space z-axis to world space, and returns world space length
+float LocalToWorldScaleZ( TimeValue t, INode* node )
 {
-	// Default Colours
-	const Color FrozenColor = Color(0.0f, 0.0f, 1.0f);
-	const Color WireColor = Color(0.0f, 1.0f, 0.0f);
-	const Color SelectedColor = Color(1.0f, 0.0f, 0.0f);
-}
-
-static Color GetWireColor(bool isFrozen, bool isSelected)
-{
-	return isSelected ? SelectedColor : (isFrozen ? FrozenColor : WireColor);
+	Matrix3 tm = node->GetNodeTM(t);
+	Point3  trans =			 (Point3( 0.0f, 0.0f, 0.0f ) * tm);
+	Point3  transPlusUnitZ = (Point3( 0.0f, 0.0f, 1.0f ) * tm);
+	return (transPlusUnitZ - trans).Length();
 }
 
 extern void CalculateSphere(float radius,
@@ -166,36 +164,35 @@ void DrawCylinder(ViewExp *vpt, Point3& point1, float radius, Point3& secondDisk
 	vpt->getGW()->polyline(2, edge4, NULL, NULL, FALSE, NULL);
 }
 
-void DrawConeTilted(ViewExp *vpt, float angle, Point3& center)
+// Draws a code oriented along the local z-axis, tip of cone at local origin
+void DrawCone(ViewExp *vpt, float angle, float yonDist)
 {
-	float rx = -center.y;
-	float ry = center.x;
-	Point3 rdir(rx, ry, 0.0f); // rdir is vector normal to vector from zero to center of the cone
-	rdir = rdir.Normalize();
-	Matrix3 tilt = RotAngleAxisMatrix(rdir, PI / 2);
+	Point3 centerPos(0.0f, 0.0f, 0.0f);
 
-	float length = Point3(center).Length();
+	// "Yon" is the far end of the cone 
+	Point3 yonPos = Point3(0.0f, 0.0f, -yonDist);
+	Point3 yonDir = yonPos.Normalize();
+
+	Matrix3 tilt = RotAngleAxisMatrix(yonDir, PI / 2);
 
 	float tanAlpha = tan(angle * PI / 180);
-	float coneRad = length * tanAlpha;
+	float coneRad = yonDist * tanAlpha;
 
-	DrawDisc(vpt, coneRad, Point3(tilt * center));
+	DrawDisc(vpt, coneRad, yonPos, &tilt);
 
-	Point3 dirCone[3];
-	dirCone[0] = Point3(0.0f, 0.0f, 0.0f);
-	dirCone[1] = tilt * (center + rdir*coneRad);
-	dirCone[2] = tilt * (center - rdir*coneRad);
-	vpt->getGW()->polyline(3, dirCone, NULL, NULL, TRUE, NULL);
+	Point3 points[3];
+	points[0] = centerPos;
 
-	Point3 dirAxis[2];
-	dirAxis[0] = tilt * Point3(0.0f, 0.0f, 0.0f);
-	dirAxis[1] = tilt * center;
-	vpt->getGW()->polyline(2, dirAxis, NULL, NULL, FALSE, NULL);
+	points[1] = yonPos - Point3( coneRad, 0.0f, 0.0f );
+	points[2] = yonPos + Point3( coneRad, 0.0f, 0.0f );
+	vpt->getGW()->polyline(3, points, NULL, NULL, TRUE, NULL); // closed line, three points
 
-	Matrix3 roll = RotAngleAxisMatrix(Point3(0.0f, 0.0f, -1.0f), PI / 2);
-	dirCone[1] = roll * dirCone[1];
-	dirCone[2] = roll * dirCone[2];
-	vpt->getGW()->polyline(3, dirCone, NULL, NULL, TRUE, NULL);
+	points[1] = yonPos;
+	vpt->getGW()->polyline(2, points, NULL, NULL, FALSE, NULL); // open line, two points
+
+	points[1] = yonPos - Point3( 0.0f, coneRad, 0.0f );
+	points[2] = yonPos + Point3( 0.0f, coneRad, 0.0f );
+	vpt->getGW()->polyline(3, points, NULL, NULL, TRUE, NULL); // closed line, three points
 }
 
 void DrawFaces(ViewExp *vpt, const Face* arrFaces, const Point3* verts, int countFaces)
@@ -211,7 +208,7 @@ void DrawFaces(ViewExp *vpt, const Face* arrFaces, const Point3* verts, int coun
 	}
 }
 
-void DisplaySpotLight(TimeValue t, ViewExp *vpt, bool isPreview, Point3 dirMesh[2], IParamBlock2* pBlock)
+void DisplaySpotLight(TimeValue t, ViewExp *vpt, bool isPreview, float yonDist, IParamBlock2* pBlock)
 {
 	FASSERT(pBlock);
 
@@ -224,150 +221,70 @@ void DisplaySpotLight(TimeValue t, ViewExp *vpt, bool isPreview, Point3 dirMesh[
 	// draw cone
 	if (isPreview)
 	{
-		float rx = -dirMesh[1].y;
-		float ry = dirMesh[1].x;
-		Point3 rdir(rx, ry, 0.0f);
-		rdir = rdir.Normalize();
-
-		float length = Point3(dirMesh[1]).Length();
-
-		float tanAlpha = tan(outerAngle * PI / 180);
-		float coneRad = length * tanAlpha;
-
-		Matrix3 tilt = RotAngleAxisMatrix(rdir, PI / 2);
-		tilt.SetTrans(dirMesh[1]);
-		DrawDisc(vpt, coneRad, Point3(0.0f, 0.0f, 0.0f), &tilt);
-
-		Point3 dirCone[3];
-		dirCone[0] = Point3(0.0f, 0.0f, 0.0f);
-		dirCone[1] = (dirMesh[1] + rdir*coneRad);
-		dirCone[2] = (dirMesh[1] - rdir*coneRad);
-		vpt->getGW()->polyline(3, dirCone, NULL, NULL, TRUE, NULL);
-
-		Point3 dirAxis[2];
-		dirAxis[0] = Point3(0.0f, 0.0f, 0.0f);
-		dirAxis[1] = dirMesh[1];
-		vpt->getGW()->polyline(2, dirAxis, NULL, NULL, FALSE, NULL);
-
-		Matrix3 roll = RotAngleAxisMatrix(dirMesh[1].Normalize(), PI / 2);
-		dirCone[1] = roll * dirCone[1];
-		dirCone[2] = roll * dirCone[2];
-		vpt->getGW()->polyline(3, dirCone, NULL, NULL, TRUE, NULL);
+		DrawCone(vpt, outerAngle, yonDist);
 	}
 	else
 	{
-		DrawConeTilted(vpt, outerAngle, dirMesh[1]);
-		DrawConeTilted(vpt, innerAngle, dirMesh[1]);
+		DrawCone(vpt, outerAngle, yonDist);
+		DrawCone(vpt, innerAngle, yonDist);
 	}
 }
 
-bool DisplayAreaLight(TimeValue t, ViewExp *vpt, bool isPreview, bool isTargetPreview, Point3 dirMesh[2], FireRenderPhysicalLight* light)
+bool DisplayAreaLight(TimeValue t, ViewExp *vpt, bool drawNormals, bool isUpright, Box3& bbox, FireRenderPhysicalLight* light)
 {
 	FASSERT(light);
+
+	Point3 span = bbox.pmax - bbox.pmin;
+	Point3 centerPos = (bbox.pmin + bbox.pmax)/2.0f;
+	float longest = MAX(span.x,span.y);
+	float diameter = span.y;
+	float radius = diameter/2.0f;
 
 	FRPhysicalLight_AreaLight_LightShape mode = light->GetLightShapeMode(t);
 	switch (mode)
 	{
 		case FRPhysicalLight_DISC:
 		{
-			float radius = (dirMesh[1] - dirMesh[0]).Length() / 2;
-			if (isPreview && !isTargetPreview)
-			{
-				Point3 diskCenter = dirMesh[0] + (dirMesh[1] - dirMesh[0]) / 2;
-				DrawDisc(vpt, radius, diskCenter);
-			}
-			else
-			{
-				DrawDisc(vpt, radius, Point3(0.0f, 0.0f, 0.0f));
-
-				// draw arrow
-				if (!light->IsTargeted())
-				{
-					const Point3 targ(0.0f, 0.0f, -radius * 2);
-					DrawArrow(vpt, targ, Point3(0.0f, 0.0f, 0.0f));
-				}
-			}
-
+			DrawDisc(vpt, radius, centerPos);
+			if (drawNormals)
+				DrawArrow(vpt, centerPos+Point3(0.0f,0.0f,-diameter), centerPos);
 			break;
 		}
 
 		case FRPhysicalLight_RECTANGLE:
 		{
-			if (isPreview && !isTargetPreview)
-			{
-				DrawRect(vpt, dirMesh[0], dirMesh[1]);
-			}
-			else
-			{
-				// do the shift 
-				Point3 rectCenter = dirMesh[0] + (dirMesh[1] - dirMesh[0]) / 2;
-				DrawRect(vpt, dirMesh[0] - rectCenter, dirMesh[1] - rectCenter);
-
-				// draw arrow
-				if (!light->IsTargeted())
-				{
-					const float dist = (dirMesh[1] - dirMesh[0]).Length();
-					const Point3 targ(0.0f, 0.0f, -dist);
-					DrawArrow(vpt, targ, Point3(0.0f, 0.0f, 0.0f));
-				}
-			}
+			DrawRect(vpt, bbox.pmin, bbox.pmax);
+			if (drawNormals)
+				DrawArrow(vpt, centerPos+Point3(0.0f,0.0f,-longest), centerPos);
 			break;
 		}
 
 		case FRPhysicalLight_CYLINDER:
 		{
-			float radius = (dirMesh[1] - dirMesh[0]).Length() / 2;
-			Point3 cylinderCenter = Point3(0.0f, 0.0f, 0.0f);
-			if (isPreview && !isTargetPreview)
-			{
-				cylinderCenter = dirMesh[0] + (dirMesh[1] - dirMesh[0]) / 2;
-			}
+			Point3 firstDiskCenterPos = centerPos, secondDiskCenterPos = centerPos;
+			if ( isUpright )
+				 firstDiskCenterPos.z = bbox.pmin.z, secondDiskCenterPos.z = bbox.pmax.z;
+			else firstDiskCenterPos.z = bbox.pmax.z, secondDiskCenterPos.z = bbox.pmin.z;
 
-			Point3 secondDiskCenter(cylinderCenter);
-			secondDiskCenter.z = light->GetThirdPoint(t).z;
+			DrawCylinder(vpt, firstDiskCenterPos, radius, secondDiskCenterPos);
 
-			if (!light->IsTargeted() || (!light->GetTargetNode()))
+			if  (drawNormals)
 			{
-				DrawCylinder(vpt, cylinderCenter, radius, secondDiskCenter);
-			}
-			else
-			{
-				if (light->GetTargetPoint(t).z < light->GetThirdPoint(t).z)
-				{
-					secondDiskCenter = -secondDiskCenter;
-				}
-
-				DrawCylinder(vpt, cylinderCenter, radius, -secondDiskCenter);
-			}
-
-			if ((isPreview))
-			{
-				Point3 dirMesh2[2];
-				dirMesh2[0] = dirMesh[1];
-				dirMesh2[1] = dirMesh[1];
-				dirMesh2[1].z = light->GetThirdPoint(t).z;
-				vpt->getGW()->polyline(2, dirMesh2, NULL, NULL, FALSE, NULL); // draw line from second click point to third one (cylinder height)
-			}
-
-			bool drawGizmoNormals = !isPreview && !light->IsTargeted();
-			if  (drawGizmoNormals)
-			{
+				Point3 targ1 = firstDiskCenterPos;
+				Point3 targ2 = secondDiskCenterPos;
 				// draw normals
-				float cylinderHeight = light->GetThirdPoint(t).z - cylinderCenter.z;
-				if (cylinderHeight > 0)
+				if ( isUpright )
 				{
-					Point3 targ1 (0.0f, 0.0f, -radius * 2);
-					Point3 targ2 (0.0f, 0.0f, cylinderHeight  + radius * 2);
-					DrawArrow(vpt, targ1, Point3(0.0f, 0.0f, 0.0f));
-					DrawArrow(vpt, targ2, secondDiskCenter);
+					targ1.z -= diameter;
+					targ2.z += diameter;
 				}
 				else
 				{
-					Point3 targ1(0.0f, 0.0f, radius * 2);
-					Point3 targ2(0.0f, 0.0f, cylinderHeight - radius * 2);
-					DrawArrow(vpt, targ1, Point3(0.0f, 0.0f, 0.0f));
-					DrawArrow(vpt, targ2, secondDiskCenter);
+					targ1.z += diameter;
+					targ2.z -= diameter;
 				}
+				DrawArrow(vpt, targ1, firstDiskCenterPos);
+				DrawArrow(vpt, targ2, secondDiskCenterPos);
 			}
 
 			break;
@@ -375,17 +292,7 @@ bool DisplayAreaLight(TimeValue t, ViewExp *vpt, bool isPreview, bool isTargetPr
 
 		case FRPhysicalLight_SPHERE:
 		{
-			float radius = (dirMesh[1] - dirMesh[0]).Length() / 2;
-			if (isPreview && !isTargetPreview)
-			{
-				Point3 diskCenter = dirMesh[0] + (dirMesh[1] - dirMesh[0]) / 2;
-				DrawSphereTess(vpt, radius, diskCenter);
-			}
-			else
-			{
-				DrawSphereTess(vpt, radius, dirMesh[0]);
-			}
-			
+			DrawSphereTess(vpt, radius, centerPos);
 			break;
 		}
 
@@ -434,127 +341,148 @@ bool DisplayAreaLight(TimeValue t, ViewExp *vpt, bool isPreview, bool isTargetPr
 	return true;
 }
 
-void DisplayTarget(TimeValue t, ViewExp *vpt, bool isPreview, bool isTargetPreview, FireRenderPhysicalLight* light)
+void DisplayTarget(TimeValue t, ViewExp *vpt, bool isPreview, Point3 centerPos, float targetDist, FireRenderPhysicalLight* light)
 {
 	FASSERT(light);
 
 	if (!light->IsTargeted())
 		return;
 
-	INode* targetNode = light->GetTargetNode();
+	Point3 targetPos = centerPos;
+	targetPos.z += targetDist;
 
-	if (isPreview && isTargetPreview)
+	// Draw target; sphere in create mode during mouse drag (preview), arrow otherwise
+	if( isPreview )
 	{
-		// during light creation
-		Point3 dirTarg[2];
-		dirTarg[0] = Point3(0.0f, 0.0f, 0.0f);
-		dirTarg[1] = Point3(0.0f, 0.0f, 0.0f);
-
-		FRPhysicalLight_LightType lightType = light->GetLightType(t);
-		if (FRPhysicalLight_SPOT == lightType)
-		{
-			Point3 dir = (light->GetSecondPoint(t) - light->GetLightPoint(t)).Normalize();
-			float length = (light->GetTargetPoint(t) - light->GetLightPoint(t)).Length();
-			dirTarg[1] = dir*length;
-		}
-		else
-		{
-			dirTarg[1].z = light->GetTargetPoint(t).z;
-		}
-		vpt->getGW()->polyline(2, dirTarg, NULL, NULL, FALSE, NULL); // draw line from pos of light origin to target
-
-		DrawSphere(vpt, 1.0f, dirTarg[1]);
+		Point3 points[2];
+		points[0] = centerPos;
+		points[1] = targetPos;
+		vpt->getGW()->polyline(2, points, NULL, NULL, FALSE, NULL); // draw line from pos of light origin to target
+		DrawSphere(vpt, 1.0f, targetPos);
 	}
-	else if (targetNode)
+	else
 	{
-		// regular display
-		INode* thisNode = light->GetThisNode();
-		FASSERT(thisNode);
-		Matrix3 thisTM = thisNode->GetNodeTM(t);
-		Point3 thisPos = thisTM.GetTrans();
-
-		FASSERT(targetNode);
-		Matrix3 targTM = targetNode->GetNodeTM(t);
-		Point3 targetPos = targTM.GetTrans();
-
-		Matrix3 scaleMatr(thisNode->GetNodeTM(t)); // to cancel out scaling of light representation
-		scaleMatr.NoScale();
-		scaleMatr.Invert();
-		scaleMatr = thisNode->GetNodeTM(t) * scaleMatr;
-		scaleMatr.Invert();
-
-		float distToTarg = (Point3(targetPos - thisPos) * scaleMatr).Length();
-		Point3 dirTarg[2];
-		dirTarg[0] = Point3(0.0f, 0.0f, 0.0f);
-		dirTarg[1] = Point3(0.0f, 0.0f, -distToTarg);
-		DrawArrow(vpt, dirTarg[1], dirTarg[0]); // draw arrow from pos of light origin to target
+		DrawArrow(vpt, targetPos, centerPos );
 	}
 }
 
 bool FireRenderPhysicalLight::DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags)
 {
-	// do draw
-	GraphicsWindow* graphicsWindow = vpt->getGW();
-	graphicsWindow->setColor(LINE_COLOR, GetWireColor( bool_cast(inode->Selected()), bool_cast(inode->IsFrozen()) ));
-
-	Point3 dirMesh[2];
-	dirMesh[0] = Point3(0.0f, 0.0f, 0.0f);
-	dirMesh[1] = GetSecondPoint(t) - GetLightPoint(t);
-
-	if (m_isPreview && !m_isTargetPreview)
-	{
-		vpt->getGW()->polyline(2, dirMesh, NULL, NULL, FALSE, NULL); // draw line from pos of first click to pos of second click
-	}
-	
 	bool success = true;
 
-	FRPhysicalLight_LightType type = GetLightType(t);
-	switch(type)
+	// do draw
+	GraphicsWindow* gw = vpt->getGW();
+	DWORD rlim = gw->getRndLimits();
+	gw->setRndLimits(GW_WIREFRAME|GW_EDGES_ONLY|GW_BACKCULL|(gw->getRndMode() & GW_Z_BUFFER));
+
+	// Set the wireframe gizmo color
+	// By default, white if selected, yellow if unselected, black if disabled
+	if (inode->Selected())
+		gw->setColor( LINE_COLOR, GetSelColor() );
+	else if(!inode->IsFrozen() && !inode->Dependent())
+	{
+		if(IsEnabled())
+		{
+			Color color = GetIViewportShadingMgr()->GetLightIconColor(*inode);
+			gw->setColor( LINE_COLOR, color );
+		}
+		else
+			gw->setColor( LINE_COLOR, 0.0f, 0.0f, 0.0f );
+	}
+	else if(inode->IsFrozen())
+	{
+		gw->setColor( LINE_COLOR, GetFreezeColor() );
+	}
+
+
+	// Initial preview mode: During initial mouse drag, before target positioning mouse drag.
+	// In this mode, extra indicator lines are drawn, but target is not drawn
+	bool isInitialPreview = m_isPreview && !m_isTargetPreview;
+	bool isTargetPreview = m_isPreview && m_isTargetPreview;
+	bool isEditMode = !m_isPreview;
+	bool isDisplayTarget = (isEditMode && HasTargetNode()) || (isTargetPreview && IsTargeted());
+	// draw arrow to indicate facing direction for non-targeted lights
+	bool drawNormals = (!m_isPreview) && (!isDisplayTarget);
+	bool isUpright = GetAreaLightUpright(t);
+
+	Point3 centerPos( 0.0f, 0.0f, 0.0f );
+
+	FRPhysicalLight_LightType lightType = GetLightType(t);
+	switch(lightType)
 	{
 		case FRPhysicalLight_SPOT:
 		{
-			DisplaySpotLight(t, vpt, m_isPreview, dirMesh, m_pblock);
+			float yonDist = GetSpotLightYon(t);
+			DisplaySpotLight(t, vpt, m_isPreview, yonDist, m_pblock);
 
 			break;
 		}
 
 		case FRPhysicalLight_POINT:
 		{
-			DrawSphere(vpt, 2.0f, dirMesh[0]);
-			DrawSphere(vpt, 4.0f, dirMesh[0]);
+			DrawSphere(vpt, 2.0f, centerPos);
+			DrawSphere(vpt, 4.0f, centerPos);
 
 			break;
 		}
 
 		case FRPhysicalLight_DIRECTIONAL:
 		{
-			if (m_isPreview)
-			{
-				DrawArrow(vpt, dirMesh[1], dirMesh[0]);
-			}
-			else
-			{
-				float length = Point3(dirMesh[1]).Length();
-				DrawArrow(vpt, Point3(0.0f, 0.0f, -length), dirMesh[0]);
-			}
+			float yonDist = GetSpotLightYon(t);
+			Point3 yonPos(0.0f,0.0f,-yonDist);
+			DrawArrow(vpt, yonPos, centerPos);
 
 			break;
 		}
 
 		case FRPhysicalLight_AREA:
 		{
-			success = DisplayAreaLight(t, vpt, m_isPreview, m_isTargetPreview, dirMesh, this);
+			Box3 bbox = GetAreaLightBoundBox(t);
+			centerPos = (bbox.pmax + bbox.pmin)/2.0f;
+			centerPos.z = 0;
+
+			FRPhysicalLight_AreaLight_LightShape mode = GetLightShapeMode(t);
+
+			if( isInitialPreview )
+			{
+				// Initial preview mode, draw a line from first click position to current mouse drag position
+				Point3 span = (GetSecondPoint(t)-GetLightPoint(t));
+				Point3 halfSpan = span/2.0f;
+				Point3 points[2];
+				points[0] = centerPos-halfSpan;
+				points[1] = centerPos+halfSpan;
+				vpt->getGW()->polyline(2, points, NULL, NULL, FALSE, NULL);
+				// ... And for cylinder, draw line from second click point to third one (cylinder height)
+				if ( mode==FRPhysicalLight_CYLINDER )
+				{
+					float height = (bbox.pmax.z - bbox.pmin.z);
+					points[0] = points[1];
+					points[1].z += height;
+					vpt->getGW()->polyline(2, points, NULL, NULL, FALSE, NULL); 
+				}
+			}
+
+			success = DisplayAreaLight( t, vpt, drawNormals, isUpright, bbox, this );
 
 			break;
 		}
 	}
 
-	// draw line to target
-	if (IsTargeted())
+	// Draw target: preview sphere during light creation, arrow otherwise
+	if (isDisplayTarget)
 	{
-		DisplayTarget(t, vpt, m_isPreview, m_isTargetPreview, this);
+		float targetDist = 0.0f;
+		if( isTargetPreview )
+			 targetDist = GetDist(t); // Preview mode, target node doesn't exist, but GetDist() is set
+		else targetDist = GetTargetDistance(t); // Regular mode, calculate distance from target node
+
+		targetDist  = -targetDist; // z-axis points opposite direction, away from target
+		targetDist /= LocalToWorldScaleZ( t, inode );
+
+		DisplayTarget(t, vpt, m_isPreview, centerPos, targetDist, this);
 	}
 
+	gw->setRndLimits(rlim);
 	return success;
 }
 
