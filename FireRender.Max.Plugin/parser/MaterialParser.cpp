@@ -20,6 +20,7 @@
 #include "FireRenderAddMtl.h"
 #include "FireRenderMicrofacetMtl.h"
 #include "FireRenderReflectionMtl.h"
+#include "FireRenderAmbientOcclusionMtl.h"
 #include "FireRenderArithmMtl.h"
 #include "FireRenderInputLUMtl.h"
 #include "FireRenderBlendValueMtl.h"
@@ -681,6 +682,8 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 
 	if (classId == FIRERENDER_ARITHMMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(ArithmMtl)*>(texmap)->getShader(mT, *this);
+	else if (classId == FIRERENDER_AMBIENTOCCLUSIONMTL_CID)
+		result = dynamic_cast<FRMTLCLASSNAME(AmbientOcclusionMtl)*>(texmap)->getShader(mT, *this);
 	else if (classId == FIRERENDER_INPUTLUMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(InputLUMtl)*>(texmap)->getShader(mT, *this);
 	else if (classId == FIRERENDER_BLENDVALUEMTL_CID)

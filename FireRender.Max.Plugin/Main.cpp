@@ -17,6 +17,7 @@
 #include "FireRenderAddMtl.h"
 #include "FireRenderMicrofacetMtl.h"
 #include "FireRenderReflectionMtl.h"
+#include "FireRenderAmbientOcclusionMtl.h"
 #include "FireRenderArithmMtl.h"
 #include "FireRenderInputLUMtl.h"
 #include "FireRenderBlendValueMtl.h"
@@ -273,6 +274,7 @@ EXPORT_TO_MAX int LibInitialize()
 	//gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(AddMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MicrofacetMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ReflectionMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(AmbientOcclusionMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ArithmMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(InputLUMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(BlendValueMtl)::ClassDescInstance);

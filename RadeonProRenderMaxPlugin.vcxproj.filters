@@ -322,6 +322,9 @@
     <ClInclude Include="FireRender.Components\cpp\SunPosition\SPA.h">
       <Filter>FireRender.Components\SunPosition</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAmbientOcclusionMtl.h">
+      <Filter>Plugin\materials</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -593,6 +596,9 @@
     </ClCompile>
     <ClCompile Include="FireRender.Components\cpp\SunPosition\SPA.cpp">
       <Filter>FireRender.Components\SunPosition</Filter>
+    </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAmbientOcclusionMtl.cpp">
+      <Filter>Plugin\materials</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

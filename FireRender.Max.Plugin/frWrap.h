@@ -115,6 +115,7 @@ namespace frw
 		ValueTypeLookup = RPR_MATERIAL_NODE_INPUT_LOOKUP,
 		ValueTypeBlend = RPR_MATERIAL_NODE_BLEND_VALUE,
 		ValueTypeFresnelSchlick = RPR_MATERIAL_NODE_FRESNEL_SCHLICK,
+		ValueTypeAOMap = RPR_MATERIAL_NODE_AO_MAP,
 	};
 
 	enum ShaderType
@@ -1469,6 +1470,14 @@ namespace frw
 			node.SetValue("color0", a);
 			node.SetValue("color1", b);
 			node.SetValue("weight", t);
+			return node;
+		}
+
+		Value ValueAmbientOcclusion( const Value& radius, const Value& side) const
+		{
+			ValueNode node(*this, ValueTypeAOMap);
+			node.SetValue("radius", radius);
+			node.SetValue("side", side);
 			return node;
 		}
 
