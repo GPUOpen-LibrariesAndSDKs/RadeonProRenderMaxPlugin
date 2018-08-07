@@ -139,6 +139,8 @@ const Class_ID FIRERENDER_PBRMTL_CID(0x162a1228, 0x753a0690);
 const Class_ID FIRERENDER_SCMTL_CID(0x7b696b89, 0x43032fb6);
 /// Class ID of the Radeon ProRender custom Colour Correction material node
 const Class_ID FIRERENDER_COLOURCORMTL_CID(0x4f9550e6, 0x756158db);
+/// Class ID of the Radeon ProRender custom Ambient Occlusion material node
+const Class_ID FIRERENDER_AMBIENTOCCLUSIONMTL_CID(0x1aa975a7, 0xed22891);
 
 // GUP singleton that manages legacy with old bg objects
 const Class_ID BGMANAGER_MAX_CLASSID(0x4069388a, 0x277a415f);

@@ -290,6 +290,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLight.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ManagerBase.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAmbientOcclusionMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderArithmMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAvgMtl.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendMtl.h" />
@@ -389,6 +390,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLightPBlock.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ManagerBase.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAddMtl.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAmbientOcclusionMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderArithmMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAvgMtl.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderBlendMtl.cpp" />
