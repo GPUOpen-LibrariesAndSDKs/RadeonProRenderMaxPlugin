@@ -248,7 +248,7 @@ public:
 		//Bottom Cap
 		for (int lon = 0; lon < nbLong; lon++)
 		{
-			// TODO: triangles is int32 but vsize is in64, change vsize to 32?
+			// TODO: triangles is int32 but vsize is int64, change vsize to 32?
 			triangles[i++] = int_cast(vsize - 1);
 			triangles[i++] = int_cast(vsize - (lon + 2) - 1);
 			triangles[i++] = int_cast(vsize - (lon + 1) - 1);

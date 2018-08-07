@@ -11,6 +11,7 @@
 #include "frWrap.h"
 #include "Common.h"
 #include <interactiverender.h>
+#include <ISceneEventManager.h>
 #include <RadeonProRender.h>
 #include "MaterialParser.h"
 #include "../utils/Thread.h"
@@ -26,6 +27,8 @@
 #include "plugin/light/physical/FireRenderPhysicalLight.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
+
+// #define USE_NODEEVENTSYSTEM  // disabled
 
 class SynchronizerBridge
 {
@@ -486,13 +489,107 @@ public:
 	}
 };
 
+class SynchronizerNodeEventCallback : public INodeEventCallback
+{
+	protected:
+		virtual void InsertRebuildCommand( INode *pNode ) = 0;
+		virtual void InsertAssignMatCommand( INode *pNode ) = 0;
+		virtual void InsertDeleteCommand( INode *pNode ) = 0;
+		virtual void InsertShowCommand( INode *pNode ) = 0;
+		virtual void InsertHideCommand( INode *pNode ) = 0;
+		virtual void InsertXformCommand( INode *pNode ) = 0;
+		virtual void InsertMatCommand( Mtl *pMat ) = 0;
+
+		virtual void InsertRebuildCommand( NodeKeyTab& nodes );
+		virtual void InsertAssignMatCommand( NodeKeyTab& nodes );
+		virtual void InsertAddCommand( NodeKeyTab& nodes );
+		virtual void InsertDeleteCommand( NodeKeyTab& nodes );
+		virtual void InsertShowHideCommand( NodeKeyTab& nodes );
+		virtual void InsertXformCommand( NodeKeyTab& nodes );
+		virtual void InsertMatCommand( NodeKeyTab& nodes );
+
+	public:
+		// ---------- Hierarchy Events ----------
+		//! \brief Nodes added to the scene
+		virtual void Added( NodeKeyTab& nodes )						{ InsertAddCommand(nodes); }
+		//! \brief Nodes deleted from the scene
+		virtual void Deleted( NodeKeyTab& nodes )					{ InsertDeleteCommand(nodes); }
+		//! \brief Node linked or unlinked from another parent node.
+		virtual void LinkChanged( NodeKeyTab& nodes )				{ InsertXformCommand(nodes); }
+		//! \brief Nodes added or removed from a layer, or moved between layers
+		virtual void LayerChanged( NodeKeyTab& nodes )				{}
+		//! \brief Nodes added or removed from a group, or its group was opened or closed
+		virtual void GroupChanged( NodeKeyTab& nodes )				{}
+		//! \brief All other change to the scene structure of nodes
+		virtual void HierarchyOtherEvent( NodeKeyTab& nodes )		{ InsertXformCommand(nodes); }
+
+		// ---------- Model Events ----------
+		//! \brief Nodes with modifiers added or deleted, or modifier stack branched
+		virtual void ModelStructured( NodeKeyTab& nodes )			{ InsertRebuildCommand(nodes); }
+		//! \brief Nodes changed in their geometry channel
+		virtual void GeometryChanged( NodeKeyTab& nodes )			{ InsertRebuildCommand(nodes); }
+		//! \brief Nodes changed in their topology channel
+		virtual void TopologyChanged( NodeKeyTab& nodes )			{ InsertRebuildCommand(nodes); }
+		//! \brief Nodes changed in their UV mapping channel, or vertex color channel.
+		virtual void MappingChanged( NodeKeyTab& nodes )			{ InsertRebuildCommand(nodes); }
+		//! \brief Nodes changed in any of their extention channels
+		virtual void ExtentionChannelChanged( NodeKeyTab& nodes )	{ InsertRebuildCommand(nodes); }
+		//! \brief All other change to the geometry or parameters of an object.
+		virtual void ModelOtherEvent( NodeKeyTab& nodes )			{ InsertRebuildCommand(nodes); }
+
+		// ---------- Material Events ----------
+		//! \brief Node materials applied, unapplied or switched, or sub-texture structure of materials changed
+		virtual void MaterialStructured( NodeKeyTab& nodes )		{ InsertAssignMatCommand(nodes); }
+		//! \brief All other change to the settings of a node's material.
+		virtual void MaterialOtherEvent( NodeKeyTab& nodes )		{ InsertMatCommand(nodes); }
+
+		// ---------- Controller Events ----------
+		//! \brief Node transform controllers applied, unapplied or switched.
+		virtual void ControllerStructured( NodeKeyTab& nodes )		{ InsertXformCommand(nodes); }
+		//! \brief All other changes to node transform controller values, including nodes moved/rotated/scaled, or transform animation keys set.
+		virtual void ControllerOtherEvent( NodeKeyTab& nodes )		{ InsertXformCommand(nodes); }
+
+		// ---------- Property Events ----------
+		//! \brief Node names changed.
+		virtual void NameChanged( NodeKeyTab& nodes )				{}
+		//! \brief Node wire color changed.
+		virtual void WireColorChanged( NodeKeyTab& nodes )			{ InsertMatCommand(nodes); }
+		//! \brief Node render-related object properties changed.
+		virtual void RenderPropertiesChanged( NodeKeyTab& nodes )	{ InsertRebuildCommand(nodes); }
+		//! \brief Node display-related object properties changed.
+		virtual void DisplayPropertiesChanged( NodeKeyTab& nodes )	{ InsertRebuildCommand(nodes); }
+		//! \brief Node used-defined object properties changed.
+		virtual void UserPropertiesChanged( NodeKeyTab& nodes )		{}
+		//! \brief All other changes to node property values.
+		virtual void PropertiesOtherEvent( NodeKeyTab& nodes )		{ InsertRebuildCommand(nodes); }
+
+		// ---------- Display/Interaction Events ----------
+		//! \brief Subobject selection changed.
+		virtual void SubobjectSelectionChanged( NodeKeyTab& nodes )	{}
+		//! \brief Nodes selected or deselected.
+		virtual void SelectionChanged( NodeKeyTab& nodes )			{}
+		//! \brief Nodes hidden or unhidden.
+		virtual void HideChanged( NodeKeyTab& nodes )				{ InsertShowHideCommand(nodes); }
+		//! \brief Nodes frozen or unfrozen.
+		virtual void FreezeChanged( NodeKeyTab& nodes )				{}
+		//! \brief All other display or interaction node events.
+		virtual void DisplayOtherEvent( NodeKeyTab& nodes )			{ InsertRebuildCommand(nodes); }
+
+		// ---------- Other callback methods ----------
+		//! \brief Called when messages are being triggered for the callback, before event methods
+		virtual void CallbackBegin()								{}
+		//! \brief Called when messages are being triggered for the callback, after all event methods
+		virtual void CallbackEnd()									{}
+
+};
+
 //////////////////////////////////////////////////////////////////////////////
 // Synchronizer is the main synchronization class. It tracks changes in the
 // scene and manages their effects on a running instance of RPR context.
 // It works in tandem with a rendering thread.
 //
 
-class Synchronizer : public ReferenceMaker
+class Synchronizer : public ReferenceMaker, public SynchronizerNodeEventCallback
 {
 friend class TMPropertyCallback;
 friend class BgPropertyCallback;
@@ -572,6 +669,7 @@ protected:
 	// change queues (commands)
 	SQueue mQueue;
 	SceneCallbacks callbacks;
+	SceneEventNamespace::CallbackKey mNodeEventCallbackKey;
 
 	// changes execution
 	PartID mNotifyLastPartID; // to disambiguate xform in NotifyRefChanged
