@@ -235,7 +235,9 @@ public:
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
 
 	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
-	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params) override;
+	void CreateSceneLight(
+		TimeValue t, const ParsedNode& node, frw::Scope scope,
+		SceneAttachCallback* sceneAttachCallback ) override;
 
 	float GetSpotLightYon(TimeValue t) const; // for spot and directional, distance to end of cone
 	bool GetAreaLightUpright(TimeValue t) const; // for cylinder area lights, whether shape topside is upward in local z-axis

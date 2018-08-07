@@ -21,7 +21,7 @@ FIRERENDER_NAMESPACE_BEGIN;
 // Builds a RPR light out of a MAX light
 //
 
-void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
+void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 {
 	// remove the light's counterpart from RPR scene (if exists)
 	auto ll = mLights.find(node);
@@ -188,9 +188,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -270,9 +268,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -395,9 +391,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -483,9 +477,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -571,9 +563,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -752,9 +742,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -825,9 +813,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -945,9 +931,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -1034,9 +1018,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 					mLightShapes.erase(ll);
 				mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
 
-				std::wstring name = node->GetName();
-				std::string name_s(name.begin(), name.end());
-				shape.SetName(name_s.c_str());
+				SetNameFromNode(node, shape);
 				mScope.GetScene().Attach(shape);
 
 				return;
@@ -1112,9 +1094,7 @@ void Synchronizer::RebuildLight(INode *node, Object *evaluatedObject)
 			mLights.erase(ll);
 		mLights.insert(std::make_pair(node, light));
 		
-		std::wstring name = node->GetName();
-		std::string name_s(name.begin(), name.end());
-		light->Get().SetName(name_s.c_str());
+		SetNameFromNode(node, light->Get());
 		mScope.GetScene().Attach(light->Get());
 	}
 
@@ -1226,9 +1206,7 @@ void Synchronizer::RebuildFRPortal(INode* node, Object* evaluatedObject)
 
 	shape.SetShadowFlag(false);
 
-	std::wstring name = node->GetName();
-	std::string name_s(name.begin(), name.end());
-	shape.SetName(name_s.c_str());
+	SetNameFromNode(node, shape);
 
 	auto pp = mPortals.find(node);
 	if (pp != mPortals.end())

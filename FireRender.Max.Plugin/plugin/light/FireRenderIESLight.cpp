@@ -1083,9 +1083,11 @@ void FireRenderIESLight::EndEditParams(IObjParam* objParam, ULONG flags, Animata
 	parametersCacheEnabled = false;
 }
 
-void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
+void FireRenderIESLight::CreateSceneLight(
+	TimeValue t, const ParsedNode& node, frw::Scope scope,
+	SceneAttachCallback* sceneAttachCallback)
 {
-	if (!ProfileIsSelected(params.t))
+	if (!ProfileIsSelected(t))
 	{
 		MessageBox(
 			GetCOREInterface()->GetMAXHWnd(),
@@ -1096,14 +1098,14 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 		return;
 	}
 
-	if (!GetEnabled(params.t))
+	if (!GetEnabled(t))
 	{
 		return;
 	}
 
 	// create light
 	frw::IESLight light = scope.GetContext().CreateIESLight();
-	const TCHAR* activeProfile = GetActiveProfile(params.t);
+	const TCHAR* activeProfile = GetActiveProfile(t);
 
 	// Load profile
 	{
@@ -1157,8 +1159,8 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	}
 
 	// setup color & intensity
-	Color color = GetFinalColor(params.t);
-	float intensity = GetIntensity(params.t);
+	Color color = GetFinalColor(t);
+	float intensity = GetIntensity(t);
 	// - convert physical values
 	intensity *= ((intensity / 682.069f) / 683.f) / 2.5f;
 	color *= intensity;
@@ -1169,7 +1171,7 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	Matrix3 tm = node.tm; // INode* inode = FindNodeRef(this); inode->GetObjectTM(0); <= this method doesn't take masterScale into acount, thus returns wrong transform!
 
 	Matrix3 localRot;
-	float angles[3] = { GetRotationX(params.t)*DEG_TO_RAD, GetRotationY(params.t)*DEG_TO_RAD, GetRotationZ(params.t)*DEG_TO_RAD };
+	float angles[3] = { GetRotationX(t)*DEG_TO_RAD, GetRotationY(t)*DEG_TO_RAD, GetRotationZ(t)*DEG_TO_RAD };
 	EulerToMatrix(angles, localRot, EULERTYPE_XYZ);
 		
 	tm = localRot * tm;
@@ -1178,6 +1180,10 @@ void FireRenderIESLight::CreateSceneLight(const ParsedNode& node, frw::Scope sco
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
 	
+	// additional handling, before attach to scene
+	if( sceneAttachCallback!=NULL )
+		sceneAttachCallback->PreSceneAttachLight(light,node.node);
+
 	// pass this matrix to renderer
 	light.SetTransform(frTm, false);
 

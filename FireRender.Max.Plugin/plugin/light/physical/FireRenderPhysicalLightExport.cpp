@@ -585,7 +585,9 @@ Color FireRenderPhysicalLight::GetLightColour(void) const
 	return colour;
 }
 
-void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params)
+void FireRenderPhysicalLight::CreateSceneLight(
+	TimeValue t, const ParsedNode& node, frw::Scope scope,
+	SceneAttachCallback* sceneAttachCallback )
 {
 	// back-off
 	if (!IsEnabled())
@@ -607,8 +609,6 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 	// - create RPR matrix
 	float frTm[16];
 	CreateFrMatrix(fxLightTm(tm), frTm);
-
-	TimeValue t = GetCOREInterface()->GetTime();
 
 	// intensity
 	float watts = GetIntensity();
@@ -748,9 +748,9 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 
 			// attach to scene
 			shape.SetTransform(frTm, false);
-			std::wstring name = thisNode->GetName();
-			std::string name_s(name.begin(), name.end());
-			shape.SetName(name_s.c_str());
+			if( sceneAttachCallback!=nullptr )
+				sceneAttachCallback->PreSceneAttachLight( shape, node.node );
+			SetNameFromNode(node.node, shape);
 			scope.GetScene().Attach(shape);
 			break;
 		}
@@ -785,9 +785,11 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 
 			frw::Light light(fireLight, context);
 			light.SetTransform(frTm, false);
-			std::wstring name = thisNode->GetName();
-			std::string name_s(name.begin(), name.end());
-			light.SetName(name_s.c_str());
+
+			// attach to scene
+			if( sceneAttachCallback!=nullptr )
+				sceneAttachCallback->PreSceneAttachLight( light, node.node );
+			SetNameFromNode(node.node, light);
 			scope.GetScene().Attach(light);
 
 			break;
@@ -799,9 +801,11 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 			colour *= watts;
 			light.SetRadiantPower(colour.r, colour.g, colour.b);
 			light.SetTransform(frTm, false);
-			std::wstring name = thisNode->GetName();
-			std::string name_s(name.begin(), name.end());
-			light.SetName(name_s.c_str());
+
+			// attach to scene
+			if( sceneAttachCallback!=nullptr )
+				sceneAttachCallback->PreSceneAttachLight( light, node.node );
+			SetNameFromNode(node.node, light);
 			scope.GetScene().Attach(light);
 
 			break;
@@ -813,9 +817,11 @@ void FireRenderPhysicalLight::CreateSceneLight(const ParsedNode& node, frw::Scop
 			colour *= watts;
 			light.SetRadiantPower(colour.r, colour.g, colour.b);
 			light.SetTransform(frTm, false);
-			std::wstring name = thisNode->GetName();
-			std::string name_s(name.begin(), name.end());
-			light.SetName(name_s.c_str());
+
+			// attach to scene
+			if( sceneAttachCallback!=nullptr )
+				sceneAttachCallback->PreSceneAttachLight( light, node.node );
+			SetNameFromNode(node.node, light);
 			scope.GetScene().Attach(light);
 
 			break;
