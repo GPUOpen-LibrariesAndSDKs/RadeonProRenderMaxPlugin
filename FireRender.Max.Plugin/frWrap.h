@@ -700,7 +700,7 @@ namespace frw
 	public:
 		Shape(rpr_shape h, const Context &context, bool destroyOnDelete = true) : Object(h, context, destroyOnDelete, new Data()) {}
 
-		void SetShader(Shader& shader);
+		void SetShader(Shader& shader,bool commit=true);
 		Shader GetShader() const;
 
 		void SetVolumeShader(const Shader& shader);
@@ -2177,7 +2177,17 @@ namespace frw
 			return data().bDirty;
  		}
 
-		void AttachToShape(Shape::Data& shape)
+		void Commit()
+		{
+			Data& d = data();
+			if(d.material)
+			{
+				rpr_int res = rprxMaterialCommit(d.context, d.material);
+				FCHECK(res);
+			}
+		}
+
+		void AttachToShape(Shape::Data& shape, bool commit=true)
 		{
 			Data& d = data();
 			d.numAttachedShapes++;
@@ -2187,7 +2197,8 @@ namespace frw
 				DebugPrint(L"\tShape.AttachMaterial: shape=%08X x_material=%08X\n", shape.Handle(), d.material);
 				res = rprxShapeAttachMaterial(d.context, shape.Handle(), d.material);
 				FCHECK(res);
-				res = rprxMaterialCommit(d.context, d.material);
+				if( commit )
+					res = rprxMaterialCommit(d.context, d.material);
 				FCHECK(res);
 
 				if (d.isShadowCatcher)
@@ -2481,7 +2492,7 @@ namespace frw
 		}
 	}
 
-	inline void Shape::SetShader(Shader& shader)
+	inline void Shape::SetShader(Shader& shader,bool commit)
 	{
 		if (Shader old = GetShader())
 		{
@@ -2494,7 +2505,7 @@ namespace frw
 
 		AddReference(shader);
 		data().shader = shader;
-		shader.AttachToShape(data());
+		shader.AttachToShape(data(),commit);
 	}
 
 	inline Shader Shape::GetShader() const

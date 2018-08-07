@@ -22,6 +22,8 @@
 #include <memory>
 #include <FrScope.h>
 #include "SceneCallbacks.h"
+#include "plugin/light/FireRenderIESLight.h"
+#include "plugin/light/physical/FireRenderPhysicalLight.h"
 
 FIRERENDER_NAMESPACE_BEGIN;
 
@@ -495,6 +497,15 @@ class Synchronizer : public ReferenceMaker
 friend class TMPropertyCallback;
 friend class BgPropertyCallback;
 friend class ParamsTracker;
+private:
+	class ActiveShadeAttachCallback : public SceneAttachCallback
+	{
+	public:
+		Synchronizer* mSynch;
+		ActiveShadeAttachCallback( Synchronizer* synch ) : mSynch(synch) {}
+		void PreSceneAttachLight( frw::Shape& shape, INode* node );
+		void PreSceneAttachLight( frw::Light& light, INode* node );
+	};
 protected:
 	// general
 	frw::Scope mScope;
@@ -635,7 +646,7 @@ protected:
 	std::vector<frw::Shape> parseMesh(INode* inode, Object* evaluatedObject, const int numSubmtls, size_t& meshFaces, bool flipFaces);
 	void DeleteGeometry(INode *instance);
 	void RebuildGeometry(const std::list<INode *> &instances);
-	void RebuildLight(INode *light, Object *obj);
+	void RebuildMaxLight(INode *light, Object *obj);
 	void AddDefaultLights();
 	void RemoveDefaultLights();
 	bool ResetMaterial(INode *node); // returns false if the node needs rebuilding

@@ -31,6 +31,28 @@ FIRERENDER_NAMESPACE_BEGIN;
 // THIS SECTION DEALS WITH TRACKING SCENE OBJECTS AND THEIR CHANGES
 //
 
+// Helper class: ActiveShadeAttachCallback
+void Synchronizer::ActiveShadeAttachCallback::PreSceneAttachLight( frw::Shape& shape, INode* node )
+{
+	auto ll = mSynch->mLightShapes.find(node);
+	if (ll != mSynch->mLightShapes.end())
+	{
+		mSynch->mScope.GetScene().Detach(ll->second->Get());
+		mSynch->mLightShapes.erase(ll);
+	}
+	mSynch->mLightShapes.insert(std::make_pair(node, new SShape(shape, node)));
+}
+void Synchronizer::ActiveShadeAttachCallback::PreSceneAttachLight( frw::Light& light, INode* node )
+{
+	auto ll = mSynch->mLights.find(node);
+	if (ll != mSynch->mLights.end())
+	{
+		mSynch->mScope.GetScene().Detach(ll->second->Get());
+		mSynch->mLights.erase(ll);
+	}
+	mSynch->mLights.insert(std::make_pair(node, new SLight(light, node)));
+}
+
 void Synchronizer::NotifyProc(void *param, NotifyInfo *info)
 {
 	Synchronizer *synch = reinterpret_cast<Synchronizer*>(param);
@@ -172,13 +194,22 @@ void Synchronizer::MakeInitialReferences(ReferenceTarget* ref)
 	}
 	else if (auto r = dynamic_cast<MtlBase*>(ref))
 	{
+		// TODO: Improve caching and reduce overhead for materials used multiple times in scene.
+		// Debugging suggests performance problems with redundant material processing.
 		AddReference(r);
 		if (r->IsMultiMtl())
 		{
-			for (int i = 0; i < reinterpret_cast<Mtl*>(r)->NumSubMtls(); i++)
+			Mtl* mtl = reinterpret_cast<Mtl*>(r);
+			// Remove from list of multi-materials.  Otherwise entries are redundantly populated,
+			// and synchronizer believes multi-materials have more submaterials than in reality
+			auto iter = mMultiMats.find(mtl);
+			if (iter != mMultiMats.end())
+				mMultiMats.erase(mtl);
+
+			for (int i = 0; i < mtl->NumSubMtls(); i++)
 			{
-				auto sub = reinterpret_cast<Mtl*>(r)->GetSubMtl(i);
-				mMultiMats[reinterpret_cast<Mtl*>(r)].push_back(sub);
+				auto sub = mtl->GetSubMtl(i);
+				mMultiMats[mtl].push_back(sub);
 				MakeInitialReferences(sub);
 			}
 		}
@@ -818,7 +849,9 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 		ClearEvent = true;
 
 	// check wether we need default light(s)
-	bool hasLightSources = (!synch->mBgLight.empty()) || (!synch->mEmissives.empty()) || (!synch->mLights.empty());
+	bool hasLightSources =
+		(!synch->mBgLight.empty()) || (!synch->mEmissives.empty()) ||
+		(!synch->mLights.empty()) || (!synch->mLightShapes.empty());
 	bool removeDefaultLights = false;
 	bool addDefaultLights = false;
 	if (synch->mUsingDefaultLights && hasLightSources)
@@ -895,13 +928,28 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 							instances[handle].push_back(node);
 						}
 					}
+					else if ((classId == FireRenderIESLight::GetClassId()) || 
+							(classId == FIRERENDER_PHYSICALLIGHT_CLASS_ID))
+					{
+						FireRenderLight* light = dynamic_cast<FireRenderLight*>(state.obj);
+						if (light && light->GetUseLight())
+						{
+							ActiveShadeAttachCallback callback(synch);
+							TimeValue t = synch->mBridge->t();
+							auto tm = node->GetObjTMAfterWSM(t);
+							tm.SetTrans(tm.GetTrans() * synch->mMasterScale);
+							size_t id = 0;
+							ParsedNode parsedNode(id,node,tm);
+							light->CreateSceneLight( t, parsedNode, synch->mScope, &callback );
+						}
+					}
 					else if ((sClassId == LIGHT_CLASS_ID) && (classId != Corona::LIGHT_CID) && (classId != FIRERENDER_ENVIRONMENT_CLASS_ID)
 						&& (classId != FIRERENDER_ANALYTICALSUN_CLASS_ID) && (classId != FIRERENDER_PORTALLIGHT_CLASS_ID))
 					{
 						if (synch->mBridge->GetProgressCB())
 							synch->mBridge->GetProgressCB()->SetTitle(_T("Synchronizing: Rebuilding Light"));
 						// A general light object, but not Corona Light (which we parse as a geometry)
-						synch->RebuildLight(node, state.obj);
+						synch->RebuildMaxLight(node, state.obj);
 					}
 					else if (classId == Corona::SUN_OBJECT_CID)
 					{

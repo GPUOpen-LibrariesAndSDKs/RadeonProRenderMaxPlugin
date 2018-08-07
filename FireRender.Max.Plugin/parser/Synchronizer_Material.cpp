@@ -53,6 +53,7 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 		if (vv != mVolumeShaderCache.end())
 			mVolumeShaderCache.erase(vv);
 
+		bool rebuildingObject = false;
 		if (pMat->IsMultiMtl())
 		{
 			auto ii = mMultiMats.find(pMat);
@@ -69,11 +70,11 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 					ii->second.clear();
 					for (int i = 0; i < pMat->NumSubMtls(); i++)
 						ii->second.push_back(pMat->GetSubMtl(i));
-					return;
+					rebuildingObject = true;
 				}
-				
+
 				// same number of sub mtls
-				for (int i = 0; i < ii->second.size(); i++)
+				for (int i = 0; (i < ii->second.size()) && !rebuildingObject; i++)
 				{
 					Mtl *prev = ii->second[i];
 					if (i < pMat->NumSubMtls())
@@ -92,6 +93,7 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 										nodesToRebuild.push_back(pNode);
 								}
 							}
+							rebuildingObject = true;
 						}
 					}
 				}
@@ -105,8 +107,8 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 				}
 				// maybe this material went from single mat to multi mat
 				RebuildUsersOfMaterial(pMat, nodesToRebuild);
+				rebuildingObject = true;
 			}
-			return;
 		}
 		else
 		{
@@ -121,19 +123,34 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 					RebuildUsersOfMaterial(prev, nodesToRebuild);
 				}
 				mMultiMats.erase(ii);
-				return;
+				rebuildingObject = true;
 			}
 		}
-				
+
+		// Don't rebuild the material now if we've going to rebuild the whole object later
+		if( rebuildingObject )
+			return;
+
 		auto users = mMaterialUsers.find(pMat);
 		if (users != mMaterialUsers.end())
 		{
+			frw::Shader sharedShader;
+			bool sharedShaderCreated = false;
+			SShapePtr lastShape(nullptr);
+
 			for (auto shape : users->second)
 			{
 				INode *pNode = shape->mParent;
 				if (pNode)
 				{
-					frw::Shader shader = CreateShader(pMat, pNode, true);
+					if( (!sharedShader) || (!sharedShaderCreated) )
+					{
+						sharedShader = CreateShader(pMat, pNode, true);
+						sharedShaderCreated = true;
+						mShaderCache.insert(std::make_pair(pMat, sharedShader));
+					}
+					frw::Shader shader = sharedShader;
+
 					if (shader)
 					{
 						TimeValue t = mBridge->t();
@@ -210,9 +227,10 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 
 						// reassign the new shader
 
-						shape->Get().SetShader(shader);
+						// Set shader, but without a commit
+						shape->Get().SetShader(shader,false);
 
-						mShaderCache.insert(std::make_pair(pMat, shader));
+						lastShape = shape;
 
 						// reassign the new volume shader
 
@@ -228,6 +246,9 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 					}
 				}
 			}
+			// Perform a commit as the last step
+			if( sharedShaderCreated && (lastShape.get()!=nullptr) )
+				sharedShader.Commit();
 		}
 	}
 }

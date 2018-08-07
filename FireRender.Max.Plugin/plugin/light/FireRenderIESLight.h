@@ -95,7 +95,9 @@ public:
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
 
-	void CreateSceneLight(const ParsedNode& node, frw::Scope scope, const RenderParameters& params) override;
+	void CreateSceneLight(
+		TimeValue t, const ParsedNode& node, frw::Scope scope,
+		SceneAttachCallback* sceneAttachCallback ) override;
 	bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	bool CalculateLightRepresentation(const TCHAR* profileName);
 	bool CalculateBBox(void) override;

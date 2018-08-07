@@ -916,7 +916,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 			FireRenderLight* light = dynamic_cast<FireRenderLight*>(state.obj);
 			if (light && light->GetUseLight())
 			{
-				light->CreateSceneLight(actual, scope, params);
+				light->CreateSceneLight(params.t, actual, scope);
 			}
 		}
 		else if ((sClassId == LIGHT_CLASS_ID) && (classId != Corona::LIGHT_CID) && (classId != FIRERENDER_ENVIRONMENT_CLASS_ID) && (classId != FIRERENDER_ANALYTICALSUN_CLASS_ID) && (classId != FIRERENDER_PORTALLIGHT_CLASS_ID))

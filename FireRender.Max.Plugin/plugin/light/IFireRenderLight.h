@@ -14,7 +14,9 @@
 class IFireRenderLight
 {
 public:
-	virtual void CreateSceneLight(const FireRender::ParsedNode& node, frw::Scope scope, const FireRender::RenderParameters& params) = 0;
+	virtual void CreateSceneLight(
+		TimeValue t, const FireRender::ParsedNode& node, frw::Scope scope,
+		FireRender::SceneAttachCallback* sceneAttachCallback=NULL ) = 0;
 	virtual bool DisplayLight(TimeValue t, INode* inode, ViewExp *vpt, int flags) = 0;
 	virtual bool CalculateBBox(void) = 0;
 };

@@ -19,6 +19,8 @@ FIRERENDER_NAMESPACE_BEGIN;
 struct RenderParameters;
 class SceneCallbacks;
 
+void SetNameFromNode(INode* node, frw::Object& obj);
+
 /// Types of camera projection we recognize
 enum ProjectionType {
 	P_PERSPECTIVE,
@@ -349,5 +351,13 @@ public:
 	bool parseFRGround();
 };
 
+// Scene Attach Callback, handles additional operations when needed for frw::Scene::Attach()
+// Used for ActiveShade during scene export (translation)
+class SceneAttachCallback
+{
+	public:
+		virtual void PreSceneAttachLight( frw::Shape& shape, INode* node )=0;
+		virtual void PreSceneAttachLight( frw::Light& light, INode* node )=0;
+};
 
 FIRERENDER_NAMESPACE_END;
