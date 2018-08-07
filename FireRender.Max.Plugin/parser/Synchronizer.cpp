@@ -29,6 +29,59 @@ FIRERENDER_NAMESPACE_BEGIN;
 //////////////////////////////////////////////////////////////////////////////
 //
 // THIS SECTION DEALS WITH TRACKING SCENE OBJECTS AND THEIR CHANGES
+// Class SynchronizerNodeEventCallback
+//
+
+#define FOR_EACH_NODE(nodes)								\
+	INode* node;											\
+	for( int _index=0; _index<nodes.Count(); _index++ )		\
+		if( (node=NodeEventNamespace::GetNodeByKey(nodes[_index])) != NULL )
+
+void SynchronizerNodeEventCallback::InsertRebuildCommand( NodeKeyTab& nodes )
+{
+	FOR_EACH_NODE(nodes)
+		InsertRebuildCommand(node);
+}
+void SynchronizerNodeEventCallback::InsertAssignMatCommand( NodeKeyTab& nodes )
+{
+	FOR_EACH_NODE(nodes)
+		InsertAssignMatCommand(node);
+}
+void SynchronizerNodeEventCallback::InsertAddCommand( NodeKeyTab& nodes )
+{
+	FOR_EACH_NODE(nodes)
+		InsertRebuildCommand(node);
+}
+void SynchronizerNodeEventCallback::InsertDeleteCommand( NodeKeyTab& nodes )
+{
+	FOR_EACH_NODE(nodes)
+		InsertDeleteCommand(node);
+}
+void SynchronizerNodeEventCallback::InsertShowHideCommand( NodeKeyTab& nodes )
+{
+	FOR_EACH_NODE(nodes)
+	{
+		if( node->IsHidden() )
+			 InsertHideCommand(node);
+		else InsertShowCommand(node);
+	}
+}
+void SynchronizerNodeEventCallback::InsertXformCommand( NodeKeyTab& nodes )
+{
+	FOR_EACH_NODE(nodes)
+		InsertXformCommand(node);
+}
+void SynchronizerNodeEventCallback::InsertMatCommand( NodeKeyTab& nodes )
+{
+	FOR_EACH_NODE(nodes)
+		InsertMatCommand(node->GetMtl());
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// THIS SECTION DEALS WITH TRACKING SCENE OBJECTS AND THEIR CHANGES
+// Class Synchronizer
 //
 
 // Helper class: ActiveShadeAttachCallback
@@ -69,7 +122,7 @@ void Synchronizer::NotifyProc(void *param, NotifyInfo *info)
 	else if (info->intcode == NOTIFY_SCENE_ADDED_NODE)
 	{
 		INode *node = reinterpret_cast<INode *>(info->callParam);
-		synch->MakeInitialReferences(node);
+		synch->MakeInitialReferences(node); // Called whether or not using the NodeEventSystem
 		const ObjectState& state = node->EvalWorldState(synch->mBridge->t());
 		if (state.obj)
 		{
@@ -94,7 +147,9 @@ void Synchronizer::NotifyProc(void *param, NotifyInfo *info)
 			else
 				synch->InsertDeleteCommand(node);
 		}
+		#ifndef USE_NODEEVENTSYSTEM
 		synch->RemoveReference(node);
+		#endif // USE_NODEEVENTSYSTEM
 	}
 	else if (info->intcode == NOTIFY_FILE_PRE_SAVE_PROCESS)
 	{
@@ -181,7 +236,9 @@ void Synchronizer::MakeInitialReferences(ReferenceTarget* ref)
 				ntmMotion.SetTrans(ntmMotion.GetTrans() * masterScale);
 				output.back().tmMotion = ntmMotion;
 #endif
+				#ifndef USE_NODEEVENTSYSTEM
 				AddReference(node);
+				#endif // USE_NODEEVENTSYSTEM
 				InsertRebuildCommand(node);
 
 				MakeInitialReferences(node->GetMtl());
@@ -190,13 +247,17 @@ void Synchronizer::MakeInitialReferences(ReferenceTarget* ref)
 	}
 	else if (auto r = dynamic_cast<Object*>(ref))
 	{
+		#ifndef USE_NODEEVENTSYSTEM
 		AddReference(r);
+		#endif // USE_NODEEVENTSYSTEM
 	}
 	else if (auto r = dynamic_cast<MtlBase*>(ref))
 	{
 		// TODO: Improve caching and reduce overhead for materials used multiple times in scene.
 		// Debugging suggests performance problems with redundant material processing.
+		#ifndef USE_NODEEVENTSYSTEM
 		AddReference(r);
+		#endif // USE_NODEEVENTSYSTEM
 		if (r->IsMultiMtl())
 		{
 			Mtl* mtl = reinterpret_cast<Mtl*>(r);
@@ -230,11 +291,16 @@ Synchronizer::Synchronizer(frw::Scope scope, INode *pSceneINode, SynchronizerBri
 	, mToneMapperCallback(this)
 	, mBackgroundCallback(this)
 	, mParametersTracker(this)
+	, mNodeEventCallbackKey(-1)
 {
 	mtlParser.SetTimeValue(pBridge->t());
 	mtlParser.SetParamBlock(pBridge->GetPBlock());
 
-	MakeInitialReferences(pSceneINode);
+	MakeInitialReferences(pSceneINode); // Called whether or not using the NodeEventSystem
+
+	#ifdef USE_NODEEVENTSYSTEM
+	mNodeEventCallbackKey = GetISceneEventManager()->RegisterCallback( this );
+	#endif //USE_NODEEVENTSYSTEM
 
 	int res;
 	res = RegisterNotification(NotifyProc, this, NOTIFY_NODE_HIDE);
@@ -290,6 +356,10 @@ Synchronizer::~Synchronizer()
 	UnRegisterNotification(NotifyProc, this, NOTIFY_SCENE_PRE_DELETED_NODE);
 	UnRegisterNotification(NotifyProc, this, NOTIFY_FILE_PRE_SAVE_PROCESS);
 	UnRegisterNotification(NotifyProc, this, NOTIFY_FILE_POST_SAVE_PROCESS);
+
+	if( mNodeEventCallbackKey != -1 )
+		GetISceneEventManager()->UnRegisterCallback( mNodeEventCallbackKey );
+	mNodeEventCallbackKey = -1;
 }
 
 // utility: gets the node that references an object. If more nodes are referencing this object (instances)
@@ -825,6 +895,9 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 
 	if (!synch->mBridge->RenderThreadAlive())
 		return; // stop
+
+	if( synch->mNodeEventCallbackKey != -1 )
+		GetISceneEventManager()->TriggerMessages(synch->mNodeEventCallbackKey);
 
 	AutoTimerReset TimerReset(synch);
 				
