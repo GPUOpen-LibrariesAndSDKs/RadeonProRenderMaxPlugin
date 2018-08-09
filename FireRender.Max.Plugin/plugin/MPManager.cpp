@@ -127,7 +127,7 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 	unsigned int passesDone = 0;
 	unsigned int passLimit = GetFromPb<int>(parameters.pblock, PARAM_MTL_PREVIEW_PASSES);
 
-	const unsigned int maxReasonablePassesCount = 16;
+	const unsigned int maxReasonablePassesCount = 64;
 
 	if (passLimit > maxReasonablePassesCount)
 		passLimit = maxReasonablePassesCount;
@@ -332,15 +332,18 @@ void MPManagerMax::SetMaterial(SceneParser &parser, frw::Shader volumeShader, fr
 	case ObjCylinder:
 		scope.GetShape(CylinderShape).SetShadowFlag(castShadows);
 		break;
+
 	case ObjCube:
 		scope.GetShape(CubeShape).SetShadowFlag(castShadows);
 		break;
+
 	case ObjMatball:
 		for (auto shapeId : { BallShape1, BallShape2, BallShape3 })
-	{
+		{
 			scope.GetShape(shapeId).SetShadowFlag(castShadows);
 		}
 		break;
+
 	case ObjSphere:
 		scope.GetShape(SphereShape).SetShadowFlag(castShadows);
 		break;
@@ -353,71 +356,58 @@ void MPManagerMax::SetMaterial(SceneParser &parser, frw::Shader volumeShader, fr
 		scope.GetShape(BackgroundShape).SetShader(bgtextured);
 	}
 	else
-		{
+	{
 		auto bgdiffuse = scope.GetShader(DiffuseMaterial);
 		scope.GetShape(BackgroundShape).SetShader(bgdiffuse);
 	}
-		}
+}
 
 void MPManagerMax::SetDisplacement(SceneParser &parser, frw::Value img, const float &minHeight, const float &maxHeight,
 	const float &subdivision, const float &creaseWeight, int boundary)
 {
 	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
 
-	if (img)
+	static std::map<int, std::vector<ShapeKeys>> objToShapes =
 	{
-			switch (curObject)
-			{
-			case ObjCylinder:
-				scope.GetShape(CylinderShape).SetDisplacement(img, minHeight, maxHeight);
-				scope.GetShape(CylinderShape).SetSubdivisionFactor(subdivision);
-				scope.GetShape(CylinderShape).SetSubdivisionCreaseWeight(creaseWeight);
-				scope.GetShape(CylinderShape).SetSubdivisionBoundaryInterop(boundary);
-				break;
-			case ObjCube:
-				scope.GetShape(CubeShape).SetDisplacement(img, minHeight, maxHeight);
-				scope.GetShape(CubeShape).SetSubdivisionFactor(subdivision);
-				scope.GetShape(CubeShape).SetSubdivisionCreaseWeight(creaseWeight);
-				scope.GetShape(CubeShape).SetSubdivisionBoundaryInterop(boundary);
-				break;
-			case ObjMatball:
-				for (auto shapeId : { BallShape1, BallShape2, BallShape3 })
-				{
-					scope.GetShape(shapeId).SetDisplacement(img, minHeight, maxHeight);
-					scope.GetShape(shapeId).SetSubdivisionFactor(subdivision);
-					scope.GetShape(shapeId).SetSubdivisionCreaseWeight(creaseWeight);
-					scope.GetShape(shapeId).SetSubdivisionBoundaryInterop(boundary);
-				}
-				break;
-			case ObjSphere:
-				scope.GetShape(SphereShape).SetDisplacement(img, minHeight, maxHeight);
-				scope.GetShape(SphereShape).SetSubdivisionFactor(subdivision);
-				scope.GetShape(SphereShape).SetSubdivisionCreaseWeight(creaseWeight);
-				scope.GetShape(SphereShape).SetSubdivisionBoundaryInterop(boundary);
-				break;
-			}
+		{ ObjCylinder,  { CylinderShape } },
+		{ ObjCube,      { CubeShape } },
+		{ ObjSphere,    { SphereShape } },
+		{ ObjMatball,   { BallShape1, BallShape2, BallShape3 } },
+	};
+
+	if ( objToShapes.find(curObject) == objToShapes.end() )
+		return;
+
+#define DISABLE_PREVIEW_DISPLACEMENT
+
+#ifdef DISABLE_PREVIEW_DISPLACEMENT
+	for (ShapeKeys shapeId : objToShapes[curObject])
+	{
+		frw::Shape shape = scope.GetShape(shapeId);
+
+		auto res = rprShapeSetDisplacementMaterial(shape.Handle(), nullptr);
+		FCHECK(res);
+		res = rprShapeSetSubdivisionFactor(shape.Handle(), 0);
+		FCHECK(res);
+	}
+#else
+	for (ShapeKeys shapeId : objToShapes[curObject])
+	{
+		frw::Shape shape = scope.GetShape(shapeId);
+
+		if (img)
+		{
+			shape.SetDisplacement(img, minHeight, maxHeight);
+			shape.SetSubdivisionFactor(subdivision);
+			shape.SetSubdivisionCreaseWeight(creaseWeight);
+			shape.SetSubdivisionBoundaryInterop(boundary);
 		}
 		else
-	{
-		switch (curObject)
 		{
-		case ObjCylinder:
-			scope.GetShape(CylinderShape).RemoveDisplacement();
-			break;
-		case ObjCube:
-			scope.GetShape(CubeShape).RemoveDisplacement();
-			break;
-		case ObjMatball:
-			for (auto shapeId : { BallShape1, BallShape2, BallShape3 })
-			{
-				scope.GetShape(shapeId).RemoveDisplacement();
-			}
-			break;
-		case ObjSphere:
-			scope.GetShape(SphereShape).RemoveDisplacement();
-			break;
+			shape.RemoveDisplacement();
 		}
 	}
+#endif
 }
 
 void MPManagerMax::ResetMaterial()
@@ -447,15 +437,18 @@ void MPManagerMax::setVisible(int whichObject)
 	case ObjCylinder:
 		scope.GetShape(CylinderShape).SetVisibility(true);
 		break;
+
 	case ObjCube:
 		scope.GetShape(CubeShape).SetVisibility(true);
 		break;
+
 	case ObjMatball:
 		for (auto shapeId : { BallShape1, BallShape2, BallShape3 })
 		{
 			scope.GetShape(shapeId).SetVisibility(true);
 		}
 		break;
+
 	case ObjSphere:
 		scope.GetShape(SphereShape).SetVisibility(true);
 		break;

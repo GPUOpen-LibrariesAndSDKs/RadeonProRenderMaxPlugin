@@ -664,7 +664,6 @@ frw::Shader FRMTLCLASSNAME(UberMtlv2)::getVolumeShader(const TimeValue t, Materi
 
 frw::Shader FRMTLCLASSNAME(UberMtlv2)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
-	auto ms = mtlParser.materialSystem;
 	frw::Scope& scope = mtlParser.GetScope();
 
 	frw::Shader shader(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);

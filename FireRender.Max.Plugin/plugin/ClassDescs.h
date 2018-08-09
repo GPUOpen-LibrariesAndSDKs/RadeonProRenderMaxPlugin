@@ -113,6 +113,59 @@ public:\
 #define END_DECLARE_FRMTLCLASSDESC()\
 };
 
+#define BEGIN_DECLARE_FRMTLCLASSDESC_OBSOLETE(NAME, MNEM_NAME, ID)\
+\
+class FRMTLCLASSBROWSERENTRYNAME(NAME) : public IMaterialBrowserEntryInfo\
+{\
+public:\
+	static FRMTLCLASSBROWSERENTRYNAME(NAME) mInstance; \
+public:\
+	FRMTLCLASSBROWSERENTRYNAME(NAME)() {\
+	}\
+	~FRMTLCLASSBROWSERENTRYNAME(NAME)() {\
+	}\
+	virtual const MCHAR* GetEntryName() const override {\
+	return NULL; \
+	}\
+	virtual const MCHAR *GetEntryCategory() const override {\
+			return _T("Materials\\Radeon ProRender"); \
+	}\
+	virtual Bitmap *GetEntryThumbnail() const override; \
+	virtual bool  HasEntryThumbnail() const;\
+}; \
+\
+class FireRenderClassDesc##NAME : public FireRenderClassDescBase { \
+public:\
+	int IsPublic() override {\
+		return 0;\
+	}\
+	BOOL NeedsToSave() override {\
+		return FALSE;\
+	}\
+	HINSTANCE HInstance() override {\
+		FASSERT(fireRenderHInstance != NULL);\
+		return fireRenderHInstance;\
+	}\
+	const TCHAR* InternalName() override {\
+		return MNEM_NAME;\
+	}\
+	const TCHAR * ClassName() override {\
+		return InternalName();\
+	}\
+	SClass_ID SuperClassID() override {\
+		return MATERIAL_CLASS_ID;\
+	}\
+	Class_ID ClassID() override {\
+		return ID;\
+	}\
+	const TCHAR* Category() override {\
+		return _T("Radeon ProRender");\
+	}\
+	void* Create(BOOL loading) override;\
+	virtual FPInterface* GetInterface(Interface_ID id) override;
+
+#define END_DECLARE_FRMTLCLASSDESC()\
+};
 
 #define BEGIN_DECLARE_FRTEXCLASSDESC(NAME, MNEM_NAME, ID)\
 \
@@ -188,7 +241,6 @@ bool  FRMTLCLASSBROWSERENTRYNAME(NAME)::HasEntryThumbnail() const {\
 \
 	return FRMTLCLASSNAME(NAME)::ClassDescInstance.HasEntryThumbnail(); \
 }
-
 
 /// The autotesting tool utility plugin
 class AutoTestingClassDesc : public ClassDesc2 {
