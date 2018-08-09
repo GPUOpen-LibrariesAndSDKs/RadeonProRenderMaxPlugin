@@ -40,6 +40,7 @@
 #include "FireRenderFresnelSchlickMtl.h"
 #include "FireRenderUberMtl.h"
 #include "FireRenderUberMtlv2.h"
+#include "FireRenderUberMtlv3.h"
 #include "FireRenderVolumeMtl.h"
 #include "FireRenderPbrMtl.h"
 #include "FireRenderShadowCatcherMtl.h"
@@ -828,6 +829,13 @@ frw::Shader MaterialParser::findVolumeMaterial(Mtl* mat)
 		if (res)
 			return res;
 	}
+	else if (mat->ClassID() == FIRERENDER_UBERMTLV3_CID)
+	{
+		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(UberMtlv3)*>(mat)->getVolumeShader(mT, *this, 0);
+
+		if (res)
+			return res;
+	}
 	else if (mat->ClassID() == FIRERENDER_PBRMTL_CID)
 	{
 		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(mat)->getVolumeShader(mT, *this, 0);
@@ -1057,6 +1065,9 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 			}
 			else if (cid == FIRERENDER_UBERMTLV2_CID) {
 				shader = dynamic_cast<FRMTLCLASSNAME(UberMtlv2)*>(material)->getShader(mT, *this, node);
+			}
+			else if (cid == FIRERENDER_UBERMTLV3_CID) {
+				shader = dynamic_cast<FRMTLCLASSNAME(UberMtlv3)*>(material)->getShader(mT, *this, node);
 			}
 			else if (cid == FIRERENDER_PBRMTL_CID) {
 				shader = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(material)->getShader(mT, *this, node);

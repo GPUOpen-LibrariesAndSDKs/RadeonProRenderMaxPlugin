@@ -133,6 +133,8 @@ const Class_ID FIRERENDER_MATERIALMTL_CID(0x4969393f, 0x31fd5cb3);
 const Class_ID FIRERENDER_UBERMTL_CID(0x2acc79c5, 0x314e0f46);
 /// Class ID of the Radeon ProRender custom Uber material v2 node
 const Class_ID FIRERENDER_UBERMTLV2_CID(0x358559fe, 0x22231035);
+/// Class ID of the Radeon ProRender custom Uber material v3 node
+const Class_ID FIRERENDER_UBERMTLV3_CID(0x16345e69, 0x7c213ca1);
 /// Class ID of the Radeon ProRender custom Volume material node
 const Class_ID FIRERENDER_VOLUMEMTL_CID(0x716a2426, 0x37252fc1);
 /// Class ID of the Radeon ProRender custom PBR material node

@@ -152,7 +152,7 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
     p_range, 1, 4, p_default, 1, PB_END,
 
     PARAM_MTL_PREVIEW_PASSES, _T("mtlPreviewPasses"), TYPE_INT, 0, 0,
-    p_range, 1, 10000, p_default, 10, PB_END,
+    p_range, 1, 10000, p_default, 32, PB_END,
 
     PARAM_INTERACTIVE_MODE, _T("interactiveMode"), TYPE_BOOL, P_ANIMATABLE | P_INVISIBLE | P_OBSOLETE, 0,
     p_default, TRUE, PB_END,

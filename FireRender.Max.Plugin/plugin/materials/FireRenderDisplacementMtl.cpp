@@ -13,6 +13,7 @@
 #include "FireRenderMaterialMtl.h"
 #include "FireRenderUberMtl.h"
 #include "FireRenderUberMtlv2.h"
+#include "FireRenderUberMtlv3.h"
 #include "plugin/ParamBlock.h"
 #include "utils/Utils.h"
 
@@ -44,7 +45,8 @@ static ParamBlockDesc2 pbDesc(
 	p_default, 0.f, p_range, 0.f, 9999999.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_DISPLACEMENT_CREASEWEIGHT, IDC_DISPLACEMENT_CREASEWEIGHT_S, SPIN_AUTOSCALE, PB_END,
 
 	FRDisplacementMtl_BOUNDARY, _T("Boundary"), TYPE_INT, P_ANIMATABLE, 0,
-	p_default, RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_AND_CORNER, p_ui, TYPE_INT_COMBOBOX, IDC_DISPLACEMENT_BOUNDARY, 2, IDS_STRING268, IDS_STRING269,
+	p_default, RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_AND_CORNER, p_ui, TYPE_INT_COMBOBOX, IDC_DISPLACEMENT_BOUNDARY, 2,
+		IDS_SUBDIV_BOUNDARY_INTEROP_EDGE, IDS_SUBDIV_BOUNDARY_INTEROP_EDGE_AND_CORNER,
 	p_vals, RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_ONLY, RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_AND_CORNER, PB_END,
 
     PB_END
@@ -109,6 +111,11 @@ Texmap *FRMTLCLASSNAME(DisplacementMtl)::findDisplacementMap(const TimeValue t, 
 	else if (material->ClassID() == FIRERENDER_UBERMTLV2_CID)
 	{
 		displacementMap = GetFromPb<Texmap*>(pb, FRUBERMTLV2_MAT_DISPLACE_MAP, t);
+	}
+	else if (material->ClassID() == FIRERENDER_UBERMTLV3_CID)
+	{
+		// TODO
+		// displacementMap = GetFromPb<Texmap*>(pb, FRUBERMTLV3_XXXXX_DISPLACE_MAP, t);
 	}
 	else if (StdMat2 *stdmat = dynamic_cast<StdMat2*>(material))
 	{

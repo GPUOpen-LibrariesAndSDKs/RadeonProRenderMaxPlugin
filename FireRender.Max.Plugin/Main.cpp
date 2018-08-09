@@ -38,6 +38,7 @@
 #include "FireRenderMaterialMtl.h"
 #include "FireRenderUberMtl.h"
 #include "FireRenderUberMtlv2.h"
+#include "FireRenderUberMtlv3.h"
 #include "FireRenderVolumeMtl.h"
 #include "FireRenderPbrMtl.h"
 #include "FireRenderShadowCatcherMtl.h"
@@ -220,8 +221,8 @@ EXPORT_TO_MAX int LibInitialize()
 	{
 		{ L"Tahoe64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"RadeonProRender64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
-		{ L"RprLoadStore64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"RprSupport64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"RprLoadStore64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL }, // Dependent on "RprSupport64.dll"
 		{ L"OpenImageIO_RPR.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 
 		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
@@ -230,9 +231,9 @@ EXPORT_TO_MAX int LibInitialize()
 		{ L"tbb.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"tbbmalloc.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 
-		{ L"AxfConverter.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
-		{ L"AxFDecoding_r.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
 		{ L"FreeImage.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
+		{ L"AxFDecoding_r.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
+		{ L"AxfConverter.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL }, // Dependent on "AxFDecoding_r.dll" and "FreeImage.dll"
 		
 		{ L"ProRenderGLTF.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
 	};
@@ -298,9 +299,10 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DisplacementMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(NormalMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(MaterialMtl)::ClassDescInstance);
-    //gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtl)::ClassDescInstance);
+    gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtlv2)::ClassDescInstance);
-    gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(VolumeMtl)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(UberMtlv3)::ClassDescInstance);
+	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(VolumeMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(PbrMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ShadowCatcherMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(ColourCorMtl)::ClassDescInstance);

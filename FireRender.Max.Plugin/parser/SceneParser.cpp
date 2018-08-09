@@ -29,6 +29,7 @@
 #include "FireRenderDisplacementMtl.h"
 #include "FireRenderMaterialMtl.h"
 #include "FireRenderUberMtl.h"
+#include "FireRenderUberMtlv3.h"
 #include "FireRenderEnvironment.h"
 #include "FireRenderAnalyticalSun.h"
 #include "BgManager.h"
@@ -1027,15 +1028,16 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					{
 						if (ScopeManagerMax::CoronaOK)
 						{
-						IParamBlock2* pb = currentMtl->GetParamBlock(0);
-						const bool useCaustics = GetFromPb<bool>(pb, Corona::MTLP_USE_CAUSTICS, this->params.t);
-						const float lRefract = GetFromPb<float>(pb, Corona::MTLP_LEVEL_REFRACT, this->params.t);
-						const float lOpacity = GetFromPb<float>(pb, Corona::MTLP_LEVEL_OPACITY, this->params.t);
+							IParamBlock2* pb = currentMtl->GetParamBlock(0);
+							const bool useCaustics = GetFromPb<bool>(pb, Corona::MTLP_USE_CAUSTICS, this->params.t);
+							const float lRefract = GetFromPb<float>(pb, Corona::MTLP_LEVEL_REFRACT, this->params.t);
+							const float lOpacity = GetFromPb<float>(pb, Corona::MTLP_LEVEL_OPACITY, this->params.t);
 
-						//~mc hide for now as we have a flag for shadows and caustics
-						if ((lRefract > 0.f || lOpacity < 1.f) && !useCaustics) {
-							castsShadows = false;
-						}
+							//~mc hide for now as we have a flag for shadows and caustics
+							if ((lRefract > 0.f || lOpacity < 1.f) && !useCaustics)
+							{
+								castsShadows = false;
+							}
 					}
 					}
 					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_MATERIALMTL_CID) 
@@ -1050,10 +1052,28 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 						castsShadows = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERCAUSTICS, this->params.t) );
 						shadowCatcher = bool_cast( GetFromPb<BOOL>(pb, FRUBERMTL_FRUBERSHADOWCATCHER, this->params.t) );
 					}
+					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_UBERMTLV3_CID)
+					{
+						FireRenderUberMtlv3* mtl = dynamic_cast<FireRenderUberMtlv3*>(currentMtl);
+						bool isEnabled = false;
+						RprDisplacementParams displacementParams;
+						
+						mtl->GetDisplacement(isEnabled, displacementParams);
+
+						if (isEnabled)
+						{
+							rpr_int res = rprShapeSetDisplacementScale(shape.Handle(), displacementParams.min, displacementParams.max);
+							FCHECK(res);
+
+							shape.SetSubdivisionFactor(displacementParams.factor);
+							shape.SetSubdivisionCreaseWeight(displacementParams.creaseWeight);
+							shape.SetSubdivisionBoundaryInterop(displacementParams.boundaryInteropType);
+						}
+					}
 					else if (currentMtl && currentMtl->ClassID() == Corona::SHADOW_CATCHER_MTL_CID)
 					{
 						if (ScopeManagerMax::CoronaOK)
-						shadowCatcher = true;
+							shadowCatcher = true;
 					}
 					else if (currentMtl && currentMtl->ClassID() == FIRERENDER_SCMTL_CID) // Shadow Catcher Material
 					{
@@ -1062,9 +1082,12 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 
 					frw::Value displImageNode;
 					bool notAccurate = false;
+
 					if (currentMtl != DISABLED_MATERIAL)
+					{
 						displImageNode = FRMTLCLASSNAME(DisplacementMtl)::translateDisplacement(this->params.t, mtlParser, currentMtl,
 							minHeight, maxHeight, subdivision, creaseWeight, boundary, notAccurate);
+					}
 
 					if (displImageNode && shape.IsUVCoordinatesSet())
 					{
@@ -1087,8 +1110,10 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					shape.SetShadowCatcherFlag(shadowCatcher);
 
 					frw::Shader volumeShader;
-						if (currentMtl != DISABLED_MATERIAL)
-							volumeShader = mtlParser.findVolumeMaterial(currentMtl);
+
+					if (currentMtl != DISABLED_MATERIAL)
+						volumeShader = mtlParser.findVolumeMaterial(currentMtl);
+
 					if (volumeShader)
 						shape.SetVolumeShader(volumeShader);
 
@@ -1098,9 +1123,10 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 						diffuse.SetValue("color", frw::Value(0.f));
 						shape.SetShader(diffuse);
 					}
-					else
-					if (auto shader = mtlParser.createShader(currentMtl, parsedNode.node, parsedNode.invalidationTimestamp != 0))
+					else if (auto shader = mtlParser.createShader(currentMtl, parsedNode.node, parsedNode.invalidationTimestamp != 0))
+					{
 						shape.SetShader(shader);
+					}
 
 					SetNameFromNode(parsedNode.node, shape);
 
