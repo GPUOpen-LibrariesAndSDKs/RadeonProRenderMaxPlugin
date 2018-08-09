@@ -500,13 +500,17 @@ float FireRenderPhysicalLight::GetLightSourceArea(void) const
 
 float FireRenderPhysicalLight::GetIntensity(void) const
 {
-	float maxEfficacy = 684.0f;
-
+	float retval = 1000.0;
 	TimeValue time = GetCOREInterface()->GetTime();
 
 	float intensity = 0.0f;
 	Interval valid = FOREVER;
 	m_pblock->GetValue(FRPhysicalLight_LIGHT_INTENSITY, time, intensity, valid);
+
+	float efficacy = 1.0f;
+	float maxEfficacy = 684.0f;
+	m_pblock->GetValue(FRPhysicalLight_LUMINOUS_EFFICACY, time, efficacy, valid);
+	efficacy = (efficacy / maxEfficacy); // scale to 0-1 range immediately
 
 	int value;
 	m_pblock->GetValue(FRPhysicalLight_INTENSITY_UNITS, time, value, valid);
@@ -516,10 +520,7 @@ float FireRenderPhysicalLight::GetIntensity(void) const
 		case FRPhysicalLight_WATTS:
 		{
 			// intensity * efficiency / area
-			float efficiency = 1.0f;
-			m_pblock->GetValue(FRPhysicalLight_LUMINOUS_EFFICACY, time, efficiency, valid);
-
-			intensity = (intensity * efficiency) / GetLightSourceArea();
+			retval = (intensity * efficacy) / GetLightSourceArea();
 
 			break;
 		}
@@ -527,7 +528,7 @@ float FireRenderPhysicalLight::GetIntensity(void) const
 		case FRPhysicalLight_LUMINANCE:
 		{
 			// as is
-			intensity = intensity;
+			retval = intensity;
 
 			break;
 		}
@@ -535,10 +536,7 @@ float FireRenderPhysicalLight::GetIntensity(void) const
 		case FRPhysicalLight_RADIANCE:
 		{
 			// intensity * efficiency
-			float efficiency = 1.0f;
-			m_pblock->GetValue(FRPhysicalLight_LUMINOUS_EFFICACY, time, efficiency, valid);
-
-			intensity = intensity * efficiency;
+			retval = intensity * efficacy;
 
 			break;
 		}
@@ -546,13 +544,13 @@ float FireRenderPhysicalLight::GetIntensity(void) const
 		case FRPhysicalLight_LUMEN:
 		{
 			// intensity by area
-			intensity /= GetLightSourceArea();
+			retval = intensity / GetLightSourceArea();
 
 			break;
 		}
 	}
 
-	return intensity /= maxEfficacy;
+	return retval;
 }
 
 Color FireRenderPhysicalLight::GetLightColour(void) const

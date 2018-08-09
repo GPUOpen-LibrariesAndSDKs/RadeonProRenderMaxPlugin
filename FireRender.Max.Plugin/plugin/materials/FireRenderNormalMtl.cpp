@@ -549,7 +549,7 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParse
 		hash << invertR;
 		hash << invertG;
 		if (bumpTexmap)
-	{
+		{
 			hash << bumpTexmap;
 			hash << mtlParser.getMaterialHash(bumpTexmap);
 			hash << bumpStrength;

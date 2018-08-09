@@ -36,7 +36,7 @@ namespace
 	static const float LightIntensityMax = FLT_MAX;
 	static const float LightIntensityDefault = 1000.0f;
 	static const float LuminousEfficacyMin = 0.0f;
-	static const float LuminousEfficacyDefault = 1.0f;
+	static const float LuminousEfficacyDefault = 17.0f;
 	static const float LuminousEfficacyMax = FLT_MAX;
 	static const Color IntensityColour(0.5f, 0.5f, 0.5f);
 	static const float ColourTemperatureMin = 0.0f;
