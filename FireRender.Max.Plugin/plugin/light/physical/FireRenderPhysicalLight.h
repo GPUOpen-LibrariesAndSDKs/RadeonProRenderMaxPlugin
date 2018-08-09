@@ -10,10 +10,25 @@ class LookAtTarget;
 
 FIRERENDER_NAMESPACE_BEGIN
 
+class FireRenderPhysicalLight;
+
 enum FRPhysicalLight_TexmapId 
 {
 	FRPhysicalLight_MAP_INTENSITY_COLOUR = 0
 };
+
+enum FRPhysicalLight_RolloutID
+{
+	ROLLOUT_GENERAL,
+	ROLLOUT_INTENSITY,
+	ROLLOUT_AREALIGHT,
+	ROLLOUT_SPOTLIGHT,
+	//ROLLOUT_LIGHTDECAY,
+	//ROLLOUT_SHADOWS,
+	//ROLLOUT_VOLUME,
+	ROLLOUT_MAX
+};
+
 
 enum FRPhysicalLight_ParamID : ParamID
 {
@@ -111,6 +126,7 @@ INode* FindNodeRef(ReferenceTarget *rt);
 INode* GetNodeRef(ReferenceMaker *rm);
 
 ClassDesc2* GetFireRenderPhysicalLightDesc(void);
+ParamBlockDesc2* GetFireRenderPhysicalLightPBDesc(void);
 
 const Class_ID FIRERENDER_PHYSICALLIGHT_CLASS_ID(0x64275e8c, 0x79ac5651);
 
@@ -138,6 +154,7 @@ protected:
 			BEGIN_POINT,
 			BEGIN_DIRECT,
 			SECOND_DIRECT,
+			CANCEL,
 			FIN,
 		} state;
 
@@ -233,6 +250,7 @@ public:
 
 	void BeginEditParams(IObjParam *objParam, ULONG flags, Animatable *prev) override;
 	void EndEditParams(IObjParam *objParam, ULONG flags, Animatable *next) override;
+	void UpdateUI();
 
 	int Display(TimeValue t, INode* inode, ViewExp *vpt, int flags) override;
 	void CreateSceneLight(

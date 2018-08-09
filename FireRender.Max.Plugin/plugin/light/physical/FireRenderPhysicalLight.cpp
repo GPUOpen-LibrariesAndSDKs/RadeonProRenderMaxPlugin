@@ -183,6 +183,7 @@ RefTargetHandle FireRenderPhysicalLight::Clone(RemapDir& remap)
 void FireRenderPhysicalLight::BeginEditParams(IObjParam *ip, ULONG flags, Animatable *prev)
 {
 	GetFireRenderPhysicalLightDesc()->BeginEditParams(ip, this, flags, prev);
+	UpdateUI();
 }
 
 void FireRenderPhysicalLight::EndEditParams(IObjParam *ip, ULONG flags, Animatable *next)
@@ -317,123 +318,184 @@ const INode* FireRenderPhysicalLight::GetTargetNode() const
 
 void FireRenderPhysicalLight::SetLightPoint(const Point3& p, const TimeValue& time)
 {
-	m_pblock->SetValue(FRPhysicalLight_LIGHT_POINT, time, p);
+	if(m_pblock!= NULL)
+	{
+		m_pblock->SetValue(FRPhysicalLight_LIGHT_POINT, time, p);
+	}
 }
 
 const Point3 FireRenderPhysicalLight::GetLightPoint(const TimeValue& time) const
 {
 	Point3 lightPoint (0.0f, 0.0f, 0.0f);
-	Interval valid = FOREVER;
-	BOOL success = m_pblock->GetValue(FRPhysicalLight_LIGHT_POINT, time, lightPoint, valid);
-	FASSERT(success);
+	if(m_pblock!= NULL)
+	{
+		Interval valid = FOREVER;
+		BOOL success = m_pblock->GetValue(FRPhysicalLight_LIGHT_POINT, time, lightPoint, valid);
+		FASSERT(success);
+	}
+
 	return lightPoint;
 }
 
 void FireRenderPhysicalLight::SetTargetPoint(const Point3& p, const TimeValue& time)
 {
-	m_pblock->SetValue(FRPhysicalLight_TARGET_POINT, time, p);
+	if(m_pblock!= NULL)
+	{
+		m_pblock->SetValue(FRPhysicalLight_TARGET_POINT, time, p);
+	}
 }
 
 const Point3 FireRenderPhysicalLight::GetTargetPoint(const TimeValue& time) const
 {
 	Point3 targPoint (0.0f, 0.0f, 0.0f);
-	Interval valid = FOREVER;
-	BOOL success = m_pblock->GetValue(FRPhysicalLight_TARGET_POINT, time, targPoint, valid);
-	FASSERT(success);
+	if(m_pblock!= NULL)
+	{
+		Interval valid = FOREVER;
+		BOOL success = m_pblock->GetValue(FRPhysicalLight_TARGET_POINT, time, targPoint, valid);
+		FASSERT(success);
+	}
+
 	return targPoint;
 }
 
 void FireRenderPhysicalLight::SetSecondPoint(const Point3& p, const TimeValue& time)
 {
-	m_pblock->SetValue(FRPhysicalLight_SECOND_POINT, time, p);
+	if(m_pblock!= NULL)
+	{
+		m_pblock->SetValue(FRPhysicalLight_SECOND_POINT, time, p);
+	}
 }
 
 const Point3 FireRenderPhysicalLight::GetSecondPoint(const TimeValue& time) const
 {
 	Point3 secondPoint (0.0f, 0.0f, 0.0f);
-	Interval valid = FOREVER;
-	BOOL success = m_pblock->GetValue(FRPhysicalLight_SECOND_POINT, time, secondPoint, valid);
-	FASSERT(success);
+	if(m_pblock!= NULL)
+	{
+		Interval valid = FOREVER;
+		BOOL success = m_pblock->GetValue(FRPhysicalLight_SECOND_POINT, time, secondPoint, valid);
+		FASSERT(success);
+	}
+
 	return secondPoint;
 }
 
 void FireRenderPhysicalLight::SetThirdPoint(const Point3& p, const TimeValue& time)
 {
-	m_pblock->SetValue(FRPhysicalLight_THIRD_POINT, time, p);
+	if(m_pblock!= NULL)
+	{
+		m_pblock->SetValue(FRPhysicalLight_THIRD_POINT, time, p);
+	}
 }
 
 const Point3 FireRenderPhysicalLight::GetThirdPoint(const TimeValue& time) const
 {
 	Point3 thirdPoint (0.0f, 0.0f, 0.0f);
-	Interval valid = FOREVER;
-	BOOL success = m_pblock->GetValue(FRPhysicalLight_THIRD_POINT, time, thirdPoint, valid);
-	FASSERT(success);
+	if(m_pblock!= NULL)
+	{
+		Interval valid = FOREVER;
+		BOOL success = m_pblock->GetValue(FRPhysicalLight_THIRD_POINT, time, thirdPoint, valid);
+		FASSERT(success);
+	}
+
 	return thirdPoint;
 }
 
 void FireRenderPhysicalLight::SetLength(float length, const TimeValue& time)
 {
-	m_pblock->SetValue(FRPhysicalLight_AREA_LENGTHS, time, length);
+	if(m_pblock!= NULL)
+	{
+		m_pblock->SetValue(FRPhysicalLight_AREA_LENGTHS, time, length);
+	}
 }
 
 float FireRenderPhysicalLight::GetLength(const TimeValue& time) const
 {
 	float length = 0.0f;
-	Interval valid = FOREVER;
-	BOOL success = m_pblock->GetValue(FRPhysicalLight_AREA_LENGTHS, time, length, valid);
-	FASSERT(success);
+	if(m_pblock!= NULL)
+	{
+		Interval valid = FOREVER;
+		BOOL success = m_pblock->GetValue(FRPhysicalLight_AREA_LENGTHS, time, length, valid);
+		FASSERT(success);
+	}
+
 	return length;
 }
 
 void FireRenderPhysicalLight::SetWidth(float length, const TimeValue& time)
 {
-	m_pblock->SetValue(FRPhysicalLight_AREA_WIDTHS, time, length);
+	if(m_pblock!= NULL)
+	{
+		m_pblock->SetValue(FRPhysicalLight_AREA_WIDTHS, time, length);
+	}
 }
 
 float FireRenderPhysicalLight::GetWidth(const TimeValue& time) const
 {
 	float width = 0.0f;
-	Interval valid = FOREVER;
-	BOOL success = m_pblock->GetValue(FRPhysicalLight_AREA_WIDTHS, time, width, valid);
-	FASSERT(success);
+	if(m_pblock!=NULL)
+	{
+		Interval valid = FOREVER;
+		BOOL success = m_pblock->GetValue(FRPhysicalLight_AREA_WIDTHS, time, width, valid);
+		FASSERT(success);
+	}
+
 	return width;
 }
 
 void FireRenderPhysicalLight::SetDist(float length, const TimeValue& time)
 {
-	m_pblock->SetValue(FRPhysicalLight_TARGET_DIST, time, length);
+	if(m_pblock!=NULL)
+	{
+		m_pblock->SetValue(FRPhysicalLight_TARGET_DIST, time, length);
+	}
 }
 
 float FireRenderPhysicalLight::GetDist(const TimeValue& time) const
 {
 	float dist = 0.0f;
-	Interval valid = FOREVER;
-	BOOL success = m_pblock->GetValue(FRPhysicalLight_TARGET_DIST, time, dist, valid);
-	FASSERT(success);
+	if(m_pblock!=NULL)
+	{
+		Interval valid = FOREVER;
+		BOOL success = m_pblock->GetValue(FRPhysicalLight_TARGET_DIST, time, dist, valid);
+		FASSERT(success);
+	}
+
 	return dist;
 }
 
 FRPhysicalLight_AreaLight_LightShape FireRenderPhysicalLight::GetLightShapeMode(const TimeValue& time) const
 {
-	int value;
-	Interval valid = FOREVER;
-	m_pblock->GetValue(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, time, value, valid);
+	int value = FRPhysicalLight_DISC;
+	if(m_pblock!=NULL)
+	{
+		Interval valid = FOREVER;
+		m_pblock->GetValue(FRPhysicalLight_AREALIGHT_LIGHTSHAPE, time, value, valid);
+	}
+
 	return static_cast<FRPhysicalLight_AreaLight_LightShape>(value);
 }
 
 FRPhysicalLight_LightType FireRenderPhysicalLight::GetLightType(const TimeValue& time) const
 {
-	int lightType;
-	Interval valid = FOREVER;
-	m_pblock->GetValue(FRPhysicalLight_LIGHT_TYPE, time, lightType, valid);
+	int lightType = FRPhysicalLight_AREA;
+	if(m_pblock!=NULL)
+	{
+		Interval valid = FOREVER;
+		m_pblock->GetValue(FRPhysicalLight_LIGHT_TYPE, time, lightType, valid);
+	}
+
 	return static_cast<FRPhysicalLight_LightType>(lightType);
 }
 
 bool FireRenderPhysicalLight::IsTargeted() const 
 {
-	Interval valid = FOREVER;
-	int boolValue;
-	m_pblock->GetValue(FRPhysicalLight_IS_TARGETED, 0, boolValue, valid);
+	int boolValue = 0;
+	if(m_pblock!=NULL)
+	{
+		Interval valid = FOREVER;
+		m_pblock->GetValue(FRPhysicalLight_IS_TARGETED, 0, boolValue, valid);
+	}
+
 	return bool_cast(boolValue);
 }
 
@@ -444,9 +506,13 @@ bool FireRenderPhysicalLight::HasTargetNode() const
 
 bool FireRenderPhysicalLight::IsEnabled() const
 {
-	Interval valid = FOREVER;
-	int boolValue;
-	m_pblock->GetValue(FRPhysicalLight_ISENABLED, 0, boolValue, valid);
+	int boolValue = 0;
+	if(m_pblock!=NULL)
+	{
+		Interval valid = FOREVER;
+		m_pblock->GetValue(FRPhysicalLight_ISENABLED, 0, boolValue, valid);
+	}
+
 	return bool_cast(boolValue);
 }
 
@@ -720,8 +786,11 @@ void FireRenderPhysicalLight::GetWorldBoundBox(TimeValue t, INode* inode, ViewEx
 				// get original object
 				ReferenceTarget* pRef = nullptr;
 				TimeValue time = GetCOREInterface()->GetTime();
-				Interval valid = FOREVER;
-				m_pblock->GetValue(FRPhysicalLight_AREALIGHT_LIGHTMESH, time, pRef, valid);
+				if(m_pblock!=NULL)
+				{
+					Interval valid = FOREVER;
+					m_pblock->GetValue(FRPhysicalLight_AREALIGHT_LIGHTMESH, time, pRef, valid);
+				}
 
 				if (pRef == nullptr)
 					break;

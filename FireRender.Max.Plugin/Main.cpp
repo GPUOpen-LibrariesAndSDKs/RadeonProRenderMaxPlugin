@@ -341,3 +341,12 @@ EXPORT_TO_MAX int LibInitialize()
 EXPORT_TO_MAX int LibShutdown() {
     return true;
 }
+
+TCHAR *GetString(int id)
+{
+	static TCHAR buf[1024];
+
+	if( FireRender::fireRenderHInstance )
+		return ( LoadString( FireRender::fireRenderHInstance, id, buf, _countof(buf) ) ? buf : NULL );
+	return NULL;
+}
