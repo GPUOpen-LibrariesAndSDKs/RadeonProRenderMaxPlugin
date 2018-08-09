@@ -22,10 +22,10 @@ namespace
 {
 	// General
 	static const float AreaLengthsMin = 0.0f;
-	static const float AreaLengthsDefault = 1.0f;
+	static const float AreaLengthsDefault = 25.0f;
 	static const float AreaLengthsMax = FLT_MAX;
 	static const float AreaWidthsMin = 0.0f;
-	static const float AreaWidthsDefault = 1.0f;
+	static const float AreaWidthsDefault = 25.0f;
 	static const float AreaWidthsMax = FLT_MAX;
 	static const float DistToTargetMin = 0.0f;
 	static const float DistToTargetDefault = 1.0f;
@@ -77,29 +77,19 @@ namespace
 	static const float VolumeScaleMax = FLT_MAX;
 }
 
-enum PhysLightRolloutWindow
-{
-	ROLLOUT_GENERAL,
-	ROLLOUT_INTENSITY,
-	ROLLOUT_AREALIGHT,
-	ROLLOUT_SPOTLIGHT,
-	ROLLOUT_LIGHTDECAY,
-	ROLLOUT_SHADOWS,
-	ROLLOUT_VOLUME,
-	ROLLOUT_MAX
-};
-
-static std::unordered_map<PhysLightRolloutWindow, TSTR> rolloutWindowsTable =
+static std::unordered_map<FRPhysicalLight_RolloutID, TSTR> rolloutWindowsTable =
 {
 	{ ROLLOUT_GENERAL,    _T("General") },
 	{ ROLLOUT_INTENSITY,  _T("Intensity") },
 	{ ROLLOUT_AREALIGHT,  _T("Light Area") },
 	{ ROLLOUT_SPOTLIGHT,  _T("Spot Light") },
-	{ ROLLOUT_LIGHTDECAY, _T("Light Decay") },
-	{ ROLLOUT_SHADOWS,    _T("Light Shadows") },
-	{ ROLLOUT_VOLUME,     _T("Light Volume") },
+	//{ROLLOUT_LIGHTDECAY, _T("Light Decay") },
+	//{ ROLLOUT_SHADOWS,    _T("Light Shadows") },
+	//{ ROLLOUT_VOLUME,     _T("Light Volume") },
 	{ ROLLOUT_MAX,        _T("Dummy") },
 };
+
+void UpdatePhysLightUI(IParamBlock2* pBlock);
 
 // commented out because GetPanelTitle(int) function doesn't exist in MAX 2016 SDK
 // will be restored when we will eventually drop support of MAX 2016
@@ -117,7 +107,7 @@ static std::unordered_map<PhysLightRolloutWindow, TSTR> rolloutWindowsTable =
 }*/
 
 // dummy function that will be used until we drop support of MAX 2016
-int GetRolloutWindowActualIndex(PhysLightRolloutWindow rollWindowID, IRollupWindow* pRollWindow)
+int GetRolloutWindowActualIndex(FRPhysicalLight_RolloutID rollWindowID, IRollupWindow* pRollWindow)
 {
 	return rollWindowID;
 }
@@ -282,9 +272,9 @@ static ParamBlockDesc2 pbDesc(
 	ROLLOUT_INTENSITY, IDD_FIRERENDER_PHYS_LIGHT_INTENSITY, IDS_PHYS_LIGHT_INTENSITY, /*ROC_INVISIBLE*/ 0, APPENDROLL_CLOSED, &dlgProcPhysLightIntensity,
 	ROLLOUT_AREALIGHT, IDD_FIRERENDER_PHYS_LIGHT_AREA, IDS_PHYS_LIGHT_AREA, 0, DONTAUTOCLOSE, &dlgProcPhysLightsAreaLights,
 	ROLLOUT_SPOTLIGHT, IDD_FIRERENDER_PHYS_LIGHT_SPOT, IDS_PHYS_LIGHT_SPOT, 0, APPENDROLL_CLOSED, &dlgProcPhysLightsSpotLights,
-	ROLLOUT_LIGHTDECAY, IDD_FIRERENDER_PHYS_LIGHT_DECAY, IDS_PHYS_LIGHT_DECAY, 0, APPENDROLL_CLOSED, NULL,
-	ROLLOUT_SHADOWS, IDD_FIRERENDER_PHYS_LIGHT_SHADOWS, IDS_PHYS_LIGHT_SHADOWS, 0, APPENDROLL_CLOSED, NULL,
-	ROLLOUT_VOLUME, IDD_FIRERENDER_PHYS_LIGHT_VOLUME, IDS_PHYS_LIGHT_VOLUME, 0, APPENDROLL_CLOSED, &dlgProcPhysLightsVolume,
+	//ROLLOUT_LIGHTDECAY, IDD_FIRERENDER_PHYS_LIGHT_DECAY, IDS_PHYS_LIGHT_DECAY, 0, APPENDROLL_CLOSED, NULL,
+	//ROLLOUT_SHADOWS, IDD_FIRERENDER_PHYS_LIGHT_SHADOWS, IDS_PHYS_LIGHT_SHADOWS, 0, APPENDROLL_CLOSED, NULL,
+	//ROLLOUT_VOLUME, IDD_FIRERENDER_PHYS_LIGHT_VOLUME, IDS_PHYS_LIGHT_VOLUME, 0, APPENDROLL_CLOSED, &dlgProcPhysLightsVolume,
 
 	// General
 	//IDC_FIRERENDER_PHYS_LIGHT_ENABLED
@@ -304,18 +294,18 @@ static ParamBlockDesc2 pbDesc(
 	PB_END,
 
 	//IDC_FIRERENDER_PHYS_LIGHT_AREA_LENGTHS, IDC_FIRERENDER_PHYS_LIGHT_AREA_LENGTHS_S
-	FRPhysicalLight_AREA_LENGTHS, _T("AreaLength"), TYPE_FLOAT, P_ANIMATABLE, 0,
+	FRPhysicalLight_AREA_LENGTHS, _T("AreaLength"), TYPE_FLOAT, P_ANIMATABLE, 0,  //change to "Length" to match UI?
 	p_default, AreaLengthsDefault,
 	p_range, AreaLengthsMin, AreaLengthsMax,
-	p_ui, ROLLOUT_GENERAL,
+	p_ui, ROLLOUT_AREALIGHT,
 	TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_AREA_LENGTHS, IDC_FIRERENDER_PHYS_LIGHT_AREA_LENGTHS_S, SPIN_AUTOSCALE,
 	PB_END,
 
 	//IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH_S
-	FRPhysicalLight_AREA_WIDTHS, _T("AreaWidths"), TYPE_FLOAT, P_ANIMATABLE, 0,
+	FRPhysicalLight_AREA_WIDTHS, _T("AreaWidths"), TYPE_FLOAT, P_ANIMATABLE, 0,   //change to "Width" to match UI?
 	p_default, AreaWidthsDefault,
 	p_range, AreaWidthsMin, AreaWidthsMax,
-	p_ui, ROLLOUT_GENERAL,
+	p_ui, ROLLOUT_AREALIGHT,
 	TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH_S, SPIN_AUTOSCALE,
 	PB_END,
 
@@ -497,10 +487,10 @@ static ParamBlockDesc2 pbDesc(
 	//IDC_FIRERENDER_PHYS_LIGHT_DECAY_TYPE
 	FRPhysicalLight_LIGHTDECAY_TYPE, _T("LightDecayType"), TYPE_INT, P_ANIMATABLE, 0,
 	p_default, FRPhysicalLight_NONE,
-	p_ui, ROLLOUT_LIGHTDECAY,
-	TYPE_INT_COMBOBOX, IDC_FIRERENDER_PHYS_LIGHT_DECAY_TYPE,
-	3, IDS_PHYS_LIGHT_DECAY_TYPE_NONE, IDS_PHYS_LIGHT_DECAY_TYPE_INV, IDS_PHYS_LIGHT_DECAY_TYPE_LIN,
-	p_vals, FRPhysicalLight_NONE, FRPhysicalLight_INVERSESQUARE, FRPhysicalLight_LINEAR,
+	//p_ui, ROLLOUT_LIGHTDECAY,
+	//TYPE_INT_COMBOBOX, IDC_FIRERENDER_PHYS_LIGHT_DECAY_TYPE,
+	//3, IDS_PHYS_LIGHT_DECAY_TYPE_NONE, IDS_PHYS_LIGHT_DECAY_TYPE_INV, IDS_PHYS_LIGHT_DECAY_TYPE_LIN,
+	//p_vals, FRPhysicalLight_NONE, FRPhysicalLight_INVERSESQUARE, FRPhysicalLight_LINEAR,
 	p_enabled, FALSE,
 	PB_END,
 
@@ -508,8 +498,8 @@ static ParamBlockDesc2 pbDesc(
 	FRPhysicalLight_LIGHTDECAY_FALLOFF_START, _T("FalloffStart"), TYPE_FLOAT, P_ANIMATABLE, 0,
 	p_default, DecayFalloffStartDefault,
 	p_range, DecayFalloffStartMin, DecayFalloffStartMax,
-	p_ui, ROLLOUT_LIGHTDECAY,
-	TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_START, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_START_S, SPIN_AUTOSCALE,
+	//p_ui, ROLLOUT_LIGHTDECAY,
+	//TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_START, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_START_S, SPIN_AUTOSCALE,
 	p_enabled, FALSE,
 	PB_END,
 
@@ -517,8 +507,8 @@ static ParamBlockDesc2 pbDesc(
 	FRPhysicalLight_LIGHTDECAY_FALLOFF_END, _T("FalloffEnd"), TYPE_FLOAT, P_ANIMATABLE, 0,
 	p_default, DecayFalloffEndDefault,
 	p_range, DecayFalloffEndMin, DecayFalloffEndMax,
-	p_ui, ROLLOUT_LIGHTDECAY,
-	TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_END, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_END_S, SPIN_AUTOSCALE,
+	//p_ui, ROLLOUT_LIGHTDECAY,
+	//TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_END, IDC_FIRERENDER_PHYS_LIGHT_FALLOFF_END_S, SPIN_AUTOSCALE,
 	p_enabled, FALSE,
 	PB_END,
 
@@ -526,8 +516,8 @@ static ParamBlockDesc2 pbDesc(
 	//IDC_FIRERENDER_PHYS_LIGHT_SHADOW_ENABLED
 	FRPhysicalLight_SHADOWS_ISENABLED, _T("AreShadowsEnabled"), TYPE_BOOL, P_ANIMATABLE, 0,
 	p_default, FALSE,
-	p_ui, ROLLOUT_SHADOWS,
-	TYPE_SINGLECHEKBOX, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_ENABLED,
+	//p_ui, ROLLOUT_SHADOWS,
+	//TYPE_SINGLECHEKBOX, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_ENABLED,
 	p_enable_ctrls, 2, FRPhysicalLight_SHADOWS_SOFTNESS, FRPhysicalLight_SHADOWS_TRANSPARENCY,
 	p_enabled, FALSE,
 	PB_END,
@@ -536,8 +526,8 @@ static ParamBlockDesc2 pbDesc(
 	FRPhysicalLight_SHADOWS_SOFTNESS, _T("Softness"), TYPE_FLOAT, P_ANIMATABLE, 0,
 	p_default, ShadowsSoftnessDefault,
 	p_range, ShadowsSoftnessMin, ShadowsSoftnessMax,
-	p_ui, ROLLOUT_SHADOWS,
-	TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_SOFTNESS, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_SOFTNESS_S, SPIN_AUTOSCALE,
+	//p_ui, ROLLOUT_SHADOWS,
+	//TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_SOFTNESS, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_SOFTNESS_S, SPIN_AUTOSCALE,
 	p_enabled, FALSE,
 	PB_END,
 
@@ -545,8 +535,8 @@ static ParamBlockDesc2 pbDesc(
 	FRPhysicalLight_SHADOWS_TRANSPARENCY, _T("Transparency"), TYPE_FLOAT, P_ANIMATABLE, 0,
 	p_default, ShadowsTransparencyDefault,
 	p_range, ShadowsTransparencyMin, ShadowsTransparencyMax,
-	p_ui, ROLLOUT_SHADOWS,
-	TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_TRANS, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_TRANS_S, SPIN_AUTOSCALE,
+	//p_ui, ROLLOUT_SHADOWS,
+	//TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_TRANS, IDC_FIRERENDER_PHYS_LIGHT_SHADOW_TRANS_S, SPIN_AUTOSCALE,
 	p_enabled, FALSE,
 	PB_END,
 
@@ -555,13 +545,18 @@ static ParamBlockDesc2 pbDesc(
 	FRPhysicalLight_VOLUME_SCALE, _T("Volume Scale"), TYPE_FLOAT, P_ANIMATABLE, 0,
 	p_default, VolumeScaleDefault,
 	p_range, VolumeScaleMin, VolumeScaleMax,
-	p_ui, ROLLOUT_VOLUME,
-	TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_VOLUME_SCALE, IDC_FIRERENDER_PHYS_LIGHT_VOLUME_SCALE_S, SPIN_AUTOSCALE,
+	//p_ui, ROLLOUT_VOLUME,
+	//TYPE_SPINNER, EDITTYPE_FLOAT, IDC_FIRERENDER_PHYS_LIGHT_VOLUME_SCALE, IDC_FIRERENDER_PHYS_LIGHT_VOLUME_SCALE_S, SPIN_AUTOSCALE,
 	p_enabled, FALSE,
 	PB_END,
 
 	PB_END
 );
+
+ParamBlockDesc2* GetFireRenderPhysicalLightPBDesc()
+{
+	return &pbDesc;
+}
 
 std::map<int, std::pair<ParamID, MCHAR*>> FireRenderPhysicalLight::TEXMAP_MAPPING = {
 	{ FRPhysicalLight_MAP_INTENSITY_COLOUR,{ FRPhysicalLight_INTENSITY_COLOUR_MAP, _T("Intensity Color") } },
@@ -716,6 +711,11 @@ RefResult FireRenderPhysicalLight::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETER
 	return REF_SUCCEED;
 }
 
+void FireRenderPhysicalLight::UpdateUI()
+{
+	 UpdatePhysLightUI(m_pblock);
+}
+
 INT_PTR PhysLightGeneralParamsDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	INT_PTR processed = FALSE;
@@ -740,6 +740,8 @@ void PhysLightGeneralParamsDlgProc::DeleteThis()
 
 INT_PTR PhysLightGeneralParamsDlgProc::MsgProcInitDialog(TimeValue t, IParamMap2* map, HWND hDlg, WPARAM wParam, LPARAM lParam)
 {
+	// update all rollouts when general rollout is initialised (more work than neccessary?)
+	UpdatePhysLightUI(map->GetParamBlock()); 
 	return 1;
 }
 
@@ -798,13 +800,11 @@ static const std::unordered_map<FRPhysicalLight_LightType, std::vector<FRPhysica
 
 #define FRPhysicalLight_AllLightPanels FRPhysicalLight_POINT 
 
-void UpdatePhysLightUI(IParamMap2* map)
+void UpdatePhysLightUI(IParamBlock2* pBlock)
 {
-	IRollupWindow* pRolloutWIndow = map->GetIRollup();
-
 	// get light type
-	IParamBlock2* pBlock = map->GetParamBlock();
 	int lightType = GetFromPb<int>(pBlock, FRPhysicalLight_LIGHT_TYPE);
+	int lightShape = GetFromPb<int>(pBlock, FRPhysicalLight_AREALIGHT_LIGHTSHAPE);
 
 	// grey out sections not needed for selected light type
 	IParamMap2* pAreaMap = pBlock->GetMap(ROLLOUT_AREALIGHT);
@@ -837,6 +837,52 @@ void UpdatePhysLightUI(IParamMap2* map)
 		//pRolloutWIndow->Show(ROLLOUT_AREALIGHT + shift); // I'm not removing commented out code because we want it back after 2016 support is discontinued
 		//pRolloutWIndow->Hide(ROLLOUT_SPOTLIGHT + shift);
 
+		IRollupWindow* pSpotlightRolloutWindow = pSpotLMap->GetIRollup();
+		HWND hAreaIndex = pAreaMap->GetHWnd();
+		HWND hSpotIndex = pSpotLMap->GetHWnd();
+		int areaIndex = pSpotlightRolloutWindow->GetPanelIndex(hAreaIndex);
+		int spotIndex = pSpotlightRolloutWindow->GetPanelIndex(hSpotIndex);
+
+		// if spotlight then show rollout spot light and hide rollout area light.
+		if (lightType == FRPhysicalLight_SPOT)
+		{
+			pSpotlightRolloutWindow->Show(spotIndex);
+			pSpotlightRolloutWindow->Hide(areaIndex);
+		}
+		else  if ( lightType == FRPhysicalLight_AREA)
+		{
+			pSpotlightRolloutWindow->Show(areaIndex);
+			pSpotlightRolloutWindow->Hide(spotIndex);
+		}
+		else
+		{
+			pSpotlightRolloutWindow->Hide(spotIndex);
+			pSpotlightRolloutWindow->Hide(areaIndex);
+		}
+
+		IParamMap2* pGeneralMap = pBlock->GetMap(ROLLOUT_GENERAL);
+		HWND hDlg = pAreaMap->GetHWnd(); 
+		bool isMesh = (lightShape == FRPhysicalLight_MESH);
+		bool hasWidth = (lightShape != FRPhysicalLight_MESH);
+		bool hasLength = ((lightShape == FRPhysicalLight_RECTANGLE) || (lightShape == FRPhysicalLight_CYLINDER));
+		ShowWindow(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_MESH_T), (isMesh ? SW_SHOW : SW_HIDE) );
+		ShowWindow(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH), (hasWidth ? SW_SHOW : SW_HIDE) );
+		ShowWindow(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH_L), (hasWidth ? SW_SHOW : SW_HIDE) );
+		ShowWindow(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH_S), (hasWidth ? SW_SHOW : SW_HIDE) );
+		ShowWindow(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_LENGTHS), (hasLength ? SW_SHOW : SW_HIDE) );
+		ShowWindow(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_LENGTHS_L), (hasLength ? SW_SHOW : SW_HIDE) );
+		ShowWindow(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_LENGTHS_S), (hasLength ? SW_SHOW : SW_HIDE) );
+		TSTR diameterTitle(GetString(IDS_PHYS_LIGHT_DIAMETER));
+		TSTR widthTitle(GetString(IDS_PHYS_LIGHT_WIDTH));
+		if( lightShape == FRPhysicalLight_DISC || lightShape == FRPhysicalLight_SPHERE || lightShape == FRPhysicalLight_CYLINDER)
+		{
+			SetWindowText(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH_L), diameterTitle);
+		}
+		if( lightShape == FRPhysicalLight_RECTANGLE)
+		{
+			SetWindowText(GetDlgItem( hDlg, IDC_FIRERENDER_PHYS_LIGHT_AREA_WIDTH_L), widthTitle);
+		}
+
 		// trigger ui update in editor
 		pAreaMap->Invalidate(); // ui won't update without these calls
 		pSpotLMap->Invalidate();
@@ -850,7 +896,8 @@ INT_PTR PhysLightGeneralParamsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* m
 	if (IDC_FIRERENDER_PHYS_LIGHT_TYPE != paramId)
 		return 1; // back-off
 
-	UpdatePhysLightUI(map);
+	// update all rollouts because value in general rollout changed ( is this more work than neccessary? )
+	UpdatePhysLightUI(map->GetParamBlock()); 
 
 	return 1; // processed;
 }
@@ -983,6 +1030,10 @@ INT_PTR PhysLightsAreaLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 {
 	INT_PTR processed = FALSE;
 
+	int paramId = LOWORD(wParam); 
+	if (IDC_FIRERENDER_PHYS_LIGHT_SHAPE == paramId)
+		UpdatePhysLightUI(map->GetParamBlock());
+
 	IRollupWindow* pRolloutWIndow = map->GetIRollup();
 
 	IParamBlock2* pBlock = map->GetParamBlock();
@@ -994,23 +1045,7 @@ INT_PTR PhysLightsAreaLightsDlgProc::MsgProcCommand(TimeValue t, IParamMap2* map
 	const int physLightRolloutWindowsCount = ROLLOUTS_PHYS_LIGHT_COUNT + ROLLOUT_MAX_GENERAL_SHIFT;
 	if (count == physLightRolloutWindowsCount)
 		shift = ROLLOUT_MAX_GENERAL_SHIFT;
-
-	// disable/enable mesh selection button
-	if (FRPhysicalLight_AREA != lightType)
-		return 1;
-
-	int areaMode = GetFromPb<int>(pBlock, FRPhysicalLight_AREALIGHT_LIGHTSHAPE);
-	if (FRPhysicalLight_MESH == areaMode)
-	{
-		HWND hButtom = GetDlgItem(hDlg, IDC_FIRERENDER_PHYS_LIGHT_MESH_T);
-		EnableWindow(hButtom, TRUE);
-	}
-	else
-	{
-		HWND hButtom = GetDlgItem(hDlg, IDC_FIRERENDER_PHYS_LIGHT_MESH_T);
-		EnableWindow(hButtom, FALSE);
-	}
-
+	
 	return 1; // processed;
 }
 
@@ -1059,9 +1094,8 @@ INT_PTR PhysLightsVolumeDlgProc::DlgProc(TimeValue t, IParamMap2* map, HWND hWnd
 	{
 		IRollupWindow* pRolloutWIndow = map->GetIRollup();
 
-		IParamBlock2* pBlock = map->GetParamBlock();
-
-		UpdatePhysLightUI(map);
+		// update all rollouts when value in general rollout changed (more work than neccessary? )
+		UpdatePhysLightUI(map->GetParamBlock()); 
 
 		// shift is different when light is created and when it is edited
 		int shift = 0;

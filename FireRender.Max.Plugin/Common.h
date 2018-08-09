@@ -36,6 +36,8 @@ inline DWORD DWORD_cast( size_t x ) { return (DWORD)x; }
 inline int int_cast( size_t x ) { return (int)x; }
 inline int int_cast( wchar_t x ) { return (int)x; }
 
+TCHAR *GetString(int id);
+
 FIRERENDER_NAMESPACE_BEGIN;
 
 /// HINSTANCE of this plugin DLL. It is initialized inside DllMain and later used to load win32 dialogs.

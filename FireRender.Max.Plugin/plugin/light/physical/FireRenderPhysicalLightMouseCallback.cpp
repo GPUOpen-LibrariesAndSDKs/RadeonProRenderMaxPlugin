@@ -107,7 +107,8 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 			Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
 
 			m_light->SetLightPoint(p, time);
-			m_light->SetSecondPoint(p, time);
+			// SecondPoint unchanged, retains value from previous creation or default,
+			// otherwise YonDist is zero and single-click create doesn't work properly
 			m_light->SetThirdPoint(p + Point3(0.0f, 0.0f, defaultCylinderHeight), time);
 			m_light->SetTargetPoint(p, time);
 
@@ -121,7 +122,8 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 			Point3 p = vpt->SnapPoint(m, m, NULL, SNAP_IN_3D);
 
 			m_light->SetLightPoint(p, time);
-			m_light->SetSecondPoint(p, time);
+			// SecondPoint unchanged, retains value from previous creation or default,
+			// otherwise YonDist is zero and single-click create doesn't work properly
 			m_light->SetThirdPoint(p + Point3(0.0f, 0.0f, defaultCylinderHeight), time);
 			m_light->SetTargetPoint(p, time);
 
@@ -152,66 +154,81 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 		{
 			// mouse button released
 			// get mode of light area (different light zones are set up by different number of clicks)
-			FRPhysicalLight_AreaLight_LightShape areaLightShapeMode = m_light->GetLightShapeMode(time);
+			Point3 lightPoint = m_light->GetLightPoint(time);
+			Point3 secondPoint = m_light->GetSecondPoint(time);
+			bool singleClick = bool_cast(lightPoint == secondPoint);
 
-			if ((FRPhysicalLight_DISC == areaLightShapeMode) || (FRPhysicalLight_SPHERE == areaLightShapeMode))
+			if( !singleClick )
 			{
-				// move light root so that center of disk becomes center of light
-				Point3 diskCenter = m_light->GetLightPoint(time) + (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)) / 2;
-				mat.SetTrans(diskCenter);
+				FRPhysicalLight_AreaLight_LightShape areaLightShapeMode = m_light->GetLightShapeMode(time);
 
-				// set ui
-				float diameter = (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)).Length();
-				m_light->SetLength(diameter, time);
-				m_light->SetWidth(diameter, time);
-			}
+				if ((FRPhysicalLight_DISC == areaLightShapeMode) || (FRPhysicalLight_SPHERE == areaLightShapeMode))
+				{
+					// move light root so that center of disk becomes center of light
+					Point3 diskCenter = m_light->GetLightPoint(time) + (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)) / 2;
+					mat.SetTrans(diskCenter);
 
-			if (FRPhysicalLight_RECTANGLE == areaLightShapeMode)
-			{
-				// move light root so that center of rectangle becomes center of light
-				Point3 rectCenter = m_light->GetLightPoint(time) + (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)) / 2;
-				mat.SetTrans(rectCenter);
+					// set ui
+					float diameter = (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)).Length();
+					m_light->SetLength(diameter, time);
+					m_light->SetWidth(diameter, time);
+				}
 
-				// set ui
-				float length = abs(m_light->GetSecondPoint(time).x - m_light->GetLightPoint(time).x);
-				m_light->SetLength(length, time);
-				float width = abs(m_light->GetSecondPoint(time).y - m_light->GetLightPoint(time).y);
-				m_light->SetWidth(width, time);
-			}
+				if (FRPhysicalLight_RECTANGLE == areaLightShapeMode)
+				{
+					// move light root so that center of rectangle becomes center of light
+					Point3 rectCenter = m_light->GetLightPoint(time) + (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)) / 2;
+					mat.SetTrans(rectCenter);
 
-			if (FRPhysicalLight_CYLINDER == areaLightShapeMode)
-			{
-				// set ui
-				float diameter = (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)).Length();
-				m_light->SetLength(diameter, time);
-				m_light->SetWidth(diameter, time);
+					// set ui
+					float length = abs(m_light->GetSecondPoint(time).x - m_light->GetLightPoint(time).x);
+					m_light->SetLength(length, time);
+					float width = abs(m_light->GetSecondPoint(time).y - m_light->GetLightPoint(time).y);
+					m_light->SetWidth(width, time);
+				}
 
-				// set initial third point
-				Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
-				bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
-				FASSERT(gotIntersection);
+				if (FRPhysicalLight_CYLINDER == areaLightShapeMode)
+				{
+					// set ui
+					float diameter = (m_light->GetSecondPoint(time) - m_light->GetLightPoint(time)).Length();
+					m_light->SetLength(diameter, time);
+					m_light->SetWidth(diameter, time);
 
-				m_light->SetThirdPoint(intersectionPoint, time);
+					// set initial third point
+					Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
+					bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
+					FASSERT(gotIntersection);
 
-				state = AREA_THIRD_POINT;
+					m_light->SetThirdPoint(intersectionPoint, time);
 
-				break;
+					state = AREA_THIRD_POINT;
+
+					break;
+				}
 			}
 
 			if (m_light->IsTargeted())
 			{
-				state = AREA_TARGET_POINT;
+				//If the user dragged to create the light then contine to interactive creation of target 
+				//Otherwise single-click for targetted lights indicates a cancel
+				if( !singleClick )
+				{
+					// Lookat controller will cause z-axis to point opposite direction away from target
+					// Flip transform into final orientation right now; avoids special-cases when drawing the gizmo
+					mat.PreRotateX(-pi); // 180 degress about x-axis
 
-				// Lookat controller will cause z-axis to point opposite direction away from target
-				// Flip transform into final orientation right now; avoids special-cases when drawing the gizmo
-				mat.PreRotateX(-pi); // 180 degress about x-axis
+					Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
+					bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
+					FASSERT(gotIntersection);
 
-				Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
-				bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
-				FASSERT(gotIntersection);
-
-				m_light->SetTargetPoint(intersectionPoint, time);
-				m_light->BeginTargetPreview(); // to simplify display cases: light source gizmo is already created
+					m_light->SetTargetPoint(intersectionPoint, time);
+					state = AREA_TARGET_POINT;
+					m_light->BeginTargetPreview(); // to simplify display cases: light source gizmo is already created
+				}
+				else
+				{
+					state = CANCEL;
+				}
 			}
 			else
 			{
@@ -235,6 +252,10 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 		case AREA_THIRD_POINT: // optional for some area lights
 							   // second click (mouse button pressed)
 		{		
+			Point3 lightPoint = m_light->GetLightPoint(time);
+			Point3 secondPoint = m_light->GetSecondPoint(time);
+			bool singleClick = bool_cast(lightPoint == secondPoint);
+
 			if ((FRPhysicalLight_SPOT != m_light->GetLightType(time)) && (FRPhysicalLight_DIRECTIONAL != m_light->GetLightType(time)) )
 			{
 				// move light root so that center of disk becomes center of light
@@ -250,14 +271,23 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 			// proceed with targeted / non-targeted
 			if (m_light->IsTargeted())
 			{
-				state = AREA_TARGET_POINT;
+				//If the user dragged to create the light then contine to interactive creation of target 
+				//Otherwise single-click for targetted lights indicates a cancel
+				if(singleClick == FALSE)
+				{
+					state = AREA_TARGET_POINT;
 
-				Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
-				bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
-				FASSERT(gotIntersection);
+					Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
+					bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
+					FASSERT(gotIntersection);
 
-				m_light->SetTargetPoint(intersectionPoint, time);
-				m_light->BeginTargetPreview();
+					m_light->SetTargetPoint(intersectionPoint, time);
+					m_light->BeginTargetPreview();
+				}
+				else
+				{
+					state = CANCEL;
+				}
 			}
 			else
 			{
@@ -403,6 +433,8 @@ int FireRenderPhysicalLight::CreateCallBack::proc(ViewExp *vpt, int msg, int poi
 			ProcessMouseClicked(vpt, m, mat); // all click handle logic is done here
 			if (FIN == state)
 				result = CREATE_STOP;
+			else if (CANCEL == state)
+				result = CREATE_ABORT;
 
 			break;
 		}
