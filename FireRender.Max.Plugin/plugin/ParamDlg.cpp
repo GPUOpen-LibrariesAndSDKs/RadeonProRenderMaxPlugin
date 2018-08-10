@@ -576,6 +576,13 @@ void FireRenderParamDlg::CHardwareSettings::InitDialog()
 	if (0 == numCpuThreads)
 	{
 		numCpuThreads = std::thread::hardware_concurrency();
+
+		if (numCpuThreads < cpuThreadsMin)
+			numCpuThreads = cpuThreadsMin;
+
+		if (numCpuThreads > cpuThreadsMax)
+			numCpuThreads = cpuThreadsMax;
+
 		ScopeManagerMax::TheManager.cpuInfo.numCpuThreads = numCpuThreads;
 	}
 
