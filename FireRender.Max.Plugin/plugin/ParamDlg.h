@@ -353,7 +353,7 @@ protected:
 	class CHardwareSettings : public CRollout
 	{
 		const int cpuThreadsDefault = 0;
-		const int cpuThreadsMin = 1;
+		const int cpuThreadsMin = 2;
 		const int cpuThreadsMax = 128; // as defined in RPR on Jul 2018
 
 	public:
