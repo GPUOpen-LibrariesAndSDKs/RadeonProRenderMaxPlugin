@@ -1358,17 +1358,13 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 				{
 					url = _T("https://www2.ati.com/relnotes/radeonprorender_3dsmax_user_guide_v1.0.pdf");
 				}
-				else if (wcscmp(id, _T("discuss")) == 0)
+				else if (wcscmp(id, _T("community")) == 0)
 				{
-					url = _T("http://max.radeonprorender.com/support/discussions");
+					url = _T("https://community.amd.com/community/prorender");
 				}
 				else if (wcscmp(id, _T("main_site")) == 0)
 				{
 					url = _T("https://pro.radeon.com/en/software/prorender/3ds-max/");
-				}
-				else if (wcscmp(id, _T("knowledgebase")) == 0)
-				{
-					url = _T("http://max.radeonprorender.com/support/home");
 				}
 				else if (wcscmp(id, _T("downloads")) == 0)
 				{
@@ -1376,7 +1372,7 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 				}
 				else if (wcscmp(id, _T("bugs")) == 0)
 				{
-					url = _T("http://max.radeonprorender.com/support/login");
+					url = _T("https://community.amd.com/community/prorender/3ds-max");
 				}
 				// execute URL
 				if (url != NULL)
