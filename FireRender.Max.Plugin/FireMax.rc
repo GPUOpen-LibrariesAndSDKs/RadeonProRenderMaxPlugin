@@ -18,6 +18,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -556,10 +557,10 @@ BEGIN
     GROUPBOX        "",IDC_STATIC,12,68,210,56
     CONTROL         IDB_LOGO,IDC_STATIC,"Static",SS_BITMAP | SS_CENTERIMAGE,12,7,207,46
     GROUPBOX        "About Radeon ProRender",IDC_STATIC,6,57,221,99
-    CONTROL         "<a id=""doc"">Documentation</a> | <a id=""main_site"">Main Site</a> | <a id=""discuss"">Discuss</a> | <a id=""knowledgebase"">Knowledgebase</a>",IDC_ABOUT_LINKS1,
-                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,16,128,200,10,WS_EX_TRANSPARENT
-    CONTROL         "<a id=""downloads"">Downloads</a> | <a id=""bugs"">Bugs</a>",IDC_ABOUT_LINKS2,
-                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,77,140,65,11,WS_EX_TRANSPARENT
+    CONTROL         "<a id=""doc"">Documentation</a> | <a id=""main_site"">Main Site</a> | <a id=""community"">Community</a>",IDC_ABOUT_LINKS1,
+                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,31,128,188,10,WS_EX_TRANSPARENT
+    CONTROL         "<a id=""downloads"">Downloads</a> | <a id=""bugs"">Bug Reports</a>",IDC_ABOUT_LINKS2,
+                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,67,140,142,11,WS_EX_TRANSPARENT
     GROUPBOX        "Global Illumination",IDC_STATIC,6,161,221,35
     GROUPBOX        "Performance Settings",IDC_STATIC,6,198,221,86
     CONTROL         "Export model:",IDC_EXPORTMODEL_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,344,57,8
@@ -587,9 +588,9 @@ BEGIN
     CONTROL         "Override 3DS MAX Material Preview shapes",IDC_OVERRIDE_MAX_PREVIEW_SHAPES,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,288,154,10
     CONTROL         "<a id=""about1"">Portions of this software are created</a>",IDC_ABOUT2,
-                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,57,99,118,10,WS_EX_TRANSPARENT
+                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,53,99,128,10,WS_EX_TRANSPARENT
     CONTROL         "<a id=""about2"">and copyrighted to other third parties</a>",IDC_ABOUT3,
-                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,56,108,121,10,WS_EX_TRANSPARENT
+                    "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,50,108,134,10,WS_EX_TRANSPARENT
     CTEXT           "Copyright (C) 2016 Advanced Micro Devices, Inc. (AMD)",IDC_STATIC,14,90,204,8
     COMBOBOX        IDC_RENDER_MODE,97,224,121,19,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Mode:",IDC_STATIC,12,227,23,8
@@ -2094,29 +2095,23 @@ BEGIN
 
     IDD_FIRERENDER_PHYS_LIGHT_VOLUME, DIALOG
     BEGIN
-        RIGHTMARGIN, 127
     END
 
     IDD_FIRERENDER_PHYS_LIGHT_SHADOWS, DIALOG
     BEGIN
-        RIGHTMARGIN, 152
-        BOTTOMMARGIN, 62
     END
 
     IDD_FIRERENDER_PHYS_LIGHT_DECAY, DIALOG
     BEGIN
-        BOTTOMMARGIN, 64
     END
 
     IDD_FIRERENDER_PHYS_LIGHT_AREA, DIALOG
     BEGIN
-        RIGHTMARGIN, 148
         BOTTOMMARGIN, 76
     END
 
     IDD_FIRERENDER_PHYS_LIGHT_SPOT, DIALOG
     BEGIN
-        RIGHTMARGIN, 152
         BOTTOMMARGIN, 57
         HORZGUIDE, 47
         HORZGUIDE, 57
@@ -2962,6 +2957,10 @@ BEGIN
     IDS_MTL_UBERV3_REFRACTION "Refraction"
     IDS_MTL_UBERV3_COATING  "Coating"
     IDS_MTL_UBERV3_EMISSIVE "Emissive"
+END
+
+STRINGTABLE
+BEGIN
     IDS_MTL_UBERV3_SSS      "Subsurface Scattering"
     IDS_MTL_UBERV3_NORMAL   "Normal"
     IDS_MTL_UBERV3_TRANSPARENCY "Transparency"
@@ -2984,3 +2983,4 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
+
