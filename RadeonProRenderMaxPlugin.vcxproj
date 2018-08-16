@@ -77,16 +77,16 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'" Label="PropertySheets">
-    <Import Project="Max2017.props" />
+    <Import Project="$(ProjectDir)\PropertySheets\Max2017.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'" Label="PropertySheets">
-    <Import Project="Max2018.props" />
+    <Import Project="$(ProjectDir)\PropertySheets\Max2018.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'" Label="PropertySheets">
-    <Import Project="Max2017.props" />
+    <Import Project="$(ProjectDir)\PropertySheets\Max2017.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2018|x64'" Label="PropertySheets">
-    <Import Project="Max2018.props" />
+    <Import Project="$(ProjectDir)\PropertySheets\Max2018.props" />
   </ImportGroup>
   <!-- Properties for Max2019 handled by \PropertySheets\3dsmax-2019\ above -->
   <ItemGroup Condition="'$(Configuration)'=='Release-2019' Or '$(Configuration)'=='Debug-2019'">
@@ -96,7 +96,7 @@
     </BuildMacro>
   </ItemGroup>
   <ImportGroup Label="PropertySheets">
-    <Import Project="FireMax.props" />
+    <Import Project="$(ProjectDir)\PropertySheets\FireMax.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
