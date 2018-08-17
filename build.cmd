@@ -54,7 +54,7 @@ if %vs_major%==15 (
 :build_plugin
 
 :cleanup
-rmdir /S /Q bin Debug dist x64
+rmdir /S /Q bin Debug dist
 
 for %%a in (%maxVersions%) do (
 	set maxSDK=ADSK_3DSMAX_SDK_%%a

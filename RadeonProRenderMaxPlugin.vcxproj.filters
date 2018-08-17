@@ -328,6 +328,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderAmbientOcclusionMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
+    <ClInclude Include="FireRender.Max.Plugin\precompiled.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -606,6 +607,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderAmbientOcclusionMtl.cpp">
       <Filter>Plugin\materials</Filter>
     </ClCompile>
+    <ClCompile Include="FireRender.Max.Plugin\precompiled.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp">

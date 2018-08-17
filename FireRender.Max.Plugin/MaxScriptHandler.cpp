@@ -2,8 +2,6 @@
 #include <maxscript/foundation/numbers.h>
 #include <maxscript/foundation/arrays.h>
 
-inline bool bool_cast( int x ) { return (x? true:false); }
-
 static bool enableGltfExport = true;
 
 // Declare C++ function and register it with MAXScript
@@ -20,7 +18,7 @@ Value* rprEnableGltfExport_cf(Value **arg_list, int count)
 
 	Value* pEnable = arg_list[0];
 
-	enableGltfExport = bool_cast( pEnable->to_bool() );
+	enableGltfExport = pEnable->to_bool() == TRUE;
 
 	mputs(_M("GLTF Export functionality is turned "));
 	enableGltfExport ? mputs(_M("ON\r\n")) : mputs(_M("OFF\r\n"));
