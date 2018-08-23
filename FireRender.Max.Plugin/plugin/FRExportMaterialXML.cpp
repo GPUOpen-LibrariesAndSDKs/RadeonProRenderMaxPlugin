@@ -57,7 +57,10 @@ bool ParseRPR(
 		{
 			rpr_material_node ref_node = nullptr;
 			status = frMaterialNodeGetInputInfo(material, i, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(ref_node), &ref_node, nullptr);	
-			ParseRPR(ref_node,nodeList,nodeListX,folder);
+			if ( ref_node )
+			{
+				ParseRPR(ref_node,nodeList,nodeListX,folder);
+			}
 		}
 		else if (in_type == RPR_MATERIAL_NODE_INPUT_TYPE_IMAGE)
 		{
@@ -264,9 +267,16 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 		
 	if ( g_rprxParamList.size() == 0 ) // if it's the first time , fill the variable
 	{
+		
+
+
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_DIFFUSE_COLOR,"diffuse.color"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT,"diffuse.weight"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS,"diffuse.roughness"));
+#if (RPR_API_VERSION >= 0x010031000)
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_DIFFUSE_NORMAL,"diffuse.normal"));
+#endif
+
 
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_COLOR,"reflection.color"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT,"reflection.weight"));
@@ -275,7 +285,10 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION,"reflection.anistropyRotation"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_MODE,"reflection.mode"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_IOR,"reflection.ior")); 
-		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_METALNESS,"reflection.metalness"));
+		//g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_METALNESS,"reflection.metalness")); RPRX_UBER_MATERIAL_REFLECTION_IOR = RPRX_UBER_MATERIAL_REFLECTION_METALNESS
+#if (RPR_API_VERSION >= 0x010031000)
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFLECTION_NORMAL,"reflection.normal"));
+#endif
 
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_COLOR,"refraction.color"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT,"refraction.weight"));
@@ -286,12 +299,29 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 #endif
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_THIN_SURFACE,"refraction.thinSurface"));
 
+#if (RPR_API_VERSION >= 0x010031000)
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_ABSORPTION_COLOR,"refraction.absorptionColor"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_ABSORPTION_DISTANCE,"refraction.absorptionDistance"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_REFRACTION_CAUSTICS,"refraction.caustics"));
+#endif
+
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_COLOR,"coating.color"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_WEIGHT,"coating.weight"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_ROUGHNESS,"coating.roughness"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_MODE,"coating.mode"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_IOR,"coating.ior"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_METALNESS,"coating.metalness"));
+#if (RPR_API_VERSION >= 0x010031000)
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_NORMAL,"coating.normal"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_TRANSMISSION_COLOR,"coating.transmissionColor"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_COATING_THICKNESS,"coating.thickness"));
+#endif
+
+#if (RPR_API_VERSION >= 0x010031000)
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SHEEN,"sheen"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SHEEN_TINT,"sheen.tint"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SHEEN_WEIGHT,"sheen.weight"));
+#endif
 
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_EMISSION_COLOR,"emission.color"));
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_EMISSION_WEIGHT,"emission.weight"));
@@ -320,6 +350,12 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_SUBSURFACE_COLOR,"sss.subsurfaceColor"));
 #endif
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_MULTISCATTER,"sss.multiscatter"));
+
+#if (RPR_API_VERSION >= 0x010031000)
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_BACKSCATTER_WEIGHT,"backscatter.weight"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_BACKSCATTER_COLOR,"backscatter.color"));
+#endif
+
 	}
 
 	std::string filename(path.begin(), path.end());

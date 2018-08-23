@@ -652,18 +652,26 @@ void ExportMaterials(const std::string& filename,
 				}
 				else if ( input_type == RPRX_PARAMETER_TYPE_NODE )
 				{
-					rprx_material valueN = 0;
-					CHECK_NO_ERROR( rprxMaterialGetParameterValue(contextX,materialX,rprxParamList[iParam].param,&valueN));
+					rpr_material_node connection = 0;
+					CHECK_NO_ERROR( rprxMaterialGetParameterValue(contextX,materialX,rprxParamList[iParam].param,&connection));
 
-					rpr_material_node connection = nullptr;
-                    rpr_int res = rprMaterialNodeGetInputInfo(materialX, rprxParamList[iParam].param, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(connection), &connection, nullptr);
-                    CHECK_NO_ERROR(rprMaterialNodeGetInputInfo(materialX, rprxParamList[iParam].param, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(connection), &connection, nullptr));
-                    type = "connection";
-                    if (!objects.count(connection) && connection)
-                    {
-                        throw std::runtime_error("input material node is missing");
-                    }
-                    value = objects[connection];
+					if ( connection )
+					{
+						type = "connection";
+						if (!objects.count(connection) && connection)
+						{
+							throw std::runtime_error("input material node is missing");
+						}
+						const auto& connectName = objects.find(connection);
+						if ( connectName != objects.end() )
+						{
+							value = connectName->second;
+						}
+						else
+						{
+							int a=0; // ERROR ?
+						}
+					}
 				}
 				else
 				{
