@@ -151,6 +151,8 @@ enum Parameter : ParamID
 
 	PARAM_GPU_SELECTED_BY_USER = 437,
 
+	PARAM_CONTEXT_ITERATIONS = 438,
+
 	PARAM_WARNING_DONTSHOW = 501,
 	PARAM_RENDER_LIMIT = 502,
 
@@ -236,10 +238,10 @@ enum Parameter : ParamID
 	PARAM_USE_TEXTURE_COMPRESSION = 620,
 
 	/// INT: How many AA samples will the core take during each rendering pass
-	PARAM_AA_SAMPLE_COUNT,
+	PARAM_AA_SAMPLE_COUNT, // Obsolete parameter; not removed for scenes backward compatibility
 
 	/// INT: Radeon ProRender core parameter
-	PARAM_AA_GRID_SIZE,
+	PARAM_AA_GRID_SIZE, // Obsolete parameter; not removed for scenes backward compatibility
 
 	// (sky) ground albedo
 	TRPARAM_BG_SKY_GROUND_ALBEDO,

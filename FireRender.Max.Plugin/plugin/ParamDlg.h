@@ -543,8 +543,7 @@ protected:
 		struct
 		{
 			ISpinnerControl* aaFilterWidth;
-			ISpinnerControl* aaSampleCount;
-			ISpinnerControl* aaGridSize;
+			ISpinnerControl* iterationsCount;
 		} controls;
 
 		CAntialiasSettings()

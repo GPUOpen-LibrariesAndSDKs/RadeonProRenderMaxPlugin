@@ -438,10 +438,10 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	TRPARAM_BG_SKY_SATURATION, _T("backgroundSkySaturation"), TYPE_FLOAT, P_ANIMATABLE | P_TRANSIENT, IDS_STRING267,
 	p_default, 1.0, p_range, 0.0, 1.0, p_accessor, &theBgAccessor, PB_END,
 
-	PARAM_AA_GRID_SIZE, _T("aaGridSize"), TYPE_INT, 0, 0,
+	PARAM_AA_GRID_SIZE, _T("aaGridSize"), TYPE_INT, P_OBSOLETE, 0,
 	p_default, 4, p_range, 1, 16 /*RPR_MAX_AA_GRID_SIZE*/, PB_END,
 
-	PARAM_AA_SAMPLE_COUNT, _T("aaSampleCount"), TYPE_INT, 0, 0,
+	PARAM_AA_SAMPLE_COUNT, _T("aaSampleCount"), TYPE_INT, P_OBSOLETE, 0,
 	p_default, 1, p_range, 1, 32 /*RPR_MAX_AA_SAMPLES*/, PB_END,
 	
 	TRPARAM_BG_SKY_GROUND_ALBEDO, _T("backgroundSkyGroundAlbedo"), TYPE_RGBA, P_ANIMATABLE | P_TRANSIENT, IDS_STRING247,
@@ -480,6 +480,9 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 
 	PARAM_DENOISER_EAW_OBJECTID, _T("eawObjectId"), TYPE_FLOAT, 0, 0, p_default,
 	eawObjectIdDefault, p_range, eawObjectIdMin, eawObjectIdMax, PB_END,
+
+	PARAM_CONTEXT_ITERATIONS, _T("iterations"), TYPE_INT, 0, 0, // effectively the same parameter as aasamples
+	p_default, 4, p_range, 1, 16 /*RPR_MAX_AA_GRID_SIZE*/, PB_END,
 
 PB_END);
 

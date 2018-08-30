@@ -87,19 +87,11 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 			}
 			break;
 
-			case PARAM_AA_SAMPLE_COUNT:
+			case PARAM_CONTEXT_ITERATIONS:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("aasamples", v.mSimpleValue.int_val);
+				context.SetParameter("iterations", v.mSimpleValue.int_val);
 			}
-			break;
-
-			case PARAM_AA_GRID_SIZE:
-			{
-				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("aacellsize", v.mSimpleValue.int_val);
-			}
-			break;
 
 			case PARAM_TIME_LIMIT:
 			{

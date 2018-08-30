@@ -2502,22 +2502,19 @@ static int FindActivePreset(const PresetData* presetData, HWND dialog)
 
 static const PresetDataValue aa_lowPreset[] =
 {
-	{ IDC_AA_SAMPLE_COUNT_S, 1 },
-	{ IDC_AA_GRID_SIZE_S, 1 },
+	{ IDC_PARAM_CONTEXT_ITERATIONS_S, 1 },
 	{ -1, 0 }
 };
 
 static const PresetDataValue aa_mediumPreset[] =
 {
-	{ IDC_AA_SAMPLE_COUNT_S, 4 },
-	{ IDC_AA_GRID_SIZE_S, 4 },
+	{ IDC_PARAM_CONTEXT_ITERATIONS_S, 4 },
 	{ -1, 0 }
 };
 
 static const PresetDataValue aa_highPreset[] =
 {
-	{ IDC_AA_SAMPLE_COUNT_S, 8 },
-	{ IDC_AA_GRID_SIZE_S, 4 },
+	{ IDC_PARAM_CONTEXT_ITERATIONS_S, 8 },
 	{ -1, 0 }
 };
 
@@ -2604,8 +2601,7 @@ void FireRenderParamDlg::CAntialiasSettings::InitDialog()
 	setListboxValue(imgFilter, pb->GetInt(PARAM_IMAGE_FILTER));
 
 	controls.aaFilterWidth = SetupSpinner(pb, PARAM_IMAGE_FILTER_WIDTH, IDC_IMAGE_FILTER_WIDTH, IDC_IMAGE_FILTER_WIDTH_S);
-	controls.aaGridSize = SetupSpinner(pb, PARAM_AA_GRID_SIZE, IDC_AA_GRID_SIZE, IDC_AA_GRID_SIZE_S);
-	controls.aaSampleCount = SetupSpinner(pb, PARAM_AA_SAMPLE_COUNT, IDC_AA_SAMPLE_COUNT, IDC_AA_SAMPLE_COUNT_S);
+	controls.iterationsCount = SetupSpinner(pb, PARAM_CONTEXT_ITERATIONS, IDC_PARAM_CONTEXT_ITERATIONS, IDC_PARAM_CONTEXT_ITERATIONS_S);
 
 	mIsReady = true;
 }
@@ -2617,8 +2613,7 @@ void FireRenderParamDlg::CAntialiasSettings::DestroyDialog()
 		mIsReady = false;
 		RemoveAllSpinnerAssociations();
 		ReleaseISpinner(controls.aaFilterWidth);
-		ReleaseISpinner(controls.aaGridSize);
-		ReleaseISpinner(controls.aaSampleCount);
+		ReleaseISpinner(controls.iterationsCount);
 	}
 }
 
