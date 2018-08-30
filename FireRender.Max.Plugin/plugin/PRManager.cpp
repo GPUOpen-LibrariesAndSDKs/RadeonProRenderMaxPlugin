@@ -947,8 +947,7 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 	context.SetParameter("imagefilter.mitchell.radius", filterRadius);
 	context.SetParameter("imagefilter.lanczos.radius", filterRadius);
 	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);
-	context.SetParameter("aacellsize", GetFromPb<int>(parameters.pblock, PARAM_AA_GRID_SIZE));
-	context.SetParameter("aasamples", GetFromPb<int>(parameters.pblock, PARAM_AA_SAMPLE_COUNT));
+	context.SetParameter("iterations", GetFromPb<int>(parameters.pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
 
 	float raycastEpsilon = GetFromPb<float>(parameters.pblock, PARAM_QUALITY_RAYCAST_EPSILON);

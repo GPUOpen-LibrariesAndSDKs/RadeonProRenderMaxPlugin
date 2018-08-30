@@ -1120,12 +1120,9 @@ BEGIN
     CONTROL         "Custom1",IDC_IMAGE_FILTER_WIDTH,"CustEdit",WS_TABSTOP,154,24,24,11
     CONTROL         "Custom2",IDC_IMAGE_FILTER_WIDTH_S,"SpinnerControl",WS_TABSTOP,180,24,9,11
     RTEXT           "Filter width:",IDC_STATIC,107,25,44,8
-    CONTROL         "Custom1",IDC_AA_SAMPLE_COUNT,"CustEdit",WS_TABSTOP,68,25,24,11
-    CONTROL         "Custom2",IDC_AA_SAMPLE_COUNT_S,"SpinnerControl",WS_TABSTOP,93,25,9,11
-    RTEXT           "AA samples:",IDC_STATIC,20,25,44,8
-    CONTROL         "Custom1",IDC_AA_GRID_SIZE,"CustEdit",WS_TABSTOP,68,38,24,11
-    CONTROL         "Custom2",IDC_AA_GRID_SIZE_S,"SpinnerControl",WS_TABSTOP,93,38,9,11
-    RTEXT           "AA grid:",IDC_STATIC,21,38,44,8
+    CONTROL         "Custom1",IDC_PARAM_CONTEXT_ITERATIONS,"CustEdit",WS_TABSTOP,68,25,24,11
+    CONTROL         "Custom2",IDC_PARAM_CONTEXT_ITERATIONS_S,"SpinnerControl",WS_TABSTOP,93,25,9,11
+    RTEXT           "Iterations:",IDC_STATIC,20,25,44,8
     LTEXT           "Filter:",IDC_STATIC,45,10,20,8
 END
 
@@ -2026,6 +2023,10 @@ BEGIN
     END
 
     IDD_RENDER_TONEMAPPING, DIALOG
+    BEGIN
+    END
+
+    IDD_RENDER_AASETTINGS, DIALOG
     BEGIN
     END
 

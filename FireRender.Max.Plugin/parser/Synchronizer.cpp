@@ -333,8 +333,7 @@ Synchronizer::Synchronizer(frw::Scope scope, INode *pSceneINode, SynchronizerBri
 	FASSERT(mParametersTracker.AddToTracker(PARAM_IMAGE_FILTER_WIDTH));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_USE_IRRADIANCE_CLAMP));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_IRRADIANCE_CLAMP));
-	FASSERT(mParametersTracker.AddToTracker(PARAM_AA_SAMPLE_COUNT));
-	FASSERT(mParametersTracker.AddToTracker(PARAM_AA_GRID_SIZE));
+	FASSERT(mParametersTracker.AddToTracker(PARAM_CONTEXT_ITERATIONS));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_TIME_LIMIT));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_PASS_LIMIT));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_RENDER_LIMIT));

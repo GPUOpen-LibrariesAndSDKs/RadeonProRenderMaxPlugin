@@ -803,8 +803,7 @@ void ActiveShader::Begin()
 	context.SetParameter("imagefilter.mitchell.radius", filterRadius);
 	context.SetParameter("imagefilter.lanczos.radius", filterRadius);
 	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);
-	context.SetParameter("aacellsize", GetFromPb<int>(pblock, PARAM_AA_GRID_SIZE));
-	context.SetParameter("aasamples", GetFromPb<int>(pblock, PARAM_AA_SAMPLE_COUNT));
+	context.SetParameter("iterations", GetFromPb<int>(pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
 	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
 
