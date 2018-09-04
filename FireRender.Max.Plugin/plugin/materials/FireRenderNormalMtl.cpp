@@ -577,6 +577,46 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParse
 			if (pNormalBitmap && !bumpTexmap && !swapRG && !invertR && !invertG)
 			{
 				normalImage = bitmap2image(pNormalBitmap, mtlParser);
+
+
+
+
+				
+				// added by RichardGe : when exporting material library to XML ( with exportFrMat_cf script ) 
+				//                      I need to export the path of the texture that looks like : "RadeonProRMaps\Glass_scratches.jpg"
+				//                      Don't know if it's the better way, but this is how I extract the path :
+				if ( texmap && normalImage.Handle() )
+				{
+					auto map = dynamic_cast<BitmapTex*>(texmap->GetInterface(BITMAPTEX_INTERFACE));
+					if ( map )
+					{
+						const wchar_t* textureFilePathW = map->GetMapName();
+
+						const int maxsizePath = 4096;
+						char textureFilePathA[maxsizePath];
+						for(int i=0; ;i++)
+						{
+							if ( textureFilePathW[i] == 0x00 || i == maxsizePath-1 )
+							{
+								textureFilePathA[i] = 0;
+								break;
+							}
+
+							if ( textureFilePathW[i] <= 0x0FF )
+								textureFilePathA[i] = textureFilePathW[i];
+							else
+								textureFilePathA[i] = '?';
+						}
+
+						rprObjectSetName(normalImage.Handle(),textureFilePathA);
+					}
+				}
+
+				
+
+
+
+
 				if (isBump || IsGrayScale(pNormalBitmap))
 					requireGrayScaleBump = true;
 			}

@@ -17,6 +17,7 @@
 #include <string>
 #include <fstream>
 #include <regex>
+#include <unordered_map>
 
 #include "parser/MaterialLoader.h"
 #include "plugin/ParamBlock.h"
@@ -33,7 +34,10 @@ bool ParseRPR(
 	rpr_material_node material ,
 	std::set<rpr_material_node>& nodeList ,
 	std::set<rprx_material>& nodeListX ,
-	const std::string& folder  
+	const std::string& folder  ,
+	bool originIsUberColor, // set to TRUE if this 'material' is connected to a COLOR input of the UBER material
+	std::unordered_map<rpr_image , RPR_MATERIAL_XML_EXPORT_TEXTURE_PARAM>& textureParameter,
+	const std::string& material_name
 )
 {
 
@@ -48,42 +52,51 @@ bool ParseRPR(
 	rpr_int status = RPR_SUCCESS;
 
 	size_t input_count = 0;
-	status = frMaterialNodeGetInfo(material, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &input_count, nullptr);
+	status = rprMaterialNodeGetInfo(material, RPR_MATERIAL_NODE_INPUT_COUNT, sizeof(size_t), &input_count, nullptr);
 	for (int i = 0; i < input_count; ++i)
 	{
-		fr_int in_type;
-		status = frMaterialNodeGetInputInfo(material, i, RPR_MATERIAL_NODE_INPUT_TYPE, sizeof(in_type), &in_type, nullptr);
+		rpr_int in_type;
+		status = rprMaterialNodeGetInputInfo(material, i, RPR_MATERIAL_NODE_INPUT_TYPE, sizeof(in_type), &in_type, nullptr);
 		if (in_type == RPR_MATERIAL_NODE_INPUT_TYPE_NODE)
 		{
 			rpr_material_node ref_node = nullptr;
-			status = frMaterialNodeGetInputInfo(material, i, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(ref_node), &ref_node, nullptr);	
+			status = rprMaterialNodeGetInputInfo(material, i, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(ref_node), &ref_node, nullptr);	
 			if ( ref_node )
 			{
-				ParseRPR(ref_node,nodeList,nodeListX,folder);
+				ParseRPR(ref_node,nodeList,nodeListX,folder,originIsUberColor,textureParameter,material_name);
 			}
 		}
 		else if (in_type == RPR_MATERIAL_NODE_INPUT_TYPE_IMAGE)
 		{
-			fr_image img = nullptr;
-			status = frMaterialNodeGetInputInfo(material, i, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(img), &img, nullptr);
+			rpr_image img = nullptr;
+			status = rprMaterialNodeGetInputInfo(material, i, RPR_MATERIAL_NODE_INPUT_VALUE, sizeof(img), &img, nullptr);
 			size_t name_size = 0;
-			status = frImageGetInfo(img, RPR_OBJECT_NAME, 0, nullptr, &name_size);
+			status = rprImageGetInfo(img, RPR_OBJECT_NAME, 0, nullptr, &name_size);
 			//create file if filename is empty(name == "\0")
 			if (name_size == 1)
 			{
 				//looking for a free filename
 				int img_id = 0;
 				std::string ext = ".png";
-				std::string img_name = folder + "tex_" + std::to_string(img_id) + ext;
-				while (std::ifstream(img_name).good())
+				
+				std::string prefix = material_name + "_" + "tex_";
+
+				//std::string img_name = folder + "tex_" + std::to_string(img_id) + ext;
+				std::string img_name_short = prefix + std::to_string(img_id) + ext;
+				
+				
+				while (std::ifstream(img_name_short).good())
 				{
-					img_name = folder + "tex_" + std::to_string(++img_id) + ext;
+					//img_name = folder + "tex_" + std::to_string(++img_id) + ext;
+					img_name_short = prefix + std::to_string(++img_id) + ext;
 				}
+
+				std::string img_name = folder + img_name_short;
 
 				std::wstring wimg_name(img_name.begin(), img_name.end());
 
-				fr_image_desc desc;
-				status = frImageGetInfo(img, RPR_IMAGE_DESC, sizeof(desc), &desc, nullptr);
+				rpr_image_desc desc;
+				status = rprImageGetInfo(img, RPR_IMAGE_DESC, sizeof(desc), &desc, nullptr);
 				BitmapInfo bi;
 				bi.SetFlags(MAP_NOFLAGS);
 				bi.SetName(wimg_name.c_str());
@@ -94,16 +107,16 @@ bool ParseRPR(
 				Bitmap* map = TheManager->Create(&bi);
 
 				//write image data
-				fr_image_format format;
-				status = frImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr);
+				rpr_image_format format;
+				status = rprImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr);
 
 				if (format.type == RPR_COMPONENT_TYPE_UINT8)
 				{
 					size_t imgsize = 0;
-					status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize);
+					status = rprImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize);
 					static std::vector<unsigned char> img_data(imgsize);
 					img_data.resize(imgsize);
-					status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr);
+					status = rprImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr);
 
 					if (format.num_components == 1)
 					{
@@ -133,10 +146,10 @@ bool ParseRPR(
 				else if (format.type == RPR_COMPONENT_TYPE_FLOAT32)
 				{
 					size_t imgsize = 0;
-					status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize);
+					status = rprImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize);
 					static std::vector<float> img_data(imgsize);
 					img_data.resize(imgsize);
-					status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr);
+					status = rprImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr);
 
 					if (format.num_components == 1)
 					{
@@ -166,8 +179,20 @@ bool ParseRPR(
 				map->Write(&bi);
 				map->Close(&bi);
 				map->DeleteThis();
-				frObjectSetName(img, ("tex_" + std::to_string(img_id) + ext).c_str());
+				//std::string nameTexture = ("tex_" + std::to_string(img_id) + ext);
+				std::string nameTexture = "RadeonProRMaps/" + img_name_short;
+				rprObjectSetName(img, nameTexture.c_str());
 			}
+			else
+			{
+				std::string mat_name;
+				mat_name.resize(name_size - 1);
+				rprImageGetInfo(img, RPR_OBJECT_NAME, name_size, &mat_name[0], nullptr);
+				int a=0;
+			}
+
+			textureParameter[img].useGamma = originIsUberColor ? true : false;
+			int a=0;
 		}
 	}
 
@@ -183,7 +208,9 @@ bool ParseRPRX(
 	rprx_context contextX, 
 	std::set<rpr_material_node>& nodeList ,
 	std::set<rprx_material>& nodeListX ,
-	const std::string& folder  
+	const std::string& folder ,
+	std::unordered_map<rpr_image , RPR_MATERIAL_XML_EXPORT_TEXTURE_PARAM>& textureParameter,
+	const std::string& material_name
 	)
 {
 	rpr_int status = RPR_SUCCESS;
@@ -214,7 +241,7 @@ bool ParseRPRX(
 		}
 		else if ( type == RPRX_PARAMETER_TYPE_NODE )
 		{
-			rprx_material valueN = 0;
+			rpr_material_node valueN = 0;
 			status = rprxMaterialGetParameterValue(contextX,materialX,g_rprxParamList[iParam].param,&valueN); if (status != RPR_SUCCESS) { return false; };
 
 			if ( valueN )
@@ -225,15 +252,27 @@ bool ParseRPRX(
 
 				if ( materialIsRPRX )
 				{
-					bool success = ParseRPRX(valueN , contextX, nodeList , nodeListX , folder  );
-					if  ( !success )
-					{
-						return false;
-					}
+					//having a Uber material linked as an input of another Uber Material doesn't make sense and is not managed by
+					//the RPRX library. only a rpr_material_node can be input in a rprx_material
 				}
 				else
 				{
-					bool success = ParseRPR(valueN , nodeList , nodeListX , folder  );
+					bool originIsUberColor = false;
+					if (   g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_DIFFUSE_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_REFLECTION_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_REFRACTION_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_REFRACTION_ABSORPTION_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_COATING_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_COATING_TRANSMISSION_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_EMISSION_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR
+						|| g_rprxParamList[iParam].param == RPRX_UBER_MATERIAL_BACKSCATTER_COLOR
+						)
+					{
+						originIsUberColor = true;
+					}
+
+					bool success = ParseRPR(valueN , nodeList , nodeListX , folder , originIsUberColor, textureParameter, material_name );
 					if  ( !success )
 					{
 						return false;
@@ -379,11 +418,11 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 	rpr_creation_flags createFlags = FireRender::ScopeManagerMax::TheManager.getContextCreationFlags();
 	
 	// create a temporary context
-	fr_int status = RPR_SUCCESS;
-	fr_int plugs = 0;
+	rpr_int status = RPR_SUCCESS;
+	rpr_int plugs = 0;
 	const char pluginsPath[] = "Tahoe64.dll";
-	static fr_int plug = frRegisterPlugin(pluginsPath);
-	fr_context context = nullptr;
+	static rpr_int plug = rprRegisterPlugin(pluginsPath);
+	rpr_context context = nullptr;
 	status = rprCreateContext(RPR_API_VERSION, &plug, 1, createFlags, NULL, NULL, &context);
 	FCHECK(status);
 
@@ -400,8 +439,14 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 	
 	std::set<rpr_material_node> nodeList;
 	std::set<rprx_material> nodeListX;
+	std::unordered_map<rpr_image , RPR_MATERIAL_XML_EXPORT_TEXTURE_PARAM> textureParameter;
 
 	rprx_context mat_rprx_context = nullptr;
+
+	void* closureNode = nullptr;
+
+	std::string material_name = std::regex_replace(filename, std::regex("^.*[\\\\/]"), ""); // cut path
+	material_name = std::regex_replace(material_name, std::regex("[.].*"), ""); // cut extension
 
 	bool isiRprx = sh.IsRprxMaterial();
 	if ( isiRprx )
@@ -409,12 +454,16 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 		rprx_material mat_rprx_material = sh.GetHandleRPRXmaterial();
 		mat_rprx_context = sh.GetHandleRPRXcontext();
 
+		closureNode = mat_rprx_material;
+
 		bool success = ParseRPRX(
 			mat_rprx_material ,
 			mat_rprx_context,
-			 nodeList ,
-			 nodeListX ,
-			 folder  );
+			nodeList ,
+			nodeListX ,
+			folder ,
+			textureParameter,
+			material_name);
 
 		if ( !success )
 		{
@@ -424,12 +473,16 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 	}
 	else
 	{
+		closureNode = sh.Handle();
 
 		bool success = ParseRPR(
 			sh.Handle() ,
-			 nodeList ,
-			 nodeListX ,
-			 folder  );
+			nodeList ,
+			nodeListX ,
+			folder ,
+			false , 
+			textureParameter,
+			material_name);
 
 		if ( !success )
 		{
@@ -443,7 +496,10 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 		//nodes_to_save.data(), nodes_to_save.size()
 		nodeList, nodeListX, 
 		g_rprxParamList,
-		mat_rprx_context
+		mat_rprx_context,
+		textureParameter,
+		closureNode,
+		material_name
 		);
 
 	return true;

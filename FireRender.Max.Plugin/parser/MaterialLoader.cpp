@@ -406,8 +406,11 @@ void ExportMaterials(const std::string& filename,
 	const std::set<rpr_material_node>& nodeList,
 	const std::set<rprx_material>& nodeListX ,
 	const std::vector<RPRX_DEFINE_PARAM_MATERIAL>& rprxParamList,
-	rprx_context contextX 
-)
+	rprx_context contextX ,
+	std::unordered_map<rpr_image , RPR_MATERIAL_XML_EXPORT_TEXTURE_PARAM>& textureParameter,
+	void* closureNode,  // pointer to a rpr_material_node or a rprx_material
+	const std::string& material_name // example : "Emissive_Fluorescent_Magenta"
+	)
 {
     XmlWriter writer(filename);
     if (nodeListX.size() == 0 && nodeList.size() == 0)
@@ -418,21 +421,25 @@ void ExportMaterials(const std::string& filename,
 
     try
     {
-        std::string material_name = std::regex_replace(filename, std::regex("^.*[\\\\/]"), ""); // cut path
-        material_name = std::regex_replace(material_name, std::regex("[.].*"), ""); // cut extension
-
         writer.startDocument();
         writer.startElement("material");
         writer.writeAttribute("name", material_name);
-        std::stringstream hex_version;
-        hex_version << "0x" << std::hex << kVersion;
-        writer.writeAttribute("version", hex_version.str());
+        
+		// in case we need versioning the material XMLs...  -  unused for the moment.
+		writer.writeAttribute("version_exporter", "10"); 
 
+		//version of the RPR_API_VERSION used to generate this XML
+		std::stringstream hex_version;
+        hex_version << "0x" << std::hex << kVersion;
+        writer.writeAttribute("version_rpr", hex_version.str());
+		
         // file path as key, id - for material nodes connections
-        std::map<std::string, std::string> textures;
+        std::map<std::string,  std::pair< std::string , rpr_image >  > textures;
         std::map<void*, std::string> objects; // <object, node_name> map
 
         std::set<std::string> used_names; // to avoid duplicating node names
+
+		std::string closureNodeName = "";
 
 		// fill materials first
 		for(const auto& iNode : nodeList )
@@ -446,16 +453,22 @@ void ExportMaterials(const std::string& filename,
             mat_node_name.resize(name_size - 1); // exclude extra terminator
             CHECK_NO_ERROR(rprMaterialNodeGetInfo(mat, RPR_OBJECT_NAME, name_size, &mat_node_name[0], nullptr));
             int postfix_id = 0;
-            if (mat_node_name.empty()) mat_node_name = "box" + std::to_string(postfix_id);
+
+            if (mat_node_name.empty()) 
+				mat_node_name = "node" + std::to_string(postfix_id);
+
             while (used_names.count(mat_node_name))
             {
-                mat_node_name = "box" + std::to_string(postfix_id);
+                mat_node_name = "node" + std::to_string(postfix_id);
                 ++postfix_id;
             }
+
+			if ( mat == closureNode )
+					closureNodeName = mat_node_name;
+
             objects[mat] = mat_node_name;
             used_names.insert(mat_node_name);
         }
-
 
 		for(const auto& iNode : nodeListX )
 		{
@@ -472,10 +485,15 @@ void ExportMaterials(const std::string& filename,
                 ++postfix_id;
             }
 
+			if ( mat == closureNode )
+					closureNodeName = mat_node_name;
 			
 			objects[mat] = mat_node_name;
 			used_names.insert(mat_node_name);
 		}
+
+		// closure_node is the name of the node containing the final output of the material
+		writer.writeAttribute("closure_node", closureNodeName); 
 
         // look for images
 		for(const auto& iNode : nodeList )
@@ -495,11 +513,11 @@ void ExportMaterials(const std::string& filename,
                 if (objects.count(img)) //already mentioned
                     continue;
 
-                std::string img_node_name = "box0";
+                std::string img_node_name = "node0";
                 int postfix_id = 0;
                 while (used_names.count(img_node_name))
                 {
-                    img_node_name = "box" + std::to_string(postfix_id);
+                    img_node_name = "node" + std::to_string(postfix_id);
                     ++postfix_id;
                 }
                 objects[img] = img_node_name;
@@ -580,13 +598,37 @@ void ExportMaterials(const std::string& filename,
                     std::string tex_name;
                     tex_name.resize(name_size - 1);
                     CHECK_NO_ERROR(rprImageGetInfo(tex, RPR_OBJECT_NAME, name_size, &tex_name[0], nullptr));
+
+
+					//replace \\ by /
+					//so we ensure all paths are using same convention  ( better for Unix )
+					for(int i=0; i<tex_name.length(); i++)
+					{
+						if ( tex_name[i] == '\\' )
+							tex_name[i] = '/';
+					}
+
+
+					// we don't want path that looks like :  "H:/RPR/MatLib/MaterialLibrary/1.0 - Copy/RadeonProRMaps/Glass_Used_normal.jpg"
+					// all paths must look like "RadeonProRMaps/Glass_Used_normal.jpg"
+					// the path RadeonProRMaps/  is hard coded here for the moment .. needs to be exposed in exporter GUI if we change it ?
+					const std::string radeonProRMapsFolder = "/RadeonProRMaps/";
+					size_t pos = tex_name.find(radeonProRMapsFolder);
+					if ( pos != std::string::npos )
+					{
+						tex_name = tex_name.substr(pos+1);
+						int a=0;
+					}
+
+
+
                     if (!textures.count(tex_name))
                     {
                         int tex_node_id = 0;
                         std::string tex_node_name = objects[tex];
-                        textures[tex_name] = tex_node_name;
+                        textures[tex_name] = std::pair<std::string , rpr_image> ( tex_node_name , tex ) ;
                     }
-                    value = textures[tex_name];
+                    value = textures[tex_name].first;
                     break;
                 }
                 default:
@@ -696,13 +738,37 @@ void ExportMaterials(const std::string& filename,
         for (const auto& tex : textures)
         {
             writer.startElement("node");
-            writer.writeAttribute("name", tex.second);
+            writer.writeAttribute("name", tex.second.first);
             writer.writeAttribute("type", "INPUT_TEXTURE");
             writer.startElement("param");
             writer.writeAttribute("name", "path");
             writer.writeAttribute("type", "file_path");
             writer.writeAttribute("value", tex.first);
             writer.endElement();
+
+			writer.startElement("param");
+			writer.writeAttribute("name", "gamma");
+			writer.writeAttribute("type", "float");
+			bool gammaset = false;
+			if ( textureParameter.find(tex.second.second) != textureParameter.end()  )
+			{
+				RPR_MATERIAL_XML_EXPORT_TEXTURE_PARAM& param = textureParameter[tex.second.second];
+				if ( param.useGamma )
+				{
+					writer.writeAttribute("value", std::to_string(2.2f) );
+					gammaset = true;
+				}
+			}
+			else
+			{
+				int a=0;
+			}
+			if ( !gammaset )
+			{
+				writer.writeAttribute("value", std::to_string(1.0f) );
+			}
+			writer.endElement();
+
             writer.endElement();
         }
         writer.endDocument();
