@@ -2084,6 +2084,10 @@ namespace frw
 			{
 				if (material)
 				{
+					for (auto input : inputs)
+						rprxMaterialDetachMaterial(context, input.second, input.first.c_str(), material);
+					inputs.clear();
+
 					auto res = rprxMaterialDelete(context, material);
 					FCHECK(res);
 					DebugPrint(L"\tDeleted RPRX material %08X\n", material);
@@ -2105,6 +2109,7 @@ namespace frw
 			rprx_material material = nullptr; // RPRX material
 			bool isShadowCatcher = false;
 			ShadowCatcherParams mShadowCatcherParams;
+			std::map<std::string, rpr_material_node> inputs;
 		};
 
 	public:
@@ -2227,7 +2232,9 @@ namespace frw
 		{
 			Data& d = data();
 			d.numAttachedShapes--;
+
 			DebugPrint(L"\tShape.DetachMaterial: shape=%08X\n", shape.Handle());
+
 			if (d.material)
 			{
 				rpr_int res = rprxShapeDetachMaterial(d.context, shape.Handle(), d.material);
@@ -2239,19 +2246,29 @@ namespace frw
 				FCHECK(res);
 			}
 		}
+
 		void AttachToMaterialInput(rpr_material_node node, const char* inputName) const
 		{
-			const Data& d = data();
+			Data& d = data();
 			rpr_int res;
+
+			DebugPrint(L"\tShape.AttachToMaterialInput: node=%016X, material=%016X on %s\n", node, d.material, inputName);
+
 			if (d.material)
 			{
+				auto it = d.inputs.find(inputName);
+
+				if (it != d.inputs.end())
+					DetachFromMaterialInput(it->second, it->first.c_str());
+
 				// attach rprx shader output to some material's input
-				// note: there's no call to rprxShapeDetachMaterial
 				res = rprxMaterialAttachMaterial(d.context, node, inputName, d.material);
 				FCHECK(res);
 
 				res = rprxMaterialCommit(d.context, d.material);
 				FCHECK(res);
+
+				d.inputs.emplace(inputName, node);
 			}
 			else
 			{
@@ -2259,6 +2276,23 @@ namespace frw
 				FCHECK(res);
 			}
 		}
+
+		void DetachFromMaterialInput(rpr_material_node node, const char* inputName) const
+		{
+			Data& d = data();
+
+			DebugPrint(L"\tShape.DetachFromMaterialInput: node=%016X, material=%016X on %s", node, d.material, inputName);
+			
+			if (d.material)
+			{
+				// detach rprx shader output to some material's input
+				rpr_int res = rprxMaterialDetachMaterial(d.context, node, inputName, d.material);
+				FCHECK(res);
+
+				d.inputs.erase(inputName);
+			}
+		}
+
 		void xSetParameterN(rprx_parameter parameter, frw::Node node)
 		{
 			AddReference(node);
