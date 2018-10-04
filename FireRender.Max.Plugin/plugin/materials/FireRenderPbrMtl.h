@@ -14,6 +14,11 @@ enum FRPbrMtl_TexmapId
 	FRPBRMTL_MAP_OPACITY          = 5,
 	FRPBRMTL_MAP_EMISSIVE_COLOR   = 6,
 	FRPBRMTL_MAP_EMISSIVE_WEIGHT  = 7,
+	FRPBRMTL_MAP_GLASS			  = 8,
+	FRPBRMTL_MAP_GLASS_IOR		  = 9,
+	FRPBRMTL_MAP_SPECULAR		  = 10,
+	FRPBRMTL_MAP_SSS_WEIGHT		  = 11,
+	FRPBRMTL_MAP_SSS_COLOUR		  = 12,
 };
 
 enum FRPbrMtl_ParamID : ParamID
@@ -60,6 +65,31 @@ enum FRPbrMtl_ParamID : ParamID
 	FRPBRMTL_EMISSIVE_WEIGHT        = 1071,
 	FRPBRMTL_EMISSIVE_WEIGHT_MAP    = 1072,
 	FRPBRMTL_EMISSIVE_WEIGHT_USEMAP = 1073,
+
+	FRPBRMTL_GLASS_MUL				= 1080,
+	FRPBRMTL_GLASS					,
+	FRPBRMTL_GLASS_MAP				,
+	FRPBRMTL_GLASS_USEMAP			,
+
+	FRPBRMTL_GLASS_IOR_MUL			= 1090,
+	FRPBRMTL_GLASS_IOR				,
+	FRPBRMTL_GLASS_IOR_MAP			,
+	FRPBRMTL_GLASS_IOR_USEMAP		,
+
+	FRPBRMTL_SPECULAR_MUL			= 1100,
+	FRPBRMTL_SPECULAR				,
+	FRPBRMTL_SPECULAR_MAP			,
+	FRPBRMTL_SPECULAR_USEMAP		,
+
+	FRPBRMTL_SSS_WEIGHT_MUL			= 1200,
+	FRPBRMTL_SSS_WEIGHT				,
+	FRPBRMTL_SSS_WEIGHT_MAP			,
+	FRPBRMTL_SSS_WEIGHT_USEMAP		,
+	FRPBRMTL_SSS_COLOR_MUL			,
+	FRPBRMTL_SSS_COLOR				,
+	FRPBRMTL_SSS_COLOR_MAP			,
+	FRPBRMTL_SSS_COLOR_USEMAP		,
+	FRPBRMTL_SSS_SCATTER_DIST		,
 };
 
 BEGIN_DECLARE_FRMTLCLASSDESC(PbrMtl, L"RPR PBR Material", FIRERENDER_PBRMTL_CID)
@@ -73,11 +103,12 @@ public:
 	frw::Shader getVolumeShader(const TimeValue t, MaterialParser& mtlParser, INode* node);
 
 private:
-	std::tuple<bool, Texmap*, Color, float> GetParameters(FRPbrMtl_ParamID useMapId,
-		FRPbrMtl_ParamID mapId, FRPbrMtl_ParamID colorId, FRPbrMtl_ParamID mulId);
 
-	std::tuple<bool, Texmap*, Color, float> GetParametersNoColor(FRPbrMtl_ParamID useMapId,
-		FRPbrMtl_ParamID mapId, FRPbrMtl_ParamID colorId, FRPbrMtl_ParamID mulId);
+	std::tuple<Texmap*, Color> GetParameters(FRPbrMtl_ParamID mapId,
+		FRPbrMtl_ParamID colorId);
+
+	std::tuple<Texmap*, float> GetParametersNoColor(FRPbrMtl_ParamID mapId,
+		FRPbrMtl_ParamID mulId);
 
 END_DECLARE_FRMTL(PbrMtl)
 
