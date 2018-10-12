@@ -6,25 +6,15 @@
 * The fundamental scene parsing implementation
 *********************************************************************************************************************************/
 #pragma once
-#include "parser/SceneParser.h"
+
+#include "SceneParser.h"
 #include "RenderParameters.h"
 #include "ParamBlock.h"
 #include "CamManager.h"
 #include "ScopeManager.h"
-#include <iparamm2.h>
-#include <lslights.h>
-#include <ICustAttribContainer.h>
-#include <set>
-#include <map>
-#include <MeshNormalSpec.h>
 #include "utils/Utils.h"
 #include "SceneCallbacks.h"
 #include "CoronaDeclarations.h"
-
-#if MAX_PRODUCT_YEAR_NUMBER >= 2016
-	#include <scene/IPhysicalCamera.h>
-#endif
-
 #include "FireRenderStandardMtl.h"
 #include "FireRenderDisplacementMtl.h"
 #include "FireRenderMaterialMtl.h"
@@ -36,6 +26,16 @@
 #include "FireRenderPortalLight.h"
 #include "light/FireRenderIESLight.h"
 #include "light/physical/FireRenderPhysicalLight.h"
+
+#include <iparamm2.h>
+#include <lslights.h>
+#include <ICustAttribContainer.h>
+#include <MeshNormalSpec.h>
+#include <scene/IPhysicalCamera.h>
+
+#include <set>
+#include <map>
+#include <chrono>
 
 #define USE_INSTANCES_ONLY false
 #define DEFAULT_LIGHT_ID 0x100000000
@@ -50,7 +50,31 @@
 
 #define DISABLED_MATERIAL (Mtl*)1
 
-FIRERENDER_NAMESPACE_BEGIN;
+#define PROFILING 0
+
+#if PROFILING > 0
+
+struct ProfilingData
+{
+	std::chrono::time_point<std::chrono::steady_clock> mSyncStart;
+	std::chrono::time_point<std::chrono::steady_clock> mSyncEnd;
+
+	std::int32_t shadersNum;
+
+	void Reset()
+	{
+		mSyncStart = std::chrono::high_resolution_clock::now();
+		mSyncEnd = std::chrono::high_resolution_clock::now();
+
+		shadersNum = 0;
+	}
+};
+
+ProfilingData profilingData;
+
+#endif
+
+FIRERENDER_NAMESPACE_BEGIN
 
 // Returns true if the input node is hidden in rendering
 inline bool isHidden(INode* node, const RenderParameters& params)
@@ -1126,6 +1150,10 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					else if (auto shader = mtlParser.createShader(currentMtl, parsedNode.node, parsedNode.invalidationTimestamp != 0))
 					{
 						shape.SetShader(shader);
+
+#if PROFILING > 0
+						profilingData.shadersNum++;
+#endif
 					}
 
 					SetNameFromNode(parsedNode.node, shape);
@@ -1234,6 +1262,10 @@ bool SceneParser::NeedsUpdate()
 
 bool SceneParser::Synchronize(bool forceUpdate)
 {
+#if PROFILING > 0
+	profilingData.Reset();
+#endif
+
 	syncTimestamp = GetTickCount();
 
 	mtlParser.syncTimestamp = syncTimestamp;
@@ -1415,7 +1447,30 @@ bool SceneParser::Synchronize(bool forceUpdate)
 	callbacks.afterParsing();
 
 	scene.SetUserData(hash);
-	
+
+#if PROFILING > 0
+	profilingData.mSyncEnd = std::chrono::high_resolution_clock::now();
+	auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(profilingData.mSyncEnd - profilingData.mSyncStart).count();
+
+	std::wstring sceneName(GetCOREInterface()->GetCurFilePath());
+	uint32_t crc = GetMaxSceneHash();
+
+	if ( sceneName.empty() )
+	{
+		sceneName = L"New scene";
+	}
+
+	std::string sceneNameStr = "Scene name : " + ws2s(sceneName);
+	std::string crcStr = "CRC : " + std::to_string(crc);
+
+	debugPrint("-------- Profiling Data --------");
+	debugPrint(sceneNameStr);
+	debugPrint(crcStr);
+	debugPrint( "SceneParser::Synchronize: " + std::to_string(delta) + "ms" );
+	debugPrint( "Shaders created: " + std::to_string(profilingData.shadersNum) );
+	debugPrint("-------- Profiling Data --------");
+#endif
+
 	return true;
 }
 
@@ -1527,23 +1582,6 @@ void SceneParser::parseDefaultLights(const Stack<DefaultLight>& defaultLights)
 		scene.Attach(light);
 		parsed.defaultLightCount++;
 	}
-}
-
-
-//experimenting how to get a plain(no transforms included) image from amy texmap(procedural, bitmap is easy)
-frw::Image createImageFromMapNoTransform(MaterialParser& materialParser, Texmap* input, int flags, bool force)
-{
-	debugPrint("createImageFromMapNoTransform\n");
-	FASSERT(input);
-
-	if (auto map = dynamic_cast<BitmapTex*>(input->GetInterface(BITMAPTEX_INTERFACE)))
-	{
-		if (auto bmp = map->GetBitmap(0))
-		{
-			return materialParser.createImage(bmp, HashValue() << input << materialParser.getMaterialHash(input), flags, map->GetMapName());
-		}
-	}
-	return materialParser.createImageFromMap(input, flags);
 }
 
 void ApplyFRGround(frw::Scope& scope, frw::MaterialSystem& materialSystem, MaterialParser& materialParser, frw::Scene& scene, SceneParser::ParsedGround parsedGround)
@@ -3150,5 +3188,4 @@ void SceneParser::parseCoronaSun(const ParsedNode& parsedNode, Object* object)
 #endif
 }
 
-FIRERENDER_NAMESPACE_END;
-
+FIRERENDER_NAMESPACE_END

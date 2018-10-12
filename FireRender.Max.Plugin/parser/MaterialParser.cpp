@@ -7,10 +7,8 @@
 *********************************************************************************************************************************/
 
 #pragma once
+
 #include "parser/MaterialParser.h"
-#include <maxscript/mxsPlugin/mxsPlugin.h>
-#include <xref/iXrefMaterial.h>
-#include <shaders.h>
 #include "CoronaDeclarations.h"
 #include "3dsMaxDeclarations.h"
 #include "ParamBlock.h"
@@ -47,70 +45,18 @@
 #include "FireRenderColourCorrectionMtl.h"
 #include "utils/KelvinToColor.h"
 
+#include <maxscript/mxsPlugin/mxsPlugin.h>
+#include <xref/iXrefMaterial.h>
+#include <shaders.h>
 #include <icurvctl.h>
 #include <max.h>
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 #define CMP_SIZE 64 // string comparisons; shouldn'mT go past this size
 
 namespace
 {
-	class Float16
-	{
-		union _float16
-		{
-			short v;
-			struct
-			{
-				// type determines alignment!
-				uint16_t m : 10;
-				uint16_t e : 5;
-				uint16_t s : 1;
-			};
-		} f16;
-
-		union _float32
-		{
-			float v;
-			struct
-			{
-				uint32_t m : 23;
-				uint32_t e : 8;
-				uint32_t s : 1;
-			};
-		};
-
-	public:
-		Float16()
-		{
-			f16.v = 0;
-		}
-
-		Float16(float v)
-		{
-			_float32 f32 = { v }; 
-
-			f16.s = f32.s;
-			f16.e = std::max(-15, std::min(16, int(f32.e - 127))) + 15;
-			f16.m = f32.m >> 13;
-		}
-
-		operator float() const
-		{
-			_float32 f32 = {};
-			f32.s = f16.s;
-			f32.e = (f16.e - 15) + 127; // safe in this direction
-			f32.m = uint32_t(f16.m) << 13;
-			return f32.v;
-		}
-	};
-
-	struct RgbFloat16
-	{
-		Float16 r, g, b;
-	};
-
 	struct RgbFloat32
 	{
 		float r, g, b;
@@ -124,16 +70,18 @@ namespace
 
 frw::Image MaterialParser::createImageFromMap(Texmap* input, const int flags, bool force)
 {
-	debugPrint("createImageFromMap\n");
+	debugPrint("MaterialParser::createImageFromMap\n");
+
 	FASSERT(input);
 
 	frw::Image image;
 	HashValue key;
-	
+
 	if (!force)
 	{
 		key << input << getMaterialHash(input);
 		image = mScope.GetImage(key);
+
 		if (image)
 			return image;
 	}
@@ -143,133 +91,91 @@ frw::Image MaterialParser::createImageFromMap(Texmap* input, const int flags, bo
 	res = mPblock->GetValue(PARAM_TEXMAP_RESOLUTION, mT, textureResolution, Interval());
 	FASSERT(res);
 
-	int width = textureResolution;
-	int height = textureResolution;
+	unsigned int width = textureResolution;
+	unsigned int height = textureResolution;
 
-	// special case, a bitmap with no transformation applied
-	if (auto map = dynamic_cast<BitmapTex*>(input->GetInterface(BITMAPTEX_INTERFACE)))
+	BitmapTex* map = dynamic_cast<BitmapTex*>(input->GetInterface(BITMAPTEX_INTERFACE));
+	Bitmap* bmp = nullptr;
+	std::wstring inputName(input->GetFullName());
+
+	if (map != nullptr)
 	{
-		if (auto bmp = map->GetBitmap(0))
+		inputName = std::wstring(map->GetMapName());
+
+/*
+		// extracting a file name
+		size_t pos = inputName.rfind(L"\\");
+
+		if (pos != std::string::npos)
+		{
+			inputName = inputName.substr(pos+1);
+		}
+*/
+
+		bmp = map->GetBitmap(mT);
+
+		if (bmp != nullptr)
 		{
 			width = bmp->Width();
 			height = bmp->Height();
-
-			Matrix3 tm;
-			input->GetUVTransform(tm);
-			if (IsIdentity(tm))
-				return createImage(bmp, HashValue() << input << getMaterialHash(input), flags, map->GetMapName());
 		}
 	}
 
-	// the following fixes a MAX's issue with texture baking occasionally hanging or producing wrong outputs
+	rpr_image_desc imgDesc{ width, height };
+
+	if (bmp != nullptr)
 	{
-		BitmapInfo bi;
-		bi.SetWidth(8);
-		bi.SetHeight(8);
-		bi.SetType(BMM_FLOAT_RGBA_32);
-		bi.SetFlags(MAP_HAS_ALPHA);
-		bi.SetCustomFlag(0);
-
-		Bitmap* bmp = TheManager->Create(&bi);
-
-		input->RenderBitmap(mT, bmp);
-
-		bmp->DeleteThis();
+		image = createImage(bmp, key, flags, inputName);
 	}
-	
+
 	if (!image)
 	{
-		if (flags & MAP_FLAG_WANTSHDR)
+		std::vector<RgbFloat32> buffer(imgDesc.image_width * imgDesc.image_height);
+
+		// To sample the map we calculate UVW coords and store them in UvwContext, then call Texmap::EvalColor.
+		UvwContext shadeContext;
+
+		float iw = 1.f / float(imgDesc.image_width);
+		float ih = 1.f / float(imgDesc.image_height);
+
+		for (int x = 0; x < imgDesc.image_width; x++)
 		{
-			rpr_image_desc imgDesc = {};
-			imgDesc.image_width = width;
-			imgDesc.image_height = height;
-
-			RgbFloat32 *buffer = new RgbFloat32[imgDesc.image_width*imgDesc.image_height];
-
-			// To sample the map we calculate UVW coords and store them in UvwContext, then call Texmap::EvalColor.
-			// We use OMP to parallelize this.
-			UvwContext shadeContext;
-
-			float iw = 1.f / float(imgDesc.image_width);
-			float ih = 1.f / float(imgDesc.image_height);
-
-#pragma omp parallel for private(shadeContext)
-			for (int x = 0; x < imgDesc.image_width; x++)
+			for (int y = 0; y < imgDesc.image_height; y++)
 			{
-				for (int y = 0; y < imgDesc.image_height; y++)
+				Point3 uvw(float(x) * iw, 1.f - float(y) * ih, 0.f);
+				shadeContext.setup(uvw, this->mT, imgDesc.image_width, imgDesc.image_height);
+				const int index = y * imgDesc.image_width + x;
+				AColor color = input->EvalColor(shadeContext);
+
+				if (flags & MAP_FLAG_CLAMP)
 				{
-					Point3 uvw(float(x) * iw, 1.f - float(y) * ih, 0.f);
-					shadeContext.setup(uvw, this->mT, imgDesc.image_width, imgDesc.image_height);
-					const int index = y*imgDesc.image_width + x;
-					auto color = input->EvalColor(shadeContext);
-
-					if (flags & MAP_FLAG_CLAMP)
-					{
-						color.r = std::min(std::max(color.r, 0.f), 1.f);
-						color.g = std::min(std::max(color.g, 0.f), 1.f);
-						color.b = std::min(std::max(color.b, 0.f), 1.f);
-					}
-
-					FASSERT(IsReal(color.r) && IsReal(color.g) && IsReal(color.b));
-
-					buffer[index].r = color.r;
-					buffer[index].g = color.g;
-					buffer[index].b = color.b;
-				}
-			}
-
-			image = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_FLOAT32 }, imgDesc, buffer);
-			
-			delete[] buffer;
-		}
-		else
-		{
-			BMM_Color_24 *buffer = new BMM_Color_24[width * height];
-
-			// To sample the map we calculate UVW coords and store them in UvwContext, then call Texmap::EvalColor. We use OMP to 
-			// parallelize this.
-			UvwContext shadeContext;
-
-			const float iw = 1.f / float(width);
-			const float ih = 1.f / float(height);
-
-#pragma omp parallel for private(shadeContext)
-			for (int y = 0; y < height; y++)
-			{
-				for (int x = 0; x < width; x++)
-				{
-					Point3 uvw(float(x) * iw, 1.f - float(y) * ih, 0.f);
-					shadeContext.setup(uvw, this->mT, width, height);
-
-					auto color = input->EvalColor(shadeContext);
-
-					// always need to clamp these ones
 					color.r = std::min(std::max(color.r, 0.f), 1.f);
 					color.g = std::min(std::max(color.g, 0.f), 1.f);
 					color.b = std::min(std::max(color.b, 0.f), 1.f);
-
-					FASSERT(IsReal(color.r) && IsReal(color.g) && IsReal(color.b));
-					buffer[y * width + x] = BMM_Color_24(color);
 				}
+
+				buffer[index].r = color.r;
+				buffer[index].g = color.g;
+				buffer[index].b = color.b;
 			}
-
-			rpr_image_desc imgDesc = {};
-			imgDesc.image_width = width;
-			imgDesc.image_height = height;
-			image = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_UINT8 }, imgDesc, buffer);
-
-			delete[] buffer;
 		}
-		
-		if (!force)
-			mScope.SetImage(key, image);
+
+		image = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_FLOAT32 }, imgDesc, buffer.data());
+
+		std::string name = ws2s(inputName);
+
+		image.SetName(name.c_str());
+	}
+
+	if (image)
+	{
+		mScope.SetImage(key, image);
 	}
 
 	return image;
 }
 
-frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue &kkey, const int flags, std::wstring name)
+frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue& kkey, const int flags, const std::wstring& name)
 {
 	if (!bitmap)
 		return frw::Image();
@@ -277,151 +183,119 @@ frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue &kkey, co
 	HashValue key = kkey;
 	key << getBitmapHash(bitmap) << flags;
 
-	auto image = mScope.GetImage(key);
+	frw::Image image = mScope.GetImage(key);
 
-	bool floatingPoint = false;
-
-	bool resize = false;
-	int maxres = 512;
-
+#if 0
+	// disabled for a while
+	// it's a bit slower than a version whithout direct texture loading
 	if (!image)
 	{
-		floatingPoint = bool_cast(bitmap->IsHighDynamicRange());
+		BitmapInfo bi = bitmap->GetBitmapInfo();
+		BMMGetFullFilename(&bi);
+		std::wstring path(bi.GetPathEx().GetCStr());
 
-		rpr_image_desc imgDesc = {};
+		image = frw::Image(mScope, ws2s(path).c_str());
 
-		imgDesc.image_width = bitmap->Width();
-		imgDesc.image_height = bitmap->Height();
-
-		if (floatingPoint)
+		if ( image && !(flags & MAP_FLAG_NOGAMMA) )
 		{
-			size_t bufsize = imgDesc.image_width * imgDesc.image_height;
-			BMM_Color_fl *buffer = 0;
-			RgbFloat32 *buffer32 = 0;
-
-			try
-			{
-				buffer = new BMM_Color_fl[imgDesc.image_width];
-				buffer32 = new RgbFloat32[bufsize];
-			}
-			catch (const std::bad_alloc&)
-			{
-				MessageBox(GetCOREInterface()->GetMAXHWnd(), L"Out of memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your hardware", L"Radeon ProRender", MB_OK | MB_ICONERROR);
-				mScope.SetImage(key, image);
-				return image;
-			}
-
-			for (int y = 0; y < imgDesc.image_height; y++)
-			{
-				if (flags & MAP_FLAG_NOGAMMA)
-					bitmap->GetPixels(0, y, imgDesc.image_width, buffer);
-				else
-					bitmap->GetLinearPixels(0, y, imgDesc.image_width, buffer);
-				int raster = y * imgDesc.image_width;
-				for (int x = 0; x < imgDesc.image_width; x++)
-				{
-					const BMM_Color_fl *src = buffer + x;
-					RgbFloat32 *dest = buffer32 + raster + x;
-					memcpy(dest, src, sizeof(float) * 3);
-				}
-			}
-
-			image = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_FLOAT32 }, imgDesc, buffer32);
-			mScope.SetImage(key, image);
-
-			delete[] buffer32;
-			delete[] buffer;
-		}
-		else
-		{
-			int bmWidth = imgDesc.image_width;
-			int bmHeight = imgDesc.image_height;
-			Bitmap *bm = bitmap;
-			Bitmap* downsampled = 0;
-			BitmapInfo bds;
-			
-			if (resize && (imgDesc.image_width > maxres || imgDesc.image_height > maxres))
-			{
-				if (imgDesc.image_width > imgDesc.image_height)
-				{
-					bmWidth = maxres;
-					bmHeight = float(bmWidth) * float(imgDesc.image_height / imgDesc.image_width);
-				}
-				else
-				{
-					bmHeight = maxres;
-					bmWidth = float(bmHeight) * float(imgDesc.image_width / imgDesc.image_height);
-				}
-				
-				bds.SetWidth(bmWidth);
-				bds.SetHeight(bmHeight);
-				bds.SetType(BMM_TRUE_32);
-				bds.SetCustomFlag(0);
-				downsampled = TheManager->Create(&bds);
-				int res = bitmap->CopyImage(downsampled, COPY_IMAGE_RESIZE_HI_QUALITY, BMM_Color_fl(0), &bds);
-				FASSERT(res);
-				bm = downsampled;
-				imgDesc.image_width = bmWidth;
-				imgDesc.image_height = bmHeight;
-			}
-			else if (flags & MAP_FLAG_NOGAMMA)
-			{
-				int type;
-				void *bmstorage = bm->GetStoragePtr(&type);
-				if (bmstorage && (type == BMM_TRUE_24))
-				{
-					frw::Image img = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_UINT8 }, imgDesc, bmstorage);
-					std::string name_s(name.begin(), name.end());
-					img.SetName(name_s.c_str());
-					return img;
-				}
-			}
-			
-			BMM_Color_fl *buffer = 0;
-			RgbByte *buffer8 = 0;
-
-			try
-			{
-				buffer = new BMM_Color_fl[bmWidth];
-				buffer8 = new RgbByte[bmWidth * bmHeight];
-			}
-			catch (const std::bad_alloc&)
-			{
-				MessageBox(GetCOREInterface()->GetMAXHWnd(), L"Out of memory error.\nThis scene and its textures requires more memory than is available.\nTo render you will need to upgrade your hardware", L"Radeon ProRender", MB_OK | MB_ICONERROR);
-				mScope.SetImage(key, image);
-				return image;
-			}
-						
-			for (int y = 0; y < bmHeight; y++)
-			{
-				if (flags & MAP_FLAG_NOGAMMA)
-					bm->GetPixels(0, y, bmWidth, buffer);
-				else
-					bm->GetLinearPixels(0, y, bmWidth, buffer);
-				int raster = y * bmWidth;
-				for (int x = 0; x < bmWidth; x++)
-				{
-					const BMM_Color_fl &src = buffer[x];
-					RgbByte &dest = buffer8[raster + x];
-					dest.r = unsigned char(src.r * 255.f);
-					dest.g = unsigned char(src.g * 255.f);
-					dest.b = unsigned char(src.b * 255.f);
-				}
-			}
-
-			image = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_UINT8 }, imgDesc, buffer8);
-			mScope.SetImage(key, image);
-
-			delete[] buffer8;
-			delete[] buffer;
-
-			if (downsampled)
-				downsampled->DeleteThis();
+			image.SetGamma(bitmap->Gamma());
 		}
 	}
 
-	std::string name_s(name.begin(), name.end());
-	image.SetName(name_s.c_str());
+	return image;
+#endif
+
+	if (!image)
+	{
+		try
+		{
+			bool isHDR = bitmap->IsHighDynamicRange() != 0;
+			unsigned int w = bitmap->Width();
+			unsigned int h = bitmap->Height();
+			rpr_image_desc imgDesc = { w, h };
+
+			if (isHDR)
+			{
+				size_t bufsize = imgDesc.image_width * imgDesc.image_height;
+				std::vector<BMM_Color_fl> buffer(imgDesc.image_width);
+				std::vector<RgbFloat32> buffer32(bufsize);
+
+				for (int y = 0; y < imgDesc.image_height; y++)
+				{
+					if (flags & MAP_FLAG_NOGAMMA)
+						bitmap->GetPixels(0, y, imgDesc.image_width, &buffer[0]);
+					else
+						bitmap->GetLinearPixels(0, y, imgDesc.image_width, &buffer[0]);
+
+					for (int x = 0; x < imgDesc.image_width; x++)
+					{
+						const BMM_Color_fl& src = buffer[x];
+						RgbFloat32& dest = buffer32[y * imgDesc.image_width + x];
+
+						dest.r = src.r;
+						dest.g = src.g;
+						dest.b = src.b;
+					}
+				}
+
+				image = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_FLOAT32 }, imgDesc, &buffer32[0]);
+				mScope.SetImage(key, image);
+			}
+			else
+			{
+				if (flags & MAP_FLAG_NOGAMMA)
+				{
+					int type;
+					void* bmstorage = bitmap->GetStoragePtr(&type);
+
+					if (bmstorage && type == BMM_TRUE_24)
+					{
+						frw::Image img = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_UINT8 }, imgDesc, bmstorage);
+						img.SetName(ws2s(name).c_str());
+
+						return img;
+					}
+				}
+
+				std::vector<BMM_Color_fl> buffer(imgDesc.image_width);
+				std::vector<RgbByte> buffer8(imgDesc.image_width * imgDesc.image_height);
+
+				for (int y = 0; y < imgDesc.image_height; y++)
+				{
+					if (flags & MAP_FLAG_NOGAMMA)
+						bitmap->GetPixels(0, y, imgDesc.image_width, &buffer[0]);
+					else
+						bitmap->GetLinearPixels(0, y, imgDesc.image_width, &buffer[0]);
+
+					for (int x = 0; x < imgDesc.image_width; x++)
+					{
+						const BMM_Color_fl& src = buffer[x];
+						RgbByte& dest = buffer8[y * imgDesc.image_width + x];
+
+						dest.r = unsigned char(src.r * 255.f);
+						dest.g = unsigned char(src.g * 255.f);
+						dest.b = unsigned char(src.b * 255.f);
+					}
+				}
+
+				image = frw::Image(mScope, { 3, RPR_COMPONENT_TYPE_UINT8 }, imgDesc, &buffer8[0]);
+				mScope.SetImage(key, image);
+			}
+		}
+		catch (const std::bad_alloc&)
+		{
+			MessageBox(GetCOREInterface()->GetMAXHWnd(),
+				L"Out of memory error.\nThis scene and its textures requires more memory than is available.\n"
+				"To render you will need to upgrade your hardware", L"Radeon ProRender",
+				MB_OK | MB_ICONERROR);
+
+			mScope.SetImage(key, image);
+
+			return frw::Image();
+		}
+	}
+
+	image.SetName(ws2s(name).c_str());
 
 	return image;
 }
@@ -429,24 +303,29 @@ frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue &kkey, co
 HashValue MaterialParser::getBitmapHash(Bitmap *bm)
 {
 	HashValue hash;
+
 	if (!bm)
 		return hash;
+
 	hash << bm->Flags();
 	hash << bm->Width();
 	hash << bm->Height();
 	hash << bm->Gamma();
+
 	return hash;
 }
 
 HashValue MaterialParser::getMaterialHash(MtlBase *mat, bool bReloadMaterial /*= true*/)
 {
 	std::map<Animatable*, HashValue> hash_visited;
+
 	return GetHashValue(mat, mT, hash_visited, syncTimestamp, bReloadMaterial);
 }
 
 HashValue MaterialParser::GetHashValue(Animatable* mat, TimeValue mT, std::map<Animatable*, HashValue> &hash_visited, DWORD syncTimestamp, bool bReloadMaterial /*= true*/)
 {
 	HashValue hash;
+
 	if (!mat)
 		return hash;
 
@@ -464,13 +343,12 @@ HashValue MaterialParser::GetHashValue(Animatable* mat, TimeValue mT, std::map<A
 	// so we mix current time to it to always invalidate
 	// used common syncTimestamp so that for one Synchronize call 
 	// hash would be still the same
-	if(!npb)
+	if (!npb)
 		hash << syncTimestamp;
 
 	// bReloadMaterial must modify hash it shouldn'mT depend on syncTimestamp
-	if(bReloadMaterial){
+	if (bReloadMaterial)
 		hash << syncTimestamp;
-	}
 
 	for (int j = 0; j < npb; j++)
 	{
@@ -508,31 +386,36 @@ HashValue MaterialParser::GetHashValue(Animatable* mat, TimeValue mT, std::map<A
 							else
 							{
 								Point3 v;
+
 								if (pb->GetValue(id, mT, v, FOREVER))
 									hash << v;
 								else
 								{
 									Point4 v;
+
 									if (pb->GetValue(id, mT, v, FOREVER))
 										hash << v;
 									else
 									{
 										PBBitmap* v = 0;
+
 										if (pb->GetValue(id, mT, v, FOREVER))
 											hash << v;
 										else
 										{
 											Matrix3 v;
+
 											if (pb->GetValue(id, mT, v, FOREVER))
 												hash << v;
 											else
 											{
 												Color v;
+
 												if (pb->GetValue(id, mT, v, FOREVER))
 													hash << v;
 												else
 												{
-												// DebugPrint("Unknown param type\n");
+													// DebugPrint("Unknown param type\n");
 												}
 											}
 										}
@@ -545,11 +428,11 @@ HashValue MaterialParser::GetHashValue(Animatable* mat, TimeValue mT, std::map<A
 			}
 		}
 	}
-	
 
-	if (auto uvGen = dynamic_cast<UVGen*>(mat))
+
+	if (UVGen* uvGen = dynamic_cast<UVGen*>(mat))
 	{
-		if (auto gen = dynamic_cast<StdUVGen*>(uvGen))
+		if (StdUVGen* gen = dynamic_cast<StdUVGen*>(uvGen))
 			hash << gen->GetCoordMapping(0);
 
 		hash << uvGen->GetUVWSource();
@@ -570,15 +453,17 @@ HashValue MaterialParser::GetHashValue(Animatable* mat, TimeValue mT, std::map<A
 		texmap->GetUVTransform(tm);
 		hash << tm;
 		hash << getOutputTm(texmap);
+
 		for (int i = 0, n = texmap->NumSubTexmaps(); i < n; i++)
 		{
 			if (auto sub = texmap->GetSubTexmap(i))
 			{
-			hash << sub << texmap->SubTexmapOn(i);
-			if (auto subMat = dynamic_cast<MtlBase*>(sub))
+				hash << sub << texmap->SubTexmapOn(i);
+
+				if (auto subMat = dynamic_cast<MtlBase*>(sub))
 					hash << GetHashValue(subMat, mT, hash_visited, syncTimestamp, bReloadMaterial);
+			}
 		}
-	}
 	}
 
 	for (int i = 0, n = mat->NumSubs(); i < n; i++)
@@ -586,7 +471,7 @@ HashValue MaterialParser::GetHashValue(Animatable* mat, TimeValue mT, std::map<A
 		if (auto sub = mat->SubAnim(i))
 		{
 			hash << GetHashValue(sub, mT, hash_visited, syncTimestamp, bReloadMaterial);
-	}
+		}
 	}
 
 	hash_visited.insert(std::make_pair(mat, hash));
@@ -595,67 +480,86 @@ HashValue MaterialParser::GetHashValue(Animatable* mat, TimeValue mT, std::map<A
 }
 
 
-Texmap *MaterialParser::findDisplacementMap(MtlBase *mat)
+Texmap* MaterialParser::findDisplacementMap(MtlBase* mat)
 {
 	int npb = mat->NumParamBlocks();
+
 	for (int j = 0; j < npb; j++)
 	{
-		if (auto pb = mat->GetParamBlock(j))
+		if (IParamBlock2* pb = mat->GetParamBlock(j))
 		{
-			auto pbd = pb->GetDesc();
+			ParamBlockDesc2* pbd = pb->GetDesc();
+
 			for (USHORT i = 0; i < pbd->count; i++)
 			{
 				ParamID id = pbd->IndextoID(i);
-				ParamDef &pdef = pbd->GetParamDef(id);
+				ParamDef& pdef = pbd->GetParamDef(id);
+
 				switch (pdef.type)
 				{
-					case TYPE_MTL:
+				case TYPE_MTL:
+				{
+					Mtl* v = nullptr;
+
+					pb->GetValue(id, mT, v, FOREVER);
+
+					if (v)
 					{
-						Mtl *v = 0;
-						pb->GetValue(id, mT, v, FOREVER);
-						if (v)
-						{
-							Texmap *res = findDisplacementMap(v);
-							if (res)
-								return res;
-						}
-					} break;
-					case TYPE_TEXMAP:
+						Texmap* res = findDisplacementMap(v);
+
+						if (res)
+							return res;
+					}
+				}
+				break;
+
+				case TYPE_TEXMAP:
+				{
+					Texmap* v = nullptr;
+
+					pb->GetValue(id, mT, v, FOREVER);
+
+					if (v)
 					{
-						Texmap *v = 0;
-						pb->GetValue(id, mT, v, FOREVER);
+						if (v->ClassID() == FIRERENDER_DISPLACEMENTMTL_CID)
+							return v;
+						Texmap* res = findDisplacementMap(v);
+
+						if (res)
+							return res;
+					}
+				}
+				break;
+
+				case TYPE_TEXMAP_TAB:
+				{
+					int count = pb->Count(id);
+
+					for (int i = 0; i < count; i++)
+					{
+						Texmap* v = nullptr;
+
+						pb->GetValue(id, mT, v, FOREVER, i);
+
 						if (v)
 						{
 							if (v->ClassID() == FIRERENDER_DISPLACEMENTMTL_CID)
 								return v;
-							Texmap *res = findDisplacementMap(v);
+
+							Texmap* res = findDisplacementMap(v);
+
 							if (res)
 								return res;
 						}
-					} break;
-
-					case TYPE_TEXMAP_TAB:
-					{
-						int count = pb->Count(id);
-						for (int i = 0; i < count; i++)
-						{
-							Texmap *v = 0;
-							pb->GetValue(id, mT, v, FOREVER, i);
-							if (v)
-							{
-								if (v->ClassID() == FIRERENDER_DISPLACEMENTMTL_CID)
-									return v;
-								Texmap *res = findDisplacementMap(v);
-								if (res)
-									return res;
-							}
-						}
-					} break;
+					}
+				}
+				break;
 				}
 			}
 		}
 	}
-	return NULL;
+
+	return nullptr;
 }
 
 frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
@@ -665,21 +569,22 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 
 	std::map<Animatable*, HashValue> hash_visited;
 	auto key = GetHashValue(texmap, mT, hash_visited, syncTimestamp, true) << flags;
-	
+
 	auto result = mScope.GetValue(key);
 
 	if (result)
 		return result;
 
-	MSTR s;		
+	MSTR s;
 	texmap->GetClassName(s);
 	debugPrint(std::string("texmap class: ") + std::string(s.ToCStr()) + "\n");
 
 	auto classId = texmap->ClassID();
 
-	if(auto frmtl = dynamic_cast<FireRenderMtlBase*>(texmap)){
+	if (auto frmtl = dynamic_cast<FireRenderMtlBase*>(texmap))
+	{
 		frmtl->SetCurrentTime(mT);
-	}	
+	}
 
 	if (classId == FIRERENDER_ARITHMMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(ArithmMtl)*>(texmap)->getShader(mT, *this);
@@ -716,7 +621,7 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		result = createCheckerMap(texmap);
 		break;
 
-	case BMTEX_CLASS_ID:	
+	case BMTEX_CLASS_ID:
 		result = createTextureMap(texmap, flags);
 		break;
 
@@ -755,9 +660,10 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		result = createCompositeMap(texmap);
 		break;
 
-	default:	// rasterize it if we must
-		{
-		if (auto map = createImageFromMap(texmap, (flags | (flags & MAP_FLAG_NORMALMAP)) ? MAP_FLAG_NOGAMMA : 0))
+	default:
+		// rasterize it if we must
+	{
+		if (frw::Image map = createImageFromMap(texmap, (flags | (flags & MAP_FLAG_NORMALMAP)) ? MAP_FLAG_NOGAMMA : 0))
 		{
 			if (flags & MAP_FLAG_NORMALMAP)
 			{
@@ -785,15 +691,8 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 				result = node;
 			}
 		}
-		}
-		break;
 	}
-
-	if(result.IsNode())
-	{
-		std::wstring name = texmap->GetName();
-		std::string name_s( name.begin(), name.end() );
-		//frw::ValueNode(result).SetName(name_s.c_str());
+	break;
 	}
 
 	if (!result)
@@ -818,14 +717,14 @@ frw::Shader MaterialParser::findVolumeMaterial(Mtl* mat)
 	else if (mat->ClassID() == FIRERENDER_UBERMTL_CID)
 	{
 		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(UberMtl)*>(mat)->getVolumeShader(mT, *this, 0);
-		
+
 		if (res)
 			return res;
 	}
 	else if (mat->ClassID() == FIRERENDER_UBERMTLV2_CID)
 	{
 		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(UberMtlv2)*>(mat)->getVolumeShader(mT, *this, 0);
-		
+
 		if (res)
 			return res;
 	}
@@ -839,7 +738,7 @@ frw::Shader MaterialParser::findVolumeMaterial(Mtl* mat)
 	else if (mat->ClassID() == FIRERENDER_PBRMTL_CID)
 	{
 		frw::Shader res = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(mat)->getVolumeShader(mT, *this, 0);
-		
+
 		if (res)
 			return res;
 	}
@@ -848,19 +747,37 @@ frw::Shader MaterialParser::findVolumeMaterial(Mtl* mat)
 
 	for (int j = 0; j < npb; j++)
 	{
-		if (auto pb = mat->GetParamBlock(j))
+		if (IParamBlock2* pb = mat->GetParamBlock(j))
 		{
-			auto pbd = pb->GetDesc();
+			ParamBlockDesc2* pbd = pb->GetDesc();
+
 			for (USHORT i = 0; i < pbd->count; i++)
 			{
 				ParamID id = pbd->IndextoID(i);
 				ParamDef &pdef = pbd->GetParamDef(id);
+
 				switch (pdef.type)
 				{
-					case TYPE_MTL:
+				case TYPE_MTL:
+				{
+					Mtl *v = 0;
+					pb->GetValue(id, mT, v, FOREVER);
+					if (v)
+					{
+						frw::Shader res = findVolumeMaterial(v);
+						if (res)
+							return res;
+					}
+				}
+				break;
+
+				case TYPE_MTL_TAB:
+				{
+					int count = pb->Count(id);
+					for (int i = 0; i < count; i++)
 					{
 						Mtl *v = 0;
-						pb->GetValue(id, mT, v, FOREVER);
+						pb->GetValue(id, mT, v, FOREVER, i);
 						if (v)
 						{
 							frw::Shader res = findVolumeMaterial(v);
@@ -868,34 +785,19 @@ frw::Shader MaterialParser::findVolumeMaterial(Mtl* mat)
 								return res;
 						}
 					}
-					break;
-
-					case TYPE_MTL_TAB:
-					{
-						int count = pb->Count(id);
-						for (int i = 0; i < count; i++)
-						{
-							Mtl *v = 0;
-							pb->GetValue(id, mT, v, FOREVER, i);
-							if (v)
-							{
-								frw::Shader res = findVolumeMaterial(v);
-								if (res)
-									return res;
-							}
-						}
-					}
-					break;
+				}
+				break;
 				}
 			}
 		}
 	}
+
 	return frw::Shader();
 }
 
 frw::Shader MaterialParser::createVolumeShader(Mtl* material, INode* node)
 {
-	if (node)	// first level
+	if (node) // first level
 	{
 		shaderData.mNode = node;
 		shaderData.mCacheable = true;
@@ -905,7 +807,7 @@ frw::Shader MaterialParser::createVolumeShader(Mtl* material, INode* node)
 		node = shaderData.mNode;
 	}
 
-	if (!material) 
+	if (!material)
 		return frw::Shader();
 
 	frw::Shader shader;
@@ -919,20 +821,22 @@ frw::Shader MaterialParser::createVolumeShader(Mtl* material, INode* node)
 	//if (!shader)
 	//	shader = mScope.GetShader(matNodeKey);	// ok so maybe we have a more specific version for this node
 
-	if(shader)
+	if (shader)
 		return shader;
 
-		const Class_ID cid = material->ClassID();
+	const Class_ID cid = material->ClassID();
 
-	if(auto frmtl = dynamic_cast<FireRenderMtlBase*>(material)){
+	if (auto frmtl = dynamic_cast<FireRenderMtlBase*>(material))
+	{
 		frmtl->SetCurrentTime(mT);
-	}	
+	}
 
-	if(false){}
-	else if (cid == FIRERENDER_VOLUMEMTL_CID) {
+	if (cid == FIRERENDER_VOLUMEMTL_CID)
+	{
 		shader = dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(material)->getVolumeShader(mT, *this, node);
 	}
-	else if (cid == FIRERENDER_MATERIALMTL_CID) {
+	else if (cid == FIRERENDER_MATERIALMTL_CID)
+	{
 		shader = dynamic_cast<FRMTLCLASSNAME(MaterialMtl)*>(material)->getVolumeShader(mT, *this, node);
 	}
 	else
@@ -940,12 +844,13 @@ frw::Shader MaterialParser::createVolumeShader(Mtl* material, INode* node)
 		// default - nothing else fits - so this is an unsupported material. 
 		return frw::Shader();
 	}
-	
-	if(shader)
+
+	if (shader)
 	{
 		std::wstring name = material->GetName();
-		std::string name_s( name.begin(), name.end() );
-		shader.SetName(name_s.c_str());
+
+		shader.SetName(ws2s(name).c_str());
+
 #ifdef CODE_TO_PORT
 		if (shaderData.cacheable)
 			mScope.SetShader(matKey, shader);
@@ -980,25 +885,27 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 	if (!node || !node->GetObjectRef())
 		return shader;
 
-	if (node && node->GetObjectRef()->ClassID() == Corona::LIGHT_CID) 
+	if (node && node->GetObjectRef()->ClassID() == Corona::LIGHT_CID)
+	{
 		if (!ScopeManagerMax::CoronaOK)
 			return shader;
 		else
-		material = nullptr; // to correctly handle CoronaLights - we need to ignore any material that might be already assigned
+			material = nullptr; // to correctly handle CoronaLights - we need to ignore any material that might be already assigned
+	}
 
-	if (!material) 
+	if (!material)
 	{
 		// Parsing Corona light (we will create emissive shader), or no material assigned (we will create diffuse material using 
 		// wire color of the object)
-		if (node->GetObjectRef()->ClassID() == Corona::LIGHT_CID) 
+		if (node->GetObjectRef()->ClassID() == Corona::LIGHT_CID)
 		{
-			if  (ScopeManagerMax::CoronaOK)
-			shader = parseCoronaLightObject(node);
+			if (ScopeManagerMax::CoronaOK)
+				shader = parseCoronaLightObject(node);
 		}
-		else 
+		else
 		{
 			Color wireColor(node->GetWireColor());
-			auto sh = frw::DiffuseShader(materialSystem);
+			frw::DiffuseShader sh(materialSystem);
 			sh.SetColor(wireColor);
 			shader = sh;
 		}
@@ -1009,101 +916,130 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 		{
 			const Class_ID cid = material->ClassID();
 
-			if(auto frmtl = dynamic_cast<FireRenderMtlBase*>(material)){
+			if (auto frmtl = dynamic_cast<FireRenderMtlBase*>(material))
+			{
 				frmtl->SetCurrentTime(mT);
-			}	
-			if (auto stdMat2 = dynamic_cast<StdMat2*>(material)) {
+			}
+			if (auto stdMat2 = dynamic_cast<StdMat2*>(material))
+			{
 				shader = parseStdMat2(stdMat2);
 			}
-			else if (cid == PHYSICALMATERIAL_CID) {
+			else if (cid == PHYSICALMATERIAL_CID)
+			{
 				shader = parsePhysicalMaterial(material);
 			}
-			else if (cid == FIRERENDER_DIFFUSEMTL_CID) {
+			else if (cid == FIRERENDER_DIFFUSEMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(DiffuseMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_BLENDMTL_CID) {
+			else if (cid == FIRERENDER_BLENDMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(BlendMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_ADDMTL_CID) {
+			else if (cid == FIRERENDER_ADDMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(AddMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_MICROFACETMTL_CID) {
+			else if (cid == FIRERENDER_MICROFACETMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(MicrofacetMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_REFLECTIONMTL_CID) {
+			else if (cid == FIRERENDER_REFLECTIONMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(ReflectionMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_REFRACTIONMTL_CID) {
+			else if (cid == FIRERENDER_REFRACTIONMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(RefractionMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_MFREFRACTIONMTL_CID) {
+			else if (cid == FIRERENDER_MFREFRACTIONMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(MFRefractionMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_TRANSPARENTMTL_CID) {
+			else if (cid == FIRERENDER_TRANSPARENTMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(TransparentMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_WARDMTL_CID) {
+			else if (cid == FIRERENDER_WARDMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(WardMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_EMISSIVEMTL_CID) {
+			else if (cid == FIRERENDER_EMISSIVEMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(EmissiveMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_STANDARDMTL_CID) {
+			else if (cid == FIRERENDER_STANDARDMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(StandardMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_ORENNAYARMTL_CID) {
+			else if (cid == FIRERENDER_ORENNAYARMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(OrenNayarMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_DIFFUSEREFRACTIONMTL_CID) {
+			else if (cid == FIRERENDER_DIFFUSEREFRACTIONMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(DiffuseRefractionMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_MATERIALMTL_CID) {
+			else if (cid == FIRERENDER_MATERIALMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(MaterialMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_UBERMTL_CID) {
+			else if (cid == FIRERENDER_UBERMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(UberMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_UBERMTLV2_CID) {
+			else if (cid == FIRERENDER_UBERMTLV2_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(UberMtlv2)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_UBERMTLV3_CID) {
+			else if (cid == FIRERENDER_UBERMTLV3_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(UberMtlv3)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_PBRMTL_CID) {
+			else if (cid == FIRERENDER_PBRMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(PbrMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_SCMTL_CID) {
+			else if (cid == FIRERENDER_SCMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(ShadowCatcherMtl)*>(material)->getShader(mT, *this, node);
 			}
-
-			else if (cid == FIRERENDER_VOLUMEMTL_CID) {
+			else if (cid == FIRERENDER_VOLUMEMTL_CID)
+			{
 				shader = dynamic_cast<FRMTLCLASSNAME(VolumeMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == Corona::LAYERED_MTL_CID) {
+			else if (cid == Corona::LAYERED_MTL_CID)
+			{
 				if (ScopeManagerMax::CoronaOK)
 					shader = parseCoronaLayeredMtl(material, node);
 			}
-			else if (cid == Corona::MTL_CID) {
+			else if (cid == Corona::MTL_CID)
+			{
 				if (ScopeManagerMax::CoronaOK)
 					shader = parseCoronaMtl(material);
 			}
-			else if (cid == Corona::LIGHT_MTL_CID) {
+			else if (cid == Corona::LIGHT_MTL_CID)
+			{
 				if (ScopeManagerMax::CoronaOK)
 					shader = parseCoronaLightMtl(material);
 			}
-			else if (cid == Corona::PORTAL_MTL_CID) {
+			else if (cid == Corona::PORTAL_MTL_CID)
+			{
 				if (ScopeManagerMax::CoronaOK)
 					shader = parseCoronaPortalMtl(material);
 			}
-			else if (cid == Corona::SHADOW_CATCHER_MTL_CID) {
+			else if (cid == Corona::SHADOW_CATCHER_MTL_CID)
+			{
 				if (ScopeManagerMax::CoronaOK)
 					shader = parseCoronaShadowCatcherMtl(material);
 			}
-			else if (cid == Corona::VOLUME_MTL_CID) {
+			else if (cid == Corona::VOLUME_MTL_CID)
+			{
 				if (ScopeManagerMax::CoronaOK)
 					shader = parseCoronaVolumeMtl(material);
 			}
-			else if (cid == Corona::RAY_SWITCH_MTL_CID) {
+			else if (cid == Corona::RAY_SWITCH_MTL_CID)
+			{
 				if (ScopeManagerMax::CoronaOK)
 					shader = parseCoronaRaySwitchMtl(material);
 			}
@@ -1114,13 +1050,13 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 				if (auto toParse = material->GetSubMtl(material->GetParamBlock(bakeShell_params)->GetInt(bakeShell_render_n_mtl, this->mT)))
 					shader = createShader(toParse);
 			}
-			else if (auto toParse = dynamic_cast<IXRefMaterial*>(material)) 
+			else if (auto toParse = dynamic_cast<IXRefMaterial*>(material))
 			{
 				// MAX material automatically assigned to XRef objects (objects linked from another scene).
 				// We'll just grab the material it is holding and parse it
 				shader = createShader(toParse->GetSourceMaterial(true));
 			}
-			else if (auto toParse = dynamic_cast<MSMtlXtnd*>(material)) 
+			else if (auto toParse = dynamic_cast<MSMtlXtnd*>(material))
 			{
 				// MAX wrapper around some maxscript materials. Just grab the material it is holding and parse it
 				shader = createShader(toParse->delegate);
@@ -1146,11 +1082,10 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 				shader = sh;
 			}
 
-			if(shader)
+			if (shader)
 			{
 				std::wstring name = material->GetName();
-				std::string name_s( name.begin(), name.end() );
-				shader.SetName(name_s.c_str());
+				shader.SetName(ws2s(name).c_str());
 
 				if (shaderData.mCacheable)
 					mScope.SetShader(mScope.GetNextUnusedMaterialKey(), shader);
@@ -1160,7 +1095,7 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 		}
 	}
 
-	if(shader)
+	if (shader)
 		shader.SetUserData(Animatable::GetHandleByAnim(material));
 
 	return shader;
@@ -1172,24 +1107,22 @@ Texmap* getMap(StdMat2* mtl, int id)
 	return mtl->SubTexmapOn(mapChannel) ? mtl->GetSubTexmap(mapChannel) : NULL;
 }
 
-namespace {
-
+namespace
+{
 #define STDMAT2_PBVALUETEX(N)\
 	Texmap *N##_tex = MaterialParser::getTexture(mtl, N); \
 	frw::Value N##_v = createMap(N##_tex, MAP_FLAG_NOGAMMA) | frw::Value(GetFromPb<float>(pb, N, this->mT));
-	
+
 #define STDMAT2_PBCOLORTEX(N)\
 	Texmap *N##_tex = MaterialParser::getTexture(mtl, N); \
 	frw::Value N##_v = createMap(N##_tex, MAP_FLAG_NOFLAGS) | frw::Value(GetFromPb<Color>(pb, N, this->mT));
-	
 };
 
-frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl) 
+frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 {
-
 	// EMISSION
-	//
 	auto emissiveColor = getValue(getMap(mtl, ID_SI), mtl->GetSelfIllumColor(this->mT));
+
 	if (emissiveColor.NonZeroXYZ())
 	{
 		shaderData.mNumEmissive++;
@@ -1199,19 +1132,18 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 
 		return shader;
 	}
-		
-	Shader *maxShader = mtl->GetShader();
-	
+
+	Shader* maxShader = mtl->GetShader();
+
 	if (!maxShader)
 		return frw::DiffuseShader(materialSystem);
-	
+
 	MSTR shaderClassName;
 	maxShader->GetClassName(shaderClassName);
 
 	IParamBlock2* pb = maxShader->GetParamBlock(0);
 
 	// DIFFUSE
-	//
 	long mapChannel = mtl->StdIDToChannel(ID_BU); //This method returns submap index using a list of predefined map types
 	Texmap* bumpMap = mtl->SubTexmapOn(mapChannel) ? mtl->GetSubTexmap(mapChannel) : NULL;
 
@@ -1229,18 +1161,19 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 
 	frw::Shader result(materialSystem, frw::ShaderTypeDiffuse);
 	result.SetValue("color", diffuseColor);
-	
+
 	// NORMAL
 	frw::Value normal;
+
 	if (bumpMap)
 	{
 		float strength = mtl->GetTexmapAmt(ID_BU, mT);
+
 		normal = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bumpMap, strength, *this);
-				result.SetValue("normal", normal);
-			}
-	
+		result.SetValue("normal", normal);
+	}
+
 	// SPECULAR REFLECTIONS
-	//
 	auto specularLevel = getValue(getMap(mtl, ID_SS), mtl->GetShinStr(this->mT));
 	auto specularColor = getValue(getMap(mtl, ID_SP), mtl->GetSpecular(this->mT));
 
@@ -1250,7 +1183,6 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	{
 		auto ior = mtl->GetIOR(this->mT);
 		auto roughness = StdMat2_glossinessToRoughness(getValue(getMap(mtl, ID_SH), mtl->GetShininess(this->mT)));
-
 
 		specularColor = materialSystem.ValueMul(specularColor, specularLevel);
 
@@ -1264,12 +1196,12 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	else if (shaderClassName == L"Anisotropic")
 	{
 		STDMAT2_PBVALUETEX(an_specular_level)
-		STDMAT2_PBVALUETEX(an_diffuse_level)
-		STDMAT2_PBVALUETEX(an_glossiness)
-		STDMAT2_PBVALUETEX(an_anisotropy)
-		STDMAT2_PBVALUETEX(an_orientation)
-		
-		diffuseColor = materialSystem.ValueMul(diffuseColor, an_diffuse_level_v);
+			STDMAT2_PBVALUETEX(an_diffuse_level)
+			STDMAT2_PBVALUETEX(an_glossiness)
+			STDMAT2_PBVALUETEX(an_anisotropy)
+			STDMAT2_PBVALUETEX(an_orientation)
+
+			diffuseColor = materialSystem.ValueMul(diffuseColor, an_diffuse_level_v);
 		result.SetValue("color", diffuseColor);
 
 		specularColor = materialSystem.ValueMul(specularColor, an_specular_level_v);
@@ -1283,7 +1215,7 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 		//shader.SetValue("rotation", materialSystem.ValueMul(an_orientation_v, 0.01745329251994329576923690768489)); // PI/180
 		shader.SetValue("rotation", an_orientation_v);
 		shader.SetValue("normal", normal);
-				
+
 		result = materialSystem.ShaderBlend(result, shader, frw::Value(0.5, 0.5, 0.5));
 	}
 	else if (shaderClassName == L"Metal")
@@ -1301,25 +1233,25 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	else if (shaderClassName == L"Multi-Layer")
 	{
 		STDMAT2_PBCOLORTEX(ml_diffuse)
-		STDMAT2_PBVALUETEX(ml_diffuse_level)
-		STDMAT2_PBVALUETEX(ml_diffuse_rough)
+			STDMAT2_PBVALUETEX(ml_diffuse_level)
+			STDMAT2_PBVALUETEX(ml_diffuse_rough)
 
-		STDMAT2_PBCOLORTEX(ml_specular1)
-		STDMAT2_PBVALUETEX(ml_specular_level1)
-		STDMAT2_PBVALUETEX(ml_glossiness1)
-		STDMAT2_PBVALUETEX(ml_anisotropy1)
-		STDMAT2_PBVALUETEX(ml_orientation1)
+			STDMAT2_PBCOLORTEX(ml_specular1)
+			STDMAT2_PBVALUETEX(ml_specular_level1)
+			STDMAT2_PBVALUETEX(ml_glossiness1)
+			STDMAT2_PBVALUETEX(ml_anisotropy1)
+			STDMAT2_PBVALUETEX(ml_orientation1)
 
-		STDMAT2_PBCOLORTEX(ml_specular2)
-		STDMAT2_PBVALUETEX(ml_specular_level2)
-		STDMAT2_PBVALUETEX(ml_glossiness2)
-		STDMAT2_PBVALUETEX(ml_anisotropy2)
-		STDMAT2_PBVALUETEX(ml_orientation2)	
+			STDMAT2_PBCOLORTEX(ml_specular2)
+			STDMAT2_PBVALUETEX(ml_specular_level2)
+			STDMAT2_PBVALUETEX(ml_glossiness2)
+			STDMAT2_PBVALUETEX(ml_anisotropy2)
+			STDMAT2_PBVALUETEX(ml_orientation2)
 
-		result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
+			result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
 		result.SetValue("color", materialSystem.ValueMul(diffuseColor, ml_diffuse_level_v));
 		result.SetValue("roughness", ml_diffuse_rough_v);
-		
+
 		frw::Shader specular1(materialSystem, frw::ShaderTypeWard);
 		specular1.SetValue("color", materialSystem.ValueMul(ml_specular1_v, ml_specular_level1_v));
 		auto roughness1 = StdMat2_glossinessToRoughness(ml_glossiness1_v);
@@ -1335,24 +1267,24 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 		specular2.SetValue("roughness_x", materialSystem.ValueMul(roughness2, materialSystem.ValueSub(frw::Value(1.0), ml_anisotropy2_v)));
 		specular2.SetValue("rotation", ml_orientation2_v);
 		specular2.SetValue("normal", normal);
-		
+
 		frw::Shader specular = materialSystem.ShaderBlend(specular1, specular2, frw::Value(0.5, 0.5, 0.5, 0.5));
 		result = materialSystem.ShaderBlend(result, specular, frw::Value(0.5, 0.5, 0.5, 0.5));
 	}
 	else if (shaderClassName == L"Oren-Nayar-Blinn")
 	{
 		STDMAT2_PBVALUETEX(onb_glossiness)
-		STDMAT2_PBVALUETEX(onb_specular_level)
-		STDMAT2_PBVALUETEX(onb_diffuse_level)
-		//onb_soften?
-		STDMAT2_PBVALUETEX(onb_roughness)
+			STDMAT2_PBVALUETEX(onb_specular_level)
+			STDMAT2_PBVALUETEX(onb_diffuse_level)
+			//onb_soften?
+			STDMAT2_PBVALUETEX(onb_roughness)
 
-		result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
+			result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
 
 		diffuseColor = materialSystem.ValueMul(diffuseColor, onb_diffuse_level_v);
 		result.SetValue("color", diffuseColor);
 		result.SetValue("roughness", onb_roughness_v);
-				
+
 		auto ior = mtl->GetIOR(this->mT);
 		specularColor = materialSystem.ValueMul(specularColor, onb_specular_level_v);
 
@@ -1367,9 +1299,9 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	else if (shaderClassName == L"Strauss")
 	{
 		STDMAT2_PBVALUETEX(st_glossiness)
-		STDMAT2_PBVALUETEX(st_metalness)
+			STDMAT2_PBVALUETEX(st_metalness)
 
-		frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
+			frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
 		shader.SetValue("color", materialSystem.ValueAdd(materialSystem.ValueMul(diffuseColor, st_metalness_v), materialSystem.ValueMul(frw::Value(1.0, 1.0, 1.0, 1.0), materialSystem.ValueSub(1.0, st_metalness_v))));
 		shader.SetValue("normal", normal);
 		shader.SetValue("ior", frw::Value(mtl->GetIOR(this->mT)));
@@ -1379,12 +1311,12 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 	else if (shaderClassName == L"Translucent Shader")
 	{
 		STDMAT2_PBVALUETEX(tl_diffuse_level)
-		STDMAT2_PBVALUETEX(tl_glossiness)
-		STDMAT2_PBVALUETEX(tl_specular_level)
-		STDMAT2_PBCOLORTEX(tl_translucent_color)
-		STDMAT2_PBCOLORTEX(tl_filter)
+			STDMAT2_PBVALUETEX(tl_glossiness)
+			STDMAT2_PBVALUETEX(tl_specular_level)
+			STDMAT2_PBCOLORTEX(tl_translucent_color)
+			STDMAT2_PBCOLORTEX(tl_filter)
 
-		result.SetValue("color", tl_translucent_color_v);
+			result.SetValue("color", tl_translucent_color_v);
 
 		frw::Shader microfacet(materialSystem, frw::ShaderTypeMicrofacet);
 		microfacet.SetValue("color", materialSystem.ValueMul(diffuseColor, tl_diffuse_level_v));
@@ -1398,7 +1330,7 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 		filter.SetValue("color", tl_filter_v);
 
 		result = materialSystem.ShaderBlend(result, filter, opacityLevel);
-		
+
 		frw::Shader specular(materialSystem, frw::ShaderTypeMicrofacet);
 		specular.SetValue("color", materialSystem.ValueMul(specularColor, tl_specular_level_v));
 		specular.SetValue("normal", normal);
@@ -1574,7 +1506,7 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	{
 		BaseBumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bump_map, bump_map_amt, *this);
 	}
-	
+
 	// compute roughness
 	frw::Value Roughness;
 	if (roughness_map_on && roughness_map)
@@ -1599,10 +1531,10 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		CoatRoughness = frw::Value(coat_roughness, coat_roughness, coat_roughness);
 	if (coat_roughness_inv)
 		CoatRoughness = materialSystem.ValueSub(1.f, CoatRoughness);
-	
+
 	frw::Value Affect = materialSystem.ValueMul(CoatWeight, materialSystem.ValueMul(coat_affect_roughness, CoatRoughness));
 	Roughness = materialSystem.ValueSub(1.0, materialSystem.ValueMul(materialSystem.ValueSub(1.0, Affect), materialSystem.ValueSub(1.0, Roughness)));
-	
+
 	// BASE COLOR (DIFFUSE)
 	frw::Shader BaseShader = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
 
@@ -1623,18 +1555,18 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	frw::Value BaseRoughness(diff_roughness, diff_roughness, diff_roughness);
 
 	BaseShader.SetValue("roughness", BaseRoughness);
-	
+
 	BaseShader.SetValue("normal", BaseBumpMap);
 
 	// TRANSPARENCY
 	frw::Shader RefrShader = frw::Shader(materialSystem, frw::ShaderTypeMicrofacetRefraction);
-	
+
 	frw::Value RefrWeight;
 	if (transparency_map_on && transparency_map)
 		RefrWeight = createMap(transparency_map, MAP_FLAG_NOGAMMA);
 	else
 		RefrWeight = frw::Value(transparency, transparency, transparency);
-		
+
 	frw::Value RefrColor;
 	if (trans_color_map_on && trans_color_map)
 		RefrColor = createMap(trans_color_map, MAP_FLAG_NOFLAGS);
@@ -1659,18 +1591,18 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		RefrIor = createMap(trans_ior_map, MAP_FLAG_NOGAMMA);
 	else
 		RefrIor = frw::Value(trans_ior, trans_ior, trans_ior);
-	
+
 	RefrShader.SetValue("color", RefrColor);
 	RefrShader.SetValue("roughness", RefrRoughness);
 	RefrShader.SetValue("ior", thin_walled ? frw::Value(1.05, 1.05, 1.05) : RefrIor);
 	RefrShader.SetValue("normal", BaseBumpMap);
-	
+
 	// COMBINE DIFFUSE AND REFRACTION
 	frw::Shader DiffRefrShader = materialSystem.ShaderBlend(BaseShader, RefrShader, RefrWeight);
-	
+
 	// REFLECTIONS
 	frw::Shader ReflShader(materialSystem, frw::ShaderTypeWard);
-	
+
 	frw::Value ReflWeight;
 	if (reflectivity_map_on && reflectivity_map)
 		ReflWeight = createMap(reflectivity_map, MAP_FLAG_NOGAMMA);
@@ -1682,27 +1614,27 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		ReflColor = createMap(refl_color_map, MAP_FLAG_NOFLAGS);
 	else
 		ReflColor = frw::Value(refl_color.r, refl_color.g, refl_color.b);
-		
+
 	frw::Value Anisotropy;
 	if (anisotropy_map_on && anisotropy_map)
 		Anisotropy = createMap(anisotropy_map, MAP_FLAG_NOGAMMA);
 	else
 		Anisotropy = frw::Value(anisotropy, anisotropy, anisotropy);
-	
+
 	frw::Value AnisoAngle;
 	if (aniso_angle_map_on && aniso_angle_map)
 		AnisoAngle = createMap(aniso_angle_map, MAP_FLAG_NOGAMMA);
 	else
 		AnisoAngle = frw::Value(anisoangle, anisoangle, anisoangle);
 	AnisoAngle = materialSystem.ValueMul(AnisoAngle, frw::Value(2.0 * PI));
-	
+
 	//aniso_mode
 
 	ReflShader.SetValue("rotation", AnisoAngle);
 	ReflShader.SetValue("roughness_y", Roughness);
 	ReflShader.SetValue("roughness_x", materialSystem.ValueMul(Anisotropy, Roughness));
 	ReflShader.SetValue("normal", BaseBumpMap);
-	
+
 	// COMBINE DIFFUSE-REFRACTION WITH REFLECTION
 	frw::Value ReflBlendWeight;
 	if (brdf_mode == 1)
@@ -1718,9 +1650,9 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		frw::Value edge_level = materialSystem.ValuePow(1.0 - materialSystem.ValueAbs(materialSystem.ValueDot(materialSystem.ValueLookupINVEC(), materialSystem.ValueLookupN())), edge_factor);
 		ReflBlendWeight = materialSystem.ValueMul(ReflBlendWeight, materialSystem.ValueAdd(materialSystem.ValueMul(high, edge_level), materialSystem.ValueMul(low, materialSystem.ValueSub(1.0, edge_level))));
 	}
-	
+
 	ReflShader.SetValue("color", ReflColor);
-	
+
 	frw::Shader DiffRefrReflShader = materialSystem.ShaderBlend(DiffRefrShader, ReflShader, materialSystem.ValueMul(ReflWeight, ReflBlendWeight));
 
 
@@ -1751,12 +1683,12 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		CoatColor = createMap(coat_color_map, MAP_FLAG_NOFLAGS);
 	else
 		CoatColor = frw::Value(coat_color.r, coat_color.g, coat_color.b);
-	
+
 	frw::Value CoatIor(coat_ior, coat_ior, coat_ior);
 
 	CoatShader.SetValue("roughness", CoatRoughness);
 	CoatShader.SetValue("color", frw::Value(1.f, 1.f, 1.f));
-		
+
 	frw::Value CoatBumpMap;
 	if (coat_bump_map_on && coat_bump_map)
 	{
@@ -1766,17 +1698,17 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 
 	BaseColor = materialSystem.ValueBlend(BaseColor, materialSystem.ValueMul(BaseColor, CoatColor), CoatWeight);
 	BaseShader.SetValue("color", BaseColor);
-	
+
 	// COMBINE COAT IN
 	frw::Shader DiffRefrReflCoatShader = materialSystem.ShaderBlend(DiffRefrReflMetallicShader, CoatShader, materialSystem.ValueMul(materialSystem.ValueFresnel(CoatIor), CoatWeight));
-		
+
 	// EMISSION
 	if ((emission_map_on && emission_map) || (emission > 0.f))
 	{
 		shaderData.mNumEmissive++;
 
 		frw::EmissiveShader EmissionShader(materialSystem);
-		
+
 		frw::Value Emission;
 		if (emission_map_on && emission_map)
 			Emission = createMap(emission_map, MAP_FLAG_WANTSHDR);
@@ -1814,9 +1746,9 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		Transp.SetValue("color", frw::Value(1.0, 1.0, 1.0));
 		FinalShader = materialSystem.ShaderBlend(Transp, FinalShader, map);
 	}
-	
+
 	return FinalShader;
-	
+
 
 	return BaseShader;
 }
@@ -1835,44 +1767,43 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 	const float lOpacity = GetFromPb<float>(pb, Corona::MTLP_LEVEL_OPACITY, this->mT);
 
 	GETSHADERMAP_USE_AMOUNT(diffuseColorMap, Corona::MTLP_USEMAP_DIFFUSE, Corona::MTLP_TEXMAP_DIFFUSE, Corona::MTLP_MAPAMOUNT_DIFFUSE)
-	GETSHADERCOLOR_NOMAP(diffuseColor, Corona::MTLP_COLOR_DIFFUSE, this->mT)
-	GETSHADERMAP_USE_AMOUNT(reflectColorMap, Corona::MTLP_USEMAP_REFLECT, Corona::MTLP_TEXMAP_REFLECT, Corona::MTLP_MAPAMOUNT_REFLECT)
-	GETSHADERCOLOR_NOMAP(reflectColor, Corona::MTLP_COLOR_REFLECT, this->mT)
-	GETSHADERMAP_USE_AMOUNT(refractColorMap, Corona::MTLP_USEMAP_REFRACT, Corona::MTLP_TEXMAP_REFRACT, Corona::MTLP_MAPAMOUNT_REFRACT)
-	GETSHADERCOLOR_NOMAP(refractColor, Corona::MTLP_COLOR_REFRACT, this->mT)
-	GETSHADERCOLOR_USE_AMOUNT(opacityColor, Corona::MTLP_COLOR_OPACITY, Corona::MTLP_USEMAP_OPACITY, Corona::MTLP_TEXMAP_OPACITY, Corona::MTLP_MAPAMOUNT_OPACITY)
-	GETSHADERCOLOR_USE_AMOUNT(emissiveColor, Corona::MTLP_COLOR_SELF_ILLUM, Corona::MTLP_USEMAP_SELF_ILLUM, Corona::MTLP_TEXMAP_SELF_ILLUM, Corona::MTLP_MAPAMOUNT_SELF_ILLUM)
-	
-	frw::Shader material = frw::Shader(materialSystem, frw::ShaderTypeUber);
+		GETSHADERCOLOR_NOMAP(diffuseColor, Corona::MTLP_COLOR_DIFFUSE, this->mT)
+		GETSHADERMAP_USE_AMOUNT(reflectColorMap, Corona::MTLP_USEMAP_REFLECT, Corona::MTLP_TEXMAP_REFLECT, Corona::MTLP_MAPAMOUNT_REFLECT)
+		GETSHADERCOLOR_NOMAP(reflectColor, Corona::MTLP_COLOR_REFLECT, this->mT)
+		GETSHADERMAP_USE_AMOUNT(refractColorMap, Corona::MTLP_USEMAP_REFRACT, Corona::MTLP_TEXMAP_REFRACT, Corona::MTLP_MAPAMOUNT_REFRACT)
+		GETSHADERCOLOR_NOMAP(refractColor, Corona::MTLP_COLOR_REFRACT, this->mT)
+		GETSHADERCOLOR_USE_AMOUNT(opacityColor, Corona::MTLP_COLOR_OPACITY, Corona::MTLP_USEMAP_OPACITY, Corona::MTLP_TEXMAP_OPACITY, Corona::MTLP_MAPAMOUNT_OPACITY)
+		GETSHADERCOLOR_USE_AMOUNT(emissiveColor, Corona::MTLP_COLOR_SELF_ILLUM, Corona::MTLP_USEMAP_SELF_ILLUM, Corona::MTLP_TEXMAP_SELF_ILLUM, Corona::MTLP_MAPAMOUNT_SELF_ILLUM)
+
+		frw::Shader material = frw::Shader(materialSystem, frw::ShaderTypeUber);
 
 	// BUMP
-	
 	frw::Value bumpMap;
+
 	if (GetFromPb<bool>(pb, Corona::MTLP_USEMAP_BUMP, this->mT))
 	{
 		Texmap* normalTexmap = GetFromPb<Texmap*>(pb, Corona::MTLP_TEXMAP_BUMP);
 		if (normalTexmap)
 		{
-				float bumpAmount = GetFromPb<float>(pb, Corona::MTLP_MAPAMOUNT_BUMP);
-		bumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, normalTexmap, bumpAmount, *this);
-		material.SetValue("diffuse.normal", bumpMap);
-		material.SetValue("clearcoat.normal", bumpMap);
-		material.SetValue("glossy.normal", bumpMap);
-		material.SetValue("refraction.normal", bumpMap);
-	}
+			float bumpAmount = GetFromPb<float>(pb, Corona::MTLP_MAPAMOUNT_BUMP);
+			bumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, normalTexmap, bumpAmount, *this);
+			material.SetValue("diffuse.normal", bumpMap);
+			material.SetValue("clearcoat.normal", bumpMap);
+			material.SetValue("glossy.normal", bumpMap);
+			material.SetValue("refraction.normal", bumpMap);
+		}
 	}
 
 	GETSHADERFLOAT_USE_AMOUNT(glossinessSpecular, Corona::MTLP_REFLECT_GLOSSINESS, Corona::MTLP_USEMAP_REFLECT_GLOSSINESS, Corona::MTLP_TEXMAP_REFLECT_GLOSSINESS, Corona::MTLP_MAPAMOUNT_REFLECT_GLOSSINESS)
-	GETSHADERFLOAT_USE_AMOUNT(fresnelIor, Corona::MTLP_FRESNEL_IOR, Corona::MTLP_USEMAP_FRESNEL_IOR, Corona::MTLP_TEXMAP_FRESNEL_IOR, Corona::MTLP_MAPAMOUNT_FRESNEL_IOR)
-	GETSHADERFLOAT_USE_AMOUNT(ior, Corona::MTLP_IOR, Corona::MTLP_USEMAP_IOR, Corona::MTLP_TEXMAP_IOR, Corona::MTLP_MAPAMOUNT_IOR)
-	GETSHADERFLOAT_USE_AMOUNT(glossinessRefraction, Corona::MTLP_REFRACT_GLOSSINESS, Corona::MTLP_USEMAP_REFRACT_GLOSSINESS, Corona::MTLP_TEXMAP_REFRACT_GLOSSINESS, Corona::MTLP_MAPAMOUNT_REFRACT_GLOSSINESS)
-	GETSHADERFLOAT_USE_AMOUNT(anisotropy, Corona::MTLP_ANISOTROPY, Corona::MTLP_USEMAP_ANISOTROPY, Corona::MTLP_TEXMAP_ANISOTROPY, Corona::MTLP_MAPAMOUNT_ANISOTROPY)
-	GETSHADERFLOAT_USE_AMOUNT(rotation, Corona::MTLP_ANISO_ROTATION, Corona::MTLP_USEMAP_ANISO_ROTATION, Corona::MTLP_TEXMAP_ANISO_ROTATION, Corona::MTLP_MAPAMOUNT_ANISO_ROTATION)
-	
-	const bool thin = GetFromPb<bool>(pb, Corona::MTLP_TWOSIDED, this->mT);
-	
+		GETSHADERFLOAT_USE_AMOUNT(fresnelIor, Corona::MTLP_FRESNEL_IOR, Corona::MTLP_USEMAP_FRESNEL_IOR, Corona::MTLP_TEXMAP_FRESNEL_IOR, Corona::MTLP_MAPAMOUNT_FRESNEL_IOR)
+		GETSHADERFLOAT_USE_AMOUNT(ior, Corona::MTLP_IOR, Corona::MTLP_USEMAP_IOR, Corona::MTLP_TEXMAP_IOR, Corona::MTLP_MAPAMOUNT_IOR)
+		GETSHADERFLOAT_USE_AMOUNT(glossinessRefraction, Corona::MTLP_REFRACT_GLOSSINESS, Corona::MTLP_USEMAP_REFRACT_GLOSSINESS, Corona::MTLP_TEXMAP_REFRACT_GLOSSINESS, Corona::MTLP_MAPAMOUNT_REFRACT_GLOSSINESS)
+		GETSHADERFLOAT_USE_AMOUNT(anisotropy, Corona::MTLP_ANISOTROPY, Corona::MTLP_USEMAP_ANISOTROPY, Corona::MTLP_TEXMAP_ANISOTROPY, Corona::MTLP_MAPAMOUNT_ANISOTROPY)
+		GETSHADERFLOAT_USE_AMOUNT(rotation, Corona::MTLP_ANISO_ROTATION, Corona::MTLP_USEMAP_ANISO_ROTATION, Corona::MTLP_TEXMAP_ANISO_ROTATION, Corona::MTLP_MAPAMOUNT_ANISO_ROTATION)
+
+		const bool thin = GetFromPb<bool>(pb, Corona::MTLP_TWOSIDED, this->mT);
+
 	// DIFFUSE
-	
 	if (diffuseColorMap.IsNull())
 		material.SetValue("diffuse.color", materialSystem.ValueMul(diffuseColor, lDiffuse));
 	else
@@ -1883,7 +1814,6 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 	}
 
 	// REFRACTION
-	
 	material.SetValue("weights.diffuse2refraction", frw::Value(1.f - lRefract));
 
 	if (refractColorMap.IsNull())
@@ -1898,7 +1828,6 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 	material.SetValue("refraction.ior", ior);
 
 	// REFLECTION
-	//
 	if (lReflect > 0.f)
 	{
 		// corona glossiness to RPR roughness
@@ -1914,16 +1843,17 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 			roughness = materialSystem.ValueMul(0.22, xp);
 		}
 
-	frw::Value reflColor(materialSystem.ValueMul(reflectColor, lReflect));
+		frw::Value reflColor(materialSystem.ValueMul(reflectColor, lReflect));
 
-	if (reflectColorMap.IsNull())
+		if (reflectColorMap.IsNull())
 			material.SetValue("glossy.color", materialSystem.ValueMul(reflectColor, lReflect));
-	else
-	{
-		frw::Value refl(materialSystem.ValueMul(reflectColor, lReflect));
-		frw::Value refltex(materialSystem.ValueMul(reflectColorMap, lReflect));
+		else
+		{
+			frw::Value refl(materialSystem.ValueMul(reflectColor, lReflect));
+			frw::Value refltex(materialSystem.ValueMul(reflectColorMap, lReflect));
 			material.SetValue("glossy.color", materialSystem.ValueBlend(refl, refltex, reflectColorMap_mapAmount));
-	}
+		}
+
 		material.SetValue("roughness_x", roughness);
 		material.SetValue("roughness_y", roughness);
 
@@ -1935,7 +1865,6 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 	material.SetValue("weights.clearcoat2glossy", frw::Value(0.f));
 
 	// OPACITY
-
 	material.SetValue("transparency.color", opacityColor);
 	material.SetValue("weights.transparency", materialSystem.ValueSub(frw::Value(1.0), lOpacity));
 
@@ -1944,24 +1873,26 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 	return material;
 }
 
-frw::Shader MaterialParser::parseCoronaPortalMtl(Mtl* mtl) 
+frw::Shader MaterialParser::parseCoronaPortalMtl(Mtl* mtl)
 {
 	FASSERT(mtl);
 	frw::Shader transparent(materialSystem, frw::ShaderTypeTransparent);
 	transparent.SetValue("color", frw::Value(1.0f, 1.0f, 1.0f));
+
 	return transparent;
 }
 
-frw::Shader MaterialParser::parseCoronaVolumeMtl(Mtl* mtl) 
+frw::Shader MaterialParser::parseCoronaVolumeMtl(Mtl* mtl)
 {
 	FASSERT(mtl);
 	frw::Shader transparent(materialSystem, frw::ShaderTypeTransparent);
 	transparent.SetValue("color", frw::Value(1.0f, 1.0f, 1.0f));
+
 	return transparent;
 }
 
 // Since RPR does not support ray switching, we just parse the "base" sub-material
-frw::Shader MaterialParser::parseCoronaRaySwitchMtl(Mtl* mtl) 
+frw::Shader MaterialParser::parseCoronaRaySwitchMtl(Mtl* mtl)
 {
 	return createShader(GetFromPb<Mtl*>(mtl->GetParamBlock(0), Corona::RM_GI_MTL));
 }
@@ -1974,7 +1905,7 @@ frw::Shader FireRender::MaterialParser::parseCoronaLightObject(INode* node)
 
 	frw::EmissiveShader emissive(materialSystem);
 
-	if (ip) 
+	if (ip)
 	{
 		Color color;
 		float intensity;
@@ -1986,7 +1917,7 @@ frw::Shader FireRender::MaterialParser::parseCoronaLightObject(INode* node)
 		color *= intensity;
 		emissive.SetColor(color);
 	}
-	else 
+	else
 	{
 		MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Too old Corona version."), _T("Radeon ProRender warning"), MB_OK);
 	}
@@ -2005,12 +1936,14 @@ frw::Shader MaterialParser::parseCoronaShadowCatcherMtl(Mtl* mtl)
 frw::Shader MaterialParser::parseCoronaLayeredMtl(Mtl *mtl, INode *node)
 {
 	FASSERT(mtl);
-	
+
 	IParamBlock2* pb = mtl->GetParamBlock(0);
 
 	Mtl *baseMaterial = GetFromPb<Mtl*>(pb, Corona::LAYEREDMTL_BASEMTL, this->mT);
+
 	if (!baseMaterial)
 		return frw::DiffuseShader(materialSystem);
+
 	frw::Shader layered = createShader(baseMaterial, node);
 
 	for (int i = 0; i < 10; i++)
@@ -2028,7 +1961,7 @@ frw::Shader MaterialParser::parseCoronaLayeredMtl(Mtl *mtl, INode *node)
 			layered = materialSystem.ShaderBlend(layered, mat, weight);
 		}
 	}
-	
+
 	return layered;
 }
 
@@ -2068,7 +2001,7 @@ frw::Shader MaterialParser::parseBlendMtl(Mtl* mtl)
 
 	// Optimizations when one or both sub-materials are NULL
 	if (!use1 && !use2)
-		return frw::DiffuseShader(materialSystem);	
+		return frw::DiffuseShader(materialSystem);
 	else if (use1 && !use2)
 		return shader1;
 	else if (!use1 && use2)
@@ -2098,7 +2031,7 @@ Matrix3 MaterialParser::getOutputTm(ReferenceTarget *p)
 		y = texout->Filter(AColor(0, 1, 0, 0));
 		z = texout->Filter(AColor(0, 0, 1, 0));
 		w = texout->Filter(AColor(0, 0, 0, 0));
-		
+
 		x = x - w;
 		y = y - w;
 		z = z - w;
@@ -2131,7 +2064,7 @@ frw::Value MaterialParser::transformValue(ICurveCtl* curves, frw::Value v)
 		{
 			if (curve->GetNumPts() == 1) // this probably never happens
 				v = curve->GetValue(mT, 0);
-			else if (curve->GetNumPts() == 2 
+			else if (curve->GetNumPts() == 2
 				&& !(curve->GetPoint(mT, 0).flags & CURVEP_BEZIER)
 				&& !(curve->GetPoint(mT, 1).flags & CURVEP_BEZIER)
 				)
@@ -2167,11 +2100,12 @@ frw::Value MaterialParser::transformValue(ICurveCtl* curves, frw::Value v)
 				frw::Image image(mScope, { 1, RPR_COMPONENT_TYPE_FLOAT32 }, imgDesc, buffer.data());
 				frw::ImageNode node(materialSystem);
 				node.SetMap(image);
-				node.SetValue("uv", v * (1.0 - 2.0/dim) + 1.0/dim);
+				node.SetValue("uv", v * (1.0 - 2.0 / dim) + 1.0 / dim);
 				v = node;
 			}
 		}
 	}
+
 	return v;
 }
 
@@ -2222,7 +2156,7 @@ frw::Value MaterialParser::getTexmapUV(Texmap *texmap, bool noDefault)
 
 		uvwSrc = uvGen->GetUVWSource();
 
-		if(uvwSrc == UVWSRC_EXPLICIT)
+		if (uvwSrc == UVWSRC_EXPLICIT)
 			uv = materialSystem.ValueLookupUV(uvGen->GetMapChannel() - 1);
 
 		uvGen->GetUVTransform(tm);
@@ -2259,7 +2193,7 @@ frw::Value MaterialParser::getTexmapUV(Texmap *texmap, bool noDefault)
 
 	if (texmap->ClassID().PartA() == CHECKER_CLASS_ID)
 	{
-		tm.Scale(Point3(1,1,1) * 0.25f);
+		tm.Scale(Point3(1, 1, 1) * 0.25f);
 		tm.Translate(Point3(1, 1, 1) * 256.0f);
 	}
 
@@ -2275,7 +2209,7 @@ frw::Value MaterialParser::getTexmapUV(Texmap *texmap, bool noDefault)
 				//uv = materialSystem.ValueLookupINVEC();
 				Point3 org = shaderData.mCameraTransform.GetRow(3);
 				auto& ms = materialSystem;
-				
+
 				uv = spheremap(ms, org);
 			}
 			else
@@ -2293,7 +2227,7 @@ frw::Value MaterialParser::getTexmapUV(Texmap *texmap, bool noDefault)
 				{
 					auto nodeTm = shaderData.mNode->GetObjectTM(mT);
 					auto obj = shaderData.mNode->EvalWorldState(mT).obj;
-					
+
 					Box3 bbox;
 					obj->GetDeformBBox(mT, bbox);
 					bbox.Scale(GetUnitScale());
@@ -2349,8 +2283,8 @@ frw::Value MaterialParser::createCheckerMap(Texmap *texmap)
 	float eps = 0.0001f;
 	auto a = getValue(map1Enabled ? map1 : nullptr, color1);
 	auto b = getValue(map2Enabled ? map2 : nullptr, color2);
-	if(a.IsNode() || b.IsNode()
-		|| (MaxVal(color1-Color(0, 0, 0))>eps) || (MaxVal(color2-Color(1, 1, 1))>eps)) {
+	if (a.IsNode() || b.IsNode()
+		|| (MaxVal(color1 - Color(0, 0, 0)) > eps) || (MaxVal(color2 - Color(1, 1, 1)) > eps)) {
 		return materialSystem.ValueBlend(a, b, checker);
 	}
 
@@ -2377,7 +2311,7 @@ frw::Value MaterialParser::createNoiseMap(Texmap *texmap)
 	GET_PARAM(int, type, 0xB);
 	GET_PARAM(ReferenceTarget*, output, 0xD)
 
-	float min = 0.25 - thresholdLow;
+		float min = 0.25 - thresholdLow;
 	float max = 0.75 + (1 - thresholdHigh);
 
 	size = 33 / size;
@@ -2399,7 +2333,7 @@ frw::Value MaterialParser::createNoiseMap(Texmap *texmap)
 		noise_node.SetValue("uv", uv);
 
 		//optimize out blend node - see AMDMAX-920
-		if( (fabs(min-0)>eps) || (fabs(max-1)>eps))
+		if ((fabs(min - 0) > eps) || (fabs(max - 1) > eps))
 			v = materialSystem.ValueBlend(min, max, noise_node);
 		else
 			v = noise_node;
@@ -2416,7 +2350,7 @@ frw::Value MaterialParser::createNoiseMap(Texmap *texmap)
 		v = materialSystem.ValueBlend(a, b, v);
 
 	auto tx = getOutputTm(output);
-	if(!tx.IsIdentity())
+	if (!tx.IsIdentity())
 		v = materialSystem.ValueTransform(v, tx);
 
 	return v;
@@ -2456,7 +2390,7 @@ namespace
 		case ChannelSource::BLUE_INV:
 			return Point4(0, 0, -1, 1);
 		case ChannelSource::MONO:
-			return Point4(1, 1, 1, 0) * (1.0/3);
+			return Point4(1, 1, 1, 0) * (1.0 / 3);
 		case ChannelSource::ONE:
 			return Point4(0, 0, 0, 1);
 		case ChannelSource::ZERO:
@@ -2511,16 +2445,16 @@ frw::Value MaterialParser::createRPRColorCorrectionMap(Texmap *texmap)
 		int gammaType = GetFromPb<int>(pb, FRColourCorMtl_BOUNDARY, timeVal);
 		switch (gammaType)
 		{
-			case RPR_GAMMA_RAW:
-			{
-				gammaRGB = 1.0f;
-				break;
-			}
-			case RPR_GAMMA_SRGB:
-			{
-				gammaRGB = 2.2f;
-				break;
-			}
+		case RPR_GAMMA_RAW:
+		{
+			gammaRGB = 1.0f;
+			break;
+		}
+		case RPR_GAMMA_SRGB:
+		{
+			gammaRGB = 2.2f;
+			break;
+		}
 		}
 	}
 	else
@@ -2644,26 +2578,26 @@ frw::Value MaterialParser::createColorCorrectionMap(Texmap *texmap)
 	if (hueShift != 0 || saturation != 0 || brightness != 0)
 	{
 		hueShift *= DEG_TO_RAD;
-		hueShift *= -1;	
+		hueShift *= -1;
 
 		float H = hueShift;
 		float S = saturation;
 		float V = brightness;
-		
-		float VSU = V*S*cos(H);
-		float VSW = V*S*sin(H);
-		
+
+		float VSU = V * S*cos(H);
+		float VSW = V * S*sin(H);
+
 		Matrix3 tx;
 		tx.IdentityMatrix();
-		tx.SetColumn(0, Point4(	0.299f * V + 0.701f * VSU + 0.168f * VSW,
-								0.587f * V - 0.587f * VSU + 0.330f * VSW,
-								0.114f * V - 0.114f * VSU - 0.497f * VSW, 0.f));
-		tx.SetColumn(1, Point4(	0.299f * V - 0.299f * VSU - 0.328f * VSW,
-								0.587f * V + 0.413f * VSU + 0.035f * VSW,
-								0.114f * V - 0.114f * VSU + 0.292f * VSW, 0.f));
-		tx.SetColumn(2, Point4(	0.299f * V - 0.3f   * VSU + 1.25f  * VSW,
-								0.587f * V - 0.588f * VSU - 1.05f  * VSW,
-								0.114f * V + 0.886f * VSU - 0.203f * VSW, 0.f));
+		tx.SetColumn(0, Point4(0.299f * V + 0.701f * VSU + 0.168f * VSW,
+			0.587f * V - 0.587f * VSU + 0.330f * VSW,
+			0.114f * V - 0.114f * VSU - 0.497f * VSW, 0.f));
+		tx.SetColumn(1, Point4(0.299f * V - 0.299f * VSU - 0.328f * VSW,
+			0.587f * V + 0.413f * VSU + 0.035f * VSW,
+			0.114f * V - 0.114f * VSU + 0.292f * VSW, 0.f));
+		tx.SetColumn(2, Point4(0.299f * V - 0.3f   * VSU + 1.25f  * VSW,
+			0.587f * V - 0.588f * VSU - 1.05f  * VSW,
+			0.114f * V + 0.886f * VSU - 0.203f * VSW, 0.f));
 		tx.ValidateFlags();
 		tm = tm * tx;
 	}
@@ -2678,7 +2612,7 @@ frw::Value MaterialParser::createColorCorrectionMap(Texmap *texmap)
 	}
 
 	if (hi - lo != 1)
-		tm.Scale(Point3(1,1,1) * (hi - lo));
+		tm.Scale(Point3(1, 1, 1) * (hi - lo));
 
 	if (lo != 0)
 		tm.Translate(Point3(1, 1, 1) * (lo));
@@ -2900,7 +2834,7 @@ frw::Value MaterialParser::createCompositeMap(Texmap* texmap)
 			continue;
 
 		if (v.IsNull())	// no previous layers?
-			v = materialSystem.ValueMul(color,k);
+			v = materialSystem.ValueMul(color, k);
 		else
 		{
 			switch (blendMode)
@@ -2987,8 +2921,8 @@ frw::Value MaterialParser::createGradientMap(Texmap *tm)
 		v = materialSystem.ValueMul(v, 2.0);
 		v = materialSystem.ValueMagnitude(v);
 		frw::Value lerp0 = materialSystem.ValueClamp(materialSystem.ValueDiv(v, color2Pos + 1e-5));
-		frw::Value lerp1 = materialSystem.ValueClamp(materialSystem.ValueDiv(materialSystem.ValueClamp(materialSystem.ValueSub(v,color2Pos)), materialSystem.ValueSub(1, color2Pos)));
-		return materialSystem.ValueBlend(materialSystem.ValueBlend(c,b, lerp0), a, lerp1);
+		frw::Value lerp1 = materialSystem.ValueClamp(materialSystem.ValueDiv(materialSystem.ValueClamp(materialSystem.ValueSub(v, color2Pos)), materialSystem.ValueSub(1, color2Pos)));
+		return materialSystem.ValueBlend(materialSystem.ValueBlend(c, b, lerp0), a, lerp1);
 	}
 	else
 	{
@@ -3048,14 +2982,14 @@ frw::Value MaterialParser::createTextureMap(Texmap *texmap, int flags)
 			frw::ImageNode node(materialSystem);
 			node.SetMap(image);
 
-			if(auto uv = getTexmapUV(texmap))
+			if (auto uv = getTexmapUV(texmap))
 				node.SetValue("uv", getTexmapUV(texmap));
 			v = node;
 
 			if (auto output = map->GetTexout())
 			{
 				auto tx = getOutputTm(output);
-				if(!tx.IsIdentity()){
+				if (!tx.IsIdentity()) {
 					v = materialSystem.ValueTransform(v, tx);
 				}
 			}
@@ -3096,7 +3030,7 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 
 	IParamBlock2 *pb = texmap->GetParamBlock(0);
 	TimeValue timeVal = 0;
-	
+
 	const float epsilon = 0.01f;
 	Color color1, color2;
 	float map1Amount = 1.f, map2Amount = 1.f;
@@ -3114,7 +3048,7 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 	int np = pb->NumParams();
 
 	ParamID type_id = -1, direction_id = -1, farDistance_id = -1, nearDistance_id = -1, color1_id = -1, color2_id = -1, map1On_id = -1, map2On_id = -1;
-	
+
 	for (int i = 0; i < np; i++)
 	{
 		ParamID pid = pb->IndextoID(i);
@@ -3175,11 +3109,11 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 		{
 			farDistance = GetFromPb<float>(pb, pid, timeVal);
 			farDistance_id = pid;
-	}
+		}
 	}
 
 
-	debugPrint( std::string("Falloff type: ") + toString(type) + "\n");
+	debugPrint(std::string("Falloff type: ") + toString(type) + "\n");
 
 	float bias;
 	if (map2Amount == 0)
@@ -3303,7 +3237,7 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 	dotValue = transformValue(GetSubAnimByType<ICurveCtl>(texmap), (1.0 - dotValue));	// MIX CURVE
 
 	blendVal = materialSystem.ValueBlend(a, b, dotValue);
-	
+
 	auto tm = getOutputTm(texmap);	// OUTPUT
 	blendVal = materialSystem.ValueTransform(blendVal, tm);
 
@@ -3315,7 +3249,7 @@ frw::Value MaterialParser::createCoronaMixMap(Texmap* texmap)
 	IParamBlock2* pb = texmap->GetParamBlock(0);
 
 	frw::Value result;
-	
+
 	int operation = GetFromPb<int>(pb, Corona::MIXTEX_MIXOPERATION, this->mT);
 	float amount = GetFromPb<float>(pb, Corona::MIXTEX_MIXAMOUNT, this->mT);
 	float multiplierTop = GetFromPb<float>(pb, Corona::MIXTEX_MULTIPLIERTOP, this->mT);
@@ -3352,7 +3286,7 @@ frw::Value MaterialParser::createCoronaMixMap(Texmap* texmap)
 		bottom = materialSystem.ValueMul(bottom, ScaleBottom);
 	if (offsetBottom != 0.f)
 		bottom = materialSystem.ValueAdd(bottom, offsetBottom);
-	
+
 	// Operation
 	if (operation == 0)
 	{
@@ -3363,7 +3297,7 @@ frw::Value MaterialParser::createCoronaMixMap(Texmap* texmap)
 			mix = frw::Value(amount);
 		result = materialSystem.ValueMix(top, bottom, mix);
 	}
-	
+
 	return result;
 }
 
@@ -3382,14 +3316,16 @@ frw::Value MaterialParser::createCoronaColorMap(Texmap* texmap)
 		{
 			Color color = GetFromPb<Color>(pb, Corona::COLORTEX_COLOR, this->mT);
 			result = frw::Value(color.r, color.g, color.b);
-		} break;
+		}
+		break;
 
 		// solid HDR
 		case 1:
 		{
 			Point3 colorHDR = GetFromPb<Point3>(pb, Corona::COLORTEX_COLORHDR, this->mT);
 			result = frw::Value(colorHDR.x, colorHDR.y, colorHDR.z);
-		} break;
+		}
+		break;
 
 		// Temperature
 		case 2:
@@ -3397,7 +3333,8 @@ frw::Value MaterialParser::createCoronaColorMap(Texmap* texmap)
 			float kelvin = GetFromPb<float>(pb, Corona::COLORTEX_TEMPERATURE, this->mT);
 			Color col = KelvinToColor(kelvin);
 			result = frw::Value(col.r, col.g, col.b);
-		} break;
+		}
+		break;
 
 		// HEX
 		case 3:
@@ -3405,19 +3342,21 @@ frw::Value MaterialParser::createCoronaColorMap(Texmap* texmap)
 			const wchar_t *colorHEX = pb->GetStr(Corona::COLORTEX_HEXCOLOR, this->mT);
 			if (wcslen(colorHEX) == 7 && colorHEX[0] == '#')
 			{
-				
+
 			}
-		} break;
+		}
+		break;
 	}
 
 	float multiplier = GetFromPb<float>(pb, Corona::COLORTEX_MULTIPLIER, this->mT);
+
 	if (multiplier != 1.f)
 		result = materialSystem.ValueMul(result, multiplier);
-	
+
 	BOOL inputLinear = GetFromPb<BOOL>(pb, Corona::COLORTEX_INPUTISLINEAR, this->mT);
 
-	
+
 	return result;
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END
