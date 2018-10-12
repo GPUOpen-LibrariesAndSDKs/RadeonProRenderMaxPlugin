@@ -7,13 +7,16 @@
 *********************************************************************************************************************************/
 
 #pragma once
+
+#include "RadeonProRender.h"
 #include "Common.h"
-#include <RadeonProRender.h>
-#include <vector>
-#include <iparamm2.h>
 #include "HashValue.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+#include <iparamm2.h>
+
+#include <vector>
+
+FIRERENDER_NAMESPACE_BEGIN
 
 /// Converts anything to string without any boilerplate code via std::stringstream
 template<class T>
@@ -365,7 +368,7 @@ public:
 bool FileExists(const TCHAR* name);
 bool FolderExists(const TCHAR* path);
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END
 
 // format to string
 template<typename ... Args>
@@ -377,3 +380,5 @@ std::string string_format(const std::string& format, Args ... args)
 	return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 }
 
+std::wstring s2ws(const std::string& str);
+std::string ws2s(const std::wstring& wstr);

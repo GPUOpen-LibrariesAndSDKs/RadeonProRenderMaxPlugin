@@ -7,21 +7,23 @@
 *********************************************************************************************************************************/
 
 #include "utils/Utils.h"
-#include "Stack.h"
 #include "CoronaDeclarations.h"
+#include "plugin/ScopeManager.h"
+
 #include <iparamb2.h>
-#include <iomanip>
-#include <vector>
 #include <shlobj.h>
 #include <bitmap.h>
 #include <toneop.h>
-#include "plugin/ScopeManager.h"
+
+#include <iomanip>
+#include <vector>
+#include <codecvt>
 
 #pragma comment(lib,"Version.lib")
 
 using namespace std;
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 /// Static initialization will be done in the main thread, so this is the simplest way to get the main thread ID
 static const DWORD mainThreadId = GetCurrentThreadId();
@@ -903,5 +905,22 @@ bool FolderExists(const TCHAR* path)
 		(dwAttrib & FILE_ATTRIBUTE_DIRECTORY) != 0;
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END
 
+std::wstring s2ws(const std::string& str)
+{
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+	return converterX.from_bytes(str);
+}
+
+std::string ws2s(const std::wstring& wstr)
+{
+	using convert_typeX = std::codecvt_utf8<wchar_t>;
+
+	std::wstring_convert<convert_typeX, wchar_t> converterX;
+
+	return converterX.to_bytes(wstr);
+}

@@ -5,7 +5,9 @@
 *
 * Converting all material types we support from 3ds Max to Radeon ProRender core format
 *********************************************************************************************************************************/
+
 #pragma once
+
 #include "frWrap.h"
 
 #include "Common.h"
@@ -16,21 +18,22 @@
 #include <bitmap.h>
 #include "3dsMaxDeclarations.h"
 #include <iparamb2.h>
-#include <map>
-#include <vector>
-#include <string>
 #include "UvwContext.h"
 
-
 #define NEW_FALLOFF_CLASS_ID 0x6ec3730c
+
 #include <FrScope.h>
 #include <icurvctl.h>
 
-FIRERENDER_NAMESPACE_BEGIN;
+#include <map>
+#include <vector>
+#include <string>
+
+FIRERENDER_NAMESPACE_BEGIN
 
 enum
 {
-	MAP_FLAG_NOFLAGS =		0,
+	MAP_FLAG_NOFLAGS =		(0 << 0),
 	MAP_FLAG_NOGAMMA =		(1 << 0),
 	MAP_FLAG_CLAMP =		(1 << 1),
 	MAP_FLAG_WANTSHDR =		(1 << 2),
@@ -130,11 +133,13 @@ public:
 		return createMap(input, 0) | orValue;
 	}
 
-	static Texmap *getTexture(Mtl* mtl, int id)
+	static Texmap* getTexture(Mtl* mtl, int id)
 	{
 		Texmap *tex = 0;
+
 		if (id < mtl->NumSubTexmaps())
 			tex = mtl->GetSubTexmap(id);
+
 		return tex;
 	}
 
@@ -182,8 +187,8 @@ protected:
 
 public:
 
-	MaterialParser(frw::Scope mScope)
-		: mScope(mScope), materialSystem(mScope.GetMaterialSystem())
+	MaterialParser(frw::Scope mScope) :
+		mScope(mScope), materialSystem(mScope.GetMaterialSystem())
 	{
 	}
 
@@ -195,7 +200,7 @@ public:
 	//         will be clamped in the 0..1 interval
 	frw::Image createImageFromMap(Texmap* input, const int flags, bool force = false);
 
-	frw::Image createImage(Bitmap* bm, const HashValue &key, const int flags, std::wstring name = L"");
+	frw::Image createImage(Bitmap* bm, const HashValue &key, const int flags, const std::wstring& name = L"");
 
 
 	// Creates a RPR volume shader from a given MAX material, eventually considering the node it is assigned to

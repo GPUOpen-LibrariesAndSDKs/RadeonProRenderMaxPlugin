@@ -854,9 +854,18 @@ namespace frw
 	{
 		DECLARE_OBJECT_NO_DATA(Image, Object);
 	public:
-		explicit Image(rpr_image h, const Context& context) : Object(h, context, true, new Data()) {}
+		explicit Image(rpr_image h, const Context& context) : Object(h, context, true, new Data())
+		{
+		}
 
-		Image(Context context, const rpr_image_format& format, const rpr_image_desc& image_desc, const void* data);
+		explicit Image(Context context, const rpr_image_format& format, const rpr_image_desc& image_desc, const void* data);
+		explicit Image(Context context, const char* filename);
+
+		void SetGamma(float gamma)
+		{
+			rpr_int res = rprImageSetGamma(Handle(), gamma);
+			FCHECK(res);
+		}
 
 		bool IsGrayScale();
 	};
@@ -2640,90 +2649,51 @@ namespace frw
 		FCHECK(res);
 	}
 
-	inline Image::Image(Context context, const rpr_image_format& format, const rpr_image_desc& image_desc, const void* data)
-		: Object(nullptr, context, true, new Data())
+	inline Image::Image(Context context, const rpr_image_format& format, const rpr_image_desc& image_desc, const void* data) :
+		Object(nullptr, context, true, new Data())
 	{
-		DebugPrint(L"CreateImage()\n");
+		DebugPrint(L"CreateImage from data\n");
+
 		rpr_image h = nullptr;
-		auto res = rprContextCreateImage(context.Handle(), format, &image_desc, data, &h);
+		rpr_int res = rprContextCreateImage(context.Handle(), format, &image_desc, data, &h);
 		FCHECK(res);
+
 		m->Attach(h);
+	}
+
+	inline Image::Image(Context context, const char* filename) :
+		Object(nullptr, context, true, new Data())
+	{
+		DebugPrint(L"CreateImage() from file\n");
+
+		rpr_image h = nullptr;
+		rpr_int res = rprContextCreateImageFromFile(context.Handle(), filename, &h);
+
+		//^ we don't want to give Error messages to the user about unsupported image formats, since we support them through the plugin.
+		//FCHECK(res);
+
+		if (ErrorSuccess == res)
+		{
+			m->Attach(h);	
+		}
 	}
 
 	inline bool Image::IsGrayScale()
 	{
-		rpr_image_desc desc;
 		rpr_image img = Handle();
+		
 		if (!img)
 			return false;
-		rpr_int status = rprImageGetInfo(img, RPR_IMAGE_DESC, sizeof(desc), &desc, nullptr); FCHECK(status);
+
+		rpr_image_desc desc;
+		rpr_int status = rprImageGetInfo(img, RPR_IMAGE_DESC, sizeof(desc), &desc, nullptr);
+		FCHECK(status);
+
 		fr_image_format format;
-		status = frImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr); FCHECK(status);
-		if (format.num_components == 1)
-		{
-			return true;
-		}
-
-		unsigned int rasters[4] = {
-			desc.image_height - 1,
-			desc.image_height >> 1,
-			desc.image_height >> 2,
-			desc.image_height >> 4
-		};
-
-		bool gray[4] = { true, true, true, true };
-
-		int rasterw = desc.image_width - 3;
-
-		if (format.type == RPR_COMPONENT_TYPE_UINT8)
-		{
-			size_t imgsize = 0;
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize); FCHECK(status);
-			static std::vector<unsigned char> img_data(imgsize);
-			img_data.resize(imgsize);
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr); FCHECK(status);
-			if (format.num_components == 3)
-			{
-#pragma omp parallel for
-				for (int i = 0; i < 4; i++)
-				{
-					unsigned char* raster = &img_data[desc.image_width * 3 * rasters[i]];
-					for (int j = 0; j < rasterw; j += 3)
-					{
-						if ((raster[j] != raster[j + 1]) || (raster[j] != raster[2]))
-						{
-							gray[i] = false;
-							break;
-						}
-					}
-				}
-			}
-		}
-		else if (format.type == RPR_COMPONENT_TYPE_FLOAT32)
-		{
-			size_t imgsize = 0;
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, 0, nullptr, &imgsize); FCHECK(status);
-			static std::vector<float> img_data(imgsize);
-			img_data.resize(imgsize);
-			status = frImageGetInfo(img, RPR_IMAGE_DATA, imgsize, img_data.data(), nullptr); FCHECK(status);
-			if (format.num_components == 3)
-			{
-#pragma omp parallel for
-				for (int i = 0; i < 4; i++)
-				{
-					float* raster = &img_data[desc.image_width * 3 * rasters[i]];
-					for (int j = 0; j < rasterw; j += 3)
-					{
-						if ((abs(raster[j] - raster[j + 1]) > 0.0000001f) || (abs(raster[j] - raster[2]) > 0.0000001f))
-						{
-							gray[i] = false;
-							break;
-						}
-					}
-				}
-			}
-		}
-		return gray[0] && gray[1] && gray[2] && gray[3];
+		status = frImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr);
+		FCHECK(status);
+		
+		return format.num_components == 1;
 	}
 
 	inline void EnvironmentLight::SetImage(Image img)
