@@ -555,7 +555,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CTEXT           "Plugin Version: ",IDC_VERSION,14,79,205,8,SS_CENTERIMAGE
     GROUPBOX        "",IDC_STATIC,12,68,210,56
-    CONTROL         IDB_LOGO,IDC_STATIC,"Static",SS_BITMAP | SS_CENTERIMAGE,12,7,207,46
+    CONTROL         IDB_LOGO,IDC_STATIC,"Static",SS_BITMAP | SS_CENTERIMAGE,6,7,222,46
     GROUPBOX        "About Radeon ProRender",IDC_STATIC,6,57,221,99
     CONTROL         "<a id=""doc"">Documentation</a> | <a id=""main_site"">Main Site</a> | <a id=""community"">Community</a>",IDC_ABOUT_LINKS1,
                     "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,31,128,188,10,WS_EX_TRANSPARENT
@@ -2556,7 +2556,7 @@ END
 // Bitmap
 //
 
-IDB_LOGO                BITMAP                  "resource\\logo-317px.bmp"
+IDB_LOGO                BITMAP                  "resource\\RadeonProRenderLogo.bmp"
 
 IDB_WORLDMAP            BITMAP                  "resource\\worldmap.bmp"
 

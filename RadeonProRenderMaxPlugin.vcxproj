@@ -472,7 +472,7 @@
     <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="FireRender.Max.Plugin\resource\logo-317px.bmp" />
+    <Image Include="FireRender.Max.Plugin\resource\RadeonProRenderLogo.bmp" />
     <Image Include="FireRender.Max.Plugin\resource\worldmap.bmp" />
   </ItemGroup>
   <ItemGroup>
