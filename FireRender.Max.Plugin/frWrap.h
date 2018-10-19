@@ -712,21 +712,25 @@ namespace frw
 			auto res = rprShapeSetVisibility(Handle(), visible);
 			FCHECK(res);
 		}
+
 		void SetPrimaryVisibility(bool visible)
 		{
-#if RPR_API_VERSION != 0x010000110	
-			auto res = rprShapeSetVisibilityPrimaryOnly(Handle(), visible);
-			FCHECK(res);
+#if RPR_API_VERSION >= 0x010032000
+			rpr_int res = rprShapeSetVisibilityFlag(Handle(), RPR_SHAPE_VISIBILITY_PRIMARY_ONLY_FLAG, visible);
+#else
+			rpr_int res = rprShapeSetVisibilityPrimaryOnly(Handle(), visible);
 #endif
+			FCHECK(res);
 		}
+
 		void SetReflectionVisibility(bool visible)
 		{
-#if RPR_API_VERSION != 0x010000110	// AMDMAX-617
 			auto res = rprShapeSetVisibilityInSpecular(Handle(), visible);
 			FCHECK(res);
-#endif
 		}
+
 		Shape CreateInstance(Context context) const;
+
 		void SetTransform(const float* tm, bool transpose = false)
 		{
 			auto res = rprShapeSetTransform(Handle(), transpose, tm);
