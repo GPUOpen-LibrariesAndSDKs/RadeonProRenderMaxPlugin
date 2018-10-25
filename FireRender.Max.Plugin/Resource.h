@@ -1696,7 +1696,6 @@
 #define IDC_PBR_SSS_COLOR_MUL           1868
 #define IDC_PBR_SSS_COLOR               1869
 
-
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
