@@ -581,7 +581,7 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 		m_stampCachedData.gpuName = GetFriendlyUsedGPUName();
 		m_stampCachedData.cpuName = GetCPUName();
 		m_stampCachedData.computerName = ComputerName();
-		m_stampCachedData.lightsCount = scene.LightCount();
+		m_stampCachedData.lightsCount = scene.LightObjectCount();
 		m_stampCachedData.shapesCount = scene.ShapeCount();
 		GetProductAndVersion(m_stampCachedData.product, m_stampCachedData.version, m_stampCachedData.coreVersion);
 

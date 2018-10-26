@@ -859,6 +859,8 @@ frw::Shader FRMTLCLASSNAME(UberMtlv3)::getShader(const TimeValue t, MaterialPars
 		BOOL isDoubleSided = GetFromPb<BOOL>(pblock, FRUBERMTLV3_EMISSIVE_DOUBLE_SIDED);
 		rpr_uint emissiveMode = isDoubleSided ? RPRX_UBER_MATERIAL_EMISSION_MODE_DOUBLESIDED : RPRX_UBER_MATERIAL_EMISSION_MODE_SINGLESIDED;
 		shader.xSetParameterU(RPRX_UBER_MATERIAL_EMISSION_MODE, emissiveMode);
+
+		shader.SetEmissiveFlag(true);
 	}
 
 // Subsurface scattering

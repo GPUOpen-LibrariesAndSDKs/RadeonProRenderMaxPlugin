@@ -869,7 +869,6 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 		shaderData.mNode = node;
 		shaderData.mCacheable = true;
 
-		shaderData.mNumEmissive = 0;
 		shaderData.mNumVolume = 0;
 		shaderData.mNumDisplacement = 0;
 		shaderData.mDisplacementDirectlyPlugged = false;
@@ -1125,8 +1124,6 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 
 	if (emissiveColor.NonZeroXYZ())
 	{
-		shaderData.mNumEmissive++;
-
 		frw::EmissiveShader shader(materialSystem);
 		shader.SetColor(emissiveColor);
 
@@ -1705,8 +1702,6 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	// EMISSION
 	if ((emission_map_on && emission_map) || (emission > 0.f))
 	{
-		shaderData.mNumEmissive++;
-
 		frw::EmissiveShader EmissionShader(materialSystem);
 
 		frw::Value Emission;
@@ -1901,8 +1896,6 @@ frw::Shader FireRender::MaterialParser::parseCoronaLightObject(INode* node)
 {
 	Corona::IFireMaxLightInterface* ip = dynamic_cast<Corona::IFireMaxLightInterface*>(node->GetObjectRef()->GetInterface(Corona::IFIREMAX_LIGHT_INTERFACE));
 
-	shaderData.mNumEmissive++;
-
 	frw::EmissiveShader emissive(materialSystem);
 
 	if (ip)
@@ -1973,8 +1966,6 @@ frw::Shader MaterialParser::parseCoronaLightMtl(Mtl* mtl)
 	Texmap* texmap = GetFromPb<bool>(pb, Corona::LM_TEXMAP_ON, this->mT) ? GetFromPb<Texmap*>(pb, Corona::LM_TEXMAP) : NULL;
 	Color color = GetFromPb<Color>(pb, Corona::LM_COLOR, this->mT);
 	float intensity = pb->GetFloat(Corona::LM_INTENSITY, this->mT);
-
-	shaderData.mNumEmissive++;
 
 	frw::EmissiveShader emissive(materialSystem);
 

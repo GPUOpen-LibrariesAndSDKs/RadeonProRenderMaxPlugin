@@ -1281,7 +1281,6 @@ bool SceneParser::Synchronize(bool forceUpdate)
 	this->view = ParseView();
 
 	mtlParser.shaderData.mCameraTransform = view.tm;
-	mtlParser.shaderData.mNumEmissive = 0;
 
 	auto old = parsed;
 	ParseScene();
@@ -1406,40 +1405,37 @@ bool SceneParser::Synchronize(bool forceUpdate)
 
 	// switch on or off default lights?
 	const auto& lights = scene.GetLights();
-	int lightCount = 0;
-	int defaultLights = 0;
+	bool hasDefaultLights = false;
+
 	for (const auto& it : lights)
 	{
 		if (it.GetUserData() == DEFAULT_LIGHT_ID)
-			defaultLights++;
-		else
-			lightCount++;
-	}
-		
-	if (parsed.environment.texmap)
-		lightCount++;
-	if (parsed.frEnvironment.sky)
-		lightCount++;
-
-	for (const auto& it : scene.GetShapes())
-	{
-		if (auto material = it.GetShader())
 		{
-			if (material.GetShaderType() == frw::ShaderTypeEmissive)
-				lightCount++;
+			hasDefaultLights = true;
+			break;
 		}
 	}
 
-	if (lightCount)	// we have lights, so throw away oldies
+	int envLightCount = 0;
+
+	if (parsed.environment.texmap)
+		envLightCount++;
+
+	if (parsed.frEnvironment.sky)
+		envLightCount++;
+
+	if ( (envLightCount + scene.LightObjectCount()) > 0)	// we have lights, so throw away oldies
 	{
-		if (defaultLights)	// throw away any defaults that were created in last cycle
+		if (hasDefaultLights)	// throw away any defaults that were created in last cycle
 		{
 			for (const auto& it : lights)
+			{
 				if (it.GetUserData() == DEFAULT_LIGHT_ID)
 					scene.Detach(it);
+			}
 		}
 	}
-	else if (!defaultLights)
+	else if (!hasDefaultLights)
 	{
 		parseDefaultLights(params.defaultLights);	// add some new ones!
 	}
