@@ -583,9 +583,7 @@ Color FireRenderPhysicalLight::GetLightColour(void) const
 	return colour;
 }
 
-void FireRenderPhysicalLight::CreateSceneLight(
-	TimeValue t, const ParsedNode& node, frw::Scope scope,
-	SceneAttachCallback* sceneAttachCallback )
+void FireRenderPhysicalLight::CreateSceneLight(TimeValue t, const ParsedNode& node, frw::Scope scope, SceneAttachCallback* sceneAttachCallback)
 {
 	// back-off
 	if (!IsEnabled())
@@ -616,12 +614,14 @@ void FireRenderPhysicalLight::CreateSceneLight(
 	frw::Context context = scope.GetContext();
 	// different type of RPR lights should be created for different types of physical lights
 	FRPhysicalLight_LightType lightType = GetLightType(t);
+	
 	switch (lightType)
 	{
 		case FRPhysicalLight_AREA:
 		{
 			frw::Shape shape = NULL;
 			FRPhysicalLight_AreaLight_LightShape lightShape = GetLightShapeMode(t);
+			
 			switch (lightShape)
 			{
 				case FRPhysicalLight_DISC:

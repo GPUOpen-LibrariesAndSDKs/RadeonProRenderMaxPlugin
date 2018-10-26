@@ -92,10 +92,10 @@ frw::Shader FRMTLCLASSNAME(EmissiveMtl)::getShader(const TimeValue t, MaterialPa
 {
 	auto ms = mtlParser.materialSystem;
 
-	mtlParser.shaderData.mNumEmissive++;
-
 	frw::EmissiveShader material(ms);
-		
+	
+	material.SetEmissiveFlag(true);
+
 	int intMode = GetFromPb<int>(pblock, FREmissiveMtl_INTENSITY_MODE);
 	int colMode = GetFromPb<int>(pblock, FREmissiveMtl_COLOR_MODE);
 

@@ -64,7 +64,6 @@ public:
 		INode* mNode = nullptr;
 		bool mCacheable = true;
 		Matrix3 mCameraTransform;
-		int mNumEmissive = 0;
 		int mNumVolume = 0;
 		int mNumDisplacement = 0;
 		bool mDisplacementDirectlyPlugged = false;

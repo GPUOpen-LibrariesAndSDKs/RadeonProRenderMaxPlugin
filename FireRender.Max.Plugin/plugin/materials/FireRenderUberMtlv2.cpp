@@ -1015,6 +1015,9 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupEmissive(MaterialParser& mtlParser, frw::Sh
 	BOOL bDoubleSided = GetFromPb<BOOL>(pblock, FRUBERMTLV2_EMISSIVE_DOUBLESIDED);
 	rpr_uint paramValue = bDoubleSided ? RPRX_UBER_MATERIAL_EMISSION_MODE_DOUBLESIDED : RPRX_UBER_MATERIAL_EMISSION_MODE_SINGLESIDED;
 	shader.xSetParameterU(RPRX_UBER_MATERIAL_EMISSION_MODE, paramValue);
+
+	if (std::get<3>(parameters) > 0.0f)
+		shader.SetEmissiveFlag(true);
 }
 
 void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Shader& shader)

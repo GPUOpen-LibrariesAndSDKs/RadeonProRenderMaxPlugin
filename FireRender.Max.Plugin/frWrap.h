@@ -692,7 +692,7 @@ namespace frw
 			Object displacementShader;
 			virtual ~Data();
 
-			bool isAreaLight = false;
+			bool isEmissive = false;
 
 			// Used to determine if we can setup displacement or not
 			bool isUVCoordinatesSet = false;
@@ -783,6 +783,16 @@ namespace frw
 		void SetSubdivisionFactor(int sub);
 		void SetSubdivisionBoundaryInterop(rpr_subdiv_boundary_interfop_type type);
 		void SetSubdivisionCreaseWeight(float weight);
+
+		bool IsEmissive()
+		{
+			return data().isEmissive;
+		}
+		
+		void SetEmissiveFlag(bool isEmissive)
+		{
+			data().isEmissive = isEmissive;
+		}
 
 		bool IsUVCoordinatesSet() const
 		{
@@ -974,6 +984,10 @@ namespace frw
 			Light backgroundReflOverride;
 			Light backgroundRefrOverride;
 			Image backgroundImage;
+
+			int mEmissiveLightCount = 0;
+			int mShapeCount = 0;
+			int mLightCount = 0;
 		};
 
 	public:
@@ -982,29 +996,50 @@ namespace frw
 		void Attach(Shape v)
 		{
 			AddReference(v);
-			auto res = rprSceneAttachShape(Handle(), v.Handle()); FCHECK(res);
+			rpr_int res = rprSceneAttachShape(Handle(), v.Handle());
+			FCHECK(res);
+
+			if (v.IsEmissive())
+				data().mEmissiveLightCount++;
+
+			data().mShapeCount++;
 		}
+
 		void Attach(Light v)
 		{
 			AddReference(v);
-			auto res = rprSceneAttachLight(Handle(), v.Handle()); FCHECK(res);
+			rpr_int res = rprSceneAttachLight(Handle(), v.Handle());
+			FCHECK(res);
+
+			data().mLightCount++;
 		}
+
 		void Detach(Shape v)
 		{
 			RemoveReference(v);
-			auto res = rprSceneDetachShape(Handle(), v.Handle()); FCHECK(res);
+			rpr_int res = rprSceneDetachShape(Handle(), v.Handle());
+			FCHECK(res);
+
+			if (v.IsEmissive())
+				data().mEmissiveLightCount--;
 		}
+
 		void Detach(Light v)
 		{
 			RemoveReference(v);
-			auto res = rprSceneDetachLight(Handle(), v.Handle()); FCHECK(res);
+			rpr_int res = rprSceneDetachLight(Handle(), v.Handle());
+			FCHECK(res);
+
+			data().mLightCount--;
 		}
 
 		void SetCamera(Camera v)
 		{
-			auto res = rprSceneSetCamera(Handle(), v.Handle()); FCHECK(res);
+			rpr_int res = rprSceneSetCamera(Handle(), v.Handle());
+			FCHECK(res);
 			data().camera = v;
 		}
+
 		Camera GetCamera()
 		{
 			return data().camera;
@@ -1013,9 +1048,12 @@ namespace frw
 		void Clear()
 		{
 			SetCamera(Camera());
-			auto res = rprSceneClear(Handle()); // this only detaches objects, doesn't delete them
+
+			rpr_int res = rprSceneClear(Handle()); // this only detaches objects, doesn't delete them
 			FCHECK(res);
+
 			RemoveAllReferences();
+			
 			// clear local data
 			Data& d = data();
 			d.camera = Camera();
@@ -1023,25 +1061,45 @@ namespace frw
 			d.backgroundReflOverride = Light();
 			d.backgroundRefrOverride = Light();
 			d.backgroundImage = Image();
+
+			data().mEmissiveLightCount = data().mLightCount = data().mShapeCount = 0;
+		}
+
+		int EmissiveLightCount() const
+		{
+			return data().mEmissiveLightCount;
+		}
+
+		int ShapeObjectCount() const
+		{
+			return data().mShapeCount - data().mEmissiveLightCount;
+		}
+
+		int LightObjectCount() const
+		{
+			return data().mLightCount + data().mEmissiveLightCount;
 		}
 
 		int ShapeCount() const
 		{
-			size_t count = 0;
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_COUNT, sizeof(count), &count, nullptr); FCHECK(res);
-			return int_cast( count );
+			return data().mShapeCount;
 		}
 
 		void DetachShapes()
 		{
-			auto count = ShapeCount();
+			int count = ShapeCount();
 			std::vector<rpr_shape> items(count);
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
+			rpr_int res = rprSceneGetInfo(Handle(), RPR_SCENE_SHAPE_LIST, count * sizeof(rpr_shape), items.data(), nullptr);
+			FCHECK(res);
+			
 			for (auto& it : items)
 			{
-				res = rprSceneDetachShape(Handle(), it); FCHECK(res);
+				res = rprSceneDetachShape(Handle(), it);
+				FCHECK(res);
 				RemoveReference(it);
 			}
+
+			data().mShapeCount = 0;
 		}
 
 		std::list<Shape> GetShapes()
@@ -1060,35 +1118,38 @@ namespace frw
 
 		int LightCount() const
 		{
-			size_t count = 0;
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_COUNT, sizeof(count), &count, nullptr); FCHECK(res);
-			return int_cast( count );
+			return data().mLightCount;
 		}
 
 		std::list<Light> GetLights()
 		{
-			auto count = LightCount();
+			int count = LightCount();
 			std::vector<rpr_light> items(count);
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
+			rpr_int res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
 			std::list<Light> ret;
+
 			for (auto& it : items)
 			{
 				if (auto light = FindRef<Light>(it))
 					ret.push_back(light);
 			}
+
 			return ret;
 		}
 
 		void DetachLights()
 		{
-			auto count = LightCount();
+			int count = LightCount();
 			std::vector<rpr_light> items(count);
-			auto res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
+			rpr_int res = rprSceneGetInfo(Handle(), RPR_SCENE_LIGHT_LIST, count * sizeof(rpr_shape), items.data(), nullptr); FCHECK(res);
+			
 			for (auto& it : items)
 			{
 				res = rprSceneDetachLight(Handle(), it); FCHECK(res);
 				RemoveReference(it);
 			}
+
+			data().mLightCount = 0;
 		}
 
 		void SetBackgroundImage(Image v)
@@ -2091,7 +2152,6 @@ namespace frw
 				bool mBgIsEnv = false;
 			};
 
-
 		public:
 			virtual ~Data()
 			{
@@ -2110,8 +2170,12 @@ namespace frw
 
 			virtual bool IsValid() const
 			{
-				if (Handle() != nullptr) return true;
-				if (material != nullptr) return true;
+				if (Handle() != nullptr)
+					return true;
+
+				if (material != nullptr)
+					return true;
+
 				return false;
 			}
 
@@ -2123,11 +2187,30 @@ namespace frw
 			bool isShadowCatcher = false;
 			ShadowCatcherParams mShadowCatcherParams;
 			std::map<std::string, rpr_material_node> inputs;
+			bool isEmissive = false;
 		};
 
 	public:
-		void SetShadowCatcher(bool isShadowCatcher) { data().isShadowCatcher = isShadowCatcher; }
-		bool IsShadowCatcher() const { return data().isShadowCatcher; }
+		void SetEmissiveFlag(bool isEmissive)
+		{
+			data().isEmissive = isEmissive;
+		}
+
+		bool IsEmissive() const
+		{
+			return data().isEmissive;
+		}
+
+		void SetShadowCatcher(bool isShadowCatcher)
+		{
+			data().isShadowCatcher = isShadowCatcher;
+		}
+
+		bool IsShadowCatcher() const
+		{
+			return data().isShadowCatcher;
+		}
+
 		void SetShadowColor(float r, float g, float b, float a)
 		{
 			data().mShadowCatcherParams.mShadowR = r;
@@ -2135,6 +2218,7 @@ namespace frw
 			data().mShadowCatcherParams.mShadowB = b;
 			data().mShadowCatcherParams.mShadowA = a;
 		}
+
 		void GetShadowColor(float *r, float *g, float *b, float *a) const
 		{
 			*r = data().mShadowCatcherParams.mShadowR;
@@ -2143,26 +2227,44 @@ namespace frw
 			*a = data().mShadowCatcherParams.mShadowA;
 		}
 
-		void SetShadowWeight(float w) { data().mShadowCatcherParams.mShadowWeight = w; }
-		float GetShadowWeight() const { return data().mShadowCatcherParams.mShadowWeight; }
+		void SetShadowWeight(float w)
+		{
+			data().mShadowCatcherParams.mShadowWeight = w;
+		}
 
-		void SetBackgroundIsEnvironment(bool bgIsEnv) { data().mShadowCatcherParams.mBgIsEnv = bgIsEnv; }
-		bool BgIsEnv() const { return data().mShadowCatcherParams.mBgIsEnv; }
+		float GetShadowWeight() const
+		{
+			return data().mShadowCatcherParams.mShadowWeight;
+		}
+
+		void SetBackgroundIsEnvironment(bool bgIsEnv)
+		{
+			data().mShadowCatcherParams.mBgIsEnv = bgIsEnv;
+		}
+
+		bool BgIsEnv() const
+		{
+			return data().mShadowCatcherParams.mBgIsEnv;
+		}
 
 		Shader(DataPtr p)
-		{ m = p; }
-		explicit Shader(const MaterialSystem& ms, ShaderType type, bool destroyOnDelete = true)
-		: Node(ms, type, destroyOnDelete, new Data())
+		{
+			m = p;
+		}
+
+		explicit Shader(const MaterialSystem& ms, ShaderType type, bool destroyOnDelete = true) :
+			Node(ms, type, destroyOnDelete, new Data())
 		{
 			data().shaderType = type;
 		}
 
-		Shader(rpr_material_node h, const MaterialSystem& ms, bool destroyOnDelete = true) // this constructor is used only once
-		: Node(h, ms, destroyOnDelete, new Data())
-		{}
+		Shader(rpr_material_node h, const MaterialSystem& ms, bool destroyOnDelete = true) :
+			Node(h, ms, destroyOnDelete, new Data())
+		{
+		}
 
-		explicit Shader(Context& context, rprx_context xContext, rprx_material_type type)
-		: Node(context, new Data())
+		explicit Shader(Context& context, rprx_context xContext, rprx_material_type type) :
+			Node(context, new Data())
 		{
 			Data& d = data();
 			d.context = xContext;
@@ -2214,19 +2316,23 @@ namespace frw
 			}
 		}
 
-		void AttachToShape(Shape::Data& shape, bool commit=true)
+		void AttachToShape(Shape::Data& shape, bool commit = true)
 		{
 			Data& d = data();
 			d.numAttachedShapes++;
-			rpr_int res;
+			rpr_int res = RPR_SUCCESS;
+			
 			if (d.material)
 			{
 				DebugPrint(L"\tShape.AttachMaterial: shape=%08X x_material=%08X\n", shape.Handle(), d.material);
 				res = rprxShapeAttachMaterial(d.context, shape.Handle(), d.material);
 				FCHECK(res);
-				if( commit )
+
+				if (commit)
+				{
 					res = rprxMaterialCommit(d.context, d.material);
-				FCHECK(res);
+					FCHECK(res);
+				}
 
 				if (d.isShadowCatcher)
 				{
@@ -2240,7 +2346,10 @@ namespace frw
 				res = rprShapeSetMaterial(shape.Handle(), d.Handle());
 				FCHECK(res);
 			}
+
+			shape.isEmissive = data().isEmissive;
 		}
+
 		void DetachFromShape(Shape::Data& shape)
 		{
 			Data& d = data();
@@ -2255,9 +2364,11 @@ namespace frw
 			}
 
 			{
-				auto res = rprShapeSetMaterial(shape.Handle(), nullptr);
+				rpr_int res = rprShapeSetMaterial(shape.Handle(), nullptr);
 				FCHECK(res);
 			}
+
+			shape.isEmissive = false;
 		}
 
 		void AttachToMaterialInput(rpr_material_node node, const char* inputName) const
@@ -2362,7 +2473,10 @@ namespace frw
 	class EmissiveShader : public Shader
 	{
 	public:
-		explicit EmissiveShader(MaterialSystem& h) : Shader(h, ShaderTypeEmissive) {}
+		explicit EmissiveShader(MaterialSystem& h) : Shader(h, ShaderTypeEmissive)
+		{
+			data().isEmissive = true;
+		}
 
 		void SetColor(Value value) { SetValue("color", value); }
 	};
@@ -2548,7 +2662,7 @@ namespace frw
 		}
 	}
 
-	inline void Shape::SetShader(Shader& shader,bool commit)
+	inline void Shape::SetShader(Shader& shader, bool commit)
 	{
 		if (Shader old = GetShader())
 		{
@@ -2561,7 +2675,7 @@ namespace frw
 
 		AddReference(shader);
 		data().shader = shader;
-		shader.AttachToShape(data(),commit);
+		shader.AttachToShape(data(), commit);
 	}
 
 	inline Shader Shape::GetShader() const
@@ -2569,12 +2683,13 @@ namespace frw
 		return data().shader.As<Shader>();
 	}
 
-	inline void Shape::SetVolumeShader( const frw::Shader& shader )
+	inline void Shape::SetVolumeShader(const frw::Shader& shader)
 	{
-		if( auto old = GetVolumeShader() )
+		if ( auto old = GetVolumeShader() )
 		{
 			if( old == shader )	// no change?
 				return;
+
 			RemoveReference( old );
 		}
 

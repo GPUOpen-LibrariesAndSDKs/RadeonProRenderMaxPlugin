@@ -196,9 +196,9 @@ frw::Shader FRMTLCLASSNAME(StandardMtl)::getShader(const TimeValue t, MaterialPa
 	material.SetValue("emissive.color.color", ms.ValueMul(emissionIntensity, emission));
 	material.SetValue("emissive.weight", emissionWeight);
 
-	if (emissionWeight_direct > 0.f || emissionWeight_texmap)
-		mtlParser.shaderData.mNumEmissive++;
-		
+	if (emissionWeight_direct > 0.f)
+		material.SetEmissiveFlag(true);
+
     return material;
 }
 

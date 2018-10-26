@@ -31,13 +31,15 @@ void Synchronizer::RebuildUsersOfMaterial(Mtl *pMat, std::vector<INode*> &nodesT
 
 frw::Shader Synchronizer::CreateShader(Mtl *pMat, INode *node, bool force)
 {
-	auto res = mtlParser.createShader(pMat, node, true);
-	if (mtlParser.shaderData.mNumEmissive > 0)
+	frw::Shader shader = mtlParser.createShader(pMat, node, true);
+
+	if (shader.IsEmissive())
 	{
 		if (mEmissives.find(pMat) == mEmissives.end())
 			mEmissives.insert(pMat);
 	}
-	return res;
+
+	return shader;
 }
 
 void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild)

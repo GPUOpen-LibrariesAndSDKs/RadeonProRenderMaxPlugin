@@ -249,15 +249,15 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getVolumeShader(const TimeValue t, Material
 		const Color emissionColor = GetFromPb<Color>(pblock, FRUBERMTL_EMISSIONCOLOR);
 		Texmap* emissionTexmap = GetFromPb<Texmap*>(pblock, FRUBERMTL_EMISSIONCOLORTEXMAP);
 		frw::Value theEmission(emissionColor.r, emissionColor.g, emissionColor.b);
+		
 		if (emissionTexmap)
 			theEmission = mtlParser.createMap(emissionTexmap, MAP_FLAG_WANTSHDR);
 
 		float emissionMultiplier = GetFromPb<float>(pblock, FRUBERMTL_EMISSIONMULTIPLIER);
-		material.SetValue("emission",
-			ms.ValueMul(theEmission, frw::Value(emissionMultiplier)));
+		material.SetValue("emission", ms.ValueMul(theEmission, frw::Value(emissionMultiplier)));
 
-		if (emissionMultiplier > 0.f && ((emissionColor.r > 0.f && emissionColor.g > 0.f && emissionColor.r > 0.f) || emissionTexmap))
-			mtlParser.shaderData.mNumEmissive++;
+		if (emissionMultiplier > 0.f)
+			material.SetEmissiveFlag(true);
 
 		return material;
 	}
