@@ -1,1 +1,1 @@
-#define VERSION_STR "2.3.394"
+#define VERSION_STR "2.3.395"
