@@ -1550,13 +1550,26 @@ BOOL FireRenderParamDlg::CAdvancedSettings::GetExportFileName()
 	TCHAR fname[MAX_PATH] = { '\0' };
 	TCHAR my_documents[MAX_PATH];
 	HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
+	
+	static const std::pair<const wchar_t*, const wchar_t*> filters[] = 
+	{
+		{ L"Radeon ProRender Format", L"rpr" },
+		{ L"GL Transmission Format", L"gltf" },
+	};
+
 	if (result == S_OK)
 	{
 		initialDir = std::wstring(my_documents) + L"\\3dsMax\\export\\";
 	}
 
-	filterList.Append(_T("GL Transmission Format"));
-	filterList.Append(_T("*.gltf"));
+	for (const auto& filter : filters)
+	{
+		std::wstring mask(L"*.");
+		mask += filter.second;
+
+		filterList.Append(filter.first);
+		filterList.Append(mask.c_str());
+	}
 
 	memset(&ofn, 0, sizeof(ofn));
 
@@ -1579,12 +1592,15 @@ BOOL FireRenderParamDlg::CAdvancedSettings::GetExportFileName()
 	ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOREADONLYRETURN | OFN_EXPLORER | OFN_ENABLEHOOK | OFN_ENABLESIZING;
 	ofn.lpfnHook = NULL;
 	ofn.lCustData = 0;
-	ofn.lpstrDefExt = _T("gltf");
+	ofn.lpstrDefExt = filters[0].second;
 
-	while (GetSaveFileName(&ofn)) {
+	while (GetSaveFileName(&ofn))
+	{
 		exportFRSceneFileName = ofn.lpstrFile;
+
 		return TRUE;
 	}
+
 	return FALSE;
 }
 

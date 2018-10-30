@@ -976,17 +976,25 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 	// Export the model if requested
 	if (parameters.pblock && GetFromPb<bool>(parameters.pblock, PARAM_EXPORTMODEL_CHECK))
 	{
-		std::wstring filename = pRenderer->GetFireRenderExportSceneFilename();
+		std::wstring fileName = pRenderer->GetFireRenderExportSceneFilename();
 
-		if (filename.length() == 0)
+		if (fileName.length() == 0)
 		{
 			TCHAR my_documents[MAX_PATH];
 			HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
 
 			if (result == S_OK)
-				filename = std::wstring(my_documents) + L"\\3dsMax\\export\\";
+				fileName = std::wstring(my_documents) + L"\\3dsMax\\export\\";
 			
-			filename += L"exportscene.rprs";
+			std::wstring sceneName = GetCOREInterface()->GetCurFileName();
+			int extStart = sceneName.rfind(L'.');
+
+			if (extStart != std::string::npos)
+			{
+				sceneName.resize(extStart);
+			}
+
+			fileName += sceneName + L".rpr";
 		}
 
 		int extra_3dsmax_gammaenabled = 0;
@@ -1019,42 +1027,40 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 			gammaMgr.fileInGamma,
 			gammaMgr.fileOutGamma,
 			data->toneMappingExposure
-		};
+		};		
+		
+		std::string exportFilename = ws2s(fileName);
 
-		//check that the path only contains ASCII characters.
-		//FYI, frsExport manages only char* because this library is also used in Linux, and it seems that wchar_t is not Linux friendly.
-		bool goodAscii = true;
+		frw::Scope scope = ScopeManagerMax::TheManager.GetScope(data->scopeId);
+		rpr_context context = scope.GetContext().Handle();
+		rprx_context contextEx = scope.GetContextEx();
+		rpr_material_system matSystem = scope.GetMaterialSystem().Handle();
+		rpr_scene scene = scope.GetScene().Handle();
+		std::vector<rpr_scene> scenes{ scene };
 
-		for (int i = 0; i<filename.size(); i++)
+		std::string ext;
+		int extStart = exportFilename.rfind(L'.');
+
+		if (extStart != std::string::npos)
 		{
-			if (filename[i] > 0x0ff)
-			{
-				goodAscii = false;
-				break;
-			}
+			ext = exportFilename.substr(extStart + 1);
 		}
 
-		if (!goodAscii)
-		{
-			MessageBoxA(GetCOREInterface()->GetMAXHWnd(), "No Export. The path to FRS export must have ascii characters only.", "Radeon ProRender warning", MB_OK);
-		}
-		else
-		{
-			frw::Scope scope = ScopeManagerMax::TheManager.GetScope(data->scopeId);
-			std::string exportFilename = ToAscii(filename);
-			rpr_context context = scope.GetContext().Handle();
-			rprx_context contextEx = scope.GetContextEx();
-			rpr_material_system matSystem = scope.GetMaterialSystem().Handle();
-			rpr_scene scene = scope.GetScene().Handle();
-			std::vector<rpr_scene> scenes{ scene };
+		bool exportOk = true;
 
-			int exportOk = rprExportToGLTF( exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size() );
-
-			if (exportOk != GLTF_SUCCESS)
-			{
-				MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("gltf::Export failed"), _T("Radeon ProRender warning"), MB_OK);
-			}
+		if ("gltf" == ext)
+		{
+			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size());
+			exportOk = statusExport == GLTF_SUCCESS;
 		}
+		else if ("rpr" == ext)
+		{
+			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0);
+			exportOk = statusExport == RPR_SUCCESS;
+		}
+
+		if (!exportOk)
+			MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Failed to export scene"), _T("Radeon ProRender warning"), MB_OK);
 	}
 
 	ScopeManagerMax::TheManager.DestroyScope(data->scopeId);
