@@ -582,7 +582,7 @@ void ProductionRenderCore::RenderStamp(Bitmap* DstBuffer, std::unique_ptr<Produc
 		m_stampCachedData.cpuName = GetCPUName();
 		m_stampCachedData.computerName = ComputerName();
 		m_stampCachedData.lightsCount = scene.LightObjectCount();
-		m_stampCachedData.shapesCount = scene.ShapeCount();
+		m_stampCachedData.shapesCount = scene.ShapeObjectCount();
 		GetProductAndVersion(m_stampCachedData.product, m_stampCachedData.version, m_stampCachedData.coreVersion);
 
 		m_stampCachedData.hasCpuContext = ScopeManagerMax::TheManager.cpuInfo.isUsed;
