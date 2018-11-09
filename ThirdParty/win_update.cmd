@@ -17,7 +17,6 @@ if exist %ThirdPartyDir% (
     rd /S /Q RadeonProImageProcessing
     rd /S /Q "RadeonProRender SDK"
     rd /S /Q RadeonProRender-GLTF
-    rd /S /Q json
 
     xcopy /S /Y /I %ThirdPartyDir%\AxfPackage\ReleaseDll\* AxfPackage\ReleaseDll
     xcopy /S /Y /I %ThirdPartyDir%\AxfPackage\AxfInclude\* AxfPackage\AxfInclude
@@ -26,7 +25,6 @@ if exist %ThirdPartyDir% (
     xcopy /S /Y /I %ThirdPartyDir%\RadeonProImageProcessing\* RadeonProImageProcessing
     xcopy /S /Y /I "%ThirdPartyDir%\RadeonProRender SDK\*" "RadeonProRender SDK"
     xcopy /S /Y /I %ThirdPartyDir%\RadeonProRender-GLTF\* RadeonProRender-GLTF
-    xcopy /S /Y /I %ThirdPartyDir%\json\* json
 
 ) else ( 
     echo Cannot update as %ThirdPartyDir% missing
