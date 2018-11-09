@@ -1695,6 +1695,8 @@
 #define IDC_PBR_SSS_COLOR_USEMAP        1867
 #define IDC_PBR_SSS_COLOR_MUL           1868
 #define IDC_PBR_SSS_COLOR               1869
+#define IDC_UBER3_REFRACTION_USE_SHADER_NORMAL 1870
+#define IDC_UBER3_REFRACTION_NORMAL_T   1871
 
 // Next default values for new objects
 // 
@@ -1702,7 +1704,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        309
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1870
+#define _APS_NEXT_CONTROL_VALUE         1872
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
