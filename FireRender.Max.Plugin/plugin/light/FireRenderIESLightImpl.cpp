@@ -14,6 +14,8 @@
 #include "IESLight/IESLightRepresentationCalc.h"
 #include "FireRenderIES_Profiles.h"
 #include <fstream>
+#include "maxscript/maxscript.h"
+#include "maxscript/util/listener.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -298,11 +300,13 @@ bool FireRenderIESLight::CalculateLightRepresentation(const TCHAR* profileName)
 	{
 		assert(!m_invlidProfileMessageShown);
 
-		MessageBox(
-			GetCOREInterface()->GetMAXHWnd(),
-			failReason,
-			_T("Error"),
-			MB_ICONERROR | MB_OK);
+		std::wstring scriptToExecute = L"print \"" + std::wstring(failReason) + L"\"\n"
+			L"actionMan.executeAction 0 \"40472\"";
+		// command to show maxscript window - found in maxscript discussion 
+		// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
+		// http://www.gritengine.com/maxscript_html/interface_actionman.htm
+		BOOL success = ExecuteMAXScriptScript(scriptToExecute.c_str());
+		FCHECK(success);
 
 		m_invlidProfileMessageShown = true;
 	}
