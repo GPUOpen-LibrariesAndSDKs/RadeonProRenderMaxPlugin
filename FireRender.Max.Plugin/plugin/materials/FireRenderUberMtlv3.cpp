@@ -572,6 +572,14 @@ static ParamBlockDesc2 pbDesc(
 	p_subtexno, FRUBERMTLV3_MAP_REFRACTION_NORMAL,
 	p_ui, ROLLOUT_REFRACTION, TYPE_TEXMAPBUTTON, IDC_UBER3_REFRACTION_NORMAL_T,
 	PB_END,
+	
+	FRUBERMTLV3_DISPLACEMENT_ADAPTIVE_FACTOR, _T("DisplacementAdaptiveSubdicFactor"), TYPE_FLOAT, P_ANIMATABLE, 0,
+	p_default, 1.0f,
+	p_range, 0.0f, 10.0f,
+	p_ui, ROLLOUT_DISPLACEMENT, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER3_DISPLACEMENT_ADAPTIVE,
+		IDC_UBER3_DISPLACEMENT_ADAPTIVE_S, SPIN_AUTOSCALE,
+	PB_END,
+
 
 	PB_END
 );
@@ -942,6 +950,7 @@ void FRMTLCLASSNAME(UberMtlv3)::GetDisplacement(bool& isEnabled, RprDisplacement
 	displacementParams.factor = GetFromPb<int>(pblock, FRUBERMTLV3_DISPLACEMENT_SUBDIV);
 	displacementParams.creaseWeight = GetFromPb<float>(pblock, FRUBERMTLV3_DISPLACEMENT_CREASE_WEIGHT);
 	displacementParams.boundaryInteropType = GetFromPb<int>(pblock, FRUBERMTLV3_DISPLACEMENT_BOUNDARY_INTEROP_TYPE);
+	displacementParams.adaptiveSubDivFactor = GetFromPb<float>(pblock, FRUBERMTLV3_DISPLACEMENT_ADAPTIVE_FACTOR);
 
 	BOOL isTurnedOn = GetFromPb<BOOL>(pblock, FRUBERMTLV3_DISPLACEMENT_ENABLE);
 

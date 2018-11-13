@@ -1110,16 +1110,25 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	if (parameters.progress)
 		parameters.progress->SetTitle(_T("Synchronizing scene..."));
 
-	parser->Synchronize(true);
-	
+	auto scene = scope.GetScene(true);
+
 	// Do we need alpha channel rendering?
 	BOOL bRenderAlpha;
 	parameters.pblock->GetValue(TRPARAM_BG_ENABLEALPHA, 0, bRenderAlpha, Interval());
 
 	bool isShadowCatcherEnabled = scope.GetShadowCatcherShader().IsValid();
-	
+
 	if (isShadowCatcherEnabled)
 		bRenderAlpha = true;
+
+	// setup Denoiser
+	bool isDenoiserEnabled = false;
+	DenoiserType denoiserType = DenoiserNone;
+
+	std::tie(isDenoiserEnabled, denoiserType) = IsDenoiserEnabled(parameters.pblock);
+
+	// create frame buffer
+	data->renderThread = new ProductionRenderCore(scope, renderWidth, renderHeight, bool_cast(bRenderAlpha), bool_cast(isDenoiserEnabled));
 
 	// Render Elements
 	auto renderElementMgr = parameters.rendParams.GetRenderElementMgr();
@@ -1249,11 +1258,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 				break;
 			}
 		}
-	}
-
-	auto scene = scope.GetScene(true);
-	auto camera = context.CreateCamera(); // Create a camera - we can do it from scratch for every frame as it does nto leak memory
-	scene.SetCamera(camera);	
+	}	
 
 	int lightCount = scene.LightCount();
 	int objectCount = 0;
@@ -1300,16 +1305,17 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	context.SetParameter("yflip", 1);
 #endif
 
+	auto camera = context.CreateCamera(); // Create a camera - we can do it from scratch for every frame as it does nto leak memory
+	scene.SetCamera(camera);
+
+	parser->SynchronizeView(true);
+
 	SetupCamera(parser->view, renderWidth, renderHeight, camera.Handle());
 
-	// setup Denoiser
-	bool isDenoiserEnabled = false;
-	DenoiserType denoiserType = DenoiserNone;
-
-	std::tie(isDenoiserEnabled, denoiserType ) = IsDenoiserEnabled(parameters.pblock);
+	// synchronize scene
+	parser->Synchronize(true);
 
 	// setup ProductionRenderCore data
-	data->renderThread = new ProductionRenderCore(scope, renderWidth, renderHeight, bool_cast(bRenderAlpha), bool_cast(isDenoiserEnabled));
 	data->renderThread->term = data->termCriteria;
 	data->renderThread->passLimit = data->passLimit;
 	data->renderThread->timeLimit = data->timeLimit;

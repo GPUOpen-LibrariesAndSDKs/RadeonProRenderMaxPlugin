@@ -781,6 +781,7 @@ namespace frw
 		void SetDisplacement(Value v, float minscale = 0, float maxscale = 1);
 		void RemoveDisplacement();
 		void SetSubdivisionFactor(int sub);
+		void SetAdaptiveSubdivisionFactor(float adaptiveFactor, rpr_camera camera, rpr_framebuffer frameBuf);
 		void SetSubdivisionBoundaryInterop(rpr_subdiv_boundary_interfop_type type);
 		void SetSubdivisionCreaseWeight(float weight);
 
@@ -2753,6 +2754,27 @@ namespace frw
 			sub--;
 
 		auto res = rprShapeSetSubdivisionFactor(Handle(), sub);
+		FCHECK(res);
+	}
+
+	inline void Shape::SetAdaptiveSubdivisionFactor(float adaptiveFactor, rpr_camera camera, rpr_framebuffer frameBuf)
+	{
+		// convert factor from size of subdiv in pixel to RPR
+		// RPR wants the subdiv factor as the "number of faces per pixel" 
+		// the setting gives user the size of face in number pixels.    
+		// rpr internally does: subdiv size in pixel = 2^factor  / 16.0 
+		// The log2 is reversing that for us to get the factor we want. 
+		// also, guard against 0.  
+
+		if (adaptiveFactor < 0.0001f)
+		{
+			adaptiveFactor = 0.0001f;
+		}
+
+		rpr_int calculatedFactor = int(log2(1.0 / adaptiveFactor * 16.0));
+
+		rpr_int res = rprShapeAutoAdaptSubdivisionFactor(Handle(), frameBuf, camera, calculatedFactor);
+
 		FCHECK(res);
 	}
 

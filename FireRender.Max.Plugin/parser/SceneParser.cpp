@@ -1089,7 +1089,18 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 							rpr_int res = rprShapeSetDisplacementScale(shape.Handle(), displacementParams.min, displacementParams.max);
 							FCHECK(res);
 
-							shape.SetSubdivisionFactor(displacementParams.factor);
+							if (displacementParams.subdivType == Adaptive)
+							{
+								frw::Context ctx = scope.GetContext();
+								frw::Scene scn = scope.GetScene();
+								frw::Camera cam = scn.GetCamera();
+								frw::FrameBuffer fbuf = scope.GetFrameBuffer(RPR_AOV_COLOR);
+								shape.SetAdaptiveSubdivisionFactor(displacementParams.adaptiveSubDivFactor, cam.Handle(), fbuf.Handle());
+							}
+							else
+							{
+								shape.SetSubdivisionFactor(displacementParams.factor);
+							}
 							shape.SetSubdivisionCreaseWeight(displacementParams.creaseWeight);
 							shape.SetSubdivisionBoundaryInterop(displacementParams.boundaryInteropType);
 						}
@@ -1260,6 +1271,15 @@ bool SceneParser::NeedsUpdate()
 	return !scene || scene.GetUserData() != GetMaxSceneHash();
 }
 
+bool SceneParser::SynchronizeView(bool forceUpdate)
+{
+	this->view = ParseView();
+
+	mtlParser.shaderData.mCameraTransform = view.tm;
+
+	return true;
+}
+
 bool SceneParser::Synchronize(bool forceUpdate)
 {
 #if PROFILING > 0
@@ -1277,10 +1297,6 @@ bool SceneParser::Synchronize(bool forceUpdate)
 		return false;
 
 	callbacks.beforeParsing(params.t);
-
-	this->view = ParseView();
-
-	mtlParser.shaderData.mCameraTransform = view.tm;
 
 	auto old = parsed;
 	ParseScene();

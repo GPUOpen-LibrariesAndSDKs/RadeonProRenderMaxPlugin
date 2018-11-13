@@ -330,6 +330,8 @@ public:
 
 	bool NeedsUpdate();
 
+	bool SynchronizeView(bool forceUpdate);
+
 	/// Make sure FR state reflects Max state, returns true if scene was changed
 	bool Synchronize(bool forceUpdate);
 

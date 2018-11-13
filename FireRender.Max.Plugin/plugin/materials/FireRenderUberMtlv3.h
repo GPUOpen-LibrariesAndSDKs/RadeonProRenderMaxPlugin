@@ -180,6 +180,7 @@ enum FRUberMtlV3_ParamID : ParamID
 	FRUBERMTLV3_DISPLACEMENT_SUBDIV,
 	FRUBERMTLV3_DISPLACEMENT_CREASE_WEIGHT,
 	FRUBERMTLV3_DISPLACEMENT_BOUNDARY_INTEROP_TYPE,
+	FRUBERMTLV3_DISPLACEMENT_ADAPTIVE_FACTOR,
 };
 
 enum RprSubdivType
@@ -198,6 +199,18 @@ struct RprDisplacementParams
 	int factor;
 	float creaseWeight;
 	int boundaryInteropType;
+
+	float adaptiveSubDivFactor;
+
+	RprDisplacementParams()
+		: min(0.0f)
+		, max(0.0f)
+		, subdivType(Level)
+		, creaseWeight(0.0f)
+		, boundaryInteropType(RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_ONLY)
+		, adaptiveSubDivFactor(1.0f)
+		, factor(1)
+	{}
 };
 
 BEGIN_DECLARE_FRMTLCLASSDESC(UberMtlv3, L"RPR Uber Material", FIRERENDER_UBERMTLV3_CID)
