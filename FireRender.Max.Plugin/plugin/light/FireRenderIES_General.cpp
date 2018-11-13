@@ -4,8 +4,9 @@
 #include "FireRenderIESLight.h"
 #include "FireRenderIES_Profiles.h"
 #include "IESLight/IESprocessor.h"
-
+#include "maxscript/maxscript.h"
 #include "FireRenderIES_General.h"
+#include "maxscript/util/listener.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -33,11 +34,15 @@ namespace
 		failReason = _T("Failed to import IES light source: ");
 		failReason += IESErrorCodeToMessage(parseRes);
 
-		MessageBox(
-			GetCOREInterface()->GetMAXHWnd(),
-			failReason.c_str(),
-			_T("Warning"),
-			MB_ICONWARNING | MB_OK);
+		GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, _M("Warning Title"), failReason.c_str());
+		
+		std::wstring scriptToExecute = L"print \"" + failReason + L"\"\n"
+			L"actionMan.executeAction 0 \"40472\""; 
+		// command to show maxscript window - found in maxscript discussion 
+		// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
+		// http://www.gritengine.com/maxscript_html/interface_actionman.htm
+		BOOL success =  ExecuteMAXScriptScript(scriptToExecute.c_str() );
+		FCHECK(success);
 	}
 }
 

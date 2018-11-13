@@ -23,7 +23,7 @@
 #include <LINSHAPE.H>
 #include <3dsmaxport.h> //for DLGetWindowLongPtr
 #include <hsv.h>
-
+#include "maxscript/maxscript.h"
 #include <decomp.h>
 #include <iparamm2.h>
 #include <memory>
@@ -34,6 +34,8 @@
 #include "FireRenderIES_Profiles.h"
 
 #include "IESLight\IESprocessor.h"
+
+#include "maxscript/util/listener.h"
 
 FIRERENDER_NAMESPACE_BEGIN
 
@@ -1089,11 +1091,13 @@ void FireRenderIESLight::CreateSceneLight(
 {
 	if (!ProfileIsSelected(t))
 	{
-		MessageBox(
-			GetCOREInterface()->GetMAXHWnd(),
-			_T("No profile is selected!"),
-			_T("Warning"),
-			MB_ICONWARNING | MB_OK);
+		std::wstring scriptToExecute = L"print \"No profile is selected!\"\n"
+			L"actionMan.executeAction 0 \"40472\"";
+		// command to show maxscript window - found in maxscript discussion 
+		// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
+		// http://www.gritengine.com/maxscript_html/interface_actionman.htm
+		BOOL success = ExecuteMAXScriptScript(scriptToExecute.c_str());
+		FCHECK(success);
 
 		return;
 	}
@@ -1125,12 +1129,14 @@ void FireRenderIESLight::CreateSceneLight(
 		
 		if (!parseOK)
 		{
-			// throw?
-			MessageBox(
-				GetCOREInterface()->GetMAXHWnd(),
-				_T("Failed to export IES light source!"),
-				_T("Warning"),
-				MB_ICONWARNING | MB_OK);
+			std::wstring failReason = _T("Failed to export IES light source!");
+			std::wstring scriptToExecute = L"print \"" + failReason + L"\"\n"
+				L"actionMan.executeAction 0 \"40472\"";
+			// command to show maxscript window - found in maxscript discussion 
+			// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
+			// http://www.gritengine.com/maxscript_html/interface_actionman.htm
+			BOOL success = ExecuteMAXScriptScript(scriptToExecute.c_str());
+			FCHECK(success);
 
 			return;
 		}
@@ -1143,11 +1149,14 @@ void FireRenderIESLight::CreateSceneLight(
 
 		if (!updateOK)
 		{
-			MessageBox(
-				GetCOREInterface()->GetMAXHWnd(),
-				_T("Failed to export IES light source!"),
-				_T("Warning"),
-				MB_ICONWARNING | MB_OK);
+			std::wstring failReason = _T("Failed to export IES light source!");
+			std::wstring scriptToExecute = L"print \"" + failReason + L"\"\n"
+				L"actionMan.executeAction 0 \"40472\"";
+			// command to show maxscript window - found in maxscript discussion 
+			// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
+			// http://www.gritengine.com/maxscript_html/interface_actionman.htm
+			BOOL success = ExecuteMAXScriptScript(scriptToExecute.c_str());
+			FCHECK(success);
 
 			return;
 		}
