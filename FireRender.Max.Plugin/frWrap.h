@@ -116,6 +116,8 @@ namespace frw
 		ValueTypeBlend = RPR_MATERIAL_NODE_BLEND_VALUE,
 		ValueTypeFresnelSchlick = RPR_MATERIAL_NODE_FRESNEL_SCHLICK,
 		ValueTypeAOMap = RPR_MATERIAL_NODE_AO_MAP,
+		ValueTypeOSLMapFirst = RPR_MATERIAL_NODE_USER_TEXTURE_0,
+		ValueTypeOSLMapLast = RPR_MATERIAL_NODE_USER_TEXTURE_3,
 	};
 
 	enum ShaderType
@@ -1552,6 +1554,25 @@ namespace frw
 			ValueNode node(*this, ValueTypeAOMap);
 			node.SetValue("radius", radius);
 			node.SetValue("side", side);
+			return node;
+		}
+
+		Value ValueOSL( int resourceIndex, int inputCount, const Value* inputArray ) const
+		{
+			frw::ValueType type = (frw::ValueType)(ValueTypeOSLMapFirst + resourceIndex);
+			if( type>ValueTypeOSLMapLast )
+				return 0;
+
+			ValueNode node(*this, type);
+			CStr name;
+			for( int i=0; i<inputCount; i++ )
+			{
+				if( !inputArray[i].IsNull() )
+				{
+					name.printf( "param%i", i );
+					node.SetValue( name.data(), inputArray[i] );
+				}
+			}
 			return node;
 		}
 

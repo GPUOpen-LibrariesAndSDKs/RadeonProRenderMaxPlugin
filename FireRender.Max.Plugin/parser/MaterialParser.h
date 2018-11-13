@@ -183,11 +183,40 @@ protected:
 	frw::Value createNormalBumpMap(Texmap* texmap);
 	frw::Value createCoronaMixMap(Texmap* texmap);
 	frw::Value createCoronaColorMap(Texmap* texmap);
+	frw::Value createMultiOutputMap(Texmap* texmap);
+	frw::Value createOslMap(Texmap* texmap, int outputIndex );
+
+
+protected:
+
+	typedef std::map<TSTR,int> OslShaderInputMap; // Map input param name to index
+	typedef struct
+	{
+		TSTR filename;
+		CStr textureCode;
+		CStr textureName;
+		int outputIndex;
+		int resourceIndex;
+	} OslShaderOutputInfo;
+	typedef std::map<int,OslShaderOutputInfo> OslShaderOutputMap; // Map output index to info
+	typedef struct
+	{
+		TSTR filename;
+		int inputCount;
+		OslShaderInputMap inputMap; // Map input param name to index
+		OslShaderOutputMap outputMap;  // Map output index to info
+	} OslShaderInfo;
+
+	typedef std::map<TSTR,OslShaderInfo> OslShaderMap;
+	OslShaderMap mOslShaderMap;
+
+	int mOslShaderResourceIndex = 0;
+	int createOSLInputMap( OslShaderInputMap& inputMap, IParamBlock2* pb );
 
 public:
 
 	MaterialParser(frw::Scope mScope) :
-		mScope(mScope), materialSystem(mScope.GetMaterialSystem())
+		mScope(mScope), materialSystem(mScope.GetMaterialSystem()), mOslShaderResourceIndex(0)
 	{
 	}
 

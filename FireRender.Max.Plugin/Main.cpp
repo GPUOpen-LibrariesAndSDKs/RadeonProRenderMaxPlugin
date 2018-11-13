@@ -121,6 +121,7 @@
 #   pragma comment (lib, "Release/maxscrpt.lib")
 #   pragma comment (lib, "Release/gup.lib")
 #   pragma comment (lib, "Release/ManipSys.lib")
+#   pragma comment (lib, "Release/assetmanagement.lib")
 #endif
 
 extern "C" void DisableGltfExport();

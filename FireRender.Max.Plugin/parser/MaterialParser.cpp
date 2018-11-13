@@ -45,6 +45,11 @@
 #include "FireRenderColourCorrectionMtl.h"
 #include "utils/KelvinToColor.h"
 
+#include <maxtextfile.h>
+#include <Path.h>
+#include <AssetManagement/IAssetAccessor.h>
+#include <assetmanagement/AssetType.h>
+#include <AssetManagement/iassetmanager.h>
 #include <maxscript/mxsPlugin/mxsPlugin.h>
 #include <xref/iXrefMaterial.h>
 #include <shaders.h>
@@ -612,6 +617,10 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		result = createCoronaMixMap(texmap);
 	else if (classId == Corona::COLOR_TEX_CID && ScopeManagerMax::CoronaOK)
 		result = createCoronaColorMap(texmap);
+	else if (classId == MULTIOUTPUTTOTEXMAP_CLASS_ID)
+		result = createMultiOutputMap(texmap);
+	else if (classId == OSLTEXMAP_CLASS_ID)
+		result = createOslMap(texmap,0);
 	else switch (classId.PartA())
 	{
 	case NEW_FALLOFF_CLASS_ID:
@@ -2959,6 +2968,243 @@ frw::Value MaterialParser::createGradientMap(Texmap *tm)
 	v = materialSystem.ValueTransform(v, tx);
 
 	return v;
+}
+
+// Helper
+void loadFileToString( CStr& str, const TCHAR* filename )
+{
+	// Search for the file using the Asset Manager, treat as an "other" type asset kOtherAsset
+	TSTR pathStr;
+	MaxSDK::Util::Path path(filename);
+	DebugPrint( _T("path = %s \n"), path.GetString().data() );
+
+	MaxSDK::AssetManagement::IAssetManager* assetMgr = MaxSDK::AssetManagement::IAssetManager::GetInstance();
+	MaxSDK::AssetManagement::AssetUser asset = assetMgr->GetAsset( path, MaxSDK::AssetManagement::kOtherAsset );
+	DebugPrint( _T("asset = %s \n"), asset.GetFileName().data() );
+
+	asset.GetFullFilePath(pathStr);
+	DebugPrint( _T("pathStr = %s \n"), pathStr.data() );
+
+	MaxSDK::Util::TextFile::Reader reader;
+	// Read the resolved file into a string
+	FILE *file = _tfopen( pathStr.data(), _T("rt") );
+	if( reader.Open( pathStr.data() ) )
+	{
+		str = reader.ReadFull();
+		reader.Close();
+	}
+}
+
+frw::Value MaterialParser::createMultiOutputMap(Texmap *tm)
+{
+	frw::Value map;
+
+	if( tm->ClassID() != MULTIOUTPUTTOTEXMAP_CLASS_ID )
+		return map;
+
+	IParamBlock2* pb = tm->GetParamBlock(0);
+	TimeValue timeVal = 0;
+	DebugPrint( _T("paramBlock=%s, numParams=%i \n"), pb->GetLocalName(), pb->NumParams() );
+	int param0ID = pb->IndextoID(0);
+	int param1ID = pb->IndextoID(1);
+	ParamDef& param0Def = pb->GetParamDef( param0ID ); 
+	ParamDef& param1Def = pb->GetParamDef( param1ID ); 
+	DebugPrint( _T("param0=%s, type=%i, id=%i \n"),
+		param0Def.int_name, (int)param0Def.type, param0ID  );
+	DebugPrint( _T("param1=%s, type=%i, id=%i \n"),
+		param1Def.int_name, (int)param1Def.type, param1ID  );
+	GET_PARAM(Texmap*, param0, param0ID);
+	GET_PARAM(int, param1, param1ID);
+	tm = param0;
+	int outputIndex = param1;
+
+	if( tm->ClassID() == OSLTEXMAP_CLASS_ID )
+		 map = createOslMap( tm, outputIndex );
+	else map = 	getValue(tm);
+
+	return map;
+}
+
+bool strcpy_stripPostfix( TSTR& destTStr, const TCHAR* srcStr, const TCHAR* postfixStr, int postfixLen=-1 )
+{
+	if( postfixLen==-1 )
+		postfixLen = (int)_tcslen(postfixStr);
+	DbgAssert( postfixLen>0 );
+	int srcLen = (int)_tcslen(srcStr);
+	int copyLen = srcLen - postfixLen;
+	if( (copyLen<0) || (_tcscmp(srcStr+copyLen,postfixStr)!=0) )
+		copyLen = srcLen; // copy the entire source string, if it doesn't end with the postfix
+	if( copyLen>0 )
+	{
+		TCHAR* destStr = destTStr.dataForWrite(copyLen); // allocate dest string
+		memcpy( destStr, srcStr, copyLen*sizeof(TCHAR) ); // copy the prefix if any
+		destStr[copyLen] = _T('\0');
+	}
+	return (srcLen>copyLen);
+}
+
+int MaterialParser::createOSLInputMap( OslShaderInputMap& inputMap, IParamBlock2* pb )
+{
+	static TCHAR* postfixStr = _T("_map");
+	static int postfixLen = (int)_tcslen(postfixStr);
+
+	inputMap.clear();
+	int inputCount = 0;
+	int paramCount = pb->NumParams();
+	//
+	// Search for texmap parameters: 3dsmax provides one per input, and in correct order
+	//
+	for( int i = 0; i < paramCount; i++ )
+	{
+		int paramID = pb->IndextoID(i);
+		ParamDef& paramDef = pb->GetParamDef( paramID );
+
+		if( paramDef.type==TYPE_TEXMAP )
+		{
+			// Found a texmap parameter, strip postfix to obtain original param name
+			TSTR paramStr;
+			if( strcpy_stripPostfix( paramStr, paramDef.int_name, postfixStr, postfixLen ) )
+			{
+				inputMap[paramStr.data()] = inputCount;   // short name without postfix
+				inputMap[paramDef.int_name] = inputCount; // long name with postfix
+				inputCount++;
+			}
+		}
+	}
+	return inputCount;
+}
+
+frw::Value MaterialParser::createOslMap(Texmap *tm, int outputIndex)
+{
+	frw::Value map;
+
+	Class_ID classId = tm->ClassID();
+	if( classId!=OSLTEXMAP_CLASS_ID )
+		return map;
+
+	// Fetch the 2nd paramblock, which has osl shader filename
+	IParamBlock2* pb = tm->GetParamBlock(0);
+
+	TimeValue timeVal = 0;
+	DebugPrint( _T("paramBlock=%s, numParams=%i \n"), pb->GetLocalName(), pb->NumParams() );
+	int param0ID = pb->IndextoID(0);
+	ParamDef& param0Def = pb->GetParamDef( param0ID ); 
+	DebugPrint( _T("param1=%s, type=%i, id=%i \n"),
+		param0Def.int_name, (int)param0Def.type, param0ID  );
+
+	GET_PARAM(const TCHAR*, pathOsl, param0ID);
+	TCHAR fname[_MAX_FNAME];
+	TCHAR ext[_MAX_EXT];
+	_tsplitpath( pathOsl, NULL, NULL, fname, ext );
+
+	TSTR filenameOsl;
+	filenameOsl.printf( _T("%s%s"), fname, ext );
+
+	// Fetch the 2nd paramblock, which has osl shader params
+	pb = tm->GetParamBlock(1);
+
+	//
+	// Initialize data for each shader, and each output of the shader
+	// Includes compiled code .INL file and resource index for each output
+	//
+
+	// (1) Create the general info for the shader if it doesn't exist
+	OslShaderMap::iterator shaderIter;
+	shaderIter = mOslShaderMap.find( filenameOsl );
+	if( shaderIter==mOslShaderMap.end() )
+	{
+		OslShaderInfo& shaderInfo = mOslShaderMap[ filenameOsl ]; // create map entry
+		shaderInfo.filename = filenameOsl;
+		shaderIter = mOslShaderMap.find( filenameOsl ); // ...update iterator
+
+		// Load the parameter input map
+		shaderInfo.inputCount = createOSLInputMap( shaderInfo.inputMap, pb );
+	}
+
+	// (2) Create the output info for the shader if it doesn't exist
+	// Also read the compiled code .INL from disk and pass to RPR, when created
+	OslShaderInfo& shaderInfo = shaderIter->second;
+	OslShaderOutputMap::iterator outputIter = shaderInfo.outputMap.find( outputIndex );
+	if( outputIter==shaderInfo.outputMap.end() )
+	{
+		OslShaderOutputInfo& outputInfo = shaderInfo.outputMap[ outputIndex ]; // create map entry
+		outputInfo.outputIndex = outputIndex;
+		outputInfo.resourceIndex = mOslShaderResourceIndex++; // allocate shader resource
+		outputInfo.filename.printf( _T("%s_Output%i.inl"), fname, outputIndex );
+		outputIter = shaderInfo.outputMap.find( outputIndex ); // ...update iterator
+
+		// Load the compiled code into a string ... empty string if file not found
+		loadFileToString( outputInfo.textureCode, outputInfo.filename.data() );
+		if( outputInfo.textureCode.length()>0 )
+		{
+			// Pass the compiled code to RPR
+			outputInfo.textureName.printf( "usertexture%i",outputInfo.resourceIndex);
+			rprContextSetParameterString( getScope().GetContext().Handle(),
+				outputInfo.textureName.data(), outputInfo.textureCode.data() );
+		}
+	}
+
+	// (3) If the compiled shader is ready, load the shader params
+	OslShaderOutputInfo& outputInfo = outputIter->second;
+	if( outputInfo.textureCode.length() > 0 )
+	{
+		DebugPrint( _T("paramBlock=%s, numParams=%i \n"), pb->GetLocalName(), pb->NumParams() );
+
+		int inputCount = (int)shaderInfo.inputCount;
+		frw::Value* inputArray = new frw::Value[inputCount];
+
+		int paramCount = pb->NumParams();
+		for (int i = 0; i < paramCount; i++)
+		{
+			int paramID = pb->IndextoID(i);
+			ParamDef& paramDef = pb->GetParamDef( paramID ); 
+			DebugPrint( _T("param%i=%s, type=%i, id=%i \n"),
+				i, paramDef.int_name, (int)paramDef.type, paramID  );
+
+			int input = shaderInfo.inputMap[paramDef.int_name];
+
+			ParamID id = pb->IndextoID(i);
+			ParamType2 type = pb->GetParameterType(id);
+			switch( type )
+			{
+			case TYPE_INT:		inputArray[input] = frw::Value( pb->GetInt(id,timeVal) ); break;
+			case TYPE_FLOAT:	inputArray[input] = frw::Value( pb->GetFloat(id,timeVal) ); break;
+			case TYPE_POINT2:
+				{
+					Point2 p = pb->GetPoint3(id,timeVal);
+					if( inputArray[input].IsNull() ) // don't set static value if already connected as a texture
+						inputArray[input] = frw::Value( p.x, p.y ); break;
+				}
+			case TYPE_POINT3:
+			case TYPE_RGBA:
+			case TYPE_HSV:
+				{
+					Point3 p = pb->GetPoint3(id,timeVal);
+					if( inputArray[input].IsNull() ) // don't set static value if already connected as a texture
+						inputArray[input] = frw::Value( p.x, p.y, p.z ); break;
+				}
+			case TYPE_POINT4:
+			case TYPE_FRGBA:
+				{
+					Point4 p = pb->GetPoint4(id,timeVal);
+					if( inputArray[input].IsNull() ) // don't set static value if already connected as a texture
+						inputArray[input] = frw::Value( p.x, p.y, p.z, p.w ); break;
+				}
+			case TYPE_TEXMAP:
+				{
+					// Add any non-null texture as connections, replace
+					Texmap* connect = pb->GetTexmap(id,timeVal);
+					if( connect!=NULL ) // set connection if non-null, even if already assigned as static value
+						inputArray[input] = getValue( connect );
+					break;
+				}
+			}
+		}
+		map = materialSystem.ValueOSL( outputInfo.resourceIndex, inputCount, inputArray );
+		delete[] inputArray;
+	}
+
+	return map;
 }
 
 frw::Value MaterialParser::createTextureMap(Texmap *texmap, int flags)
