@@ -18,7 +18,7 @@
 #include <Notify.h>
 #include <toneop.h>
 #include <RadeonProRender.h>
-#include <RprLoadStore.h>
+//#include <RprLoadStore.h>
 #if MAX_PRODUCT_YEAR_NUMBER >= 2016
 #   include <scene/IPhysicalCamera.h>
 #endif
@@ -345,7 +345,8 @@ bool ActiveShadeRenderCore::DumpFrameBuffer(bool force)
 	}
 
 	// Save color buffer
-	std::vector<float> colorData = frameBufferResolve.GetPixelData();
+	//std::vector<float> colorData = frameBufferResolve.GetPixelData();
+	std::vector<float> colorData = frameBufferMain.GetPixelData();
 
 	// Resolve & Save alpha buffer
 	std::vector<float> alphaData;
@@ -494,10 +495,10 @@ void ActiveShadeRenderCore::Worker()
 
 	bool cameraInit = false;
 	
-	normalizationFilter = frw::PostEffect(scope.GetContext(), frw::PostEffectTypeNormalization);
-	scope.GetContext().Attach(normalizationFilter);
+	/*normalizationFilter = frw::PostEffect(scope.GetContext(), frw::PostEffectTypeNormalization);
+	scope.GetContext().Attach(normalizationFilter);*/
 
-	FCHECK(rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1));
+	//FCHECK(rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1));
 
 	// render all passes, unless the render is cancelled (and even then render at least a single pass)
 	while (1)
@@ -666,7 +667,7 @@ void ActiveShadeRenderCore::Worker()
 					res = rprContextRender(scope.GetContext().Handle());
 				if (res == RPR_SUCCESS)
 				{
-					frameBufferMain.Resolve(frameBufferResolve);
+					//frameBufferMain.Resolve(frameBufferResolve);
 					rendered = true;
 				}
 				timer.Stop();
@@ -792,7 +793,7 @@ void ActiveShader::Begin()
 	scene.SetCamera(camera[0]);
 
 	// Set up some basic rendering parameters in Radeon ProRender
-	context.SetParameter("texturecompression", GetFromPb<int>(pblock, PARAM_USE_TEXTURE_COMPRESSION));
+	/*context.SetParameter("texturecompression", GetFromPb<int>(pblock, PARAM_USE_TEXTURE_COMPRESSION));
 	context.SetParameter("rendermode", GetFromPb<int>(pblock, PARAM_RENDER_MODE));
 	context.SetParameter("maxRecursion", GetFromPb<int>(pblock, PARAM_MAX_RAY_DEPTH));
 	context.SetParameter("imagefilter.type", GetFromPb<int>(pblock, PARAM_IMAGE_FILTER));
@@ -805,7 +806,7 @@ void ActiveShader::Begin()
 	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);
 	context.SetParameter("iterations", GetFromPb<int>(pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
-	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
+	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));*/
 
 	BOOL useIrradianceClamp = FALSE;
 	pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());
@@ -825,7 +826,7 @@ void ActiveShader::Begin()
 	viewParams = ViewExp2viewParams(*pViewExp, outCam);
 	mIfr->fireRenderer->isToneOperatorPreviewRender = false;
 
-	context.SetParameter("xflip", 0);
+	//context.SetParameter("xflip", 0);
 	context.SetParameter("yflip", 1);
 	
 	int renderLimitType;

@@ -200,8 +200,8 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 	{
 		DebugPrint(L"Created Radeon ProRender Context\n");
 
-		int stackSize = ctx.GetMaterialStackSize();
-		DebugPrint(L"\tMaterial Stack Size: %d\n", stackSize);
+		/*int stackSize = ctx.GetMaterialStackSize();
+		DebugPrint(L"\tMaterial Stack Size: %d\n", stackSize);*/
 
 		DebugPrint(L"\tAvailable Parameters: \n");
 
@@ -673,10 +673,10 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 
 	SetupCacheFolder();
 
-	rpr_int tahoePluginID = rprRegisterPlugin("Tahoe64.dll");
-	assert(tahoePluginID != -1);
+	//rpr_int tahoePluginID = rprRegisterPlugin("Tahoe64.dll");
+	//assert(tahoePluginID != -1);
 
-	rpr_int plugins[] = { tahoePluginID };
+	rpr_int plugins[] = { 0 };
 	size_t pluginCount = sizeof(plugins) / sizeof(plugins[0]);
 
 	rpr_context_properties* contextProperties = nullptr;
@@ -694,7 +694,8 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 	}
 
 	rpr_context context = nullptr;
-	rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
+	//rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
+	rpr_int res = rprCreateContext(RPR_API_VERSION, nullptr, 0, RPR_CREATION_FLAGS_ENABLE_GPU0, NULL, mCacheFolder.c_str(), &context);
 	
 	switch (res)
 	{

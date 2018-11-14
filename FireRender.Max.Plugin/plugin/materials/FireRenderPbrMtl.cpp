@@ -396,9 +396,9 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	toUseMap = map != nullptr;
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
-	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, value);
+	/*shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, value);
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, value);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, value);
+	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, value);*/
 
 	// METALNESS
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_METALNESS_MAP,
@@ -409,7 +409,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, value);
 	
-	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
+	//shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
 	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, value);
 
 	// MATERIAL NORMAL
@@ -486,7 +486,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_WEIGHT, value);
+	//shader.xSetValue(RPRX_UBER_MATERIAL_SSS_WEIGHT, value);
 
 	std::tie(map, color) = GetParameters(FRPBRMTL_SSS_COLOR_MAP,
 		FRPBRMTL_SSS_COLOR);
@@ -494,11 +494,11 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? mtlParser.createMap(map, MAP_FLAG_NOFLAGS) : color;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR, value);
+	//shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR, value);
 
 	Point3 subsurfaceRadius = GetFromPb<Point3>(pblock, FRPBRMTL_SSS_SCATTER_DIST);
 	value = frw::Value(subsurfaceRadius);
-	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, value);
+	//shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, value);
 
 	return shader;
 }

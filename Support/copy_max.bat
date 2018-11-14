@@ -31,11 +31,13 @@ set DataFiles=^
 	"Support\*.dat"
 
 set CoreFiles=^
-	"ThirdParty\RadeonProRender SDK\Win\bin\Tahoe64.dll"^
 	"ThirdParty\RadeonProRender SDK\Win\bin\RadeonProRender64.dll"^
-	"ThirdParty\RadeonProRender SDK\Win\bin\RprLoadStore64.dll"^
 	"ThirdParty\RadeonProRender SDK\Win\bin\RprSupport64.dll"^
-	"ThirdParty\RadeonProRender SDK\Win\bin\OpenImageIO_RPR.dll"
+	"ThirdParty\RadeonProRender SDK\Win\bin\OpenImageIO.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\OpenImageIOD.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\FreeImage.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\glfw3.dll"^
+	"ThirdParty\RadeonProRender SDK\Win\bin\RadeonProRenderIO.dll"
 
 set EmbreeFiles=^
 	"..\RadeonProRenderPkgPlugin\MaxPkg\support\origindll\embree.dll"^

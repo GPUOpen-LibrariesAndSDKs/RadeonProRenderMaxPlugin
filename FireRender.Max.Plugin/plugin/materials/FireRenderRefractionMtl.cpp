@@ -51,8 +51,10 @@ FRMTLCLASSNAME(RefractionMtl)::~FRMTLCLASSNAME(RefractionMtl)()
 frw::Shader FRMTLCLASSNAME(RefractionMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
+	auto scope = mtlParser.GetScope();
 
-	frw::Shader material(ms, frw::ShaderTypeRefraction);
+	//frw::Shader material(ms, frw::ShaderTypeRefraction);
+	frw::Shader material(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);
 		
 	Texmap* normalTexmap = GetFromPb<Texmap*>(pblock, FRRefractionMtl_NORMALMAP);
 	const Color diffuseColor = GetFromPb<Color>(pblock, FRRefractionMtl_COLOR);
@@ -62,13 +64,15 @@ frw::Shader FRMTLCLASSNAME(RefractionMtl)::getShader(const TimeValue t, Material
 	frw::Value color(diffuseColor.r, diffuseColor.g, diffuseColor.b);
 	if (diffuseTexmap)
 		color = mtlParser.createMap(diffuseTexmap, 0);
-	material.SetValue("color", color);
+	//material.SetValue("color", color);
+	material.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_COLOR, color);
 
 	frw::Value iorv(ior, ior, ior);
-	material.SetValue("ior", iorv);
+	//material.SetValue("ior", iorv);
+	material.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_IOR, iorv);
 	
-	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+	/*if (normalTexmap)
+		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));*/
 	
     return material;
 }

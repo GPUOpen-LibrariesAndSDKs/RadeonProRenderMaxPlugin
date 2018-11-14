@@ -1,6 +1,6 @@
 @echo off
 
-set ThirdPartyDir="..\..\RadeonProRenderThirdPartyComponents"
+set ThirdPartyDir="..\..\..\RadeonProRenderThirdPartyComponents"
 
 if exist %ThirdPartyDir% ( 
 	if "%1"=="update_thirdparty" (

@@ -420,10 +420,11 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 	// create a temporary context
 	rpr_int status = RPR_SUCCESS;
 	rpr_int plugs = 0;
-	const char pluginsPath[] = "Tahoe64.dll";
-	static rpr_int plug = rprRegisterPlugin(pluginsPath);
+	//const char pluginsPath[] = "Tahoe64.dll";
+	//static rpr_int plug = rprRegisterPlugin(pluginsPath);
 	rpr_context context = nullptr;
-	status = rprCreateContext(RPR_API_VERSION, &plug, 1, createFlags, NULL, NULL, &context);
+	//status = rprCreateContext(RPR_API_VERSION, &plug, 1, createFlags, NULL, NULL, &context);
+	status = rprCreateContext(RPR_API_VERSION, nullptr, 0, RPR_CREATION_FLAGS_ENABLE_GPU0, NULL, NULL, &context);
 	FCHECK(status);
 
 	if (status != RPR_SUCCESS)

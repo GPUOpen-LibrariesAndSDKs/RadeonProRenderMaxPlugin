@@ -594,8 +594,8 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		result = dynamic_cast<FRMTLCLASSNAME(InputLUMtl)*>(texmap)->getShader(mT, *this);
 	else if (classId == FIRERENDER_BLENDVALUEMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(BlendValueMtl)*>(texmap)->getShader(mT, *this);
-	else if (classId == FIRERENDER_FRESNELMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(FresnelMtl)*>(texmap)->getShader(mT, *this);
+	/*else if (classId == FIRERENDER_FRESNELMTL_CID)
+		result = dynamic_cast<FRMTLCLASSNAME(FresnelMtl)*>(texmap)->getShader(mT, *this);*/
 	else if (classId == FIRERENDER_COLORMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(ColorMtl)*>(texmap)->getShader(mT, *this);
 	else if (classId == FIRERENDER_AVERAGEMTL_CID)
@@ -931,10 +931,10 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 			{
 				shader = dynamic_cast<FRMTLCLASSNAME(DiffuseMtl)*>(material)->getShader(mT, *this, node);
 			}
-			else if (cid == FIRERENDER_BLENDMTL_CID)
+			/*else if (cid == FIRERENDER_BLENDMTL_CID)
 			{
 				shader = dynamic_cast<FRMTLCLASSNAME(BlendMtl)*>(material)->getShader(mT, *this, node);
-			}
+			}*/
 			else if (cid == FIRERENDER_ADDMTL_CID)
 			{
 				shader = dynamic_cast<FRMTLCLASSNAME(AddMtl)*>(material)->getShader(mT, *this, node);
@@ -1076,8 +1076,10 @@ frw::Shader MaterialParser::createShader(Mtl* material, INode* node /*= nullptr*
 			else
 			{
 				// default - nothing else fits - so this is an unsupported material. Parse it as diffuse.
-				auto sh = frw::DiffuseShader(materialSystem);
-				sh.SetColor(material->GetDiffuse());
+				//auto sh = frw::DiffuseShader(materialSystem);
+				auto sh = frw::Shader(mScope.GetContext(), mScope.GetContextEx(), RPRX_MATERIAL_UBER);
+				//sh.SetColor(material->GetDiffuse());
+				sh.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, material->GetDiffuse());
 				shader = sh;
 			}
 
@@ -1119,13 +1121,15 @@ namespace
 
 frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 {
+	frw::Shader shader(mScope.GetContext(), mScope.GetContextEx(), RPRX_MATERIAL_UBER);
 	// EMISSION
 	auto emissiveColor = getValue(getMap(mtl, ID_SI), mtl->GetSelfIllumColor(this->mT));
 
 	if (emissiveColor.NonZeroXYZ())
 	{
-		frw::EmissiveShader shader(materialSystem);
-		shader.SetColor(emissiveColor);
+		//frw::EmissiveShader shader(materialSystem);
+		//shader.SetColor(emissiveColor);
+		shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_COLOR, emissiveColor);
 
 		return shader;
 	}
@@ -1156,8 +1160,9 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 
 	frw::Value opacityLevel = getValue(getMap(mtl, ID_OP), mtl->GetOpacity(this->mT));
 
-	frw::Shader result(materialSystem, frw::ShaderTypeDiffuse);
-	result.SetValue("color", diffuseColor);
+	//frw::Shader result(materialSystem, frw::ShaderTypeDiffuse);
+	//result.SetValue("color", diffuseColor);
+	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, diffuseColor);
 
 	// NORMAL
 	frw::Value normal;
@@ -1167,7 +1172,8 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 		float strength = mtl->GetTexmapAmt(ID_BU, mT);
 
 		normal = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, bumpMap, strength, *this);
-		result.SetValue("normal", normal);
+		//result.SetValue("normal", normal);
+		//shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_NORMAL, normal);
 	}
 
 	// SPECULAR REFLECTIONS
@@ -1183,12 +1189,16 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 
 		specularColor = materialSystem.ValueMul(specularColor, specularLevel);
 
-		frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
-		shader.SetValue("color", specularColor);
-		shader.SetValue("normal", normal);
-		shader.SetValue("ior", frw::Value(ior));
-		shader.SetValue("roughness", roughness);
-		result = materialSystem.ShaderBlend(result, shader, frw::Value(0.5, 0.5, 0.5));
+		//frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
+		//shader.SetValue("color", specularColor);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, specularColor);
+		//shader.SetValue("normal", normal);
+		//shader.SetValue("ior", frw::Value(ior));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_IOR, frw::Value(ior));
+		//shader.SetValue("roughness", roughness);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, roughness);
+		//result = materialSystem.ShaderBlend(result, shader, frw::Value(0.5, 0.5, 0.5));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, frw::Value(0.5, 0.5, 0.5));
 	}
 	else if (shaderClassName == L"Anisotropic")
 	{
@@ -1199,33 +1209,43 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 			STDMAT2_PBVALUETEX(an_orientation)
 
 			diffuseColor = materialSystem.ValueMul(diffuseColor, an_diffuse_level_v);
-		result.SetValue("color", diffuseColor);
+		//result.SetValue("color", diffuseColor);
+		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, diffuseColor);
 
 		specularColor = materialSystem.ValueMul(specularColor, an_specular_level_v);
 
-		frw::Shader shader(materialSystem, frw::ShaderTypeWard);
-		shader.SetValue("color", specularColor);
+		//frw::Shader shader(materialSystem, frw::ShaderTypeWard);
+		//shader.SetValue("color", specularColor);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, specularColor);
 
 		auto roughness = StdMat2_glossinessToRoughness(an_glossiness_v);
-		shader.SetValue("roughness_y", roughness);
-		shader.SetValue("roughness_x", materialSystem.ValueMul(roughness, materialSystem.ValueSub(frw::Value(1.0), an_anisotropy_v)));
+		//shader.SetValue("roughness_y", roughness);
+		//shader.SetValue("roughness_x", materialSystem.ValueMul(roughness, materialSystem.ValueSub(frw::Value(1.0), an_anisotropy_v)));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, roughness);
 		//shader.SetValue("rotation", materialSystem.ValueMul(an_orientation_v, 0.01745329251994329576923690768489)); // PI/180
-		shader.SetValue("rotation", an_orientation_v);
-		shader.SetValue("normal", normal);
+		//shader.SetValue("rotation", an_orientation_v);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION, an_orientation_v);
+		//shader.SetValue("normal", normal);
 
-		result = materialSystem.ShaderBlend(result, shader, frw::Value(0.5, 0.5, 0.5));
+		//result = materialSystem.ShaderBlend(result, shader, frw::Value(0.5, 0.5, 0.5));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, frw::Value(0.5, 0.5, 0.5));
 	}
 	else if (shaderClassName == L"Metal")
 	{
 		auto ior = mtl->GetIOR(this->mT);
 		auto roughness = StdMat2_glossinessToRoughness(getValue(getMap(mtl, ID_SH), mtl->GetShininess(this->mT)));
 
-		frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
-		shader.SetValue("color", diffuseColor);
-		shader.SetValue("normal", normal);
-		shader.SetValue("ior", frw::Value(ior));
-		shader.SetValue("roughness", roughness);
-		result = materialSystem.ShaderBlend(result, shader, specularLevel);
+		//frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
+		//shader.SetValue("color", diffuseColor);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
+		//shader.SetValue("normal", normal);
+		//shader.SetValue("ior", frw::Value(ior));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_IOR, frw::Value(ior));
+		//shader.SetValue("roughness", roughness);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, roughness);
+		//result = materialSystem.ShaderBlend(result, shader, specularLevel);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, specularLevel);
+
 	}
 	else if (shaderClassName == L"Multi-Layer")
 	{
@@ -1245,28 +1265,38 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 			STDMAT2_PBVALUETEX(ml_anisotropy2)
 			STDMAT2_PBVALUETEX(ml_orientation2)
 
-			result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
-		result.SetValue("color", materialSystem.ValueMul(diffuseColor, ml_diffuse_level_v));
-		result.SetValue("roughness", ml_diffuse_rough_v);
+			//result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
+		//result.SetValue("color", materialSystem.ValueMul(diffuseColor, ml_diffuse_level_v));
+			shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, ml_diffuse_level_v);
+		//result.SetValue("roughness", ml_diffuse_rough_v);
+		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, ml_diffuse_rough_v);
 
-		frw::Shader specular1(materialSystem, frw::ShaderTypeWard);
-		specular1.SetValue("color", materialSystem.ValueMul(ml_specular1_v, ml_specular_level1_v));
+		//frw::Shader specular1(materialSystem, frw::ShaderTypeWard);
+		//specular1.SetValue("color", materialSystem.ValueMul(ml_specular1_v, ml_specular_level1_v));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, materialSystem.ValueMul(ml_specular1_v, ml_specular_level1_v));
 		auto roughness1 = StdMat2_glossinessToRoughness(ml_glossiness1_v);
-		specular1.SetValue("roughness_y", roughness1);
-		specular1.SetValue("roughness_x", materialSystem.ValueMul(roughness1, materialSystem.ValueSub(frw::Value(1.0), ml_anisotropy1_v)));
-		specular1.SetValue("rotation", ml_orientation1_v);
-		specular1.SetValue("normal", normal);
+		//specular1.SetValue("roughness_y", roughness1);
+		//specular1.SetValue("roughness_x", materialSystem.ValueMul(roughness1, materialSystem.ValueSub(frw::Value(1.0), ml_anisotropy1_v)));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, roughness1);
+		//specular1.SetValue("rotation", ml_orientation1_v);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY, ml_orientation1_v);
+		//specular1.SetValue("normal", normal);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, frw::Value(0.5, 0.5, 0.5));
 
-		frw::Shader specular2(materialSystem, frw::ShaderTypeWard);
-		specular2.SetValue("color", materialSystem.ValueMul(ml_specular2_v, ml_specular_level2_v));
+		//frw::Shader specular2(materialSystem, frw::ShaderTypeWard);
+		//specular2.SetValue("color", materialSystem.ValueMul(ml_specular2_v, ml_specular_level2_v));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, materialSystem.ValueMul(ml_specular2_v, ml_specular_level2_v));
 		auto roughness2 = StdMat2_glossinessToRoughness(ml_glossiness2_v);
-		specular2.SetValue("roughness_y", roughness2);
-		specular2.SetValue("roughness_x", materialSystem.ValueMul(roughness2, materialSystem.ValueSub(frw::Value(1.0), ml_anisotropy2_v)));
-		specular2.SetValue("rotation", ml_orientation2_v);
-		specular2.SetValue("normal", normal);
+		//specular2.SetValue("roughness_y", roughness2);
+		//specular2.SetValue("roughness_x", materialSystem.ValueMul(roughness2, materialSystem.ValueSub(frw::Value(1.0), ml_anisotropy2_v)));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, roughness2);
+		//specular2.SetValue("rotation", ml_orientation2_v);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION, ml_orientation2_v);
+		//specular2.SetValue("normal", normal);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, frw::Value(0.5, 0.5, 0.5));
 
-		frw::Shader specular = materialSystem.ShaderBlend(specular1, specular2, frw::Value(0.5, 0.5, 0.5, 0.5));
-		result = materialSystem.ShaderBlend(result, specular, frw::Value(0.5, 0.5, 0.5, 0.5));
+		//frw::Shader specular = materialSystem.ShaderBlend(specular1, specular2, frw::Value(0.5, 0.5, 0.5, 0.5));
+		//result = materialSystem.ShaderBlend(result, specular, frw::Value(0.5, 0.5, 0.5, 0.5));
 	}
 	else if (shaderClassName == L"Oren-Nayar-Blinn")
 	{
@@ -1276,65 +1306,85 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 			//onb_soften?
 			STDMAT2_PBVALUETEX(onb_roughness)
 
-			result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
+			//result = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
 
 		diffuseColor = materialSystem.ValueMul(diffuseColor, onb_diffuse_level_v);
-		result.SetValue("color", diffuseColor);
-		result.SetValue("roughness", onb_roughness_v);
+		//result.SetValue("color", diffuseColor);
+		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, diffuseColor);
+		//result.SetValue("roughness", onb_roughness_v);
+		//shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, onb_roughness_v);
 
 		auto ior = mtl->GetIOR(this->mT);
 		specularColor = materialSystem.ValueMul(specularColor, onb_specular_level_v);
 
-		frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
-		shader.SetValue("color", specularColor);
-		shader.SetValue("normal", normal);
-		shader.SetValue("ior", frw::Value(ior));
-		shader.SetValue("roughness", materialSystem.ValueMul(onb_roughness_v, StdMat2_glossinessToRoughness(onb_glossiness_v)));
+		//frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
+		//shader.SetValue("color", specularColor);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, specularColor);
+		//shader.SetValue("normal", normal);
+		//shader.SetValue("ior", frw::Value(ior));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_IOR, frw::Value(ior));
+		//shader.SetValue("roughness", materialSystem.ValueMul(onb_roughness_v, StdMat2_glossinessToRoughness(onb_glossiness_v)));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, materialSystem.ValueMul(onb_roughness_v, StdMat2_glossinessToRoughness(onb_glossiness_v)));
 
-		result = materialSystem.ShaderBlend(result, shader, frw::Value(0.5, 0.5, 0.5));
+		//result = materialSystem.ShaderBlend(result, shader, frw::Value(0.5, 0.5, 0.5));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, frw::Value(0.5, 0.5, 0.5));
 	}
 	else if (shaderClassName == L"Strauss")
 	{
 		STDMAT2_PBVALUETEX(st_glossiness)
 			STDMAT2_PBVALUETEX(st_metalness)
 
-			frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
-		shader.SetValue("color", materialSystem.ValueAdd(materialSystem.ValueMul(diffuseColor, st_metalness_v), materialSystem.ValueMul(frw::Value(1.0, 1.0, 1.0, 1.0), materialSystem.ValueSub(1.0, st_metalness_v))));
-		shader.SetValue("normal", normal);
-		shader.SetValue("ior", frw::Value(mtl->GetIOR(this->mT)));
-		shader.SetValue("roughness", StdMat2_glossinessToRoughness(st_glossiness_v));
-		result = materialSystem.ShaderBlend(shader, result, st_metalness_v);
+			//frw::Shader shader(materialSystem, frw::ShaderTypeMicrofacet);
+		//shader.SetValue("color", materialSystem.ValueAdd(materialSystem.ValueMul(diffuseColor, st_metalness_v), materialSystem.ValueMul(frw::Value(1.0, 1.0, 1.0, 1.0), materialSystem.ValueSub(1.0, st_metalness_v))));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, materialSystem.ValueAdd(materialSystem.ValueMul(diffuseColor, st_metalness_v), materialSystem.ValueMul(frw::Value(1.0, 1.0, 1.0, 1.0), materialSystem.ValueSub(1.0, st_metalness_v))));
+		//shader.SetValue("normal", normal);
+		//shader.SetValue("ior", frw::Value(mtl->GetIOR(this->mT)));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_IOR, frw::Value(mtl->GetIOR(this->mT)));
+		//shader.SetValue("roughness", StdMat2_glossinessToRoughness(st_glossiness_v));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, StdMat2_glossinessToRoughness(st_glossiness_v));
+		//result = materialSystem.ShaderBlend(shader, result, st_metalness_v);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, st_metalness_v);
 	}
 	else if (shaderClassName == L"Translucent Shader")
 	{
-		STDMAT2_PBVALUETEX(tl_diffuse_level)
-			STDMAT2_PBVALUETEX(tl_glossiness)
-			STDMAT2_PBVALUETEX(tl_specular_level)
-			STDMAT2_PBCOLORTEX(tl_translucent_color)
-			STDMAT2_PBCOLORTEX(tl_filter)
+	STDMAT2_PBVALUETEX(tl_diffuse_level)
+		STDMAT2_PBVALUETEX(tl_glossiness)
+		STDMAT2_PBVALUETEX(tl_specular_level)
+		STDMAT2_PBCOLORTEX(tl_translucent_color)
+		STDMAT2_PBCOLORTEX(tl_filter)
 
-			result.SetValue("color", tl_translucent_color_v);
+		//result.SetValue("color", tl_translucent_color_v);
+		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, tl_translucent_color_v);
 
-		frw::Shader microfacet(materialSystem, frw::ShaderTypeMicrofacet);
-		microfacet.SetValue("color", materialSystem.ValueMul(diffuseColor, tl_diffuse_level_v));
-		microfacet.SetValue("normal", normal);
-		microfacet.SetValue("ior", frw::Value(1.5));
-		microfacet.SetValue("roughness", frw::Value(0.4));
+		//frw::Shader microfacet(materialSystem, frw::ShaderTypeMicrofacet);
+		//microfacet.SetValue("color", materialSystem.ValueMul(diffuseColor, tl_diffuse_level_v));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_COLOR, materialSystem.ValueMul(diffuseColor, tl_diffuse_level_v));
+		//microfacet.SetValue("normal", normal);
+		//microfacet.SetValue("ior", frw::Value(1.5));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_IOR, frw::Value(1.5));
+		//microfacet.SetValue("roughness", frw::Value(0.4));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, frw::Value(0.4));
 
-		result = materialSystem.ShaderBlend(result, microfacet, 0.5);
+		//result = materialSystem.ShaderBlend(result, microfacet, 0.5);
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT, 0.5);
 
-		frw::Shader filter(materialSystem, frw::ShaderTypeTransparent);
-		filter.SetValue("color", tl_filter_v);
+		//frw::Shader filter(materialSystem, frw::ShaderTypeTransparent);
+		//filter.SetValue("color", tl_filter_v);
 
-		result = materialSystem.ShaderBlend(result, filter, opacityLevel);
+		//result = materialSystem.ShaderBlend(result, filter, opacityLevel);
+		shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, opacityLevel);
 
-		frw::Shader specular(materialSystem, frw::ShaderTypeMicrofacet);
-		specular.SetValue("color", materialSystem.ValueMul(specularColor, tl_specular_level_v));
-		specular.SetValue("normal", normal);
-		specular.SetValue("ior", frw::Value(1.5));
-		specular.SetValue("roughness", StdMat2_glossinessToRoughness(tl_glossiness_v));
+		//frw::Shader specular(materialSystem, frw::ShaderTypeMicrofacet);
+		//specular.SetValue("color", materialSystem.ValueMul(specularColor, tl_specular_level_v));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, materialSystem.ValueMul(specularColor, tl_specular_level_v));
+		//specular.SetValue("normal", normal);
+		//specular.SetValue("ior", frw::Value(1.5));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_IOR, frw::Value(1.5));
+		//specular.SetValue("roughness", StdMat2_glossinessToRoughness(tl_glossiness_v));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, StdMat2_glossinessToRoughness(tl_glossiness_v));
 
-		result = materialSystem.ShaderBlend(result, specular, frw::Value(0.5));
+		//result = materialSystem.ShaderBlend(result, specular, frw::Value(0.5));
+		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, frw::Value(0.5));
 
 		translucent_material = true;
 	}
@@ -1347,15 +1397,17 @@ frw::Shader MaterialParser::parseStdMat2(StdMat2* mtl)
 		if (opacity < 1.f || opacityMap)
 		{
 			frw::Value filterColor = getValue(getMap(mtl, ID_FI), mtl->GetFilter(this->mT));
-			frw::Shader transp_shader(materialSystem, frw::ShaderTypeTransparent);
+			//frw::Shader transp_shader(materialSystem, frw::ShaderTypeTransparent);
 			//transp_shader.SetValue("color", filterColor);
 			//transp_shader.SetValue("color", materialSystem.ValueMul(materialSystem.ValueSub(1.f, opacityLevel), filterColor));
-			transp_shader.SetValue("color", materialSystem.ValueSub(1.f, opacityLevel));
-			result = materialSystem.ShaderBlend(result, transp_shader, materialSystem.ValueSub(1.f, opacityLevel));
+			//transp_shader.SetValue("color", materialSystem.ValueSub(1.f, opacityLevel));
+			//result = materialSystem.ShaderBlend(result, transp_shader, materialSystem.ValueSub(1.f, opacityLevel));
+			shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, materialSystem.ValueSub(1.f, opacityLevel));
 		}
 	}
 
-	return result;
+	//return result;
+	return shader;
 }
 
 frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
@@ -1533,7 +1585,8 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	Roughness = materialSystem.ValueSub(1.0, materialSystem.ValueMul(materialSystem.ValueSub(1.0, Affect), materialSystem.ValueSub(1.0, Roughness)));
 
 	// BASE COLOR (DIFFUSE)
-	frw::Shader BaseShader = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
+	//frw::Shader BaseShader = frw::Shader(materialSystem, frw::ShaderTypeOrenNayer);
+	frw::Shader BaseShader(mScope.GetContext(), mScope.GetContextEx(), RPRX_MATERIAL_UBER);
 
 	frw::Value BaseColorWeight;
 	if (base_weight_map_on && base_weight_map)
@@ -1551,12 +1604,14 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 
 	frw::Value BaseRoughness(diff_roughness, diff_roughness, diff_roughness);
 
-	BaseShader.SetValue("roughness", BaseRoughness);
+	//BaseShader.SetValue("roughness", BaseRoughness);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, BaseRoughness);
 
-	BaseShader.SetValue("normal", BaseBumpMap);
+	//BaseShader.SetValue("normal", BaseBumpMap);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_NORMAL, BaseBumpMap);
 
 	// TRANSPARENCY
-	frw::Shader RefrShader = frw::Shader(materialSystem, frw::ShaderTypeMicrofacetRefraction);
+	//frw::Shader RefrShader = frw::Shader(materialSystem, frw::ShaderTypeMicrofacetRefraction);
 
 	frw::Value RefrWeight;
 	if (transparency_map_on && transparency_map)
@@ -1589,16 +1644,20 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	else
 		RefrIor = frw::Value(trans_ior, trans_ior, trans_ior);
 
-	RefrShader.SetValue("color", RefrColor);
-	RefrShader.SetValue("roughness", RefrRoughness);
-	RefrShader.SetValue("ior", thin_walled ? frw::Value(1.05, 1.05, 1.05) : RefrIor);
-	RefrShader.SetValue("normal", BaseBumpMap);
+	//RefrShader.SetValue("color", RefrColor);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_COLOR, RefrColor);
+	//RefrShader.SetValue("roughness", RefrRoughness);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, RefrRoughness);
+	//RefrShader.SetValue("ior", thin_walled ? frw::Value(1.05, 1.05, 1.05) : RefrIor);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_IOR, thin_walled ? frw::Value(1.05, 1.05, 1.05) : RefrIor);
+	//RefrShader.SetValue("normal", BaseBumpMap);
 
 	// COMBINE DIFFUSE AND REFRACTION
-	frw::Shader DiffRefrShader = materialSystem.ShaderBlend(BaseShader, RefrShader, RefrWeight);
+	//frw::Shader DiffRefrShader = materialSystem.ShaderBlend(BaseShader, RefrShader, RefrWeight);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT, RefrWeight);
 
 	// REFLECTIONS
-	frw::Shader ReflShader(materialSystem, frw::ShaderTypeWard);
+	//frw::Shader ReflShader(materialSystem, frw::ShaderTypeWard);
 
 	frw::Value ReflWeight;
 	if (reflectivity_map_on && reflectivity_map)
@@ -1627,10 +1686,13 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 
 	//aniso_mode
 
-	ReflShader.SetValue("rotation", AnisoAngle);
-	ReflShader.SetValue("roughness_y", Roughness);
-	ReflShader.SetValue("roughness_x", materialSystem.ValueMul(Anisotropy, Roughness));
-	ReflShader.SetValue("normal", BaseBumpMap);
+	//ReflShader.SetValue("rotation", AnisoAngle);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY, Anisotropy);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION, AnisoAngle);
+	//ReflShader.SetValue("roughness_y", Roughness);
+	//ReflShader.SetValue("roughness_x", materialSystem.ValueMul(Anisotropy, Roughness));
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, Roughness);
+	//ReflShader.SetValue("normal", BaseBumpMap);
 
 	// COMBINE DIFFUSE-REFRACTION WITH REFLECTION
 	frw::Value ReflBlendWeight;
@@ -1648,19 +1710,27 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		ReflBlendWeight = materialSystem.ValueMul(ReflBlendWeight, materialSystem.ValueAdd(materialSystem.ValueMul(high, edge_level), materialSystem.ValueMul(low, materialSystem.ValueSub(1.0, edge_level))));
 	}
 
-	ReflShader.SetValue("color", ReflColor);
+	//ReflShader.SetValue("color", ReflColor);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, ReflColor);
 
-	frw::Shader DiffRefrReflShader = materialSystem.ShaderBlend(DiffRefrShader, ReflShader, materialSystem.ValueMul(ReflWeight, ReflBlendWeight));
+	//frw::Shader DiffRefrReflShader = materialSystem.ShaderBlend(DiffRefrShader, ReflShader, materialSystem.ValueMul(ReflWeight, ReflBlendWeight));
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, ReflBlendWeight);
 
 
 	// METALLIC
-	frw::Shader ReflShaderM(materialSystem, frw::ShaderTypeWard);
-	ReflShaderM.SetValue("color", BaseColor);
-	ReflShaderM.SetValue("rotation", AnisoAngle);
-	ReflShaderM.SetValue("roughness_y", Roughness);
-	ReflShaderM.SetValue("roughness_x", materialSystem.ValueMul(Anisotropy, Roughness));
-	ReflShaderM.SetValue("normal", BaseBumpMap);
-	frw::Shader MetallicShader = materialSystem.ShaderBlend(ReflShaderM, ReflShader, materialSystem.ValueMul(ReflWeight, ReflBlendWeight));
+	//frw::Shader ReflShaderM(materialSystem, frw::ShaderTypeWard);
+	BaseShader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_METALNESS);
+	//ReflShaderM.SetValue("color", BaseColor);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, BaseColor);
+	//ReflShaderM.SetValue("rotation", AnisoAngle);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY, Anisotropy);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ANISOTROPY_ROTATION, AnisoAngle);
+	//ReflShaderM.SetValue("roughness_y", Roughness);
+	//ReflShaderM.SetValue("roughness_x", materialSystem.ValueMul(Anisotropy, Roughness));
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, Roughness);
+	//ReflShaderM.SetValue("normal", BaseBumpMap);
+	//frw::Shader MetallicShader = materialSystem.ShaderBlend(ReflShaderM, ReflShader, materialSystem.ValueMul(ReflWeight, ReflBlendWeight));
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, materialSystem.ValueMul(ReflBlendWeight, ReflWeight));
 
 	// COMBINE BASE AND METALLIC
 	frw::Value Metalness;
@@ -1670,10 +1740,11 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 	}
 	else
 		Metalness = frw::Value(metalness, metalness, metalness);
-	frw::Shader DiffRefrReflMetallicShader = materialSystem.ShaderBlend(DiffRefrReflShader, MetallicShader, Metalness);
+	//frw::Shader DiffRefrReflMetallicShader = materialSystem.ShaderBlend(DiffRefrReflShader, MetallicShader, Metalness);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, Metalness);
 
 	// CLEAR COAT
-	frw::Shader CoatShader(materialSystem, frw::ShaderTypeMicrofacet);
+	//frw::Shader CoatShader(materialSystem, frw::ShaderTypeMicrofacet);
 
 	frw::Value CoatColor;
 	if (coat_color_map_on && coat_color_map)
@@ -1683,26 +1754,30 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 
 	frw::Value CoatIor(coat_ior, coat_ior, coat_ior);
 
-	CoatShader.SetValue("roughness", CoatRoughness);
-	CoatShader.SetValue("color", frw::Value(1.f, 1.f, 1.f));
+	//CoatShader.SetValue("roughness", CoatRoughness);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_COATING_ROUGHNESS, CoatRoughness);
+	//CoatShader.SetValue("color", frw::Value(1.f, 1.f, 1.f));
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_COATING_COLOR, frw::Value(1.f, 1.f, 1.f));
 
 	frw::Value CoatBumpMap;
 	if (coat_bump_map_on && coat_bump_map)
 	{
 		CoatBumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, coat_bump_map, clearcoat_bump_map_amt, *this);
 	}
-	CoatShader.SetValue("normal", CoatBumpMap);
+	//CoatShader.SetValue("normal", CoatBumpMap);
 
 	BaseColor = materialSystem.ValueBlend(BaseColor, materialSystem.ValueMul(BaseColor, CoatColor), CoatWeight);
-	BaseShader.SetValue("color", BaseColor);
+	//BaseShader.SetValue("color", BaseColor);
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, BaseColor);
 
 	// COMBINE COAT IN
-	frw::Shader DiffRefrReflCoatShader = materialSystem.ShaderBlend(DiffRefrReflMetallicShader, CoatShader, materialSystem.ValueMul(materialSystem.ValueFresnel(CoatIor), CoatWeight));
+	//frw::Shader DiffRefrReflCoatShader = materialSystem.ShaderBlend(DiffRefrReflMetallicShader, CoatShader, materialSystem.ValueMul(materialSystem.ValueFresnel(CoatIor), CoatWeight));
+	BaseShader.xSetValue(RPRX_UBER_MATERIAL_COATING_WEIGHT, CoatWeight);
 
 	// EMISSION
 	if ((emission_map_on && emission_map) || (emission > 0.f))
 	{
-		frw::EmissiveShader EmissionShader(materialSystem);
+		//frw::EmissiveShader EmissionShader(materialSystem);
 
 		frw::Value Emission;
 		if (emission_map_on && emission_map)
@@ -1725,15 +1800,17 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		EmissionColor = materialSystem.ValueMul(EmissionColor, EmissionTemperature);
 		EmissionColor = materialSystem.ValueMul(EmissionColor, EmissionLuminance);
 
-		EmissionShader.SetColor(EmissionColor);
+		//EmissionShader.SetColor(EmissionColor);
+		BaseShader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_COLOR, EmissionColor);
 
 		// COMBINE EMISSION
 
-		DiffRefrReflCoatShader = materialSystem.ShaderBlend(DiffRefrReflCoatShader, EmissionShader, Emission);
+		//DiffRefrReflCoatShader = materialSystem.ShaderBlend(DiffRefrReflCoatShader, EmissionShader, Emission);
+		BaseShader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, Emission);
 	}
 
 	// CUTOUT
-	frw::Shader FinalShader = DiffRefrReflCoatShader;
+	/*frw::Shader FinalShader = DiffRefrReflCoatShader;
 	if (cutout_map_on && cutout_map)
 	{
 		frw::Shader Transp(materialSystem, frw::ShaderTypeTransparent);
@@ -1742,7 +1819,7 @@ frw::Shader MaterialParser::parsePhysicalMaterial(Mtl* mtl)
 		FinalShader = materialSystem.ShaderBlend(Transp, FinalShader, map);
 	}
 
-	return FinalShader;
+	return FinalShader;*/
 
 
 	return BaseShader;
@@ -2147,8 +2224,8 @@ frw::Value MaterialParser::getTexmapUV(Texmap *texmap, bool noDefault)
 
 		uvwSrc = uvGen->GetUVWSource();
 
-		if (uvwSrc == UVWSRC_EXPLICIT)
-			uv = materialSystem.ValueLookupUV(uvGen->GetMapChannel() - 1);
+		/*if (uvwSrc == UVWSRC_EXPLICIT)
+			uv = materialSystem.ValueLookupUV(uvGen->GetMapChannel() - 1);*/
 
 		uvGen->GetUVTransform(tm);
 	}
@@ -2973,8 +3050,8 @@ frw::Value MaterialParser::createTextureMap(Texmap *texmap, int flags)
 			frw::ImageNode node(materialSystem);
 			node.SetMap(image);
 
-			if (auto uv = getTexmapUV(texmap))
-				node.SetValue("uv", getTexmapUV(texmap));
+			/*if (auto uv = getTexmapUV(texmap))
+				node.SetValue("uv", getTexmapUV(texmap));*/
 			v = node;
 
 			if (auto output = map->GetTexout())
@@ -3138,7 +3215,7 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 	frw::Value blendVal;
 
 	frw::Value dotValue(1.0);
-	frw::Value n(materialSystem.ValueLookupN());
+	//frw::Value n(materialSystem.ValueLookupN());
 
 	frw::Value dir(1, 0, 0);
 	frw::Value org(0, 0, 0);
@@ -3184,8 +3261,8 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 	case FalloffDirection::CameraZ:
 		org = shaderData.mCameraTransform.GetRow(3);
 		// note that these values are only the same in ortho mode. For correct materials invec is better
-		//dir = shaderData.cameraTransform.GetRow(2); 
-		dir = materialSystem.ValueLookupINVEC();
+		dir = shaderData.mCameraTransform.GetRow(2); 
+		//dir = materialSystem.ValueLookupINVEC();
 		break;
 
 	default:
@@ -3196,7 +3273,7 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 	switch (type)
 	{
 	case FalloffType::TowAway:
-		dotValue = materialSystem.ValueDot(n, dir);
+		//dotValue = materialSystem.ValueDot(n, dir);
 		dotValue = materialSystem.ValueMul(dotValue, 0.5);
 		dotValue = materialSystem.ValueAdd(dotValue, 0.5);
 		break;
@@ -3219,7 +3296,7 @@ frw::Value MaterialParser::createFalloffMap(Texmap *texmap)
 
 	case FalloffType::PerpPar:
 	default:
-		dotValue = materialSystem.ValueDot(n, dir);
+		//dotValue = materialSystem.ValueDot(n, dir);
 		dotValue = materialSystem.ValueAbs(dotValue);
 		break;
 	}

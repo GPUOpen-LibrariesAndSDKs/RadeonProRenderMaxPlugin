@@ -61,11 +61,11 @@
 
 #ifdef FIREMAX_DEBUG
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RadeonProRender64.lib") // no 'D' suffix as no debug lib supplied
-#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
+//#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprSupport64.lib")
 #else
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RadeonProRender64.lib") 
-#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
+//#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprSupport64.lib")
 #endif
 
@@ -219,11 +219,11 @@ EXPORT_TO_MAX int LibInitialize()
 
 	std::vector<HelperBinaryDescriptor> helperBinaryDescriptors =
 	{
-		{ L"Tahoe64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		//{ L"Tahoe64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"RadeonProRender64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"RprSupport64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
-		{ L"RprLoadStore64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL }, // Dependent on "RprSupport64.dll"
-		{ L"OpenImageIO_RPR.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		//{ L"RprLoadStore64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL }, // Dependent on "RprSupport64.dll"
+		{ L"OpenImageIO.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 
 		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 	

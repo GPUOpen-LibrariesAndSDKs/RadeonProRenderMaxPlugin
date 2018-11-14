@@ -92,7 +92,7 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Te
 		frw::Value normalMap = mtlParser.createMap(bumpMap, MAP_FLAG_NORMALMAP);
 
 		// create the actual shader node
-		if (normalMap)
+		/*if (normalMap)
 		{
 			frw::BumpMapNode node(mtlParser.materialSystem);
 
@@ -100,7 +100,8 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::translateGenericBump(const TimeValue t, Te
 			node.SetValue("bumpscale", frw::Value(strength));
 
 			return node;
-		}
+		}*/
+		return normalMap;
 	}
 
 	return mtlParser.materialSystem.ValueLookupN();
@@ -136,7 +137,7 @@ frw::Value FRMTLCLASSNAME(NormalMtl)::getShader(const TimeValue t, MaterialParse
 			res = node;
 		}
 
-		res.SetValue("bumpscale", frw::Value(weight));
+		//res.SetValue("bumpscale", frw::Value(weight));
 
 		return res;
 	}

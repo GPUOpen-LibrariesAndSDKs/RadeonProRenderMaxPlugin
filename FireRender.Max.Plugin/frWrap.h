@@ -715,12 +715,12 @@ namespace frw
 
 		void SetPrimaryVisibility(bool visible)
 		{
-#if RPR_API_VERSION >= 0x010032000
-			rpr_int res = rprShapeSetVisibilityFlag(Handle(), RPR_SHAPE_VISIBILITY_PRIMARY_ONLY_FLAG, visible);
-#else
-			rpr_int res = rprShapeSetVisibilityPrimaryOnly(Handle(), visible);
-#endif
-			FCHECK(res);
+//#if RPR_API_VERSION >= 0x010032000
+//			rpr_int res = rprShapeSetVisibilityFlag(Handle(), RPR_SHAPE_VISIBILITY_PRIMARY_ONLY_FLAG, visible);
+//#else
+//			rpr_int res = rprShapeSetVisibilityPrimaryOnly(Handle(), visible);
+//#endif
+//			FCHECK(res);
 		}
 
 		void SetReflectionVisibility(bool visible)
@@ -1550,8 +1550,8 @@ namespace frw
 		Value ValueAmbientOcclusion( const Value& radius, const Value& side) const
 		{
 			ValueNode node(*this, ValueTypeAOMap);
-			node.SetValue("radius", radius);
-			node.SetValue("side", side);
+			/*node.SetValue("radius", radius);
+			node.SetValue("side", side);*/
 			return node;
 		}
 

@@ -129,7 +129,8 @@ public:
 
 	frw::Value getValue(Texmap* input, frw::Value orValue = frw::Value())
 	{
-		return createMap(input, 0) | orValue;
+		//return createMap(input, 0) | orValue;
+		return orValue;
 	}
 
 	static Texmap* getTexture(Mtl* mtl, int id)

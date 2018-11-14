@@ -58,8 +58,10 @@ FRMTLCLASSNAME(MicrofacetMtl)::~FRMTLCLASSNAME(MicrofacetMtl)()
 frw::Shader FRMTLCLASSNAME(MicrofacetMtl)::getShader(const TimeValue t, MaterialParser& mtlParser, INode* node)
 {
 	auto ms = mtlParser.materialSystem;
+	auto scope = mtlParser.GetScope();
 
-	frw::Shader material;
+	//frw::Shader material;
+	frw::Shader material(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);
 		
 	Texmap* normalTexmap = GetFromPb<Texmap*>(pblock, FRMicrofacetMtl_NORMALMAP);
 	const Color diffuseColor = GetFromPb<Color>(pblock, FRMicrofacetMtl_COLOR);
@@ -70,13 +72,14 @@ frw::Shader FRMTLCLASSNAME(MicrofacetMtl)::getShader(const TimeValue t, Material
 	frw::Value roughnessv(roughness, roughness, roughness);
 	if (roughnessTexmap)
 	{
-		material = frw::Shader(ms, frw::ShaderTypeMicrofacet);
+		//material = frw::Shader(ms, frw::ShaderTypeMicrofacet);
 		roughnessv = mtlParser.createMap(roughnessTexmap, MAP_FLAG_NOGAMMA);
-		material.SetValue("roughness", roughnessv);
+		//material.SetValue("roughness", roughnessv);
+		material.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, roughnessv);
 	}
 	else
 	{
-		if (roughness == 0.f)
+		/*if (roughness == 0.f)
 			material = frw::Shader(ms, frw::ShaderTypeReflection);
 		else if (roughness == 1.f)
 			material = frw::Shader(ms, frw::ShaderTypeDiffuse);
@@ -84,16 +87,20 @@ frw::Shader FRMTLCLASSNAME(MicrofacetMtl)::getShader(const TimeValue t, Material
 		{
 			material = frw::Shader(ms, frw::ShaderTypeMicrofacet);
 			material.SetValue("roughness", roughnessv);
-		}
+		}*/
+		/*if (roughness != 0.f && roughness != 1.f)
+			material.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, roughnessv);*/
 	}
 	
 	frw::Value color(diffuseColor.r, diffuseColor.g, diffuseColor.b);
 	if (diffuseTexmap)
 		color = mtlParser.createMap(diffuseTexmap, 0);
-	material.SetValue("color", color);
+	//material.SetValue("color", color);
+	material.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, color);
 
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		//material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

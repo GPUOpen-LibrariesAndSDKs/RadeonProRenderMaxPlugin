@@ -107,7 +107,7 @@ private:
 	
 	RenderParameters parameters;
 		
-	void InitializeScene(IParamBlock2 *pblock);
+	//void InitializeScene(IParamBlock2 *pblock);
 
 	void SetMaterial(SceneParser &parser, frw::Shader volumeShader, frw::Shader surfaceShader, bool castShadows, bool env);
 	void SetDisplacement(SceneParser &parser, frw::Value img, const float &minHeight, const float &maxHeight,

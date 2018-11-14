@@ -20,7 +20,7 @@
 #include "FireRenderMaterialMtl.h"
 #include "ScopeManager.h"
 #include "RadeonProRender.h"
-#include "RprLoadStore.h"
+//#include "RprLoadStore.h"
 
 #include <thread>
 
@@ -71,7 +71,7 @@ void MPManagerMax::DeleteThis()
 
 namespace
 {
-	bool importFRS(const char* filename, rpr_context& _context, rpr_scene &_scene, rpr_material_system &matsys)
+	/*bool importFRS(const char* filename, rpr_context& _context, rpr_scene &_scene, rpr_material_system &matsys)
 	{
 		rpr_int status = rprsImport(filename, _context, matsys, &_scene, false);
 		if (status == RPR_SUCCESS)
@@ -82,7 +82,7 @@ namespace
 		{
 			return false;
 		}
-	}
+	}*/
 };
 
 bool MPManagerMax::Abort()
@@ -207,7 +207,8 @@ int MPManagerMax::Render(FireRenderer *renderer, TimeValue t, ::Bitmap* tobm, Fr
 		prog->SetTitle(_T("Material Preview: Creating Radeon ProRender context..."));
 
 	if (matballScopeID == -1)
-		InitializeScene(pblock);
+		//InitializeScene(pblock);
+		printf("matballScopeID is -1\n");
 	else
 		setVisible(curObject);
 	
@@ -455,118 +456,118 @@ void MPManagerMax::setVisible(int whichObject)
 	}
 }
 
-void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
-{
-	matballScopeID = ScopeManagerMax::TheManager.CreateScope(pblock);
-	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
-		
-	auto _ms = scope.GetMaterialSystem().Handle();
-	auto _context = scope.GetContext().Handle();
-	rpr_scene _scene = nullptr;
-
-	std::wstring pluginPath = GetModuleFolder();
-
-	// getting the root folder of plugin
-	std::wstring::size_type pos = pluginPath.find(L"plug-ins");
-
-	if (std::wstring::npos == pos)
-	{
-		return;
-	}
-
-	std::wstring pluginFolder = pluginPath.substr(0, pos);
-	std::wstring dataFolder = pluginFolder + L"data\\";
-
-	const std::string thumbnail = ToAscii(dataFolder) + "matball.frs";
-
-	bool ires = importFRS(thumbnail.c_str(), _context, _scene, _ms);
-	
-	if (!ires)
-	{
-		MessageBoxA(GetCOREInterface()->GetMAXHWnd(), (std::string("Load failed: ") + thumbnail).c_str(), "error", MB_OK | MB_ICONERROR);
-		_scene = scope.GetScene().Handle();
-	}
-	else
-	{
-		int nbImages = 0;
-		int nbMaterials = 0;
-		int nbShapes = 0;
-		int nbLights = 0;
-		int nbCameras = 0;
-
-		rpr_int status = rprsListImportedImages(NULL, 0, &nbImages); FCHECK(status);
-		imageList.resize(nbImages);
-		status = rprsListImportedImages(imageList.data(), sizeof(fr_image)*nbImages, NULL); FCHECK(status);
-		
-		status = rprsListImportedShapes(NULL, 0, &nbShapes); FASSERT(status == RPR_SUCCESS);
-		shapeList.resize(nbShapes);
-		status = rprsListImportedShapes(shapeList.data(), sizeof(rpr_shape)*nbShapes, NULL); FCHECK(status);
-
-		status = rprsListImportedMaterialNodes(NULL, 0, &nbMaterials); FCHECK(status);
-		materialList.resize(nbMaterials);
-		status = rprsListImportedMaterialNodes(materialList.data(), sizeof(rpr_material_node)*nbMaterials, NULL); FCHECK(status);
-
-		status = rprsListImportedLights(NULL, 0, &nbLights); FCHECK(status);
-		lightList.resize(nbLights);
-		status = rprsListImportedLights(lightList.data(), sizeof(rpr_light)*nbLights, NULL); FCHECK(status);
-
-		status = rprsListImportedCameras(NULL, 0, &nbCameras); FCHECK(status);
-		cameraList.resize(nbCameras);
-		status = rprsListImportedCameras(cameraList.data(), sizeof(rpr_camera)*nbCameras, NULL); FCHECK(status);
-				
-		scope.SetScene(frw::Scene(_scene, scope.GetContext()));
-	}
-
-	for (auto shape : shapeList)
-	{
-		rpr_shape_type type;
-		rpr_int res = rprShapeGetInfo(shape, RPR_SHAPE_TYPE, sizeof(rpr_shape_type), &type, NULL); FCHECK(res);
-		if (type == RPR_SHAPE_TYPE_MESH)
-		{
-			frw::Shape shape(shape, scope.GetContext(), false);
-			uint64_t  vertex_count = 0;
-			res = rprMeshGetInfo(shape.Handle(), RPR_MESH_VERTEX_COUNT, sizeof(vertex_count), &vertex_count, NULL); FCHECK(res);
-			// FR does not support names or anything else that can identify an object
-			// so we need to identify objects by other hardcoded features such as number of vertices (sigh)
-			if (vertex_count == 7188)
-				scope.SetShape(BallShape1, shape);
-			else if (vertex_count == 2306)
-				scope.SetShape(BallShape2, shape);
-			else if (vertex_count == 4672)
-				scope.SetShape(BallShape3, shape);
-			else if (vertex_count == 20)
-				scope.SetShape(BackgroundShape, shape);
-			else if (vertex_count == 8)
-				scope.SetShape(CubeShape, shape);
-			else if (vertex_count == 98)
-				scope.SetShape(CylinderShape, shape);
-			else if (vertex_count == 1106)
-				scope.SetShape(SphereShape, shape);
-		}
-	}
-
-	if (!scope.GetShader(DiffuseMaterial))
-	{
-		frw::DiffuseShader shader(scope.GetMaterialSystem());
-		shader.SetColor(0.9);
-		scope.SetShader(DiffuseMaterial, shader);
-	}
-
-	for (auto shapeId : { BallShape1, BallShape2, BallShape3, SphereShape, CylinderShape, CubeShape })
-		scope.GetShape(shapeId).SetShader(scope.GetShader(DiffuseMaterial));
-
-	if (!scope.GetShader(TexturedBgMaterial))
-	{
-		rpr_material_node textured_bg = nullptr;
-		auto res = rprShapeGetInfo(scope.GetShape(BackgroundShape).Handle(), RPR_SHAPE_MATERIAL, sizeof(textured_bg), &textured_bg, nullptr);
-		FCHECK(res);
-		scope.GetShape(BackgroundShape).SetShader(scope.GetShader(DiffuseMaterial));
-		frw::Shader shader(textured_bg, scope.GetMaterialSystem(), false);
-		scope.SetShader(TexturedBgMaterial, shader);
-	}
-
-	setVisible(curObject);
-}
+//void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
+//{
+//	matballScopeID = ScopeManagerMax::TheManager.CreateScope(pblock);
+//	frw::Scope scope = ScopeManagerMax::TheManager.GetScope(matballScopeID);
+//		
+//	auto _ms = scope.GetMaterialSystem().Handle();
+//	auto _context = scope.GetContext().Handle();
+//	rpr_scene _scene = nullptr;
+//
+//	std::wstring pluginPath = GetModuleFolder();
+//
+//	// getting the root folder of plugin
+//	std::wstring::size_type pos = pluginPath.find(L"plug-ins");
+//
+//	if (std::wstring::npos == pos)
+//	{
+//		return;
+//	}
+//
+//	std::wstring pluginFolder = pluginPath.substr(0, pos);
+//	std::wstring dataFolder = pluginFolder + L"data\\";
+//
+//	const std::string thumbnail = ToAscii(dataFolder) + "matball.frs";
+//
+//	bool ires = importFRS(thumbnail.c_str(), _context, _scene, _ms);
+//	
+//	if (!ires)
+//	{
+//		MessageBoxA(GetCOREInterface()->GetMAXHWnd(), (std::string("Load failed: ") + thumbnail).c_str(), "error", MB_OK | MB_ICONERROR);
+//		_scene = scope.GetScene().Handle();
+//	}
+//	else
+//	{
+//		int nbImages = 0;
+//		int nbMaterials = 0;
+//		int nbShapes = 0;
+//		int nbLights = 0;
+//		int nbCameras = 0;
+//
+//		rpr_int status = rprsListImportedImages(NULL, 0, &nbImages); FCHECK(status);
+//		imageList.resize(nbImages);
+//		status = rprsListImportedImages(imageList.data(), sizeof(fr_image)*nbImages, NULL); FCHECK(status);
+//		
+//		status = rprsListImportedShapes(NULL, 0, &nbShapes); FASSERT(status == RPR_SUCCESS);
+//		shapeList.resize(nbShapes);
+//		status = rprsListImportedShapes(shapeList.data(), sizeof(rpr_shape)*nbShapes, NULL); FCHECK(status);
+//
+//		status = rprsListImportedMaterialNodes(NULL, 0, &nbMaterials); FCHECK(status);
+//		materialList.resize(nbMaterials);
+//		status = rprsListImportedMaterialNodes(materialList.data(), sizeof(rpr_material_node)*nbMaterials, NULL); FCHECK(status);
+//
+//		status = rprsListImportedLights(NULL, 0, &nbLights); FCHECK(status);
+//		lightList.resize(nbLights);
+//		status = rprsListImportedLights(lightList.data(), sizeof(rpr_light)*nbLights, NULL); FCHECK(status);
+//
+//		status = rprsListImportedCameras(NULL, 0, &nbCameras); FCHECK(status);
+//		cameraList.resize(nbCameras);
+//		status = rprsListImportedCameras(cameraList.data(), sizeof(rpr_camera)*nbCameras, NULL); FCHECK(status);
+//				
+//		scope.SetScene(frw::Scene(_scene, scope.GetContext()));
+//	}
+//
+//	for (auto shape : shapeList)
+//	{
+//		rpr_shape_type type;
+//		rpr_int res = rprShapeGetInfo(shape, RPR_SHAPE_TYPE, sizeof(rpr_shape_type), &type, NULL); FCHECK(res);
+//		if (type == RPR_SHAPE_TYPE_MESH)
+//		{
+//			frw::Shape shape(shape, scope.GetContext(), false);
+//			uint64_t  vertex_count = 0;
+//			res = rprMeshGetInfo(shape.Handle(), RPR_MESH_VERTEX_COUNT, sizeof(vertex_count), &vertex_count, NULL); FCHECK(res);
+//			// FR does not support names or anything else that can identify an object
+//			// so we need to identify objects by other hardcoded features such as number of vertices (sigh)
+//			if (vertex_count == 7188)
+//				scope.SetShape(BallShape1, shape);
+//			else if (vertex_count == 2306)
+//				scope.SetShape(BallShape2, shape);
+//			else if (vertex_count == 4672)
+//				scope.SetShape(BallShape3, shape);
+//			else if (vertex_count == 20)
+//				scope.SetShape(BackgroundShape, shape);
+//			else if (vertex_count == 8)
+//				scope.SetShape(CubeShape, shape);
+//			else if (vertex_count == 98)
+//				scope.SetShape(CylinderShape, shape);
+//			else if (vertex_count == 1106)
+//				scope.SetShape(SphereShape, shape);
+//		}
+//	}
+//
+//	if (!scope.GetShader(DiffuseMaterial))
+//	{
+//		frw::DiffuseShader shader(scope.GetMaterialSystem());
+//		shader.SetColor(0.9);
+//		scope.SetShader(DiffuseMaterial, shader);
+//	}
+//
+//	for (auto shapeId : { BallShape1, BallShape2, BallShape3, SphereShape, CylinderShape, CubeShape })
+//		scope.GetShape(shapeId).SetShader(scope.GetShader(DiffuseMaterial));
+//
+//	if (!scope.GetShader(TexturedBgMaterial))
+//	{
+//		rpr_material_node textured_bg = nullptr;
+//		auto res = rprShapeGetInfo(scope.GetShape(BackgroundShape).Handle(), RPR_SHAPE_MATERIAL, sizeof(textured_bg), &textured_bg, nullptr);
+//		FCHECK(res);
+//		scope.GetShape(BackgroundShape).SetShader(scope.GetShader(DiffuseMaterial));
+//		frw::Shader shader(textured_bg, scope.GetMaterialSystem(), false);
+//		scope.SetShader(TexturedBgMaterial, shader);
+//	}
+//
+//	setVisible(curObject);
+//}
 
 RefResult MPManagerMax::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS)
 {

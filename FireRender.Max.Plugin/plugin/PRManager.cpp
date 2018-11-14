@@ -19,7 +19,7 @@
 #include "CamManager.h"
 #include "TMManager.h"
 #include "RadeonProRender.h"
-#include "RprLoadStore.h"
+//#include "RprLoadStore.h"
 #include "RprSupport.h"
 #include <wingdi.h>
 #include <math.h>
@@ -189,7 +189,8 @@ void ProductionRenderCore::RPRCopyFrameData()
 	}
 	else
 	{
-		tmpFrameData->colorData = frameBufferColorResolve.GetPixelData();
+		//tmpFrameData->colorData = frameBufferColorResolve.GetPixelData();
+		tmpFrameData->colorData = frameBufferColor.GetPixelData();
 	}
 
 	// get alpha
@@ -222,7 +223,7 @@ void ProductionRenderCore::SaveFrameData()
 		}
 		else
 		{
-			frameBufferColor.Resolve(frameBufferColorResolve);
+			//frameBufferColor.Resolve(frameBufferColorResolve);
 
 			if (mDenoiser)
 			{
@@ -937,28 +938,28 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 	auto context = scope.GetContext();
 
 	const float filterRadius = GetFromPb<float>(parameters.pblock, PARAM_IMAGE_FILTER_WIDTH);
-	context.SetParameter("texturecompression", GetFromPb<int>(parameters.pblock, PARAM_USE_TEXTURE_COMPRESSION));
-	context.SetParameter("rendermode", GetFromPb<int>(parameters.pblock, PARAM_RENDER_MODE));
-	context.SetParameter("maxRecursion", GetFromPb<int>(parameters.pblock, PARAM_MAX_RAY_DEPTH));
+	//context.SetParameter("texturecompression", GetFromPb<int>(parameters.pblock, PARAM_USE_TEXTURE_COMPRESSION));
+	//context.SetParameter("rendermode", GetFromPb<int>(parameters.pblock, PARAM_RENDER_MODE));
+	/*context.SetParameter("maxRecursion", GetFromPb<int>(parameters.pblock, PARAM_MAX_RAY_DEPTH));
 	context.SetParameter("imagefilter.type", GetFromPb<int>(parameters.pblock, PARAM_IMAGE_FILTER));
 	context.SetParameter("imagefilter.box.radius", filterRadius);
 	context.SetParameter("imagefilter.gaussian.radius", filterRadius);
 	context.SetParameter("imagefilter.triangle.radius", filterRadius);
 	context.SetParameter("imagefilter.mitchell.radius", filterRadius);
 	context.SetParameter("imagefilter.lanczos.radius", filterRadius);
-	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);
-	context.SetParameter("iterations", GetFromPb<int>(parameters.pblock, PARAM_CONTEXT_ITERATIONS));
-	context.SetParameter("pdfthreshold", 0.f);
+	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);*/
+	//context.SetParameter("iterations", GetFromPb<int>(parameters.pblock, PARAM_CONTEXT_ITERATIONS));
+	//context.SetParameter("pdfthreshold", 0.f);
 
-	float raycastEpsilon = GetFromPb<float>(parameters.pblock, PARAM_QUALITY_RAYCAST_EPSILON);
-	context.SetParameter("raycastepsilon", raycastEpsilon);
+	//float raycastEpsilon = GetFromPb<float>(parameters.pblock, PARAM_QUALITY_RAYCAST_EPSILON);
+	//context.SetParameter("raycastepsilon", raycastEpsilon);
 
 	BOOL useIrradianceClamp = FALSE;
 	float irradianceClamp = FLT_MAX;
 	parameters.pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());
 	if (useIrradianceClamp)
 		parameters.pblock->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
-	context.SetParameter("radianceclamp", irradianceClamp);
+	//context.SetParameter("radianceclamp", irradianceClamp);
 
 	BroadcastNotification(NOTIFY_PRE_RENDER, &parameters.rendParams);
 	
@@ -1053,11 +1054,11 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size());
 			exportOk = statusExport == GLTF_SUCCESS;
 		}
-		else if ("rpr" == ext)
+		/*else if ("rpr" == ext)
 		{
 			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0);
 			exportOk = statusExport == RPR_SUCCESS;
-		}
+		}*/
 
 		if (!exportOk)
 			MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Failed to export scene"), _T("Radeon ProRender warning"), MB_OK);
@@ -1161,8 +1162,8 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	frw::PostEffect gamma_correction;
 	frw::PostEffect tonemap;
 
-	normalization = frw::PostEffect(context, frw::PostEffectTypeNormalization);
-	context.Attach(normalization);
+	/*normalization = frw::PostEffect(context, frw::PostEffectTypeNormalization);
+	context.Attach(normalization);*/
 
 	if (overrideTonemappers)
 	{
@@ -1296,7 +1297,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	res = context.SetParameter("yflip", 1);
 	FCHECK(res);
 #else
-	context.SetParameter("xflip", 0);
+	//context.SetParameter("xflip", 0);
 	context.SetParameter("yflip", 1);
 #endif
 
