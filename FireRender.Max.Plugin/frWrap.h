@@ -1315,16 +1315,38 @@ namespace frw
 		/// set the target buffer for render calls
 		rpr_int SetAOV(FrameBuffer frameBuffer, rpr_aov aov = RPR_AOV_COLOR);
 
-		bool Render()
+		void LogContextStatus(rpr_int status, const char* functionName)
 		{
-			auto res = rprContextRender(Handle());
-			return (RPR_SUCCESS == res);
+			size_t length = 0;
+			rpr_int localStatus = rprContextGetInfo(Handle(), RPR_CONTEXT_LAST_ERROR_MESSAGE, sizeof(size_t), nullptr, &length);
+			std::vector<rpr_char> info(length);
+			localStatus = rprContextGetInfo(Handle(), RPR_CONTEXT_LAST_ERROR_MESSAGE, info.size(), &info[0], nullptr);
+
+			std::string errorMessage(info.begin(), info.end());
+
+			std::wstring outputMessage = s2ws(functionName) + L" : " + s2ws(errorMessage);
+
+			GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, DISPLAY_DIALOG, L"Radeon ProRender", outputMessage.c_str());
 		}
 
-		bool RenderTile(int rxmin, int rxmax, int rymin, int rymax)
+		rpr_int Render()
 		{
-			auto res = rprContextRenderTile(Handle(), rxmin, rxmax, rymin, rymax);
-			return (RPR_SUCCESS == res);
+			rpr_int status = rprContextRender(Handle());
+
+			if (status != RPR_SUCCESS)
+				LogContextStatus(status, "rprContextRender");
+
+			return status;
+		}
+
+		rpr_int RenderTile(int rxmin, int rxmax, int rymin, int rymax)
+		{
+			rpr_int status = rprContextRenderTile(Handle(), rxmin, rxmax, rymin, rymax);
+
+			if (status != RPR_SUCCESS)
+				LogContextStatus(status, "rprContextRenderTile");
+
+			return status;
 		}
 
 		int GetMemoryUsage() const

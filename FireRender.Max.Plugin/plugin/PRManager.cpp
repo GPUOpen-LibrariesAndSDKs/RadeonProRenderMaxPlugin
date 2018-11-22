@@ -448,10 +448,13 @@ void ProductionRenderCore::Worker()
 	bool clearFramebuffer = true;
 
 	int xmin = 0, ymin = 0, xmax = 0, ymax = 0;
+
 	if (regionMode)
 	{
 		if (region.IsEmpty())
+		{
 			regionMode = false;
+		}
 		else
 		{
 			xmin = region.x();
@@ -500,13 +503,12 @@ void ProductionRenderCore::Worker()
 		}
 
 		// Render
-		rpr_int res = RPR_SUCCESS;
+		rpr_int status = RPR_SUCCESS;
+
 		try
 		{
-			if (regionMode)
-				res = rprContextRenderTile(scope.GetContext().Handle(), xmin, xmax, ymin, ymax);
-			else
-				res = rprContextRender(scope.GetContext().Handle());
+			frw::Context& ctx = scope.GetContext();
+			status = regionMode ? ctx.RenderTile(xmin, xmax, ymin, ymax) : ctx.Render();
 		}
 		catch (...) // Exception
 		{
@@ -516,10 +518,9 @@ void ProductionRenderCore::Worker()
 		}
 
 		// Render failed
-		if (res != RPR_SUCCESS)
+		if (status != RPR_SUCCESS)
 		{
-			GetCOREInterface()->Log()->LogEntry(SYSLOG_WARN, NO_DIALOG, L"Radeon ProRender - Warning", L"rprContextRender returned '%d'\n", res);
-			Done(Result_Catastrophic, res);
+			Done(Result_Catastrophic, status);
 			return;
 		}
 
