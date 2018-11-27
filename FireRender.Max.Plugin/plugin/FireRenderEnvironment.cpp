@@ -688,25 +688,37 @@ public:
 		}
 	}
 
-	Box3 GetSceneBB() {
+	Box3 GetSceneBB()
+	{
 		Box3 result;
-		auto visit = [this, &result](INode* node) {
-			if(!node)
+
+		auto visit = [this, &result](INode* node)
+		{
+			if (!node)
 				return;
-			ObjectState state = node->EvalWorldState(0);
-			if (state.obj) {
-				if(!node->IsNodeHidden()
+
+			TimeValue t = getEditTime();
+
+			ObjectState state = node->EvalWorldState(t);
+
+			if (state.obj)
+			{
+				if (!node->IsNodeHidden()
 					&& node->Renderable()
 					&& state.obj->IsRenderable()
-					){
+					)
+				{
 					Box3 bb;
-					Matrix3 tm = node->GetObjTMAfterWSM(getEditTime());
-					state.obj->GetDeformBBox(getEditTime(), bb, &tm);
+					Matrix3 tm = node->GetObjTMAfterWSM(t);
+
+					state.obj->GetDeformBBox(t, bb, &tm);
 					result += bb;
 				}
 			}
 		};
+
 		traverseNode(GetCOREInterface()->GetRootNode(), visit);
+
 		return result;
 	}
 
