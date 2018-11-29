@@ -57,10 +57,10 @@ void LogErrorStringToMaxLog(const std::wstring& str);
 
 /// We use the FASSERT macro throughout the application to check for consistency. Here the checks can be either disabled by
 /// defining the macro to empty string, or enabled using the assertImpl function
-#if 1 || defined(FIREMAX_DEBUG)
+#if defined(FIREMAX_DEBUG)
 #   define FASSERT(condition) if((condition)) { } else { ::FireRender::AssertImpl(_T(#condition), _T(__FILE__), __LINE__); }
 #else
-#   define FASSERT(condition)
+#   define FASSERT(condition) if((condition)) { }
 #endif
 
 #define FCHECK(resultCode) ::FireRender::RPRResultCheckImpl(resultCode, _T(__FILE__), __LINE__)
