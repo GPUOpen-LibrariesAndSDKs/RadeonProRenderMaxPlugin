@@ -588,8 +588,8 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 
 	if (classId == FIRERENDER_ARITHMMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(ArithmMtl)*>(texmap)->getShader(mT, *this);
-	else if (classId == FIRERENDER_AMBIENTOCCLUSIONMTL_CID)
-		result = dynamic_cast<FRMTLCLASSNAME(AmbientOcclusionMtl)*>(texmap)->getShader(mT, *this);
+	/*else if (classId == FIRERENDER_AMBIENTOCCLUSIONMTL_CID)
+		result = dynamic_cast<FRMTLCLASSNAME(AmbientOcclusionMtl)*>(texmap)->getShader(mT, *this);*/
 	else if (classId == FIRERENDER_INPUTLUMTL_CID)
 		result = dynamic_cast<FRMTLCLASSNAME(InputLUMtl)*>(texmap)->getShader(mT, *this);
 	else if (classId == FIRERENDER_BLENDVALUEMTL_CID)
@@ -615,7 +615,7 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 	else switch (classId.PartA())
 	{
 	case NEW_FALLOFF_CLASS_ID:
-		result = createFalloffMap(texmap);
+		//result = createFalloffMap(texmap);
 		break;
 	case CHECKER_CLASS_ID:
 		result = createCheckerMap(texmap);
@@ -630,11 +630,12 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		break;
 
 	case NOISE_CLASS_ID:
-		result = createNoiseMap(texmap);
+		//result = createNoiseMap(texmap);
 		break;
 
 	case COLORCORRECTION_CLASS_ID:
-		result = createColorCorrectionMap(texmap);
+		//result = createColorCorrectionMap(texmap);
+		result = createTextureMap(texmap, flags);
 		break;
 
 	case MIX_CLASS_ID:

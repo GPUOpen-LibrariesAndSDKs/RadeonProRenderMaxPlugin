@@ -508,13 +508,14 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 					if (!shader)
 					{
 						// This geometry is using its wireframe color
-						shader = frw::DiffuseShader(mtlParser.materialSystem);
+						//shader = frw::DiffuseShader(mtlParser.materialSystem);
+						shader = frw::Shader(mtlParser.GetScope().GetContext(), mtlParser.GetScope().GetContextEx(), RPRX_MATERIAL_UBER);
 						COLORREF color = parsedNode->GetWireColor();
 						// COLORREF format = 0x00BBGGRR
 						float r = float(color & 0x000000ff) * 1.f / 255.f;
 						float g = float((color & 0x0000ff00) >> 8) * 1.f / 255.f;
 						float b = float((color & 0x00ff0000) >> 16) * 1.f / 255.f;
-						shader.SetValue("color", frw::Value(r, g, b));
+						shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, frw::Value(r, g, b));
 					}
 					shape.SetShader(shader);
 				}

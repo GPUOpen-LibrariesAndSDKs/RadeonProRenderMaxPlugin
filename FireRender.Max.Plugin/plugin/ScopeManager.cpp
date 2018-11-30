@@ -695,7 +695,7 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 
 	rpr_context context = nullptr;
 	//rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
-	rpr_int res = rprCreateContext(RPR_API_VERSION, nullptr, 0, RPR_CREATION_FLAGS_ENABLE_GPU0, NULL, mCacheFolder.c_str(), &context);
+	rpr_int res = rprCreateContext(RPR_API_VERSION, nullptr, 0, RPR_CREATION_FLAGS_ENABLE_GPU0, NULL, NULL, &context);
 	
 	switch (res)
 	{

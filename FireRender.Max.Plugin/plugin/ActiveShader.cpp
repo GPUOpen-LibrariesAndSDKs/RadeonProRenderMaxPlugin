@@ -674,6 +674,7 @@ void ActiveShadeRenderCore::Worker()
 			}
 			catch (...)
 			{// CATASTROPHE?
+				debugPrint("Exception " + res);
 				debugPrint("Exception occurred in render call");
 				writer->Abort(Result_Catastrophic, RPR_ERROR_INTERNAL_ERROR);
 				Unlock();
