@@ -39,7 +39,7 @@
 
 extern HINSTANCE hInstance;
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 static Event PRManagerMaxDone(false);
 
@@ -1084,7 +1084,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 	PRManagerMax::Data* data = dd->second;
 
-	auto &parameters = pRenderer->parameters;
+	RenderParameters& parameters = pRenderer->parameters;
 
 	// It can happen that the user immediately cancelled the PREVIOUS render, and here we do a lazy cleanup
 	CleanUpRender(pRenderer);
@@ -1514,38 +1514,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		// commit render elements
 		if ((data->renderThread->errorCode == RPR_SUCCESS) && (data->renderThread->result != ProductionRenderCore::Result_Catastrophic))
 		{
-			auto renderElementMgr = parameters.rendParams.GetRenderElementMgr();
-			if (renderElementMgr)
-			{
-				int renderElementCount = renderElementMgr->NumRenderElements();
-				for (int i = 0; i < renderElementCount; ++i)
-				{
-					IRenderElement* renderElement = renderElementMgr->GetRenderElement(i);
-					rpr_aov getAOVRenderElementFRId(IRenderElement* renderElement);
-					rpr_aov aov = getAOVRenderElementFRId(renderElement);
-					if (RPR_AOV_MAX != aov)
-					{
-						auto fb = scope.GetFrameBuffer(GetFramebufferTypeIdForAOV(aov));
-						if (fb.Handle())
-						{
-							auto fbResolve = scope.GetFrameBuffer(renderWidth, renderHeight, GetFramebufferTypeIdForAOVResolve(aov));
-							fb.Resolve(fbResolve);
-
-							std::vector<float> colorData = fbResolve.GetPixelData();
-
-							MSTR name = renderElement->GetName();
-
-							PBBitmap *b = nullptr;
-							renderElement->GetPBBitmap(b);
-							if (b && b->bm)
-							{
-								CopyDataToBitmap(colorData, std::vector<float>(), b->bm, 1.0f, false);
-								b->bm->RefreshWindow();
-							}
-						}
-					}
-				}
-			}
+			PostProcessAOVs(parameters, scope);
 		}
 
 		scope.DestroyFrameBuffers();
@@ -1556,6 +1525,126 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	BroadcastNotification(NOTIFY_POST_RENDERFRAME, &parameters.renderGlobalContext);
 	
 	return returnValue;
+}
+
+void PRManagerMax::PostProcessAOVs(const RenderParameters& parameters, frw::Scope scope) const
+{
+	IRenderElementMgr* renderElementMgr = parameters.rendParams.GetRenderElementMgr();
+
+	int renderWidth = parameters.rendParams.width;
+	int renderHeight = parameters.rendParams.height;
+
+	if (renderElementMgr)
+	{
+		int renderElementCount = renderElementMgr->NumRenderElements();
+
+		for (int i = 0; i < renderElementCount; ++i)
+		{
+			IRenderElement* renderElement = renderElementMgr->GetRenderElement(i);
+			rpr_aov getAOVRenderElementFRId(IRenderElement* renderElement);
+			rpr_aov aov = getAOVRenderElementFRId(renderElement);
+
+			if (RPR_AOV_MAX != aov)
+			{
+				frw::FrameBuffer fb = scope.GetFrameBuffer(GetFramebufferTypeIdForAOV(aov));
+
+				if (fb.Handle())
+				{
+					frw::FrameBuffer fbResolve = scope.GetFrameBuffer(renderWidth, renderHeight, GetFramebufferTypeIdForAOVResolve(aov));
+					fb.Resolve(fbResolve);
+
+					std::vector<float> colorData = fbResolve.GetPixelData();
+
+					if (RPR_AOV_DEPTH == aov)
+					{
+						PostProcessDepth(colorData, renderWidth, renderHeight);
+					}
+
+					MSTR name = renderElement->GetName();
+
+					PBBitmap* b = nullptr;
+
+					renderElement->GetPBBitmap(b);
+
+					if (b && b->bm)
+					{
+						CopyDataToBitmap(colorData, std::vector<float>(), b->bm, 1.0f, false);
+						b->bm->RefreshWindow();
+					}
+				}
+			}
+		}
+	}
+}
+
+std::tuple<float, float> PRManagerMax::SearchMinMax(const std::vector<float>& data, int width, int height) const
+{
+	float min = std::numeric_limits<float>::max();
+	float max = std::numeric_limits<float>::lowest();
+
+	// Search Min and Max values automatically
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			int index = (y * width + x) * FbComponentsNumber;
+			float val = data[index];
+			
+			if (!isinf<float>(val))
+			{
+				if (min > val)
+				{
+					min = val;
+				}
+
+				if (max < val)
+				{
+					max = val;
+				}
+			}
+		}
+	}
+
+	return std::make_tuple(min, max);
+}
+
+void PRManagerMax::PostProcessDepth(std::vector<float>& data, int width, int height) const
+{
+	float min = 0.0f;
+	float max = 1.0f;
+
+	std::tie(min, max) = SearchMinMax(data, width, height);
+
+	for (int y = 0; y < height; y++)
+	{
+		for (int x = 0; x < width; x++)
+		{
+			int index = (y * width + x) * FbComponentsNumber;
+			float val = data[index];
+
+			if (!isinf<float>(val))
+			{
+				if (val >= max)
+				{
+					val = 1.0f;
+				}
+				else if (val <= min)
+				{
+					val = 0.0f;
+				}
+				else
+				{
+					val = (val - min) / (max - min);
+				}
+			}
+			else
+			{
+				val = 1.0f;
+			}
+
+			data[index] = data[index+1] = data[index+2] = val;
+		}
+	}
 }
 
 std::tuple<bool, DenoiserType> PRManagerMax::IsDenoiserEnabled(IParamBlock2* pb) const
@@ -1780,7 +1869,7 @@ void PRManagerMax::SetupCamera(const ParsedView& view, const int imageWidth, con
 	}
 }
 
-FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOV(rpr_aov aov)
+FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOV(rpr_aov aov) const
 {
 	static const std::unordered_map<rpr_aov, FramebufferTypeId> fbToAov =
 	{
@@ -1817,7 +1906,7 @@ FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOV(rpr_aov aov)
 	return FramebufferTypeId_Color;
 }
 
-FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOVResolve(rpr_aov aov)
+FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOVResolve(rpr_aov aov) const
 {
 	static const std::unordered_map<rpr_aov, FramebufferTypeId> fbToAov =
 	{
@@ -1872,4 +1961,4 @@ const MCHAR* PRManagerMax::GetStampHelp()
 		HELP("%b", "Radeon ProRenderer version number");
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

@@ -111,8 +111,6 @@ public:
 
 	static ClassDesc* GetClassDesc();
 
-public:
-
 	int Open(FireRenderer *renderer, HWND hwnd, RendProgressCallback* prog);
 
 	int Render(FireRenderer *pRenderer, TimeValue t, ::Bitmap* frontBuffer, FrameRendParams &frp, HWND hwnd, RendProgressCallback* prog, ViewParams* viewPar);
@@ -201,11 +199,17 @@ private:
 
 	void SetupCamera(const ParsedView& view, const int imageWidth, const int imageHeight, rpr_camera outCamera);
 
-	FramebufferTypeId GetFramebufferTypeIdForAOV(rpr_aov aov);
-	FramebufferTypeId GetFramebufferTypeIdForAOVResolve(rpr_aov aov);
+	FramebufferTypeId GetFramebufferTypeIdForAOV(rpr_aov aov) const;
+	FramebufferTypeId GetFramebufferTypeIdForAOVResolve(rpr_aov aov) const;
 
 	std::tuple<bool, DenoiserType> IsDenoiserEnabled(IParamBlock2* pb) const;
 	void SetupDenoiser(frw::Context context, PRManagerMax::Data* data, int imageWidth, int imageHeight, DenoiserType type, IParamBlock2* pb);
+
+	void PostProcessAOVs(const RenderParameters& parameters, frw::Scope) const;
+	std::tuple<float, float> SearchMinMax(const std::vector<float>& data, int width, int height) const;
+	void PostProcessDepth(std::vector<float>& data, int width, int height) const;
+
+	const int FbComponentsNumber = 4;
 };
 
 FIRERENDER_NAMESPACE_END
