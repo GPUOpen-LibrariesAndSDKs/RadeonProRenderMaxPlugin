@@ -811,14 +811,14 @@ void ActiveShader::Begin()
 
 	BOOL useIrradianceClamp = FALSE;
 	pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());
-	if (useIrradianceClamp)
+	/*if (useIrradianceClamp)
 	{
 		float irradianceClamp = FLT_MAX;
 		pblock->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
 		context.SetParameter("radianceclamp", irradianceClamp);
 	}
 	else
-		context.SetParameter("radianceclamp", FLT_MAX);
+		context.SetParameter("radianceclamp", FLT_MAX);*/
 
 	pViewExp = &GetCOREInterface()->GetActiveViewExp();
 	mViewID = pViewExp->GetViewID();
@@ -1038,7 +1038,7 @@ void ActiveShader::AbortRender()
 ParsedView ActiveShadeSynchronizer::ParseView()
 {
 	ParsedView output = {};
-	output.cameraExposure = 1.f;
+	output.cameraExposure = 0.5f;
 
 	auto t = mBridge->t();
 	float masterScale = GetMasterScale(UNITS_METERS);

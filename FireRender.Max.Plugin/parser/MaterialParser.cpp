@@ -165,6 +165,7 @@ frw::Image MaterialParser::createImageFromMap(Texmap* input, const int flags, bo
 		std::string name = ws2s(inputName);
 
 		image.SetName(name.c_str());
+		debugPrint(std::string("image name: ") + std::string(name.c_str()) + "\n");
 	}
 
 	if (image)
@@ -296,6 +297,7 @@ frw::Image MaterialParser::createImage(Bitmap* bitmap, const HashValue& kkey, co
 	}
 
 	image.SetName(ws2s(name).c_str());
+	debugPrint(std::string("image name: ") + std::string(ws2s(name).c_str()) + "\n");
 
 	return image;
 }
@@ -634,8 +636,8 @@ frw::Value MaterialParser::createMap(Texmap* texmap, const int flags)
 		break;
 
 	case COLORCORRECTION_CLASS_ID:
-		//result = createColorCorrectionMap(texmap);
-		result = createTextureMap(texmap, flags);
+		result = createColorCorrectionMap(texmap);
+		//result = createTextureMap(texmap, flags);
 		break;
 
 	case MIX_CLASS_ID:
