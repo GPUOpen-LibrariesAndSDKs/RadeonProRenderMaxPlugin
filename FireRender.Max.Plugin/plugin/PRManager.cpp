@@ -1056,7 +1056,11 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 		}
 		else if ("rpr" == ext)
 		{
+#if (RPR_API_VERSION >= 0x010032400)
+			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0, 0);
+#else
 			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0);
+#endif
 			exportOk = statusExport == RPR_SUCCESS;
 		}
 
