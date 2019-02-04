@@ -1051,7 +1051,11 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 
 		if ("gltf" == ext)
 		{
+#if (RPR_API_VERSION >= 0x010032500)
+			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size(), 0);
+#else
 			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size());
+#endif
 			exportOk = statusExport == GLTF_SUCCESS;
 		}
 		else if ("rpr" == ext)
