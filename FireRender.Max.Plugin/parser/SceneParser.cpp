@@ -961,9 +961,17 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
         }
     }
 
+	int numInstances = int_cast(instances.size());
+	wchar_t tempStr[1024];
+	int i = 1;
+
     // Finally, we process the geometry
     for (auto& instance : instances)  // iterate over groups of all different objects. All nodes withing each group will be instanced
 	{
+		wsprintf(tempStr, L"Synchronizing: Rebuilding Object %d of %d (%s)", i++, numInstances, (instance.second.begin())->node->GetName());
+		if (params.progress)
+			params.progress->SetTitle(tempStr);
+
 		const auto& nodes = instance.second;
 		
         // determine the maximal number of sub-materials
@@ -1816,6 +1824,9 @@ void SceneParser::useFREnvironment()
 
 bool SceneParser::parseFREnvironment(const ParsedNode& parsedNode, Object* object)
 {
+	if (params.progress)
+		params.progress->SetTitle(_T("Synchronizing: Environment"));
+
 	// the presence of the object in the scene tells us that we need to use our own environment
 	int bgType = 0;
 	params.pblock->GetValue(TRPARAM_BG_TYPE, params.t, bgType, FOREVER);
@@ -2160,6 +2171,9 @@ void SceneParser::parseFRPortal(const ParsedNode& parsedNode, Object* evaluatedO
 
 void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedObject) 
 {
+	if (params.progress)
+		params.progress->SetTitle(_T("Synchronizing: Rebuilding Light"));
+
 	auto node = parsedNode.node;
 	auto tm = parsedNode.tm;
 	BOOL parity = tm.Parity();
