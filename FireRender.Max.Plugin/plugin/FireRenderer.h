@@ -145,7 +145,8 @@ public:
 	void ResumeRendering() MAX2017_OVERRIDE {}
 
 	bool CompatibleWithAnyRenderElement() const MAX2017_OVERRIDE { return true; }
-	bool CompatibleWithRenderElement(IRenderElement& pIRenderElement) const MAX2017_OVERRIDE { return true; }
+	bool CompatibleWithRenderElement(IRenderElement& pIRenderElement) const MAX2017_OVERRIDE
+		{ return (pIRenderElement.GetInterface(FIRERENDER_RENDERELEMENT_INTERFACEID)!=nullptr); }
 	IInteractiveRender* GetIInteractiveRender() MAX2017_OVERRIDE;
 	void GetVendorInformation(MSTR& info) const MAX2017_OVERRIDE;
 	void GetPlatformInformation(MSTR& info) const MAX2017_OVERRIDE;

@@ -154,6 +154,8 @@ public:
 
 	void* GetInterface(ULONG id) override
 	{ 
+		if( id==FireRender::FIRERENDER_RENDERELEMENT_INTERFACEID )
+			return this;
 		return SpecialFX::GetInterface(id);
 	}
 
@@ -199,7 +201,22 @@ public:
 
 	void SetElementName(const wchar_t* value) override
 	{
-		mPblock->SetValue(eleName, 0, value);
+		// Strip semicolon, and any space characters before a semicolon
+		int ibuf=0, ival=0, ichk=0;
+		const int buflen=1024;
+		wchar_t buf[buflen], prev=1;
+		// Scan until end of buffer or terminator char in value string
+		for( ; (ibuf<(buflen-1)) && (prev!=_T('\0')); ibuf++, ival++ )
+		{
+			// Scan for a series of spaces and semicolons
+			for( ichk=ival; (value[ichk]==_T(' ')) || (value[ichk]==_T(':')); ichk++ )
+				if( value[ichk]==_T(':') ) ival = (ichk+1); // if semicolon, skip past it
+
+			prev=buf[ibuf]=value[ival];
+		}
+		buf[buflen-1] = _T('\0'); // in case we reached the end of the buffer
+
+		mPblock->SetValue(eleName, 0, buf);
 	}
 
 	const wchar_t* ElementName(void) const override
