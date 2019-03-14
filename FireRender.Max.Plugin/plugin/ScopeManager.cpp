@@ -8,9 +8,11 @@
 *********************************************************************************************************************************/
 
 #include <math.h>
+#include <algorithm>
 #include "resource.h"
 #include "RprTools.h"
 #include "plugin/ParamBlock.h"
+#include "plugin/FRSettingsFileHandler.h"
 #include "utils/Thread.h"
 #include "ScopeManager.h"
 #include "CoronaDeclarations.h"
@@ -90,12 +92,14 @@ namespace
 
 	static const int gpuCountMax = sizeof(gpuIdFlags) / sizeof(gpuIdFlags[0]);
 	static bool gpuComputed = false;
+	static bool prefsLoaded = false;
 };
 
 
 ScopeManagerMax::ScopeManagerMax()
 {
 	gpuComputed = false;
+	prefsLoaded = false;
 
 	SetupCacheFolder();
 }
@@ -333,6 +337,103 @@ std::wstring ScopeManagerMax::GetRPRTraceDirectory(IParamBlock2 *pblock)
 	return path;
 }
 
+// Load preferences from attribute settings file, usually done once at startup
+void ScopeManagerMax::LoadAttributeSettings()
+{
+	std::string gpuInfoNames = FRSettingsFileHandler::getAttributeSettingsFor(FRSettingsFileHandler::DevicesName);
+	std::string gpuInfoUseds = FRSettingsFileHandler::getAttributeSettingsFor(FRSettingsFileHandler::DevicesSelected);
+	std::string overrideCPUThreadCount = FRSettingsFileHandler::getAttributeSettingsFor(FRSettingsFileHandler::OverrideCPUThreadCount);
+	std::string cpuThreadCount = FRSettingsFileHandler::getAttributeSettingsFor(FRSettingsFileHandler::CPUThreadCount);
+	// Special case, if the prefs aren't created yet, don't overwrite current settings
+	if( (gpuInfoNames.length()==0) || (gpuInfoUseds.length()==0) )
+		return;
+
+	// Initially set all gpus unused, and cpu used
+	for( int i=0; i<gpuInfoArray.size(); i++ )
+	{
+		gpuInfoArray[i].isUsed = false;
+	}
+	cpuInfo.isUsed = true;
+
+	// GPU selection is stored as two lists, a comma-separated list of GPU names,
+	// plus comma-separated list of booleans (0 or 1) values,
+	// with one extra boolean at the end for the CPU selection
+
+	// Parse the input and toggle gpus on as required
+	std::istringstream gpuInfoNamesStream(gpuInfoNames);
+	std::istringstream gpuInfoUsedsStream(gpuInfoUseds);
+	std::string gpuInfoName;
+	std::string gpuInfoUsed;
+	bool anyGPU = false;
+	while( std::getline( gpuInfoNamesStream, gpuInfoName, ',' ) &&
+		   std::getline( gpuInfoUsedsStream, gpuInfoUsed, ',' ) )
+	{
+		if( strtol(gpuInfoUsed.data(),nullptr,10)!=0 )
+		{
+			for( int i=0; i<gpuInfoArray.size(); i++ )
+			{
+				std::string item = gpuInfoArray[i].name;
+				std::replace( item.begin(), item.end(), ',', '_'); // replace all ',' with '_'
+				// If multiple GPUs of the same name are toggled within the preferences list,
+				// then toggle an equal number of items in the gpuInfoArray list
+				if( (item.compare(gpuInfoName)==0) && (gpuInfoArray[i].isUsed==false) )
+				{
+					gpuInfoArray[i].isUsed = true;
+					anyGPU = true;
+					continue;
+				}
+			}
+		}
+	}
+	// Final list entry for the cpu
+	if( std::getline( gpuInfoUsedsStream, gpuInfoUsed, ',' ) )
+	{
+		cpuInfo.isUsed = (strtol(gpuInfoUsed.data(),nullptr,10) != 0);
+	}
+	if( !anyGPU ) cpuInfo.isUsed = true;
+	// CPU thread settings
+	cpuInfo.isCpuThreadsNumOverriden = (strtol(overrideCPUThreadCount.data(),nullptr,10) != 0);
+	cpuInfo.numCpuThreads = (strtol(cpuThreadCount.data(),nullptr,10));
+}
+
+// Save preferences to attribute settings file, done after relevant UI changes
+void ScopeManagerMax::SaveAttributeSettings()
+{
+	// Special case, if the prefs have been loaded from disk yet, don't overwrite them
+	// Can happen early after UI creation before context is ready
+	if( !prefsLoaded )
+		return;
+
+	// GPU selection is stored as two lists, a comma-separated list of GPU names,
+	// plus comma-separated list of booleans (0 or 1) values,
+	// with one extra boolean at the end for the CPU selection
+
+	std::string gpuInfoNames;
+	std::string gpuInfoUseds;
+	std::string overrideCPUThreadCount(cpuInfo.isCpuThreadsNumOverriden? "1":"0");
+	std::string cpuThreadCount( std::to_string(cpuInfo.numCpuThreads) );
+	int i=0;
+	for( i=0; i<gpuInfoArray.size(); i++ )
+	{
+		if( i>0 )
+		{
+			gpuInfoNames.append(",");
+			gpuInfoUseds.append(",");
+		}
+		std::string item = gpuInfoArray[i].name;
+		std::replace( item.begin(), item.end(), ',', '_'); // replace all ',' with '_'
+		gpuInfoNames.append(item);
+		gpuInfoUseds.append(gpuInfoArray[i].isUsed? "1":"0" );
+	}
+	if( i>0 ) gpuInfoUseds.append(",");
+	gpuInfoUseds.append(cpuInfo.isUsed? "1":"0" );
+	FRSettingsFileHandler::setAttributeSettingsFor(FRSettingsFileHandler::DevicesName, gpuInfoNames);
+	FRSettingsFileHandler::setAttributeSettingsFor(FRSettingsFileHandler::DevicesSelected, gpuInfoUseds);
+	FRSettingsFileHandler::setAttributeSettingsFor(FRSettingsFileHandler::OverrideCPUThreadCount, overrideCPUThreadCount );
+	FRSettingsFileHandler::setAttributeSettingsFor(FRSettingsFileHandler::CPUThreadCount, cpuThreadCount);
+}
+
+
 int ScopeManagerMax::GetCompiledShadersCount()
 {
 	std::string searchMask = mCacheFolder + "*.bin";
@@ -363,6 +464,14 @@ void ScopeManagerMax::ValidateParamBlock(IParamBlock2* pblock)
 	if ( !hasGpuCompatibleWithFR(numCompatibleGPUs) )
 	{
 		cpuInfo.isUsed = true;
+	}
+
+	// Load gpu preferences; once at startup, but only after gpu initial settings
+	// are applied via ValidateParamBlock() and hasGpuCompatibleWithFR()
+	if( gpuComputed && !prefsLoaded )
+	{	
+		LoadAttributeSettings();
+		prefsLoaded = true;
 	}
 }
 

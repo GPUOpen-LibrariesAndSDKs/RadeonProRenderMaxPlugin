@@ -18,6 +18,10 @@ private:
 
 public:
 	static const std::string GlobalDontShowNotification;
+	static const std::string DevicesName;
+	static const std::string DevicesSelected;
+	static const std::string OverrideCPUThreadCount;
+	static const std::string CPUThreadCount;
 
 	static std::string getAttributeSettingsFor(const std::string &attributeName);
 

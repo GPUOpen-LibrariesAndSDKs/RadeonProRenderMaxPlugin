@@ -625,6 +625,8 @@ void FireRenderParamDlg::CHardwareSettings::DestroyDialog()
 		mIsReady = false;
 		ReleaseISpinner(controls.spinnerCpuThreadsNum);
 	}
+	// Store any UI changes as preferences for the future
+	ScopeManagerMax::TheManager.SaveAttributeSettings();
 }
 
 void FireRenderParamDlg::CHardwareSettings::InitGPUCompatibleList()

@@ -372,6 +372,8 @@ protected:
 
 		void InitGPUCompatibleList();
 		void UpdateHwSelected(int gpuIdx);
+		void LoadAttributeSettings();
+		void SaveAttributeSettings();
 	};
 
 	class CCameraSettings : public CRollout

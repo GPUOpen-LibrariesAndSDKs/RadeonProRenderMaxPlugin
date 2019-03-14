@@ -93,6 +93,9 @@ public:
 
 	int GetCompiledShadersCount();
 
+	void LoadAttributeSettings();
+	void SaveAttributeSettings();
+
 private:
 	void EnableRPRTrace(IParamBlock2 *pblock, bool enable);
 	bool CreateContext(rpr_creation_flags createFlags, rpr_context& result);

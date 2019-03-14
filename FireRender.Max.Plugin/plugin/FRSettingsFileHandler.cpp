@@ -16,6 +16,10 @@
 #define settingsFileName "FireRenderSettings.ini"
 
 const std::string FRSettingsFileHandler::GlobalDontShowNotification = "GlobalDontShowNotification";
+const std::string FRSettingsFileHandler::DevicesName = "DevicesName";
+const std::string FRSettingsFileHandler::DevicesSelected = "DevicesSelected";
+const std::string FRSettingsFileHandler::OverrideCPUThreadCount = "OverrideCPUThreadCount";
+const std::string FRSettingsFileHandler::CPUThreadCount = "CPUThreadCount";
 
 std::string FRSettingsFileHandler::settingsFolder = "";
 

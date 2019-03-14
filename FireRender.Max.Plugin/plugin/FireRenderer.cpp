@@ -51,6 +51,7 @@ FireRenderer::FireRenderer()
 
 void FireRenderer::ValidateParamBlock()
 {
+	// Initializes the scope manager's gpu list and hardware preferences
 	ScopeManagerMax::TheManager.ValidateParamBlock(pblock);
 }
 
