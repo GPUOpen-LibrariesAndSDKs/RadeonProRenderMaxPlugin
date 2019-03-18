@@ -47,7 +47,8 @@ extern HINSTANCE fireRenderHInstance;
 void AssertImpl(const MCHAR* expression, const MCHAR* file, const int line);
 
 // Make a check with log entry and message box
-void RPRResultCheckImpl(rpr_int result, const MCHAR* file, const int line);
+void RPRResultCheckImpl(rpr_int result, const MCHAR* file, const int line, rpr_context context=nullptr, const char* functionName=nullptr);
+void RPRLogContextStatus(rpr_int result, rpr_context context, const char* functionName);
 void LogErrorStringToMaxLog(const std::wstring& str);
 
 
@@ -64,6 +65,7 @@ void LogErrorStringToMaxLog(const std::wstring& str);
 #endif
 
 #define FCHECK(resultCode) ::FireRender::RPRResultCheckImpl(resultCode, _T(__FILE__), __LINE__)
+#define FCHECK_CONTEXT(resultCode, context, functionName) ::FireRender::RPRResultCheckImpl(resultCode, _T(__FILE__), __LINE__, context, functionName)
 
 std::wstring GetRPRErrorString(rpr_int code);
 

@@ -851,7 +851,11 @@ bool ImportMaterials(const std::string& filename, rpr_context context, rpr_mater
             {
                 rpr_image texture = nullptr;
                 const std::string kFilename = node.params.at("path").value;
-                CHECK_NO_ERROR(rprContextCreateImageFromFile(context, kFilename.c_str(), &texture));
+                rpr_int res = rprContextCreateImageFromFile(context, kFilename.c_str(), &texture);
+				// TODO: Might produce unwanted dialog box?
+				//^ maybe don't want to give Error messages to the user about unsupported image formats, since we support them through the plugin.
+				//FCHECK_CONTEXT(res, context, "rprContextCreateImageFromFile");
+				CHECK_NO_ERROR(res);
                 textures.push_back(texture);
                 tex_files.push_back(kFilename);
 
@@ -913,7 +917,11 @@ bool ImportMaterials(const std::string& filename, rpr_context context, rpr_mater
                 else if (type == "file_path")
                 {
                     rpr_image img = nullptr;
-                    CHECK_NO_ERROR(rprContextCreateImageFromFile(context, param.second.value.c_str(), &img));
+                    rpr_int res = rprContextCreateImageFromFile(context, param.second.value.c_str(), &img);
+					// TODO: Might produce unwanted dialog box?
+					//^ maybe don't want to give Error messages to the user about unsupported image formats, since we support them through the plugin.
+					//FCHECK_CONTEXT(res, context, "rprContextCreateImageFromFile");
+					CHECK_NO_ERROR(res);
                     CHECK_NO_ERROR(rprMaterialNodeSetInputImageData(node.data, in_input.c_str(), img));
                 }
                 else if (data_node->data)

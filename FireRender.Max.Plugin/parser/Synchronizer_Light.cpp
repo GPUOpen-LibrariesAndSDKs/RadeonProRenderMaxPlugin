@@ -105,7 +105,7 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 			if (type == LightscapeLight::TARGET_POINT_TYPE || type == LightscapeLight::POINT_TYPE)
 			{
 				res = rprContextCreatePointLight(context.Handle(), &fireLight);
-				FCHECK(res);
+				FCHECK_CONTEXT(res, context.Handle(), "rprContextCreatePointLight");
 
 				// isotropic spherical light source, total surface yields 4PI steradians,
 				// but for some reason FR wants PI instead of 4PI, the engine is probably making some assumptions.
@@ -578,7 +578,7 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 			if (type == LightscapeLight::TARGET_POINT_TYPE || type == LightscapeLight::POINT_TYPE)
 			{
 				res = rprContextCreateSpotLight(context.Handle(), &fireLight);
-				FCHECK(res);
+				FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateSpotLight");
 				const float iAngle = DEG_TO_RAD*light->GetHotspot(t) * 0.5f;
 				const float oAngle = DEG_TO_RAD*light->GetFallsize(t) * 0.5f;
 				
@@ -617,7 +617,7 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 					if (!iesData.empty())
 					{
 						res = rprContextCreateIESLight(context.Handle(), &fireLight);
-						FCHECK(res);
+						FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateIESLight");
 
 						res = rprIESLightSetImageFromIESdata(fireLight, iesData.c_str(), 256, 256);
 						if (RPR_SUCCESS != res) {
@@ -1043,7 +1043,7 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 		{
 			// A directional light (located in infinity)
 			res = rprContextCreateDirectionalLight(context.Handle(), &fireLight);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateDirectionalLight");
 			color *= PI; // it seems we need to multiply by pi to get same intensity in RPR and 3dsmax
 			res = rprDirectionalLightSetRadiantPower3f(fireLight, color.r, color.g, color.b);
 			FCHECK(res);
@@ -1052,7 +1052,7 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 		{
 			// Spotlight (point light with non-uniform directional distribution)
 			res = rprContextCreateSpotLight(context.Handle(), &fireLight);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateSpotLight");
 
 			const float iAngle = DEG_TO_RAD*light->GetHotspot(t) * 0.5f;
 			const float oAngle = DEG_TO_RAD*light->GetFallsize(t) * 0.5f;
@@ -1066,7 +1066,7 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 		{
 			//standard Skylight object
 			res = rprContextCreateSkyLight(context.Handle(), &fireLight);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateSkyLight");
 			float intensity = light->GetIntensity(t);
 			res = rprSkyLightSetScale(fireLight, (intensity * 0.2f));
 			Point3 color = light->GetRGBColor(t);
@@ -1077,7 +1077,7 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 		{
 			// point light with uniform directional distribution
 			res = rprContextCreatePointLight(context.Handle(), &fireLight);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, context.Handle(), "rprContextCreatePointLight");
 			color *= 683.f * PI; // should be 4PI (steradians in a sphere) doh
 			res = rprPointLightSetRadiantPower3f(fireLight, color.r, color.g, color.b);
 			FCHECK(res);
@@ -1117,7 +1117,7 @@ void Synchronizer::RebuildCoronaSun(INode *node, Object* evaluatedObject)
 		color /= 10000.f; // magic matching constant
 		rpr_light light;
 		rpr_int res = rprContextCreateDirectionalLight(context.Handle(), &light);
-		FCHECK(res);
+		FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateDirectionalLight");
 		res = rprDirectionalLightSetRadiantPower3f(light, color.r, color.g, color.b);
 		FCHECK(res);
 

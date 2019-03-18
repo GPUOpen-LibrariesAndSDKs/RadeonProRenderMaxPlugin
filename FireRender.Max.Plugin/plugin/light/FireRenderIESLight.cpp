@@ -1097,7 +1097,7 @@ void FireRenderIESLight::CreateSceneLight(
 		// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
 		// http://www.gritengine.com/maxscript_html/interface_actionman.htm
 		BOOL success = ExecuteMAXScriptScript(scriptToExecute.c_str());
-		FCHECK(success);
+		FCHECK(success); // TODO: Incorrect use of FCHECK()?  It's intended for RPR calls
 
 		return;
 	}
@@ -1136,7 +1136,7 @@ void FireRenderIESLight::CreateSceneLight(
 			// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
 			// http://www.gritengine.com/maxscript_html/interface_actionman.htm
 			BOOL success = ExecuteMAXScriptScript(scriptToExecute.c_str());
-			FCHECK(success);
+			FCHECK(success); // TODO: Incorrect use of FCHECK()?  It's intended for RPR calls
 
 			return;
 		}
@@ -1156,7 +1156,7 @@ void FireRenderIESLight::CreateSceneLight(
 			// (the_listener->lvw->CreateViewWindow command from cpp interface doesn't seem to be working correctly)
 			// http://www.gritengine.com/maxscript_html/interface_actionman.htm
 			BOOL success = ExecuteMAXScriptScript(scriptToExecute.c_str());
-			FCHECK(success);
+			FCHECK(success); // TODO: Incorrect use of FCHECK()?  It's intended for RPR calls
 
 			return;
 		}

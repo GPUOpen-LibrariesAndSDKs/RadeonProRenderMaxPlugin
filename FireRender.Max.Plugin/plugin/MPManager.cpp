@@ -108,6 +108,7 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 
 	// initialize core
 	rpr_int res = rprContextSetAOV(scope.GetContext().Handle(), RPR_AOV_COLOR, frameBufferMain.Handle());
+	FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextSetAOV");
 
 	if (res != RPR_SUCCESS)
 	{
@@ -116,6 +117,7 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 	}
 
 	res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
+	FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextSetParameter1u");
 
 	if (res != RPR_SUCCESS)
 	{
@@ -147,6 +149,7 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 			break;
 
 		rpr_int res = rprContextRender(scope.GetContext().Handle());
+		FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextRender");
 
 		if (res != RPR_SUCCESS)
 		{

@@ -497,7 +497,8 @@ void ActiveShadeRenderCore::Worker()
 	normalizationFilter = frw::PostEffect(scope.GetContext(), frw::PostEffectTypeNormalization);
 	scope.GetContext().Attach(normalizationFilter);
 
-	FCHECK(rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1));
+	rpr_int res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
+	FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextSetParameter1u");
 
 	// render all passes, unless the render is cancelled (and even then render at least a single pass)
 	while (1)
@@ -661,9 +662,15 @@ void ActiveShadeRenderCore::Worker()
 			{
 				timer.Start();
 				if (useRegion)
+				{
 					res = rprContextRenderTile(scope.GetContext().Handle(), rxmin, rxmax, rymin, rymax);
+					FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextRenderTile");
+				}
 				else
+				{
 					res = rprContextRender(scope.GetContext().Handle());
+					FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextRender");
+				}
 				if (res == RPR_SUCCESS)
 				{
 					frameBufferMain.Resolve(frameBufferResolve);

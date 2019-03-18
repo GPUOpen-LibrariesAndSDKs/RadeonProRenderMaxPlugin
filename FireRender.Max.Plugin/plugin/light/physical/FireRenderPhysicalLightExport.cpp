@@ -757,7 +757,7 @@ void FireRenderPhysicalLight::CreateSceneLight(TimeValue t, const ParsedNode& no
 			rpr_int res = 0;
 			rpr_light fireLight = 0;
 			res = rprContextCreateSpotLight(context.Handle(), &fireLight);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateSpotLight");
 
 			Interval valid = FOREVER;
 

@@ -1204,27 +1204,27 @@ namespace frw
 		void SetParameter(const char * sz, rpr_uint v)
 		{
 			auto res = rprContextSetParameter1u(Handle(), sz, v);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextSetParameter1u");
 		}
 		void SetParameter(const char * sz, int v)
 		{
 			auto res = rprContextSetParameter1u(Handle(), sz, v);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextSetParameter1f");
 		}
 		void SetParameter(const char * sz, double v)
 		{
 			auto res = rprContextSetParameter1f(Handle(), sz, (rpr_float)v);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextSetParameter1f");
 		}
 		void SetParameter(const char * sz, double x, double y, double z)
 		{
 			auto res = rprContextSetParameter3f(Handle(), sz, (rpr_float)x, (rpr_float)y, (rpr_float)z);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextSetParameter3f");
 		}
 		void SetParameter(const char * sz, double x, double y, double z, double w)
 		{
 			auto res = rprContextSetParameter4f(Handle(), sz, (rpr_float)x, (rpr_float)y, (rpr_float)z, (rpr_float)w);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextSetParameter4f");
 		}
 
 		Scene CreateScene()
@@ -1232,7 +1232,7 @@ namespace frw
 			DebugPrint(L"CreateScene()\n");
 			rpr_scene v;
 			auto status = rprContextCreateScene(Handle(), &v);
-			FCHECK(status);
+			FCHECK_CONTEXT(status, Handle(), "rprContextCreateScene");
 
 			data().scene = v;
 			return Scene(v, *this);
@@ -1243,7 +1243,7 @@ namespace frw
 			DebugPrint(L"CreateCamera()\n");
 			rpr_camera v;
 			auto status = rprContextCreateCamera(Handle(), &v);
-			FCHECK(status);
+			FCHECK_CONTEXT(status, Handle(), "rprContextCreateCamera");
 			return Camera(v, *this);
 		}
 
@@ -1268,7 +1268,7 @@ namespace frw
 			DebugPrint(L"CreatePointLight()\n");
 			rpr_light h;
 			auto res = rprContextCreatePointLight(Handle(), &h);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextCreatePointLight");
 			return PointLight(h,*this);
 		}
 
@@ -1277,7 +1277,7 @@ namespace frw
 			DebugPrint(L"CreateEnvironmentLight()\n");
 			rpr_light h;
 			auto res = rprContextCreateEnvironmentLight(Handle(), &h);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextCreateEnvironmentLight");
 			return EnvironmentLight(h,*this);
 		}
 
@@ -1286,7 +1286,7 @@ namespace frw
 			DebugPrint(L"CreateDirectionalLight()\n");
 			rpr_light h;
 			auto res = rprContextCreateDirectionalLight(Handle(), &h);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextCreateDirectionalLight");
 			return DirectionalLight(h, *this);
 		}
 
@@ -1294,7 +1294,7 @@ namespace frw
 		{
 			rpr_light light = 0;
 			rpr_int res = rprContextCreateIESLight(Handle(), &light);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextCreateIESLight");
 
 			return IESLight(light, *this);
 		}
@@ -1305,7 +1305,7 @@ namespace frw
 			FASSERT(!scene || scene.GetContext() == *this);
 
 			auto res = rprContextSetScene(Handle(), scene.Handle());
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextSetScene");
 		}
 
         void Attach(PostEffect post_effect);
@@ -1315,52 +1315,39 @@ namespace frw
 		/// set the target buffer for render calls
 		rpr_int SetAOV(FrameBuffer frameBuffer, rpr_aov aov = RPR_AOV_COLOR);
 
-		void LogContextStatus(rpr_int status, const char* functionName)
+		void LogContextStatus(rpr_int status, rpr_context context, const char* functionName)
 		{
-			size_t length = 0;
-			rpr_int localStatus = rprContextGetInfo(Handle(), RPR_CONTEXT_LAST_ERROR_MESSAGE, sizeof(size_t), nullptr, &length);
-			std::vector<rpr_char> info(length);
-			localStatus = rprContextGetInfo(Handle(), RPR_CONTEXT_LAST_ERROR_MESSAGE, info.size(), &info[0], nullptr);
-
-			std::string errorMessage(info.begin(), info.end());
-
-			std::wstring outputMessage = s2ws(functionName) + L" : " + s2ws(errorMessage);
-
-			GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, DISPLAY_DIALOG, L"Radeon ProRender", outputMessage.c_str());
+			::FireRender::RPRLogContextStatus( status, context, functionName );
 		}
 
 		rpr_int Render()
 		{
-			rpr_int status = rprContextRender(Handle());
+			rpr_int res = rprContextRender(Handle());
+			FCHECK_CONTEXT(res, Handle(), "rprContextRender");
 
-			if (status != RPR_SUCCESS)
-				LogContextStatus(status, "rprContextRender");
-
-			return status;
+			return res;
 		}
 
 		rpr_int RenderTile(int rxmin, int rxmax, int rymin, int rymax)
 		{
-			rpr_int status = rprContextRenderTile(Handle(), rxmin, rxmax, rymin, rymax);
+			rpr_int res = rprContextRenderTile(Handle(), rxmin, rxmax, rymin, rymax);
+			FCHECK_CONTEXT(res, Handle(), "rprContextRenderTile");
 
-			if (status != RPR_SUCCESS)
-				LogContextStatus(status, "rprContextRenderTile");
-
-			return status;
+			return res;
 		}
 
 		int GetMemoryUsage() const
 		{
 			rpr_render_statistics statistics = {};
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_RENDER_STATISTICS, sizeof(statistics), &statistics, nullptr);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetInfo");
 			return statistics.gpumem_usage;
 		}
 		int GetMaterialStackSize() const
 		{
 			size_t info = 0;
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_MATERIAL_STACK_SIZE, sizeof(info), &info, nullptr);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetInfo");
 			return int_cast( info );
 		}
 
@@ -1368,7 +1355,7 @@ namespace frw
 		{
 			size_t info = 0;
 			auto res = rprContextGetInfo(Handle(), RPR_CONTEXT_PARAMETER_COUNT, sizeof(info), &info, nullptr);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetInfo");
 			return int_cast( info );
 		}
 
@@ -1392,21 +1379,21 @@ namespace frw
 
 			// get name
 			auto res = rprContextGetParameterInfo(Handle(), i, ParameterInfoName, 0, nullptr, &size);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetParameterInfo");
 			info.name.resize(size);
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoName, size, const_cast<char*>(info.name.data()), nullptr);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetParameterInfo");
 
 			// get description
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoDescription, 0, nullptr, &size);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetParameterInfo");
 			info.description.resize(size);
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoDescription, size, const_cast<char*>(info.description.data()), nullptr);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetParameterInfo");
 
 			// get type
 			res = rprContextGetParameterInfo(Handle(), i, ParameterInfoType, sizeof(info.type), &info.type, nullptr);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, Handle(), "rprContextGetParameterInfo");
 
 			return info;
 		}
@@ -1535,7 +1522,7 @@ namespace frw
 				DebugPrint(L"CreateMaterialSystem()\n");
 				rpr_material_system h = nullptr;
 				auto res = rprContextCreateMaterialSystem(c.Handle(), 0, &h);
-				FCHECK(res);
+				FCHECK_CONTEXT(res, c.Handle(), "rprContextCreateMaterialSystem");
 				m->Attach(h);
 			}
 		}
@@ -2064,7 +2051,7 @@ namespace frw
 				}
 
 				auto res = rprContextDetachPostEffect(_context, _posteffect);
-				FCHECK(res);
+				FCHECK_CONTEXT(res, _context, "rprContextDetachPostEffect");
 			}
 
 			void SetAttached(bool value)
@@ -2081,7 +2068,7 @@ namespace frw
 			DebugPrint(L"PostEfect()\n");
 			rpr_post_effect h = nullptr;
 			auto res = rprContextCreatePostEffect(context.Handle(), type, &h);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, context.Handle(), "rprContextCreatePostEffect");
 			m->Attach(h);
 		}
 
@@ -2117,14 +2104,14 @@ namespace frw
 			rpr_framebuffer h = nullptr;
 			rpr_framebuffer_desc desc = { rpr_uint(width), rpr_uint(height) };
 			auto res = rprContextCreateFrameBuffer(context.Handle(), format, &desc, &h);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateFrameBuffer");
 			m->Attach(h);
 		}
 
 		void Resolve(FrameBuffer dest, bool normalizeOnly = false)
 		{
 			auto res = rprContextResolveFrameBuffer(GetContext().Handle(), Handle(), dest.Handle(), normalizeOnly);
-			FCHECK(res);
+			FCHECK_CONTEXT(res, GetContext().Handle(), "rprContextResolveFrameBuffer");
 		}
 
 		void Clear()
@@ -2736,7 +2723,7 @@ namespace frw
 		DebugPrint(L"CreateInstance()\n");
 		rpr_shape h = nullptr;
 		auto res = rprContextCreateInstance(context.Handle(), Handle(), &h);
-		FCHECK(res);
+		FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateInstance");
 		Shape shape(h, context);
 		shape.AddReference(*this);
 		return shape;
@@ -2819,7 +2806,7 @@ namespace frw
 
 		rpr_image h = nullptr;
 		rpr_int res = rprContextCreateImage(context.Handle(), format, &image_desc, data, &h);
-		FCHECK(res);
+		FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateImage");
 
 		m->Attach(h);
 	}
@@ -2833,7 +2820,7 @@ namespace frw
 		rpr_int res = rprContextCreateImageFromFile(context.Handle(), filename, &h);
 
 		//^ we don't want to give Error messages to the user about unsupported image formats, since we support them through the plugin.
-		//FCHECK(res);
+		//FCHECK_CONTEXT(res, context.Handle(), "rprContextCreateImageFromFile");
 
 		if (ErrorSuccess == res)
 		{
@@ -2875,13 +2862,13 @@ namespace frw
 
     inline void Context::Attach(PostEffect post_effect){
         auto res = rprContextAttachPostEffect(Handle(), post_effect.Handle());
-        FCHECK(res);
+        FCHECK_CONTEXT(res, Handle(), "rprContextAttachPostEffect");
 		post_effect.SetAttached(true);
     }
 
     inline void Context::Detach(PostEffect post_effect){
         auto res = rprContextDetachPostEffect(Handle(), post_effect.Handle());
-		FCHECK(res);
+		FCHECK_CONTEXT(res, Handle(), "rprContextDetachPostEffect");
 		post_effect.SetAttached(false);
     }
 
@@ -2906,7 +2893,7 @@ namespace frw
 			num_face_vertices, num_faces, 
 			&shape);
 		
-		FCHECK(res);
+		FCHECK_CONTEXT(res, Handle(), "rprContextCreateMesh");
 
 		Shape shapeObj(shape, *this);
 		shapeObj.SetUVCoordinatesFlag(texcoords != nullptr && num_texcoords > 0);
@@ -2942,7 +2929,7 @@ namespace frw
 		{
 		}
 		
-		FCHECK(res);
+		FCHECK_CONTEXT(res, Handle(), "rprContextCreateMeshEx");
 
 		Shape shapeObj(shape, *this);
 		shapeObj.SetUVCoordinatesFlag(numberOfTexCoordLayers > 0);
@@ -2953,7 +2940,7 @@ namespace frw
 	inline rpr_int Context::SetAOV(FrameBuffer frameBuffer, rpr_aov aov)
 	{
 		rpr_int res = rprContextSetAOV(Handle(), aov, frameBuffer.Handle());
-		FCHECK(res);
+		FCHECK_CONTEXT(res, Handle(), "rprContextSetAOV");
 		return res;
 	}
 

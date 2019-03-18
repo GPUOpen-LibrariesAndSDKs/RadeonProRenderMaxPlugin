@@ -19,8 +19,8 @@ RprComposite::RprComposite(rpr_context context, rpr_composite_type type) :
 		return;
 	}
 
-	rpr_int status = rprContextCreateComposite(context, type, &mData);
-	checkStatus(status);
+	rpr_int res = rprContextCreateComposite(context, type, &mData);
+	FCHECK_CONTEXT(res, context, "rprContextCreateComposite");
 }
 
 RprComposite::~RprComposite()

@@ -315,11 +315,11 @@ void ScopeManagerMax::EnableRPRTrace(IParamBlock2 *pblock, bool enable)
 		}
 
 		rpr_int res = rprContextSetParameterString(nullptr, "tracingfolder", ToAscii(traceFolder).c_str());
-		FCHECK(res);
+		FCHECK(res); // Able to call FCHECK_CONTEXT() will nullptr for context?
 	}
 
 	auto res = rprContextSetParameter1u(nullptr, "tracing", enable ? 1 : 0);
-	FCHECK(res);
+	FCHECK(res); // Able to call FCHECK_CONTEXT() will nullptr for context?
 }
 
 std::wstring ScopeManagerMax::GetRPRTraceDirectory(IParamBlock2 *pblock)
@@ -509,15 +509,17 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 						if (CreateContext(gpuIdFlags[i], temporaryContext))
 						{
 							size_t deviceNameSize = 0;
-							int status = rprContextGetInfo(temporaryContext, gpuIdNames[i], 0, 0, &deviceNameSize);
-							if (status != RPR_SUCCESS)
+							int res = rprContextGetInfo(temporaryContext, gpuIdNames[i], 0, 0, &deviceNameSize);
+							FCHECK_CONTEXT(res, temporaryContext, "rprContextGetInfo");
+							if (res != RPR_SUCCESS)
 							{
 								throw  RPR_ERROR_INVALID_PARAMETER;
 							}
 
 							std::unique_ptr<char[]> dataBuffer(new char[deviceNameSize]);
-							status = rprContextGetInfo(temporaryContext, gpuIdNames[i], deviceNameSize, dataBuffer.get(), 0);
-							if (status != RPR_SUCCESS)
+							res = rprContextGetInfo(temporaryContext, gpuIdNames[i], deviceNameSize, dataBuffer.get(), 0);
+							FCHECK_CONTEXT(res, temporaryContext, "rprContextGetInfo");
+							if (res != RPR_SUCCESS)
 							{
 								throw  RPR_ERROR_INVALID_PARAMETER;
 							}
@@ -540,7 +542,7 @@ bool ScopeManagerMax::hasGpuCompatibleWithFR(int& numberCompatibleGPUs)
 							);
 							info.frFlags = gpuIdFlags[i];
 
-							auto res = rprObjectDelete(temporaryContext);
+							res = rprObjectDelete(temporaryContext);
 							FCHECK(res);
 						}
 					}

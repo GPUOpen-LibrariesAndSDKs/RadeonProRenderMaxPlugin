@@ -358,7 +358,7 @@ void LogErrorStringToMaxLog(const wstring& str)
 	GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, NO_DIALOG, _M("Radeon ProRender - Error"), str.c_str());
 }
 
-void RPRResultCheckImpl(rpr_int code, const MCHAR* filePath, const int line)
+void RPRResultCheckImpl(rpr_int code, const MCHAR* filePath, const int line, rpr_context context, const char* functionName)
 {
 	if (code != RPR_SUCCESS)
 	{
@@ -369,9 +369,35 @@ void RPRResultCheckImpl(rpr_int code, const MCHAR* filePath, const int line)
 #endif
 		wstring resMessage = LogMaxError(code, fileName, line);
 
+		RPRLogContextStatus(code, context, functionName);
+
 #if !defined(FIREMAX_DEBUG)
 		MessageBox(GetCOREInterface()->GetMAXHWnd(), resMessage.c_str(), _T("Radeon ProRender Error"), MB_OK);
 #endif
+	}
+}
+
+void RPRLogContextStatus(rpr_int status, rpr_context context, const char* functionName)
+{
+	if( (context==nullptr) || (functionName==nullptr) )
+		return;
+
+	size_t length = 0;
+	rpr_int res = rprContextGetInfo(context, RPR_CONTEXT_LAST_ERROR_MESSAGE, sizeof(size_t), nullptr, &length);
+	//FCHECK_CONTEXT(res, context, "rprContextGetInfo"); // This is already inside FCHECK_CONTEXT(), don't recurse
+	if( res==RPR_SUCCESS )
+	{
+		std::vector<rpr_char> info(length);
+		res = rprContextGetInfo(context, RPR_CONTEXT_LAST_ERROR_MESSAGE, info.size(), &info[0], nullptr);
+		//FCHECK_CONTEXT(res, context, "rprContextGetInfo"); // This is already inside FCHECK_CONTEXT(), don't recurse
+		if( res==RPR_SUCCESS )
+		{
+			std::string errorMessage(info.begin(), info.end());
+
+			std::wstring outputMessage = s2ws(functionName) + L" : " + s2ws(errorMessage);
+
+			GetCOREInterface()->Log()->LogEntry(SYSLOG_ERROR, DISPLAY_DIALOG, L"Radeon ProRender Context Status", outputMessage.c_str());
+		}
 	}
 }
 
@@ -402,6 +428,13 @@ std::wstring GetRPRErrorString(rpr_int code)
 	case RPR_ERROR_IO_ERROR: errorMsg = L"IO Error"; break;
 	case RPR_ERROR_UNSUPPORTED_SHADER_PARAMETER_TYPE: errorMsg = L"Unsupported Shader Parameter Type"; break;
 	case RPR_ERROR_INVALID_PARAMETER_TYPE: errorMsg = L"Invalid Parameter Type"; break;
+	case RPR_ERROR_UNSUPPORTED: errorMsg = L"Unsupported or incompatible device"; break;
+	case RPR_ERROR_OPENCL_OUT_OF_HOST_MEMORY: errorMsg = L"OpenCL Out of host memory"; break;
+	case RPR_ERROR_OPENGL: errorMsg = L"OpenGL Unspecified Error"; break;
+	case RPR_ERROR_OPENCL: errorMsg = L"OpenCL Unspecified Error"; break;
+	case RPR_ERROR_NULLPTR: errorMsg = L"Null Pointer"; break;
+	case RPR_ERROR_NODETYPE: errorMsg = L"Node Type Unknown Error"; break;
+	case RPR_ERROR_ABORTED: errorMsg = L"Aborted"; break;
 	default:
 		errorMsg = L"Unspecified internal error";
 		break;
