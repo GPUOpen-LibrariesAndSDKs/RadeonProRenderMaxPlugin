@@ -187,6 +187,8 @@ Scope::Data::~Data()
 	cache.value.Clear();
 	cache.image.Clear();
 
+	scene.Reset(); // destroy scene before deleting context
+
 	if (contextEx && bOwnContextEx)
 	{
 		auto res = rprxDeleteContext(contextEx);
