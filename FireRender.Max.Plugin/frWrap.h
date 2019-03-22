@@ -766,7 +766,11 @@ namespace frw
 #endif
 		void SetShadowFlag(bool castsShadows)
 		{
+#if RPR_API_VERSION >= 0x010033000
+			auto res = rprShapeSetVisibilityFlag(Handle(),RPR_SHAPE_VISIBILITY_SHADOW, castsShadows );
+#else
 			auto res = rprShapeSetShadow(Handle(), castsShadows);
+#endif
 			FCHECK(res);
 		}
 
