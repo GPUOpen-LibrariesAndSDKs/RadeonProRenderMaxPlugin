@@ -988,7 +988,7 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 				fileName = std::wstring(my_documents) + L"\\3dsMax\\export\\";
 			
 			std::wstring sceneName = GetCOREInterface()->GetCurFileName();
-			int extStart = sceneName.rfind(L'.');
+			int extStart = (int)sceneName.rfind(L'.');
 
 			if (extStart != std::string::npos)
 			{
@@ -1040,7 +1040,7 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 		std::vector<rpr_scene> scenes{ scene };
 
 		std::string ext;
-		int extStart = exportFilename.rfind(L'.');
+		int extStart = (int)exportFilename.rfind(L'.');
 
 		if (extStart != std::string::npos)
 		{

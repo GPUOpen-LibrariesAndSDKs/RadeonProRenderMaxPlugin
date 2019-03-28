@@ -1766,8 +1766,8 @@ void ApplyFREnvironment(frw::Scope& scope, frw::MaterialSystem& materialSystem, 
 				Matrix3 tx = tm;
 
 				// flip yz
-				tx.PreRotateX(M_PI_2);
-				tx.PreRotateY(M_PI);
+				tx.PreRotateX((float)M_PI_2);
+				tx.PreRotateY((float)M_PI);
 
 				ibl.SetTransform(tx);
 			}
@@ -2045,8 +2045,8 @@ bool SceneParser::parseEnvironment(Texmap* enviroMap)
 				angle = -sunAzimuth / 180.0f * M_PI - M_PI * 0.5;
 			}
 			// flip yz
-			tx.PreRotateX(M_PI_2);
-			tx.PreRotateY(M_PI);
+			tx.PreRotateX((float)M_PI_2);
+			tx.PreRotateY((float)M_PI);
 			if (angle != 0)
 				tx.PreRotateY(angle);
 			if (enviroImage)
@@ -2759,8 +2759,8 @@ void SceneParser::parseMaxLight(const ParsedNode& parsedNode, Object* evaluatedO
 						Matrix3 tx;
 						tx.IdentityMatrix();
 						// flip yz
-						tx.PreRotateX(M_PI_2);
-						tx.PreRotateY(M_PI);
+						tx.PreRotateX((float)M_PI_2);
+						tx.PreRotateY((float)M_PI);
 
 						tm = tx*r*tm;
 						}

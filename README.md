@@ -11,9 +11,11 @@ Samples:
 	ADSK_3DSMAX_SDK_2017=C:\Program Files\Autodesk\3ds Max 2017 SDK\maxsdk
 	ADSK_3DSMAX_SDK_2018=C:\Program Files\Autodesk\3ds Max 2018 SDK\maxsdk
 	ADSK_3DSMAX_SDK_2019=C:\Program Files\Autodesk\3ds Max 2019 SDK\maxsdk
+	ADSK_3DSMAX_SDK_2020=C:\Program Files\Autodesk\3ds Max 2020 SDK\maxsdk
 	ADSK_3DSMAX_x64_2017=C:\Program Files\Autodesk\3ds Max 2017\
 	ADSK_3DSMAX_x64_2018=C:\Program Files\Autodesk\3ds Max 2018\
 	ADSK_3DSMAX_x64_2019=C:\Program Files\Autodesk\3ds Max 2019\
+	ADSK_3DSMAX_x64_2020=C:\Program Files\Autodesk\3ds Max 2020\
 
 ## ThirdParty libraries
 

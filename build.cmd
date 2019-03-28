@@ -1,6 +1,6 @@
 @echo off
 
-set maxVersions=2017 2018 2019
+set maxVersions=2018 2019 2020
 
 setlocal enabledelayedexpansion
 
@@ -47,8 +47,11 @@ if %vs_major%==15 (
 )
 
 :vs_error
-	echo Visual Studio 2015 or newer has to be installed.
-	echo Newer version of Visual Studio will be used if it's present (v140 toolset has to be installed).
+	echo Visual Studio 2015 or newer has to be installed for 3ds Max 2017-2019.
+	echo Visual Studio 2017 or newer has to be installed for 3ds Max 2020.
+	echo Newer version of Visual Studio will be used if it's present.
+	echo Platform toolset v140 has to be installed for 3ds Max 2017-2019
+	echo Platform toolset v141 has to be installed for 3ds Max 2020
 	goto :eof
 
 :build_plugin

@@ -2381,7 +2381,7 @@ namespace
 		case ChannelSource::BLUE_INV:
 			return Point4(0, 0, -1, 1);
 		case ChannelSource::MONO:
-			return Point4(1, 1, 1, 0) * (1.0 / 3);
+			return Point4(1, 1, 1, 0) * (1.0f / 3);
 		case ChannelSource::ONE:
 			return Point4(0, 0, 0, 1);
 		case ChannelSource::ZERO:

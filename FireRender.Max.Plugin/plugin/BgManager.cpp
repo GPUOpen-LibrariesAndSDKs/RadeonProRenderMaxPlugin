@@ -597,7 +597,7 @@ RefResult BgManagerMax::NotifyRefChanged(Interval changeInt, RefTargetHandle hTa
 
 				// compute the azimuth angle (angle of rotation from the North vector, on the x-y plane. positive clockwise)
 				azimuth = atan2(vec.y, vec.x);
-				azimuth *= 180.0 / PI;
+				azimuth *= 180.0f / (float)PI;
 				azimuth -= 90.f;
 				if (azimuth < 0.f)
 					azimuth += 360.f;
@@ -614,7 +614,7 @@ RefResult BgManagerMax::NotifyRefChanged(Interval changeInt, RefTargetHandle hTa
 			// compute the elevation angle (angle between the equator and the position on the imaginary sphere, positive upwards)
 			vec = vec.Normalize();
 			float elevation = asin(vec.z);
-			elevation *= 180.0 / PI;
+			elevation *= 180.0f / (float)PI;
 			
 			SetPropChangeSender(PROP_SENDER_SUNWIDGET);
 			BOOL res = SetProperty(PARAM_BG_SKY_AZIMUTH, azimuth); FASSERT(res);

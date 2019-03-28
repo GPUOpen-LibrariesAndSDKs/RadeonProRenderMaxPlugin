@@ -215,7 +215,7 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 				{
 					// Lookat controller will cause z-axis to point opposite direction away from target
 					// Flip transform into final orientation right now; avoids special-cases when drawing the gizmo
-					mat.PreRotateX(-pi); // 180 degress about x-axis
+					mat.PreRotateX((float)-pi); // 180 degress about x-axis
 
 					Point3 intersectionPoint(0.0f, 0.0f, 0.0f);
 					bool gotIntersection = IntersectMouseRayWithPlane(intersectionPoint, vpt, m);
@@ -265,7 +265,7 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 				// Lookat controller will cause z-axis to point opposite direction away from target
 				// Flip transform into final orientation right now; avoids special-cases when drawing the gizmo
 				if (m_light->IsTargeted())
-					mat.PreRotateX(-pi); // 180 degress about x-axis
+					mat.PreRotateX((float)-pi); // 180 degress about x-axis
 			}
 
 			// proceed with targeted / non-targeted

@@ -650,8 +650,8 @@ void Synchronizer::RebuildMaxLight(INode *node, Object *evaluatedObject)
 						Matrix3 tx;
 						tx.IdentityMatrix();
 						// flip yz
-						tx.PreRotateX(M_PI_2);
-						tx.PreRotateY(M_PI);
+						tx.PreRotateX((float)M_PI_2);
+						tx.PreRotateY((float)M_PI);
 
 						tm = tx*r*tm;
 					}
@@ -1357,8 +1357,8 @@ void Synchronizer::UpdateEnvironmentImage()
 	tx.IdentityMatrix();
 	float angle = 0;
 	// flip yz
-	tx.PreRotateX(M_PI_2);
-	tx.PreRotateY(M_PI);
+	tx.PreRotateX((float)M_PI_2);
+	tx.PreRotateY((float)M_PI);
 	if (angle != 0)
 		tx.PreRotateY(angle);
 	enviroLight.SetTransform(tx);
@@ -1592,8 +1592,8 @@ void Synchronizer::UpdateRPREnvironment()
 				angle = -sunAzimuth / 180.0f * M_PI - M_PI * 0.5;
 			}
 			// flip yz
-			tx.PreRotateX(M_PI_2);
-			tx.PreRotateY(M_PI);
+			tx.PreRotateX((float)M_PI_2);
+			tx.PreRotateY((float)M_PI);
 			if (angle != 0)
 				tx.PreRotateY(angle);
 			if (enviroImage)
@@ -1677,8 +1677,8 @@ void Synchronizer::UpdateRPREnvironment()
 				Matrix3 tx = tm;
 	
 				// flip yz
-				tx.PreRotateX(M_PI_2);
-				tx.PreRotateY(M_PI);
+				tx.PreRotateX((float)M_PI_2);
+				tx.PreRotateY((float)M_PI);
 	
 				ibl.SetTransform(tx);
 			}
@@ -1731,8 +1731,8 @@ void Synchronizer::UpdateEnvXForm(INode *pNode)
 		angle = -sunAzimuth / 180.0f * M_PI;
 	}
 	// flip yz
-	tx.PreRotateX(M_PI_2);
-	tx.PreRotateY(M_PI);
+	tx.PreRotateX((float)M_PI_2);
+	tx.PreRotateY((float)M_PI);
 	if (angle != 0)
 		tx.PreRotateY(angle);
 
