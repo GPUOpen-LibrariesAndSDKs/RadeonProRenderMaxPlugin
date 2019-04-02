@@ -24,8 +24,6 @@ set DIST_PATH=dist
 set PLUGIN_PATH=bin\x64\%CONFIG_NAME%\RadeonProRenderMaxPlugin.dlr
 
 ::Copy silent, confirm overwrite and copy if different
-set xCopyFlags=/S /Y
-
 set DataFiles=^
 	"Support\*.frs"^
 	"Support\*.dat"
@@ -45,9 +43,17 @@ set EmbreeFiles=^
 set AxfFiles=^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxfConverter.dll"^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxFDecoding_r.dll"^
-	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"^
-	"ThirdParty\RadeonProImageProcessing\Win\lib\RadeonImageFilters64.dll"
+	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"
+	
+set ImageLibFiles=^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonImageFilters64.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\libcrypto-1_1-x64.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\MIOpen.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonProML.dll"
 
+set ImageLibMlModels=^
+	"ThirdParty\RadeonProImageProcessing\models"
+	
 set GltfFiles=^
 	"ThirdParty\RadeonProRender-GLTF\Win\lib\ProRenderGLTF.dll"
 
@@ -55,19 +61,30 @@ set GltfFiles=^
 if not exist %DIST_PATH% md %DIST_PATH%
 
 for %%a in (%DataFiles%) do ( 
-	xcopy %%a "%DIST_PATH%\data\*" %xCopyFlags%
+	xcopy %%a "%DIST_PATH%\data\*" /S /Y /I
 )
 
-set PluginBundle=CoreFiles EmbreeFiles AxfFiles GltfFiles
+set PluginBundle=CoreFiles EmbreeFiles AxfFiles GltfFiles ImageLibFiles
 
 for %%b in (%PluginBundle%) do (
 	for %%a in (!%%b!) do ( 
-		xcopy %%a "%DIST_PATH%\bin\*" %xCopyFlags%
+		xcopy %%a "%DIST_PATH%\bin\*" /S /Y /I
 	)
 )
 
-xcopy %PLUGIN_PATH% "%DIST_PATH%\plug-ins\%MAX_VERSION%\*" %xCopyFlags%
+:: copy Image Library ML models
+set ImgLibModels=ImageLibMlModels
 
+for %%b in (%ImgLibModels%) do (
+	for %%a in (!%%b!) do ( 
+		xcopy %%a "%DIST_PATH%\data\models" /S /Y /I
+	)
+)
+
+:: Copy plugin itself
+xcopy %PLUGIN_PATH% "%DIST_PATH%\plug-ins\%MAX_VERSION%\*" /S /Y /I
+
+:: Patch 3ds Max plugins configuration file
 pushd Support
 powershell -executionPolicy bypass -file RprSetup.ps1 %MAX_VERSION%
 popd

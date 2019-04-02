@@ -40,7 +40,8 @@ enum DenoiserType
 	DenoiserNone      = 0,
 	DenoiserBilateral = 1,
 	DenoiserLwr       = 2,
-	DenoiserEaw       = 3
+	DenoiserEaw       = 3,
+	DenoiserMl        = 4
 };
 
 enum Parameter : ParamID

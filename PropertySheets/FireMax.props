@@ -15,12 +15,12 @@
 			<AdditionalIncludeDirectories>ThirdParty\AxfPackage\AxfInclude\;ThirdParty\AxfPackage\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalIncludeDirectories>ThirdParty\Expat 2.1.0\Source\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalIncludeDirectories>ThirdParty\RadeonProRender-GLTF\Win\inc\;ThirdParty\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalIncludeDirectories>ThirdParty\RadeonProImageProcessing\Win\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>ThirdParty\RadeonProImageProcessing\Windows\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>MAX_PLUGIN;XML_UNICODE_WCHAR_T;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 		</ClCompile>
 		<Link>
 			<AdditionalLibraryDirectories>ThirdParty\RadeonProRender-GLTF\Win\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalLibraryDirectories>ThirdParty\RadeonProImageProcessing\Win\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<AdditionalLibraryDirectories>ThirdParty\RadeonProImageProcessing\Windows\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
 			<AdditionalDependencies>ProRenderGLTF.lib;RadeonImageFilters64.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>

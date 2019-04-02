@@ -225,7 +225,10 @@ EXPORT_TO_MAX int LibInitialize()
 		{ L"RprLoadStore64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL }, // Dependent on "RprSupport64.dll"
 		{ L"OpenImageIO_RPR.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 
-		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"libcrypto-1_1-x64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"MIOpen.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"RadeonProML.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL }, // Dependent on "RadeonProML.dll", "MIOpen.dll"
 	
 		{ L"embree.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"tbb.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },

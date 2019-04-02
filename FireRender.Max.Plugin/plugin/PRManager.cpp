@@ -114,6 +114,8 @@ public:
 	frw::FrameBuffer frameBufferDepth;
 	frw::FrameBuffer frameBufferWorldCoordinate;
 	frw::FrameBuffer frameBufferObjectId;
+	frw::FrameBuffer frameBufferDiffuseAlbedo;
+	frw::FrameBuffer frameBufferDiffuseAlbedoResolve;
 
 	// adaptive sampling buffers with CMJ sampler
 	frw::FrameBuffer frameBufferVariance;
@@ -230,6 +232,8 @@ void ProductionRenderCore::SaveFrameData()
 
 			if (mDenoiser)
 			{
+				frameBufferDiffuseAlbedo.Resolve(frameBufferDiffuseAlbedoResolve);
+
 				mDenoiser->Run();
 			}
 		}
@@ -349,6 +353,10 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 
 		frameBufferObjectId = scope.GetFrameBuffer(width, height, FramebufferTypeId_ObjectId);
 		ctx.SetAOV(frameBufferObjectId, RPR_AOV_OBJECT_ID);
+
+		frameBufferDiffuseAlbedo = scope.GetFrameBuffer(width, height, FramebufferTypeId_DiffuseAlbedo);
+		frameBufferDiffuseAlbedoResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_DiffuseAlbedoResolve);
+		ctx.SetAOV(frameBufferDiffuseAlbedo, RPR_AOV_DIFFUSE_ALBEDO);
 	}
 
 	// additional frame buffer for Adaptive Sampling, used with the CMJ sampler
@@ -792,6 +800,17 @@ ClassDesc* PRManagerMax::GetClassDesc()
 PRManagerMax::PRManagerMax()
 {
 	refTarget = 0;
+
+	// initialize models path string for ML denoiser
+	std::string modulePath = ws2s(GetModuleFolder());
+
+	size_t pos = modulePath.rfind("plug-ins");
+	
+	if (pos != std::string::npos)
+	{
+		mMlModelPath.assign(modulePath, 0, pos);
+		mMlModelPath.append("data\\models");
+	}
 }
 
 PRManagerMax::~PRManagerMax()
@@ -1707,9 +1726,10 @@ void PRManagerMax::SetupDenoiser(frw::Context context, PRManagerMax::Data* data,
 	const rpr_framebuffer fbDepth = data->renderThread->frameBufferDepth.Handle();
 	const rpr_framebuffer fbWorldCoord = data->renderThread->frameBufferWorldCoordinate.Handle();
 	const rpr_framebuffer fbObjectId = data->renderThread->frameBufferObjectId.Handle();
+	const rpr_framebuffer fbDiffuseAlbedo = data->renderThread->frameBufferDiffuseAlbedoResolve.Handle();
 	const rpr_framebuffer fbTrans = fbObjectId;
 
-	data->mDenoiser.reset( new ImageFilter(context.Handle(), imageWidth, imageHeight) );
+	data->mDenoiser.reset( new ImageFilter(context.Handle(), imageWidth, imageHeight, mMlModelPath.c_str()));
 	ImageFilter& filter = *data->mDenoiser;
 
 	if (DenoiserBilateral == type)
@@ -1784,6 +1804,15 @@ void PRManagerMax::SetupDenoiser(frw::Context context, PRManagerMax::Data* data,
 		filter.AddInput(RifWorldCoordinate, fbWorldCoord, 0.1f);
 		filter.AddInput(RifObjectId, fbObjectId, 0.1f);
 	}
+	else if (DenoiserMl == type)
+	{
+		filter.CreateFilter(RifFilterType::MlDenoise);
+		filter.AddInput(RifColor, fbColor, 0.0f);
+		filter.AddInput(RifNormal, fbShadingNormal, 0.0f);
+		filter.AddInput(RifDepth, fbDepth, 0.0f);
+		filter.AddInput(RifAlbedo, fbDiffuseAlbedo, 0.0f);
+	}
+
 
 	filter.AttachFilter();
 }

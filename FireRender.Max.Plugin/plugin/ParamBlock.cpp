@@ -475,7 +475,7 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	p_default, FALSE, PB_END,
 
 	PARAM_DENOISER_TYPE, _T("denoiserType"), TYPE_INT, 0, 0,
-	p_default, DenoiserBilateral, PB_END,
+	p_default, DenoiserMl, PB_END,
 
 	PARAM_DENOISER_BILATERAL_RADIUS, _T("bilateralRadius"), TYPE_INT, 0, 0, p_default,
 	bilateralRadiusDefault, p_range, bilateralRadiusMin, bilateralRadiusMax, PB_END,

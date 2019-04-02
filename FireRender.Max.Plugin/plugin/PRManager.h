@@ -87,6 +87,8 @@ enum FramebufferTypeId
 	FrameBufferTypeId_DirectRefractResolve,
 	FrameBufferTypeId_Volume,
 	FrameBufferTypeId_VolumeResolve,
+	FramebufferTypeId_DiffuseAlbedo,
+	FramebufferTypeId_DiffuseAlbedoResolve,
 
 	// special cases
 	FrameBufferTypeId_ShadowCatcher,
@@ -214,6 +216,8 @@ private:
 	void PostProcessDepth(std::vector<float>& data, int width, int height) const;
 
 	const int FbComponentsNumber = 4;
+
+	std::string mMlModelPath;
 };
 
 FIRERENDER_NAMESPACE_END

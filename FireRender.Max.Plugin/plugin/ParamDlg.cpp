@@ -2819,7 +2819,8 @@ void FireRenderParamDlg::CDenoiserSettings::InitDialog()
 	{ 
 		{ DenoiserBilateral, IDC_DENOISER_BILATERAL },
 		{ DenoiserLwr,       IDC_DENOISER_LWR },
-		{ DenoiserEaw,       IDC_DENOISER_EAW }
+		{ DenoiserEaw,       IDC_DENOISER_EAW },
+		{ DenoiserMl,        IDC_DENOISER_ML }
 	};
 
 	for (const DenoiserTypeItem& type : types)
@@ -2885,6 +2886,7 @@ INT_PTR FireRenderParamDlg::CDenoiserSettings::DlgProc(UINT msg, WPARAM wParam, 
 		{ IDC_DENOISER_BILATERAL, DenoiserBilateral },
 		{ IDC_DENOISER_LWR, DenoiserLwr },
 		{ IDC_DENOISER_EAW, DenoiserEaw },
+		{ IDC_DENOISER_ML, DenoiserMl },
 	};
 
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
@@ -2913,6 +2915,7 @@ INT_PTR FireRenderParamDlg::CDenoiserSettings::DlgProc(UINT msg, WPARAM wParam, 
 					case IDC_DENOISER_BILATERAL:
 					case IDC_DENOISER_LWR:
 					case IDC_DENOISER_EAW:
+					case IDC_DENOISER_ML:
 						if (mIsReady)
 						{
 							BOOL res = pb->SetValue(PARAM_DENOISER_TYPE, 0, typeById.at(idButton));
