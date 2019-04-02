@@ -26,9 +26,10 @@ enum PbDescVersion
 #define RPR_QUALITY_PRESET_PRODUCTION 0x1
 #define RPR_QUALITY_PRESET_PREVIEW 0x2
 
-#define RPR_RENDER_LIMIT_PASS		0x01
-#define RPR_RENDER_LIMIT_TIME        0x02
-#define RPR_RENDER_LIMIT_UNLIMITED   0x03
+#define RPR_RENDER_LIMIT_PASS			0x01
+#define RPR_RENDER_LIMIT_TIME			0x02
+#define RPR_RENDER_LIMIT_UNLIMITED		0x03
+#define RPR_RENDER_LIMIT_PASS_OR_TIME	0x04
 
 #define DEFAULT_RENDER_STAMP _T("Radeon ProRender for 3ds Max %b | %h | Time: %pt | Passes: %pp | Objects: %so | Lights: %sl")
 
@@ -57,9 +58,24 @@ enum Parameter : ParamID
     /// of them is hit. In seconds.
     PARAM_TIME_LIMIT                    = 200,
 
-    /// INT: Number of passes to make, 0 = no limit. If both time and pass limits are set, render is terminated after either 
-    /// of them is hit
-    PARAM_PASS_LIMIT                    = 201,
+	/// INT: Number of passes to make, 0 = no limit. If both time and pass limits are set, render is terminated after either 
+	/// of them is hit.  VIRTUAL PARAMETER, equal to (PARAM_SAMPLES_MAX / PARAM_CONTEXT_ITERATIONS)
+	PARAM_PASS_LIMIT                    = 201,
+	
+	/// INT: Maximum number of samples to make, 0 = no limit. If both time and pass limits are set, render is terminated after
+    /// either of them is hit.  Each render iteration adds a number of samples equal to the context iterations value
+    PARAM_SAMPLES_MAX                   = 202,
+
+	/// INT: Minimum number of samples to make. After this number, adaptive sample will stop sampling pixels where noise is
+	/// less than threshold
+	PARAM_SAMPLES_MIN                   = 203,
+
+	/// FLOAT: Adaptive Sampling noise threshold. Once pixels are below this amount of noise, not more samples are added.
+	/// Set to 0 for no cutoff.
+	PARAM_ADAPTIVE_NOISE_THRESHOLD      = 204,
+
+	/// FLOAT: Adaptive Sampling tile size.
+	PARAM_ADAPTIVE_TILESIZE             = 205,
 
     /// BOOL: Whether to use the depth of field effect
 	OBSOLETE_PARAM_USE_DOF						= 300,
@@ -154,7 +170,7 @@ enum Parameter : ParamID
 	PARAM_CONTEXT_ITERATIONS = 438,
 
 	PARAM_WARNING_DONTSHOW = 501,
-	PARAM_RENDER_LIMIT = 502,
+	PARAM_RENDER_LIMIT = 502, // VIRTUAL PARAM, time limited if PARAM_SAMPLES_MAX==0, pass limited if PARAM_TIME_LIMIT==0
 
 	PARAM_TRACEDUMP_PATH = 503,
 		
@@ -273,5 +289,13 @@ class BgAccessor : public PBAccessor
 	BOOL KeyFrameAtTime(ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override;
 	ParamID TranslateParamID(ParamID id);
 }; 
+
+/// Accessort for Sampling transient properties 
+class SamplingAccessor : public PBAccessor
+{
+	void Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid) override;
+	void Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override;
+	BOOL KeyFrameAtTime(ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t) override;
+};
 
 FIRERENDER_NAMESPACE_END

@@ -338,6 +338,9 @@ Synchronizer::Synchronizer(frw::Scope scope, INode *pSceneINode, SynchronizerBri
 	FASSERT(mParametersTracker.AddToTracker(PARAM_PASS_LIMIT));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_RENDER_LIMIT));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_QUALITY_RAYCAST_EPSILON));
+	FASSERT(mParametersTracker.AddToTracker(PARAM_ADAPTIVE_NOISE_THRESHOLD));
+	FASSERT(mParametersTracker.AddToTracker(PARAM_ADAPTIVE_TILESIZE));
+	FASSERT(mParametersTracker.AddToTracker(PARAM_SAMPLES_MAX));
 }
 
 Synchronizer::~Synchronizer()

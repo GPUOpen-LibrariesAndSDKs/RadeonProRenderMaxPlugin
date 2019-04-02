@@ -19,6 +19,7 @@ FIRERENDER_NAMESPACE_BEGIN
 FireRenderClassDesc fireRenderClassDesc;
 
 static BgAccessor theBgAccessor;
+static SamplingAccessor theSamplingAccessor;
 
 // Values of raycast epsilon constants in meters
 static const float rprRenderRaycastEpsilonMin = 0.0f;
@@ -103,9 +104,26 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
     p_range, 59, INT_MAX, p_default, 59, PB_END,
 
     PARAM_PASS_LIMIT, _T("passLimit"), TYPE_INT, 0, 0,
-    p_range, 1, INT_MAX, p_default, 1, PB_END,
+    p_range, 1, INT_MAX, p_default, 1,
+	p_accessor, &theSamplingAccessor,
+	PB_END,
 
-	
+	PARAM_SAMPLES_MIN, _T("samplesMin"), TYPE_INT, 0, 0,
+	p_range, 1, INT_MAX, p_default, 16,
+	PB_END,
+
+	PARAM_SAMPLES_MAX, _T("samplesMax"), TYPE_INT, 0, 0,
+	p_range, 0, INT_MAX, p_default, 400,
+	PB_END,
+
+	PARAM_ADAPTIVE_NOISE_THRESHOLD, _T("adaptiveNoiseThreshold"), TYPE_FLOAT, 0, 0,
+	p_range, 0.0, 1.0, p_default, 0.01,
+	PB_END,
+
+	PARAM_ADAPTIVE_TILESIZE, _T("adaptiveTileSize"), TYPE_INT, 0, 0,
+	p_range, 4, 16, p_default, 4,
+	PB_END,
+
 	OBSOLETE_PARAM_CAMERA_USE_FOV, _T("useFov"), TYPE_BOOL, P_ANIMATABLE|P_INVISIBLE|P_OBSOLETE, IDS_STRING226,
 	p_default, TRUE, PB_END,
 
@@ -269,11 +287,13 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	p_default, false, PB_END,
 
 	// Values from ParamBlock.h:
-	// RPR_RENDER_LIMIT_PASS        0x01
-	// RPR_RENDER_LIMIT_TIME        0x02
-	// RPR_RENDER_LIMIT_UNLIMITED    0x03
+	// RPR_RENDER_LIMIT_PASS			0x01
+	// RPR_RENDER_LIMIT_TIME			0x02
+	// RPR_RENDER_LIMIT_UNLIMITED		0x03
+	// RPR_RENDER_LIMIT_PASS_OR_TIME	0x04
 	PARAM_RENDER_LIMIT, _T("renderLimit"), TYPE_INT, 0, 0,
 	p_range, RPR_RENDER_LIMIT_PASS, RPR_RENDER_LIMIT_UNLIMITED, p_default, RPR_RENDER_LIMIT_UNLIMITED,
+	p_accessor, &theSamplingAccessor,
 	PB_END,
 
 	PARAM_TEXMAP_RESOLUTION, _T("texmapResolution"), TYPE_INT, 0, 0,
@@ -482,7 +502,19 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	eawObjectIdDefault, p_range, eawObjectIdMin, eawObjectIdMax, PB_END,
 
 	PARAM_CONTEXT_ITERATIONS, _T("iterations"), TYPE_INT, 0, 0, // effectively the same parameter as aasamples
-	p_default, 4, p_range, 1, 16 /*RPR_MAX_AA_GRID_SIZE*/, PB_END,
+	p_default, 1, p_range, 1, INT_MAX /*RPR_MAX_AA_GRID_SIZE*/, PB_END,
+
+    PARAM_ADAPTIVE_NOISE_THRESHOLD, _T("adaptiveNoiseThreshold"), TYPE_FLOAT, 0, 0,
+    p_range, 0.0, 1.0, p_default, 0.1, PB_END,
+
+    PARAM_ADAPTIVE_TILESIZE, _T("adaptiveTileSize"), TYPE_INT, 0, 0,
+    p_range, 1, INT_MAX, p_default, 4, PB_END,
+
+    PARAM_SAMPLES_MIN, _T("samplesMin"), TYPE_INT, 0, 0,
+    p_range, 1, 65536, p_default, 16, PB_END,
+
+	PARAM_SAMPLES_MIN, _T("samplesMax"), TYPE_INT, 0, 0,
+	p_range, 0, INT_MAX, p_default, 16, PB_END,
 
 PB_END);
 
@@ -627,5 +659,97 @@ ParamID BgAccessor::TranslateParamID(ParamID id)
 			return id - (TRPARAM_BG_USE - PARAM_BG_FIRST);
 	}
 }
+
+
+void SamplingAccessor::Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t, Interval &valid)
+{
+	IParamBlock2 *pblock = owner->GetParamBlock(0);
+	switch (id)
+	{
+	case PARAM_PASS_LIMIT:
+		{
+			int samplesMax = pblock->GetInt(PARAM_SAMPLES_MAX);
+			int contextIterations = pblock->GetInt(PARAM_CONTEXT_ITERATIONS);
+			if (contextIterations <= 1) contextIterations = 1;
+			// if maximum number of samples is not evenly divisble by context iterations,
+			// add one extra pass to overshoot, not undershoot, the intended render quality
+			int passes = samplesMax / contextIterations;
+			if( (passes*contextIterations) < samplesMax ) // add one extra pass if needed
+				passes++;
+			v.i = passes;
+		}
+		break;
+
+	case PARAM_RENDER_LIMIT:
+		{
+			int samplesMax = pblock->GetInt(PARAM_SAMPLES_MAX);
+			int timeLimit = pblock->GetInt(PARAM_TIME_LIMIT);
+			if ((samplesMax <= 0) && (timeLimit <= 0))
+				v.i = RPR_RENDER_LIMIT_UNLIMITED;
+			else if (samplesMax <= 0)
+				v.i = RPR_RENDER_LIMIT_TIME;
+			else if (timeLimit <= 0)
+				v.i = RPR_RENDER_LIMIT_PASS;
+			else
+				v.i = RPR_RENDER_LIMIT_PASS_OR_TIME;
+		}
+		break;
+	}
+}
+
+void SamplingAccessor::Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+{
+	IParamBlock2 *pblock = owner->GetParamBlock(0);
+	ParamBlockDesc2 *desc = owner->GetParamBlock(0)->GetDesc();
+	FASSERT(desc);
+	ParamDef& pdef = desc->GetParamDef(id);
+	switch (id)
+	{
+	case PARAM_PASS_LIMIT:
+		if( v.i<=0 ) // unlimited
+			pblock->SetValue(PARAM_SAMPLES_MAX, 0, 0);
+		else
+		{
+			int contextIterations = pblock->GetInt(PARAM_CONTEXT_ITERATIONS);
+			if( contextIterations <= 1 ) contextIterations = 1;
+			pblock->SetValue(PARAM_SAMPLES_MAX, 0, contextIterations * v.i);
+		}
+		break;
+
+	case PARAM_RENDER_LIMIT:
+		if( v.i == RPR_RENDER_LIMIT_UNLIMITED )
+		{
+			pblock->SetValue(PARAM_SAMPLES_MAX,0,0);
+			pblock->SetValue(PARAM_TIME_LIMIT, 0, 0);
+		}
+		else if( v.i == RPR_RENDER_LIMIT_TIME )
+		{
+			pblock->SetValue(PARAM_SAMPLES_MAX, 0, 0);
+		}
+		else if( v.i == RPR_RENDER_LIMIT_PASS )
+		{
+			pblock->SetValue(PARAM_TIME_LIMIT, 0, 0);
+		}
+
+		if( (v.i == RPR_RENDER_LIMIT_TIME) || (v.i == RPR_RENDER_LIMIT_PASS_OR_TIME) )
+		{
+			if (pblock->GetInt(PARAM_TIME_LIMIT) == 0) // Set time limit to default nonzero if necessary
+				pblock->SetValue(PARAM_TIME_LIMIT, 0, desc->GetParamDef(PARAM_TIME_LIMIT).def.i);
+		}
+
+		if( (v.i == RPR_RENDER_LIMIT_PASS) || (v.i == RPR_RENDER_LIMIT_PASS_OR_TIME) )
+		{
+			if (pblock->GetInt(PARAM_SAMPLES_MAX) == 0) // Set max samples to default nonzero if necessary
+				pblock->SetValue(PARAM_SAMPLES_MAX, 0, desc->GetParamDef(PARAM_SAMPLES_MAX).def.i);
+		}
+		break;
+	}
+}
+
+BOOL SamplingAccessor::KeyFrameAtTime(ReferenceMaker* owner, ParamID id, int tabIndex, TimeValue t)
+{
+	return FALSE;
+}
+
 
 FIRERENDER_NAMESPACE_END

@@ -115,6 +115,10 @@ public:
 	frw::FrameBuffer frameBufferWorldCoordinate;
 	frw::FrameBuffer frameBufferObjectId;
 
+	// adaptive sampling buffers with CMJ sampler
+	frw::FrameBuffer frameBufferVariance;
+	frw::FrameBuffer frameBufferVarianceResolve;
+
 private:
 	Event eRestart;
 
@@ -235,6 +239,8 @@ void ProductionRenderCore::SaveFrameData()
 			frameBufferAlpha.Resolve(frameBufferAlphaResolve);
 		}
 
+		frameBufferVariance.Resolve(frameBufferVarianceResolve,true);
+
 		rprCopyFrameDataDoneEvent.Reset();
 		RPRCopyFrameData();
 	}
@@ -344,6 +350,11 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 		frameBufferObjectId = scope.GetFrameBuffer(width, height, FramebufferTypeId_ObjectId);
 		ctx.SetAOV(frameBufferObjectId, RPR_AOV_OBJECT_ID);
 	}
+
+	// additional frame buffer for Adaptive Sampling, used with the CMJ sampler
+	frameBufferVariance = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Variance);
+	frameBufferVarianceResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_VarianceResolve);
+	ctx.SetAOV(frameBufferVariance, RPR_AOV_VARIANCE);
 }
 
 // Shadow catcher Impl
@@ -484,6 +495,7 @@ void ProductionRenderCore::Worker()
 		}
 		
 		// Clear the frame buffers we render into
+		// Only do this for the first render pass
 		if (clearFramebuffer)
 		{
 			frameBufferColor.Clear();
@@ -498,6 +510,8 @@ void ProductionRenderCore::Worker()
 				frameBufferShadowCatcher.Clear();
 				frameBufferBackground.Clear();
 			}
+
+			frameBufferVariance.Clear();
 
 			clearFramebuffer = false;
 		}
@@ -543,12 +557,12 @@ void ProductionRenderCore::Worker()
 
 		if (term != Termination_None)
 		{
-			if (term == Termination_Passes && passesDone == numPasses) // Passes done, terminate
+			if( ((term == Termination_Passes) || (term == Termination_PassesOrTime)) && (passesDone >= numPasses) ) // Passes done, terminate
 			{
 				Done(Result_OK, RPR_SUCCESS);
 				return;
 			}
-			else if (term == Termination_Time && timePassed >= timeLimit) // Time limit reached, terminate
+			else if( ((term == Termination_Time) || (term == Termination_PassesOrTime)) && (timePassed >= timeLimit)) // Time limit reached, terminate
 			{
 				Done(Result_OK, RPR_SUCCESS);
 				return;
@@ -929,6 +943,11 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 		case RPR_RENDER_LIMIT_UNLIMITED:
 			data->termCriteria = Termination_None;
 			break;
+		case RPR_RENDER_LIMIT_PASS_OR_TIME:
+			data->termCriteria = Termination_PassesOrTime;
+			data->passLimit = GetFromPb<int>(parameters.pblock, PARAM_PASS_LIMIT);
+			data->timeLimit = GetFromPb<int>(parameters.pblock, PARAM_TIME_LIMIT);
+			break;
 		}
 	}
 
@@ -950,6 +969,11 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);
 	context.SetParameter("iterations", GetFromPb<int>(parameters.pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
+	context.SetParameter("preview", 0);
+	context.SetParameter("as.threshold", GetFromPb<float>(parameters.pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD));
+	context.SetParameter("as.tilesize", GetFromPb<int>(parameters.pblock, PARAM_ADAPTIVE_TILESIZE));
+	context.SetParameter("as.minspp", GetFromPb<int>(parameters.pblock, PARAM_SAMPLES_MIN));
+
 
 	float raycastEpsilon = GetFromPb<float>(parameters.pblock, PARAM_QUALITY_RAYCAST_EPSILON);
 	context.SetParameter("raycastepsilon", raycastEpsilon);
@@ -1061,7 +1085,7 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 		else if ("rpr" == ext)
 		{
 #if (RPR_API_VERSION >= 0x010032400)
-			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0, 0);
+			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0, 1);
 #else
 			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0);
 #endif
@@ -1421,9 +1445,9 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 			if (parameters.progress)
 			{
 				bool doCancel = false;
-				if (data->termCriteria == Termination_Passes)
+				if( (data->termCriteria == Termination_Passes) || (data->termCriteria == Termination_PassesOrTime) )
 					doCancel = (parameters.progress->Progress(data->renderThread->passesDone, data->passLimit) != RENDPROG_CONTINUE);
-				else if (data->termCriteria == Termination_Time)
+				else if( data->termCriteria == Termination_Time )
 					doCancel = (parameters.progress->Progress(data->renderThread->timePassed * 1000, data->timeLimit * 1000) != RENDPROG_CONTINUE);
 				else
 					doCancel = (parameters.progress->Progress(0, 100) != RENDPROG_CONTINUE);
@@ -1466,7 +1490,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 					}
 
 					ss << _T("Rendering (pass ") << data->renderThread->passesDone;
-					if (data->termCriteria == Termination_Passes)
+					if( (data->termCriteria == Termination_Passes) || (data->termCriteria == Termination_PassesOrTime) )
 						ss << _T(" of ") << data->passLimit;
 					ss << _T(", elapsed: ") << (int)data->renderThread->timePassed << _T("s)...");
 				}
@@ -1901,7 +1925,8 @@ FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOV(rpr_aov aov) const
 		{ RPR_AOV_INDIRECT_DIFFUSE,          FrameBufferTypeId_IndirectDiffuse },
 		{ RPR_AOV_INDIRECT_REFLECT,          FrameBufferTypeId_IndirectReflect },
 		{ RPR_AOV_REFRACT,                   FrameBufferTypeId_DirectRefract },
-		{ RPR_AOV_VOLUME,                    FrameBufferTypeId_Volume }
+		{ RPR_AOV_VOLUME,                    FrameBufferTypeId_Volume },
+		{ RPR_AOV_VARIANCE,                  FrameBufferTypeId_Variance }
 	};
 
 	auto fbToAovIt = fbToAov.find(aov);
@@ -1938,7 +1963,8 @@ FramebufferTypeId PRManagerMax::GetFramebufferTypeIdForAOVResolve(rpr_aov aov) c
 		{ RPR_AOV_INDIRECT_DIFFUSE,          FrameBufferTypeId_IndirectDiffuseResolve },
 		{ RPR_AOV_INDIRECT_REFLECT,          FrameBufferTypeId_IndirectReflectResolve },
 		{ RPR_AOV_REFRACT,                   FrameBufferTypeId_DirectRefractResolve },
-		{ RPR_AOV_VOLUME,                    FrameBufferTypeId_VolumeResolve }
+		{ RPR_AOV_VOLUME,                    FrameBufferTypeId_VolumeResolve },
+		{ RPR_AOV_VARIANCE,                  FrameBufferTypeId_VarianceResolve }
 	};
 
 	auto fbToAovIt = fbToAov.find(aov);

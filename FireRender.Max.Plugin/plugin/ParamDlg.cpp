@@ -341,24 +341,6 @@ INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, L
 				int idButton = (int)LOWORD(wParam);
 				switch (idButton)
 				{
-					case IDC_RENDER_PASS:
-					{
-						EnableRenderLimitControls(TRUE, FALSE);
-						BOOL res = pb->SetValue(PARAM_RENDER_LIMIT, 0, RPR_RENDER_LIMIT_PASS); FASSERT(res);
-					}
-					break;
-					case IDC_RENDER_TIME:
-					{
-						EnableRenderLimitControls(FALSE, FALSE);
-						BOOL res = pb->SetValue(PARAM_RENDER_LIMIT, 0, RPR_RENDER_LIMIT_TIME); FASSERT(res);
-					}
-					break;
-					case IDC_RENDER_UNLIMITED:
-					{
-						EnableRenderLimitControls(FALSE, TRUE);
-						BOOL res = pb->SetValue(PARAM_RENDER_LIMIT, 0, RPR_RENDER_LIMIT_UNLIMITED); FASSERT(res);
-					}
-					break;
 					case IDC_ENABLE_STAMP:
 					{
 						BOOL res = pb->SetValue(PARAM_STAMP_ENABLED, 0, BOOL(IsDlgButtonChecked(mHwnd, IDC_ENABLE_STAMP))); FASSERT(res);
@@ -394,14 +376,17 @@ INT_PTR FireRenderParamDlg::CGeneralSettings::DlgProc(UINT msg, WPARAM wParam, L
 			if (mIsReady && !mOwner->isReadOnly)
 			{
 				int idSpinner = (int)LOWORD(wParam);
-				if (idSpinner == IDC_TIME_H_S || idSpinner == IDC_TIME_M_S || idSpinner == IDC_TIME_S_S)
+				if (idSpinner == IDC_SAMPLING_TIME_H_S || idSpinner == IDC_SAMPLING_TIME_M_S || idSpinner == IDC_SAMPLING_TIME_S_S)
 				{
 					const int timeLimit = controls.timeLimitH->GetIVal() * 3600 + controls.timeLimitM->GetIVal() * 60 + controls.timeLimitS->GetIVal();
 					BOOL res = pb->SetValue(PARAM_TIME_LIMIT, 0, timeLimit);
 					FASSERT(res);
 				}
 				else
+				{
 					CommitSpinnerToParam(pb, idSpinner);
+					UpdateRenderLimitControls();
+				}
 			}
 		}
 		break;
@@ -427,10 +412,12 @@ void FireRenderParamDlg::CGeneralSettings::InitDialog()
 {
 	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
 
-	controls.passLimit = SetupSpinner(pb, PARAM_PASS_LIMIT, IDC_PASSES, IDC_PASSES_S);
-	controls.timeLimitH = SetupSpinner(pb, PARAM_TIME_LIMIT, IDC_TIME_H, IDC_TIME_H_S);
-	controls.timeLimitM = SetupSpinner(pb, PARAM_TIME_LIMIT, IDC_TIME_M, IDC_TIME_M_S);
-	controls.timeLimitS = SetupSpinner(pb, PARAM_TIME_LIMIT, IDC_TIME_S, IDC_TIME_S_S);
+	controls.samplesMin = SetupSpinner(pb, PARAM_SAMPLES_MIN, IDC_SAMPLING_SAMPLES_MIN, IDC_SAMPLING_SAMPLES_MIN_S);
+	controls.samplesMax = SetupSpinner(pb, PARAM_SAMPLES_MAX, IDC_SAMPLING_SAMPLES_MAX, IDC_SAMPLING_SAMPLES_MAX_S);
+	controls.adaptiveThresh = SetupSpinner(pb, PARAM_ADAPTIVE_NOISE_THRESHOLD, IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD, IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_S);
+	controls.timeLimitH = SetupSpinner(pb, PARAM_TIME_LIMIT, IDC_SAMPLING_TIME_H, IDC_SAMPLING_TIME_H_S);
+	controls.timeLimitM = SetupSpinner(pb, PARAM_TIME_LIMIT, IDC_SAMPLING_TIME_M, IDC_SAMPLING_TIME_M_S);
+	controls.timeLimitS = SetupSpinner(pb, PARAM_TIME_LIMIT, IDC_SAMPLING_TIME_S, IDC_SAMPLING_TIME_S_S);
 	const int timeLimit = pb->GetInt(PARAM_TIME_LIMIT);
 	controls.timeLimitH->SetLimits(0, 24 * 7);
 	controls.timeLimitH->SetValue(timeLimit / 3600, TRUE);
@@ -438,26 +425,8 @@ void FireRenderParamDlg::CGeneralSettings::InitDialog()
 	controls.timeLimitM->SetValue((timeLimit / 60) % 60, TRUE);
 	controls.timeLimitS->SetLimits(0, 59);
 	controls.timeLimitS->SetValue(timeLimit % 60, TRUE);
+	controls.contextIterations = SetupSpinner(pb, PARAM_CONTEXT_ITERATIONS, IDC_SAMPLING_CONTEXT_ITERATIONS, IDC_SAMPLING_CONTEXT_ITERATIONS_S);
 
-	int renderLimitType = 0;
-	BOOL res = pb->GetValue(PARAM_RENDER_LIMIT, 0, renderLimitType, Interval());
-	FASSERT(res);
-	switch (renderLimitType)
-	{
-		case RPR_RENDER_LIMIT_PASS:
-			CheckRadioButton(IDC_RENDER_PASS);
-			EnableRenderLimitControls(TRUE, FALSE);
-			break;
-		case RPR_RENDER_LIMIT_TIME:
-			CheckRadioButton(IDC_RENDER_TIME);
-			EnableRenderLimitControls(FALSE, FALSE);
-			break;
-		case RPR_RENDER_LIMIT_UNLIMITED:
-			CheckRadioButton(IDC_RENDER_UNLIMITED);
-			EnableRenderLimitControls(FALSE, TRUE);
-			break;
-	}
-	
 	SetupCheckbox(pb, PARAM_STAMP_ENABLED, IDC_ENABLE_STAMP);
 
 	const TCHAR* stampText = NULL;
@@ -467,9 +436,18 @@ void FireRenderParamDlg::CGeneralSettings::InitDialog()
 	SetWindowText(stampEdit, stampText);
 	
 	// setup some tooltips
-	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_STAMP_RESET), _T("Reset RenderStamp to default value"));
-	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_STAMP_HELP), _T("Display tokens which could be used in RenderStamp"));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_SAMPLING_SAMPLES_MIN_S), GetString(IDS_SAMPLING_SAMPLES_MIN_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_SAMPLING_SAMPLES_MAX_S), GetString(IDS_SAMPLING_SAMPLES_MAX_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_S), GetString(IDS_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_SAMPLING_TIME_H_S), GetString(IDS_SAMPLING_TIME_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_SAMPLING_TIME_M_S), GetString(IDS_SAMPLING_TIME_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_SAMPLING_TIME_S_S), GetString(IDS_SAMPLING_TIME_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_SAMPLING_CONTEXT_ITERATIONS_S), GetString(IDS_SAMPLING_CONTEXT_ITERATIONS_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_STAMP_RESET), GetString(IDS_STAMP_RESET_TOOLTIP));
+	GetToolTipExtender().SetToolTip(GetDlgItem(mHwnd, IDC_STAMP_HELP), GetString(IDS_STAMP_HELP_TOOLTIP));
 	
+	UpdateRenderLimitControls();
+
 	mIsReady = true;
 }
 
@@ -479,27 +457,33 @@ void FireRenderParamDlg::CGeneralSettings::DestroyDialog()
 	{
 		mIsReady = false;
 		RemoveAllSpinnerAssociations();
+		ReleaseISpinner(controls.samplesMin);
+		ReleaseISpinner(controls.samplesMax);
+		ReleaseISpinner(controls.adaptiveThresh);
 		ReleaseISpinner(controls.timeLimitS);
 		ReleaseISpinner(controls.timeLimitM);
 		ReleaseISpinner(controls.timeLimitH);
-		ReleaseISpinner(controls.passLimit);
+		ReleaseISpinner(controls.contextIterations);
 	}
 }
 
-void FireRenderParamDlg::CGeneralSettings::EnableRenderLimitControls(BOOL enablePassLimit, BOOL disableAll)
+void FireRenderParamDlg::CGeneralSettings::UpdateRenderLimitControls()
 {
-	EnableControl(IDC_PASSES, (disableAll ? FALSE : enablePassLimit));
-	EnableControl(IDC_PASSES_S, (disableAll ? FALSE : enablePassLimit));
-
-	EnableControl(IDC_TIME_H, (disableAll ? FALSE : !enablePassLimit));
-	EnableControl(IDC_TIME_H_S, (disableAll ? FALSE : !enablePassLimit));
-
-	EnableControl(IDC_TIME_M, (disableAll ? FALSE : !enablePassLimit));
-	EnableControl(IDC_TIME_M_S, (disableAll ? FALSE : !enablePassLimit));
-
-	EnableControl(IDC_TIME_S, (disableAll ? FALSE : !enablePassLimit));
-	EnableControl(IDC_TIME_S, (disableAll ? FALSE : !enablePassLimit));
+	// Set the text of the "Iterations" informational label
+	HWND hwnd = GetDlgItem(mHwnd, IDC_SAMPLING_ITERATIONS);
+	IParamBlock2* pb = mOwner->renderer->GetParamBlock(0);
+	const int samplesMax = pb->GetInt(PARAM_SAMPLES_MAX);
+	if( samplesMax<=0 )
+		SetWindowText( hwnd, _T(" Unlimited") );
+	else
+	{
+		TCHAR caption[256];
+		const int iterations = pb->GetInt(PARAM_PASS_LIMIT);
+		_stprintf_s( caption, 255, _T(" %i"), iterations );
+		SetWindowText(hwnd, caption);
+	}
 }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // HARDWARE SETTINGS ROLLOUT
@@ -2515,34 +2499,55 @@ static int FindActivePreset(const PresetData* presetData, HWND dialog)
 
 
 //////////////////////////////////////////////////////////////////////////////
+// GENERAL SETTINGS ROLLOUT - PRESETS
+//
+
+static const PresetDataValue sampling_lowPreset[] =
+{
+	{ IDC_SAMPLING_SAMPLES_MIN_S, 8 },
+	{ IDC_SAMPLING_SAMPLES_MAX_S, 40 },
+	{ IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_S, 0.1f },
+	{ IDC_SAMPLING_CONTEXT_ITERATIONS_S, 1 },
+	{ -1, 0 }
+};
+
+static const PresetDataValue sampling_mediumPreset[] =
+{
+	{ IDC_SAMPLING_SAMPLES_MIN_S, 16 },
+	{ IDC_SAMPLING_SAMPLES_MAX_S, 400 },
+	{ IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_S, 0.01f },
+	{ IDC_SAMPLING_CONTEXT_ITERATIONS_S, 1 },
+	{ -1, 0 }
+};
+
+static const PresetDataValue sampling_highPreset[] =
+{
+	{ IDC_SAMPLING_SAMPLES_MIN_S, 64 },
+	{ IDC_SAMPLING_SAMPLES_MAX_S, 4000 },
+	{ IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_S, 0.001f },
+	{ IDC_SAMPLING_CONTEXT_ITERATIONS_S, 1 },
+	{ -1, 0 }
+};
+
+static const PresetData sampling_presetTable[] =
+{
+	{ L"Low", sampling_lowPreset },
+	{ L"Medium", sampling_mediumPreset },
+	{ L"High", sampling_highPreset },
+	{ NULL, NULL }
+};
+
+void FireRenderParamDlg::CGeneralSettings::SetQualityPresets(int qualityLevel)
+{
+	ApplyPreset(sampling_presetTable, mHwnd, qualityLevel);
+	GetCOREInterface()->DisplayTempPrompt(L"Sampling parameters have now been updated", 5000);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
 // ANTIALIAS ROLLOUT
 //
 
-static const PresetDataValue aa_lowPreset[] =
-{
-	{ IDC_PARAM_CONTEXT_ITERATIONS_S, 1 },
-	{ -1, 0 }
-};
-
-static const PresetDataValue aa_mediumPreset[] =
-{
-	{ IDC_PARAM_CONTEXT_ITERATIONS_S, 4 },
-	{ -1, 0 }
-};
-
-static const PresetDataValue aa_highPreset[] =
-{
-	{ IDC_PARAM_CONTEXT_ITERATIONS_S, 8 },
-	{ -1, 0 }
-};
-
-static const PresetData aa_presetTable[] =
-{
-	{ L"Low", aa_lowPreset },
-	{ L"Medium", aa_mediumPreset },
-	{ L"High", aa_highPreset },
-	{ NULL, NULL }
-};
 
 INT_PTR FireRenderParamDlg::CAntialiasSettings::DlgProc(UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -2619,7 +2624,6 @@ void FireRenderParamDlg::CAntialiasSettings::InitDialog()
 	setListboxValue(imgFilter, pb->GetInt(PARAM_IMAGE_FILTER));
 
 	controls.aaFilterWidth = SetupSpinner(pb, PARAM_IMAGE_FILTER_WIDTH, IDC_IMAGE_FILTER_WIDTH, IDC_IMAGE_FILTER_WIDTH_S);
-	controls.iterationsCount = SetupSpinner(pb, PARAM_CONTEXT_ITERATIONS, IDC_PARAM_CONTEXT_ITERATIONS, IDC_PARAM_CONTEXT_ITERATIONS_S);
 
 	mIsReady = true;
 }
@@ -2633,12 +2637,6 @@ void FireRenderParamDlg::CAntialiasSettings::DestroyDialog()
 		ReleaseISpinner(controls.aaFilterWidth);
 		ReleaseISpinner(controls.iterationsCount);
 	}
-}
-
-void FireRenderParamDlg::CAntialiasSettings::SetQualityPresets(int qualityLevel)
-{
-	ApplyPreset(aa_presetTable, mHwnd, qualityLevel);
-	GetCOREInterface()->DisplayTempPrompt(L"Max Ray Depth, AA Samples, and AA Grid have now been updated", 5000);
 }
 
 
@@ -2734,13 +2732,13 @@ void FireRenderParamDlg::CQualitySettings::setupUIFromData()
 	if(!mOwner->mAntialiasSettings.Hwnd() || !mOwner->mAdvancedSettings.Hwnd())
 		return;
 
-	int aa_activePreset = FindActivePreset(aa_presetTable, mOwner->mAntialiasSettings.Hwnd());
+	int sampling_activePreset = FindActivePreset(sampling_presetTable, mOwner->mGeneralSettings.Hwnd());
 	int global_activePreset = FindActivePreset(global_presetTable, mOwner->mAdvancedSettings.Hwnd());
 
 	int numPresets = sizeof(global_presetTable) / sizeof(global_presetTable[0]) - 1; // -1 last element doesn't count
 
 	int newPreset;
-	if(aa_activePreset < 0 || global_presetTable < 0 || aa_activePreset != global_activePreset)
+	if(sampling_activePreset < 0 || global_presetTable < 0 || sampling_activePreset != global_activePreset)
 	{
 		newPreset = numPresets;
 	}
@@ -2793,7 +2791,7 @@ void FireRenderParamDlg::CQualitySettings::DestroyDialog()
 
 void FireRenderParamDlg::CQualitySettings::SetQualityPresets(int qualityLevel)
 {
-	mOwner->mAntialiasSettings.SetQualityPresets(qualityLevel);
+	mOwner->mGeneralSettings.SetQualityPresets(qualityLevel);
 	ApplyPreset(global_presetTable, mOwner->mAdvancedSettings.Hwnd(), qualityLevel);
 }
 

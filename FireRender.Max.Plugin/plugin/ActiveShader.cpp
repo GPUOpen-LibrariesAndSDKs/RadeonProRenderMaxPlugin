@@ -182,7 +182,8 @@ public:
 			val = 1;
 		DWORD uval = val;
 		uval *= 1000; // seconds to milliseconds
-		bool reset = ((termination == TerminationCriteria::Termination_Time) && (uval > timeLimit));
+		bool checkReset = (termination == Termination_Time) || (termination == Termination_PassesOrTime);
+		bool reset = (checkReset && (uval > timeLimit));
 		timeLimit = uval;
 		if (reset)
 			terminationReached.Reset();
@@ -192,7 +193,8 @@ public:
 	{
 		if (val <= 1)
 			val = 1;
-		bool reset = ((termination == TerminationCriteria::Termination_Passes) && (val > passLimit));
+		bool checkReset = (termination == Termination_Time) || (termination == Termination_PassesOrTime);
+		bool reset = (checkReset && (val > passLimit));
 		passLimit = val;
 		if (reset)
 			terminationReached.Reset();
@@ -714,13 +716,15 @@ void ActiveShadeRenderCore::Worker()
 
 			if (termination != TerminationCriteria::Termination_None)
 			{
-				if (termination == TerminationCriteria::Termination_Passes)
+				if( (termination == TerminationCriteria::Termination_Passes) ||
+					(termination == TerminationCriteria::Termination_PassesOrTime) )
 				{
 					if (passesDone == passLimit)
 						terminationReached.Fire();
 				}
-				else if (termination == TerminationCriteria::Termination_Time)
-						{
+				else if( (termination == TerminationCriteria::Termination_Time) ||
+					     (termination == TerminationCriteria::Termination_PassesOrTime) )
+				{
 					if (timer.GetElapsed() >= timeLimit)
 						terminationReached.Fire();
 				}
@@ -813,6 +817,9 @@ void ActiveShader::Begin()
 	context.SetParameter("iterations", GetFromPb<int>(pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
 	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
+	context.SetParameter("as.threshold", GetFromPb<float>(pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD));
+	context.SetParameter("as.tilesize", GetFromPb<int>(pblock, PARAM_ADAPTIVE_TILESIZE));
+	context.SetParameter("as.minspp", GetFromPb<int>(pblock, PARAM_SAMPLES_MIN));
 
 	BOOL useIrradianceClamp = FALSE;
 	pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());

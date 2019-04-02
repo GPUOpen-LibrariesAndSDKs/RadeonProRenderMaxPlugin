@@ -332,10 +332,13 @@ protected:
 	{
 	public:
 		struct {
+			ISpinnerControl* samplesMin;
+			ISpinnerControl* samplesMax;
+			ISpinnerControl* adaptiveThresh;
 			ISpinnerControl* timeLimitS;
 			ISpinnerControl* timeLimitM;
 			ISpinnerControl* timeLimitH;
-			ISpinnerControl* passLimit;
+			ISpinnerControl* contextIterations;
 		} controls;
 
 		CGeneralSettings()
@@ -347,7 +350,8 @@ protected:
 		void DestroyDialog() override;
 		INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
 
-		void EnableRenderLimitControls(BOOL enablePassLimit, BOOL disableAll);
+		void UpdateRenderLimitControls();
+		void SetQualityPresets(int qualityLevel);
 	};
 
 	class CHardwareSettings : public CRollout
@@ -556,8 +560,6 @@ protected:
 		void InitDialog() override;
 		void DestroyDialog() override;
 		INT_PTR DlgProc(UINT msg, WPARAM wParam, LPARAM lParam) override;
-
-		void SetQualityPresets(int qualityLevel);
 	};
 
 	class CQualitySettings : public CRollout

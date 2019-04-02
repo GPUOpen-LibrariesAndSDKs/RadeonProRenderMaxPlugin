@@ -120,6 +120,27 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 				context.SetParameter("raycastepsilon", v.mSimpleValue.float_val);
 			}
 			break;
+
+			case PARAM_ADAPTIVE_NOISE_THRESHOLD:
+			{
+				auto v = mParametersTracker.GetParam(pp);
+				context.SetParameter("as.threshold", v.mSimpleValue.float_val);
+			}
+			break;
+
+			case PARAM_ADAPTIVE_TILESIZE:
+			{
+				auto v = mParametersTracker.GetParam(pp);
+				context.SetParameter("as.tilesize", v.mSimpleValue.int_val);
+			}
+			break;
+
+			case PARAM_SAMPLES_MIN:
+			{
+				auto v = mParametersTracker.GetParam(pp);
+				context.SetParameter("as.minspp", v.mSimpleValue.int_val);
+			}
+			break;
 		}
 	}
 }

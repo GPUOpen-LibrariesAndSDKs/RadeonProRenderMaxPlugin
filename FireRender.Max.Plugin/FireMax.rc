@@ -887,26 +887,38 @@ BEGIN
     LTEXT           "Override CPU thread count",IDC_STATIC,21,49,88,8
 END
 
-IDD_RENDER_GENERALSETTINGS DIALOGEX 0, 0, 233, 78
+IDD_RENDER_GENERALSETTINGS DIALOGEX 0, 0, 233, 138
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x0
 BEGIN
-    CONTROL         "Custom1",IDC_PASSES,"CustEdit",WS_TABSTOP,138,12,20,11
-    CONTROL         "Custom2",IDC_PASSES_S,"SpinnerControl",WS_TABSTOP,159,12,9,11
-    CONTROL         "Custom1",IDC_TIME_H,"CustEdit",WS_TABSTOP,138,27,13,11
-    CONTROL         "Custom1",IDC_TIME_M,"CustEdit",WS_TABSTOP,166,27,13,11
-    CONTROL         "Pass limit:",IDC_RENDER_PASS,"Button",BS_AUTORADIOBUTTON | WS_GROUP,91,14,44,8
-    CONTROL         "Time limit [HH-MM-SS]:",IDC_RENDER_TIME,"Button",BS_AUTORADIOBUTTON,15,28,84,10
-    CONTROL         "Unlimited",IDC_RENDER_UNLIMITED,"Button",BS_AUTORADIOBUTTON,15,14,44,8
-    CONTROL         "Custom2",IDC_TIME_H_S,"SpinnerControl",WS_TABSTOP,152,27,9,11
-    CONTROL         "Custom1",IDC_TIME_S,"CustEdit",WS_TABSTOP,194,27,13,11
-    CONTROL         "Custom2",IDC_TIME_S_S,"SpinnerControl",WS_TABSTOP,208,27,9,11
-    CONTROL         "Custom2",IDC_TIME_M_S,"SpinnerControl",WS_TABSTOP,180,27,9,11
-    CONTROL         "",IDC_ENABLE_STAMP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,53,8,10
-    EDITTEXT        IDC_STAMP_TEXT,29,51,157,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "R",IDC_STAMP_RESET,190,51,13,14
-    PUSHBUTTON      "?",IDC_STAMP_HELP,205,51,13,14
-    GROUPBOX        "Render stamp",IDC_STATIC,6,40,221,32
+    RTEXT           "Min Samples:",IDC_STATIC,7,11,102,8
+    CONTROL         "Custom1",IDC_SAMPLING_SAMPLES_MIN,"CustEdit",WS_TABSTOP,123,10,84,11
+    CONTROL         "Custom2",IDC_SAMPLING_SAMPLES_MIN_S,"SpinnerControl",WS_TABSTOP,208,10,9,11
+    RTEXT           "Max Samples:",IDC_STATIC,7,26,102,8
+    CONTROL         "Custom1",IDC_SAMPLING_SAMPLES_MAX,"CustEdit",WS_TABSTOP,123,25,84,11
+    CONTROL         "Custom2",IDC_SAMPLING_SAMPLES_MAX_S,"SpinnerControl",WS_TABSTOP,208,25,9,11
+    RTEXT           "Noise Threshold:",IDC_STATIC,7,41,102,8
+    CONTROL         "Custom1",IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD,"CustEdit",WS_TABSTOP,123,40,84,11
+    CONTROL         "Custom2",IDC_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_S,
+                    "SpinnerControl",WS_TABSTOP,208,40,9,11
+    RTEXT           "Time Limit [HH-MM-SS]:",IDC_STATIC,7,56,102,8
+    CONTROL         "Custom1",IDC_SAMPLING_TIME_H,"CustEdit",WS_TABSTOP,123,55,18,11
+    CONTROL         "Custom2",IDC_SAMPLING_TIME_H_S,"SpinnerControl",WS_TABSTOP,142,55,9,11
+    CONTROL         "Custom1",IDC_SAMPLING_TIME_M,"CustEdit",WS_TABSTOP,156,55,18,11
+    CONTROL         "Custom2",IDC_SAMPLING_TIME_M_S,"SpinnerControl",WS_TABSTOP,175,55,9,11
+    CONTROL         "Custom1",IDC_SAMPLING_TIME_S,"CustEdit",WS_TABSTOP,189,55,18,11
+    CONTROL         "Custom2",IDC_SAMPLING_TIME_S_S,"SpinnerControl",WS_TABSTOP,208,55,9,11
+    RTEXT           "Samples per Iteration:",IDC_STATIC,7,71,102,8
+    CONTROL         "Custom1",IDC_SAMPLING_CONTEXT_ITERATIONS,"CustEdit",WS_TABSTOP,123,71,84,11
+    CONTROL         "Custom2",IDC_SAMPLING_CONTEXT_ITERATIONS_S,
+                    "SpinnerControl",WS_TABSTOP,208,71,9,11
+    RTEXT           "Iterations:",IDC_STATIC,7,85,102,8
+    LTEXT           "",IDC_SAMPLING_ITERATIONS,123,85,94,11,SS_SUNKEN
+    CONTROL         "",IDC_ENABLE_STAMP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,113,8,10
+    GROUPBOX        "Render stamp",IDC_STATIC,6,100,221,32
+    EDITTEXT        IDC_STAMP_TEXT,29,111,157,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "R",IDC_STAMP_RESET,190,111,13,14
+    PUSHBUTTON      "?",IDC_STAMP_HELP,205,111,13,14
 END
 
 IDD_RENDER_TONEMAPPING DIALOGEX 0, 0, 233, 206
@@ -1107,14 +1119,11 @@ IDD_RENDER_AASETTINGS DIALOGEX 0, 0, 233, 60
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x0
 BEGIN
-    COMBOBOX        IDC_IMAGE_FILTER,67,8,121,19,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Custom1",IDC_IMAGE_FILTER_WIDTH,"CustEdit",WS_TABSTOP,154,24,24,11
-    CONTROL         "Custom2",IDC_IMAGE_FILTER_WIDTH_S,"SpinnerControl",WS_TABSTOP,180,24,9,11
-    RTEXT           "Filter width:",IDC_STATIC,107,25,44,8
-    CONTROL         "Custom1",IDC_PARAM_CONTEXT_ITERATIONS,"CustEdit",WS_TABSTOP,68,25,24,11
-    CONTROL         "Custom2",IDC_PARAM_CONTEXT_ITERATIONS_S,"SpinnerControl",WS_TABSTOP,93,25,9,11
-    RTEXT           "Iterations:",IDC_STATIC,20,25,44,8
-    LTEXT           "Filter:",IDC_STATIC,45,10,20,8
+    COMBOBOX        IDC_IMAGE_FILTER,65,8,121,19,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Custom1",IDC_IMAGE_FILTER_WIDTH,"CustEdit",WS_TABSTOP,65,25,24,11
+    CONTROL         "Custom2",IDC_IMAGE_FILTER_WIDTH_S,"SpinnerControl",WS_TABSTOP,90,25,9,11
+    LTEXT           "Filter width:",IDC_STATIC,7,25,52,8
+    LTEXT           "Filter:",IDC_STATIC,7,10,52,8
 END
 
 IDD_ABOUT DIALOGEX 0, 0, 411, 220
@@ -2983,6 +2992,22 @@ BEGIN
     IDS_MTL_UBERV3_DISPLACEMENT "Displacement"
     IDS_SUBDIV_ADAPTIVE     "Adaptive"
     IDS_SUBDIV_LEVEL        "Level"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_STAMP_RESET_TOOLTIP "Reset RenderStamp to default value"
+    IDS_STAMP_HELP_TOOLTIP  "Display tokens which could be used in RenderStamp"
+    IDS_SAMPLING_TIME_TOOLTIP 
+                            "Limit rendering process in seconds. 0 means limit by num samples."
+    IDS_SAMPLING_SAMPLES_MIN_TOOLTIP 
+                            "Minimum number of samples to render for each pixel.  After this, adaptive sampling will stop sampling pixels where noise is less than threshold."
+    IDS_SAMPLING_SAMPLES_MAX_TOOLTIP 
+                            "Maximum number of samples to render for each pixel."
+    IDS_SAMPLING_ADAPTIVE_NOISE_THRESHOLD_TOOLTIP 
+                            "Cutoff for adaptive sampling.  Once pixels are below this amount of noise, no more samples are added.  Set to 0 for no cutoff."
+    IDS_SAMPLING_CONTEXT_ITERATIONS_TOOLTIP 
+                            "The more samples, the fewer iterations are required, resulting in shorter render times."
 END
 
 #endif    // English (United States) resources

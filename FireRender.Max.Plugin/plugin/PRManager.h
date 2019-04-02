@@ -36,7 +36,8 @@ enum TerminationCriteria
 {
 	Termination_None,
 	Termination_Passes,
-	Termination_Time
+	Termination_Time,
+	Termination_PassesOrTime
 };
 
 // render elements
@@ -90,7 +91,9 @@ enum FramebufferTypeId
 	// special cases
 	FrameBufferTypeId_ShadowCatcher,
 	FrameBufferTypeId_Composite,
-	FrameBufferTypeId_CompositeResolve
+	FrameBufferTypeId_CompositeResolve,
+	FrameBufferTypeId_Variance,
+	FrameBufferTypeId_VarianceResolve,
 };
 
 
@@ -136,6 +139,7 @@ private:
 		bool isToneOperatorPreviewRender;
 		bool isAlphaEnabled;
 		bool isDenoiserEnabled;
+		float adaptiveThresh;
 
 		class ProductionRenderCore* renderThread;
 		std::thread* helperThread;

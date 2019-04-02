@@ -388,7 +388,8 @@ static std::vector<AOVElementXXX> AOVRenderElements =
 	{ RPR_AOV_INDIRECT_DIFFUSE, L"RprIndirectDiffuse", L"RPR : Indirect Diffuse", Class_ID(0x53c808fb, 0x5ba824c3) },
 	{ RPR_AOV_INDIRECT_REFLECT, L"RprIndirectReflect", L"RPR : Indirect Reflect", Class_ID(0x53bd322c, 0x2a184bdf) },
 	{ RPR_AOV_REFRACT, L"RprRefract", L"RPR : Refract", Class_ID(0x359b767a, 0x70fb474e) },
-	{ RPR_AOV_VOLUME, L"RprVolume", L"RPR : Volume", Class_ID(0x19aa705d, 0x1a5c6a47) }
+	{ RPR_AOV_VOLUME, L"RprVolume", L"RPR : Volume", Class_ID(0x19aa705d, 0x1a5c6a47) },
+	{ RPR_AOV_VARIANCE, L"RprVariance", L"RPR : Variance", Class_ID(0x59b14343, 0x121b359d) }
 };
 
 

@@ -791,15 +791,19 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 	size_t pluginCount = sizeof(plugins) / sizeof(plugins[0]);
 
 	rpr_context_properties* contextProperties = nullptr;
-	rpr_context_properties ctxProperties[3] = { 0 };
+	rpr_context_properties ctxProperties[5] = { 0 };
+
+	ctxProperties[0] = (rpr_context_properties) RPR_CONTEXT_CREATEPROP_SAMPLER_TYPE;
+	ctxProperties[1] = (rpr_context_properties) RPR_CONTEXT_SAMPLER_TYPE_CMJ;
+	ctxProperties[2] = (rpr_context_properties) 0;
+	contextProperties = ctxProperties;
 
 	if ( (createFlags & RPR_CREATION_FLAGS_ENABLE_CPU) && 
 		cpuInfo.isCpuThreadsNumOverriden && cpuInfo.numCpuThreads > 0)
 	{
-		ctxProperties[0] = (rpr_context_properties) RPR_CONTEXT_CREATEPROP_CPU_THREAD_LIMIT;
-		ctxProperties[1] = (rpr_context_properties) cpuInfo.numCpuThreads;
-		ctxProperties[2] = (rpr_context_properties) 0;
-		contextProperties = ctxProperties;
+        ctxProperties[2] = (rpr_context_properties) RPR_CONTEXT_CREATEPROP_CPU_THREAD_LIMIT;
+        ctxProperties[3] = (rpr_context_properties) cpuInfo.numCpuThreads;
+		ctxProperties[4] = (rpr_context_properties) 0;
 
 		debugPrint( "RPR_CONTEXT_CREATEPROP_CPU_THREAD_LIMIT : " + std::to_string(cpuInfo.numCpuThreads) );
 	}
