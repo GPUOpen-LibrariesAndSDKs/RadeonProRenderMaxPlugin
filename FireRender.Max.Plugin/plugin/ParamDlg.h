@@ -466,8 +466,6 @@ protected:
 
 		void EnableLimitLightBounceControls(BOOL enableMaxLimit);
 		void EnableIrradianceClampControls(BOOL enable);
-		void EnableExportModelControls(BOOL enableExport);
-		BOOL GetExportFileName();
 	};
 
 	class CScripts : public CRollout

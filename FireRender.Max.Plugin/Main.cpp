@@ -51,6 +51,8 @@
 #include "FireRenderIESLight.h"
 #include "physical/FireRenderPhysicalLight.h"
 
+#include "RprExporter.h"
+
 #include "BgManager.h"
 #include "TmManager.h"
 #include "CamManager.h"
@@ -333,6 +335,8 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.push_back(FireRender::FireRenderIESLight::GetClassDesc());
 
 	gClassInstances.push_back(FireRender::FireRenderPhysicalLight::GetClassDesc());
+
+	gClassInstances.push_back(FireRender::RprExporter::GetClassDesc());
 
 	for(int i = 0; i < GetAOVElementClassDescCount(); i++)
 	{

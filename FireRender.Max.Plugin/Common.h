@@ -166,6 +166,10 @@ const Class_ID SCOPEMANAGER_MAX_CLASSID(0x5cba2404, 0x75d46dc8);
 // GUP singleton that manages production rendering
 const Class_ID PRMANAGER_MAX_CLASSID(0x47c00bd0, 0x53566810);
 
+/// Class ID of the Radeon ProRender expoeter
+const Class_ID EXPORTER_MAX_CLASSID(0x32171ca9, 0x43517a2d);
+
+
 /// Interface ID of the Radeon ProRender Render Elements
 const ULONG FIRERENDER_RENDERELEMENT_INTERFACEID(0xd8c17f1);
 

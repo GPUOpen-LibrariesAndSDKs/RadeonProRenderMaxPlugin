@@ -434,6 +434,7 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\ParamDlg.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\PRManager.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\RprComposite.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\RprExporter.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\ScopeManager.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\SkyGen.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\TmManager.h" />
@@ -535,6 +536,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\ParamDlg.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\PRManager.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\RprComposite.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\RprExporter.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\ScopeManager.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\SkyGen.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\TmManager.cpp" />

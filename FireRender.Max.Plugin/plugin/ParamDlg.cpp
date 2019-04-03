@@ -1262,22 +1262,6 @@ INT_PTR FireRenderParamDlg::CAdvancedSettings::DlgProc(UINT msg, WPARAM wParam, 
 					{
 						EnableLimitLightBounceControls(TRUE);
 					}
-					else if (idButton == IDC_EXPORTMODEL_CHECK)
-					{
-						BOOL isChecked = IsDlgButtonChecked(mHwnd, IDC_EXPORTMODEL_CHECK);
-						EnableExportModelControls(isChecked);
-						if (isChecked)
-							GetCOREInterface()->ReplacePrompt(L"FRS file will be exported after rendering.");
-						BOOL res = pb->SetValue(PARAM_EXPORTMODEL_CHECK, 0, isChecked); FASSERT(res);
-					}
-					else if (idButton == IDC_BROWSE_EXPORT_FILE)
-					{
-						if (GetExportFileName())
-						{
-							SetDlgItemText(mHwnd, IDC_EXPORT_FILENAME, exportFRSceneFileName.c_str());
-							mOwner->renderer->SetFireRenderExportSceneFilename(exportFRSceneFileName);
-						}
-					}
 					else if (idButton == IDC_CLAMP_IRRADIANCE)
 					{
 						BOOL isChecked = Button_GetCheck(GetDlgItem(mHwnd, IDC_CLAMP_IRRADIANCE));
@@ -1452,22 +1436,6 @@ void FireRenderParamDlg::CAdvancedSettings::InitDialog()
 		SetCheckboxValue(warningsSuppressGlobal, IDC_WARNINGS_SUPPRESS_GLOBAL);
 	}
 
-	// setup export buttons
-	HWND hExportCheckBox = GetDlgItem(mHwnd, IDC_EXPORTMODEL_CHECK);
-
-	if ( IsGltfExportEnabled() )
-	{
-		Button_Enable(hExportCheckBox, TRUE);
-		BOOL enableExport = FALSE;
-		pb->GetValue(PARAM_EXPORTMODEL_CHECK, 0, enableExport, Interval());
-		EnableExportModelControls(enableExport);
-	}
-	else
-	{
-		EnableExportModelControls(FALSE);
-		Button_SetCheck(hExportCheckBox, FALSE);
-		Button_Enable(hExportCheckBox, FALSE);
-	}
 
 	// setup irradiance
 	SetupCheckbox(pb, PARAM_USE_IRRADIANCE_CLAMP, IDC_CLAMP_IRRADIANCE);
@@ -1513,81 +1481,6 @@ void FireRenderParamDlg::CAdvancedSettings::EnableIrradianceClampControls(BOOL e
 	ctrl = GetDlgItem(mHwnd, IDC_CLAMP_IRRADIANCE_VAL_S);
 	FASSERT(ctrl);
 	EnableWindow(ctrl, enable);
-}
-
-void FireRenderParamDlg::CAdvancedSettings::EnableExportModelControls(BOOL enableExport)
-{
-	HWND ctrl = GetDlgItem(mHwnd, IDC_EXPORT_FILENAME);
-	FASSERT(ctrl);
-	EnableWindow(ctrl, enableExport);
-	ctrl = GetDlgItem(mHwnd, IDC_BROWSE_EXPORT_FILE);
-	FASSERT(ctrl);
-	EnableWindow(ctrl, enableExport);
-}
-
-BOOL FireRenderParamDlg::CAdvancedSettings::GetExportFileName()
-{
-	int tried = 0;
-	FilterList filterList;
-	HWND hWnd = mHwnd;
-	static int filterIndex = 1;
-	OPENFILENAME  ofn;
-	std::wstring initialDir;
-	TCHAR fname[MAX_PATH] = { '\0' };
-	TCHAR my_documents[MAX_PATH];
-	HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
-	
-	static const std::pair<const wchar_t*, const wchar_t*> filters[] = 
-	{
-		{ L"Radeon ProRender Format", L"rpr" },
-		{ L"GL Transmission Format", L"gltf" },
-	};
-
-	if (result == S_OK)
-	{
-		initialDir = std::wstring(my_documents) + L"\\3dsMax\\export\\";
-	}
-
-	for (const auto& filter : filters)
-	{
-		std::wstring mask(L"*.");
-		mask += filter.second;
-
-		filterList.Append(filter.first);
-		filterList.Append(mask.c_str());
-	}
-
-	memset(&ofn, 0, sizeof(ofn));
-
-	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = hWnd;
-
-	ofn.nFilterIndex = filterIndex;
-	ofn.lpstrFilter = filterList;
-	ofn.lpstrFile = fname;
-	ofn.lpstrTitle = _T("Export Radeon ProRender Scene");
-	ofn.nMaxFile = MAX_PATH;
-
-	Interface *iface = GetCOREInterface();
-
-	if (initialDir[0])
-		ofn.lpstrInitialDir = initialDir.c_str();
-	else
-		ofn.lpstrInitialDir = iface->GetDir(APP_SCENE_DIR);
-
-	ofn.Flags = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOREADONLYRETURN | OFN_EXPLORER | OFN_ENABLEHOOK | OFN_ENABLESIZING;
-	ofn.lpfnHook = NULL;
-	ofn.lCustData = 0;
-	ofn.lpstrDefExt = filters[0].second;
-
-	while (GetSaveFileName(&ofn))
-	{
-		exportFRSceneFileName = ofn.lpstrFile;
-
-		return TRUE;
-	}
-
-	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////////////

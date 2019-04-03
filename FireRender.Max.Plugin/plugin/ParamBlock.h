@@ -144,8 +144,6 @@ enum Parameter : ParamID
     /// FLOAT: Radeon ProRender core parameter
 	OBSOLETE_PARAM_AA_GRID_SIZE = 420,
 
-	/// BOOL: If true, the scene will get exported at render time to a file.
-	PARAM_EXPORTMODEL_CHECK = 421,
 	PARAM_TRACEDUMP_BOOL = 422,
 
 	PARAM_GLOBAL_ILLUMINATION_SOLVER = 423,

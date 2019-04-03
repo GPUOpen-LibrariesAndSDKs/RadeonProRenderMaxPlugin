@@ -329,6 +329,9 @@
       <Filter>Plugin\materials</Filter>
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\precompiled.h" />
+    <ClInclude Include="FireRender.Max.Plugin\plugin\RprExporter.h">
+      <Filter>Plugin</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -608,6 +611,9 @@
       <Filter>Plugin\materials</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\precompiled.cpp" />
+    <ClCompile Include="FireRender.Max.Plugin\plugin\RprExporter.cpp">
+      <Filter>Plugin</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\RadeonProRenderLogo.bmp">

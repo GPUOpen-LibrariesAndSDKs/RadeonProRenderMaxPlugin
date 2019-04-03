@@ -26,6 +26,9 @@
 #include <shlobj.h>
 #include <gamma.h>
 
+#include <algorithm>
+#include  <cctype>
+
 #include <mutex>
 #include <ctime>
 #include <iomanip>
@@ -42,6 +45,13 @@ extern HINSTANCE hInstance;
 FIRERENDER_NAMESPACE_BEGIN
 
 static Event PRManagerMaxDone(false);
+
+inline std::wstring makeExportFileName(const std::wstring & name, const unsigned int nFrame)
+{
+	std::wstring wname(name);
+	size_t offset = wname.find_last_of(_T("."));
+	return std::wstring(wname.begin(), wname.begin() + offset) + std::wstring(_T("_")) + std::to_wstring(nFrame) + std::wstring(wname.begin() + offset, wname.end());
+}
 
 class ProductionRenderCore : public BaseThread
 {
@@ -1017,104 +1027,6 @@ void PRManagerMax::Close(FireRenderer *pRenderer, HWND hwnd, RendProgressCallbac
 	const Data* data = dd->second;
 	auto& parameters = pRenderer->parameters;
 
-	// Export the model if requested
-	if (parameters.pblock && GetFromPb<bool>(parameters.pblock, PARAM_EXPORTMODEL_CHECK))
-	{
-		std::wstring fileName = pRenderer->GetFireRenderExportSceneFilename();
-
-		if (fileName.length() == 0)
-		{
-			TCHAR my_documents[MAX_PATH];
-			HRESULT result = SHGetFolderPath(NULL, CSIDL_PERSONAL, NULL, SHGFP_TYPE_CURRENT, my_documents);
-
-			if (result == S_OK)
-				fileName = std::wstring(my_documents) + L"\\3dsMax\\export\\";
-			
-			std::wstring sceneName = GetCOREInterface()->GetCurFileName();
-			int extStart = (int)sceneName.rfind(L'.');
-
-			if (extStart != std::string::npos)
-			{
-				sceneName.resize(extStart);
-			}
-
-			fileName += sceneName + L".rpr";
-		}
-
-		int extra_3dsmax_gammaenabled = 0;
-
-		const char* extra_int_names[] =
-		{
-			"3dsmax.gammaenabled",
-			"3dsmax.tonemapping.isnormals",
-			"3dsmax.tonemapping.shouldtonemap",
-		};
-
-		const int extra_int_values[] =
-		{
-			gammaMgr.enable ? 1 : 0,
-			data->isNormals ? 1 : 0,
-			data->shouldToneMap ? 1 : 0
-		};
-
-		const char* extra_float_names[] =
-		{
-			"3dsmax.displaygamma",
-			"3dsmax.fileingamma",
-			"3dsmax.fileoutgamma",
-			"3dsmax.tonemapping.exposure",
-		};
-
-		const float extra_float_values[] =
-		{
-			gammaMgr.dispGamma,
-			gammaMgr.fileInGamma,
-			gammaMgr.fileOutGamma,
-			data->toneMappingExposure
-		};		
-		
-		std::string exportFilename = ws2s(fileName);
-
-		frw::Scope scope = ScopeManagerMax::TheManager.GetScope(data->scopeId);
-		rpr_context context = scope.GetContext().Handle();
-		rprx_context contextEx = scope.GetContextEx();
-		rpr_material_system matSystem = scope.GetMaterialSystem().Handle();
-		rpr_scene scene = scope.GetScene().Handle();
-		std::vector<rpr_scene> scenes{ scene };
-
-		std::string ext;
-		int extStart = (int)exportFilename.rfind(L'.');
-
-		if (extStart != std::string::npos)
-		{
-			ext = exportFilename.substr(extStart + 1);
-		}
-
-		bool exportOk = true;
-
-		if ("gltf" == ext)
-		{
-#if (RPR_API_VERSION >= 0x010032500)
-			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size(), 0);
-#else
-			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size());
-#endif
-			exportOk = statusExport == GLTF_SUCCESS;
-		}
-		else if ("rpr" == ext)
-		{
-#if (RPR_API_VERSION >= 0x010032400)
-			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0, 1);
-#else
-			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0);
-#endif
-			exportOk = statusExport == RPR_SUCCESS;
-		}
-
-		if (!exportOk)
-			MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Failed to export scene"), _T("Radeon ProRender warning"), MB_OK);
-	}
-
 	ScopeManagerMax::TheManager.DestroyScope(data->scopeId);
 
 	delete data;
@@ -1366,6 +1278,101 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 	// synchronize scene
 	parser->Synchronize(true);
+
+
+	// during exporting proccess - "fake" rendering is called to set up the rpr context
+	// ExportState::IsEnable is set up to ture if scene is exported and skip actual rendring or false if it is usual rendering 
+	if (exportState.IsEnable)
+	{
+
+		int extra_3dsmax_gammaenabled = 0;
+
+		const char* extra_int_names[] =
+		{
+			"3dsmax.gammaenabled",
+			"3dsmax.tonemapping.isnormals",
+			"3dsmax.tonemapping.shouldtonemap",
+		};
+
+		const int extra_int_values[] =
+		{
+			gammaMgr.enable ? 1 : 0,
+			data->isNormals ? 1 : 0,
+			data->shouldToneMap ? 1 : 0
+		};
+
+		const char* extra_float_names[] =
+		{
+			"3dsmax.displaygamma",
+			"3dsmax.fileingamma",
+			"3dsmax.fileoutgamma",
+			"3dsmax.tonemapping.exposure",
+		};
+
+		const float extra_float_values[] =
+		{
+			gammaMgr.dispGamma,
+			gammaMgr.fileInGamma,
+			gammaMgr.fileOutGamma,
+			data->toneMappingExposure
+		};
+
+		// remain file name if current frame is exported 
+		// add num frame ending to file if multiple frames are exported
+		std::string exportFilename = ws2s((exportState.IsExportCurrentFrame) ? exportState.FileName : makeExportFileName(exportState.FileName, t / GetTicksPerFrame()));
+
+		frw::Scope scope = ScopeManagerMax::TheManager.GetScope(data->scopeId);
+		rpr_context context = scope.GetContext().Handle();
+		rprx_context contextEx = scope.GetContextEx();
+		rpr_material_system matSystem = scope.GetMaterialSystem().Handle();
+		rpr_scene scene = scope.GetScene().Handle();
+		std::vector<rpr_scene> scenes{ scene };
+
+		std::string ext;
+		int extStart = exportFilename.rfind(L'.');
+
+		if (extStart != std::string::npos)
+		{
+			ext = exportFilename.substr(extStart + 1);
+		}
+		else
+		{
+			return FALSE;
+		}
+
+		std::transform(ext.begin(), ext.end(), ext.begin(), std::tolower);
+		
+		
+		
+		bool exportOk = true;
+
+		if ("gltf" == ext)
+		{
+#if (RPR_API_VERSION >= 0x010032500)
+			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size(), 0);
+#else
+			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size());
+#endif
+			exportOk = statusExport == GLTF_SUCCESS;
+		}
+		else if ("rpr" == ext)
+		{
+#if (RPR_API_VERSION >= 0x010032400)
+
+			unsigned int exportFlags = (exportState.IsUseExternalFiles) ? RPRLOADSTORE_EXPORTFLAG_EXTERNALFILES : 0;
+			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0, exportFlags);
+#else
+			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0);
+#endif
+			exportOk = statusExport == RPR_SUCCESS;
+		}
+
+		if (!exportOk)
+			MessageBox(GetCOREInterface()->GetMAXHWnd(), _T("Failed to export scene"), _T("Radeon ProRender warning"), MB_OK);
+
+		data->bRenderThreadDone = true;
+		return returnValue;
+	}
 
 	// setup ProductionRenderCore data
 	data->renderThread->term = data->termCriteria;
@@ -1832,6 +1839,30 @@ void PRManagerMax::Abort(FireRenderer *pRenderer)
 	}	
 }
 
+void PRManagerMax::EnableExportState(bool state)
+{
+	exportState.IsEnable = state;
+}
+
+void PRManagerMax::EnableUseExternalFiles(bool state)
+{
+	exportState.IsUseExternalFiles = state;
+}
+
+bool PRManagerMax::GetIsExportCurrentFrame()
+{
+	return exportState.IsExportCurrentFrame;
+}
+
+void PRManagerMax::SetIsExportCurrentFrame(bool state)
+{
+	exportState.IsExportCurrentFrame = state;
+}
+
+void PRManagerMax::SetExportName(const std::wstring & fileName)
+{
+	exportState.FileName = fileName;
+}
 
 RefResult PRManagerMax::NotifyRefChanged(NOTIFY_REF_CHANGED_PARAMETERS)
 {

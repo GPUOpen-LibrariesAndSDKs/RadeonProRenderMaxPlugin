@@ -253,6 +253,7 @@
 #define IDS_MTL_UBER2_LINK_TTP          280
 #define IDS_FR_MTL_SC                   300
 #define IDD_RENDER_DENOISER             301
+#define IDD_FIRERENDER_EXPORT           309
 #define IDS_STRING400                   400
 #define IDS_STRING401                   401
 #define IDS_STRING402                   402
@@ -544,7 +545,6 @@
 #define IDC_REFR_IOR                    1056
 #define IDC_TONEMAP_REINHARD_POSTSCALE_S 1057
 #define IDC_REFR_IOR_S                  1057
-#define IDC_EXPORTMODEL_CHECK           1058
 #define IDC_REFR_ROUGHNESS              1058
 #define IDC_REFR_COLOR2                 1058
 #define IDC_GENERATES_CAUSTICS          1059
@@ -638,7 +638,6 @@
 #define IDC_REFRACT_NORMAL_TEXMAP       1111
 #define IDC_UNLIMITED_BOUNCE            1111
 #define IDC_LIMIT_BOUNCES               1112
-#define IDC_EXPORT_FILENAME             1113
 #define IDC_BUTTON1                     1114
 #define IDC_BROWSE_EXPORT_FILE          1114
 #define IDC_WARNING_CLOSE               1114
@@ -894,6 +893,7 @@
 #define IDC_OVERRIDE_MAX_PREVIEW_SHAPES 1276
 #define IDC_UBER_SSS_SINGLESCATTERING   1276
 #define IDC_UBER3_DIFFUSE_SEPARATE_BACKSCATTERING_COLOR 1276
+#define IDC_EXPORT_USEEXPTERNAL_FILES   1276
 #define IDC_ABSORPTION_TEXMAP           1277
 #define IDC_BG_BACKPLATEUSE             1277
 #define IDC_BG_SKYBACKPLATEUSE          1277
@@ -1712,14 +1712,16 @@
 #define IDC_SAMPLING_CONTEXT_ITERATIONS 1878
 #define IDC_SAMPLING_CONTEXT_ITERATIONS_S 1879
 #define IDC_SAMPLING_ITERATIONS         1880
+#define IDC_RADIO_SINGLE_FRAME          1883
+#define IDC_RADIO_SEQUENCE_OF_FRAMES    1884
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        309
+#define _APS_NEXT_RESOURCE_VALUE        311
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1876
+#define _APS_NEXT_CONTROL_VALUE         1884
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -175,9 +175,6 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
     PARAM_INTERACTIVE_MODE, _T("interactiveMode"), TYPE_BOOL, P_ANIMATABLE | P_INVISIBLE | P_OBSOLETE, 0,
     p_default, TRUE, PB_END,
 
-	PARAM_EXPORTMODEL_CHECK, _T("exportmodelcheck"), TYPE_BOOL, 0, 0,
-	p_default, FALSE, PB_END,
-
 	PARAM_TRACEDUMP_BOOL, _T("tracedumpbool"), TYPE_BOOL, 0, 0,
 	p_default, FALSE, PB_END,
 

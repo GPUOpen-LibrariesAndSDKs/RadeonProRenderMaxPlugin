@@ -124,6 +124,16 @@ public:
 
 	void Abort(FireRenderer *pRenderer);
 
+	void EnableExportState(bool state);
+
+	void EnableUseExternalFiles(bool state);
+
+	bool GetIsExportCurrentFrame();
+
+	void SetIsExportCurrentFrame(bool state);
+
+	void SetExportName(const std::wstring & fileName);
+
 	static const MCHAR* GetStampHelp();
 
 private:
@@ -174,6 +184,14 @@ private:
 	};
 
 	std::map<FireRenderer*, Data*> mInstances;
+
+	struct ExportState
+	{
+		bool IsEnable = false;
+		bool IsUseExternalFiles = false;
+		bool IsExportCurrentFrame = false;
+		std::wstring FileName;
+	} exportState;
 	
 	void CleanUpRender(FireRenderer *pRenderer);
 

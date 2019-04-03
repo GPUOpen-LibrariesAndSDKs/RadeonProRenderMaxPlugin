@@ -549,7 +549,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
 END
 
-IDD_RENDER_ADVANCEDSETTINGS DIALOGEX 0, 0, 233, 394
+IDD_RENDER_ADVANCEDSETTINGS DIALOGEX 0, 0, 233, 378
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
@@ -563,18 +563,15 @@ BEGIN
                     "SysLink",LWS_USEVISUALSTYLE | WS_TABSTOP,67,140,142,11,WS_EX_TRANSPARENT
     GROUPBOX        "Global Illumination",IDC_STATIC,6,161,221,35
     GROUPBOX        "Performance Settings",IDC_STATIC,6,198,221,86
-    CONTROL         "Export model:",IDC_EXPORTMODEL_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,344,57,8
     CONTROL         "Trace dump:",IDC_TRACEDUMP_CHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,328,52,8
-    EDITTEXT        IDC_EXPORT_FILENAME,98,342,107,12,ES_AUTOHSCROLL | ES_READONLY
-    PUSHBUTTON      "...",IDC_BROWSE_EXPORT_FILE,206,342,13,12
-    GROUPBOX        "Diagnostics",IDC_STATIC,6,316,221,77
+    GROUPBOX        "Diagnostics",IDC_STATIC,6,312,221,60
     CONTROL         "Clamp irradiance:",IDC_CLAMP_IRRADIANCE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,177,71,10
     CONTROL         "Custom1",IDC_CLAMP_IRRADIANCE_VAL,"CustEdit",WS_TABSTOP,98,177,110,11
     CONTROL         "Custom2",IDC_CLAMP_IRRADIANCE_VAL_S,"SpinnerControl",WS_TABSTOP,210,177,9,11
     CONTROL         "Suppress warnings for current scene",IDC_WARNINGS_SUPPRESS,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,358,184,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,342,184,8
     CONTROL         "Suppress warnings for all scenes",IDC_WARNINGS_SUPPRESS_GLOBAL,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,372,120,8
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,356,120,8
     CONTROL         "Custom1",IDC_MEDIT_QUALITY,"CustEdit",WS_TABSTOP,97,241,110,11
     CONTROL         "Custom2",IDC_MEDIT_QUALITY_S,"SpinnerControl",WS_TABSTOP,209,241,9,11
     LTEXT           "Material preview quality:",IDC_STATIC,12,241,79,9
@@ -1981,6 +1978,20 @@ BEGIN
                     "SpinnerControl",WS_DISABLED | WS_TABSTOP,101,119,9,11
 END
 
+IDD_FIRERENDER_EXPORT DIALOGEX 0, 0, 254, 101
+STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Export"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Export",IDOK,133,73,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,187,73,50,14
+    CONTROL         "Use external files",IDC_EXPORT_USEEXPTERNAL_FILES,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,55,71,10
+    CONTROL         "Export single frame at current time",IDC_RADIO_SINGLE_FRAME,
+                    "Button",BS_AUTORADIOBUTTON,23,19,190,10
+    CONTROL         "Export sequence configured in the Render Setup dialog",IDC_RADIO_SEQUENCE_OF_FRAMES,
+                    "Button",BS_AUTORADIOBUTTON,23,32,196,10
+END
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2024,6 +2035,7 @@ BEGIN
 
     IDD_RENDER_ADVANCEDSETTINGS, DIALOG
     BEGIN
+        BOTTOMMARGIN, 372
     END
 
     IDD_FIRERENDER_DISPLACEMENTMTL, DIALOG
@@ -2183,6 +2195,14 @@ BEGIN
     IDD_MTL_UBERV3_DISPLACEMENT, DIALOG
     BEGIN
         BOTTOMMARGIN, 116
+    END
+
+    IDD_FIRERENDER_EXPORT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 247
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 94
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2569,6 +2589,10 @@ BEGIN
     0
 END
 
+IDD_FIRERENDER_EXPORT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
 
 /////////////////////////////////////////////////////////////////////////////
 //
