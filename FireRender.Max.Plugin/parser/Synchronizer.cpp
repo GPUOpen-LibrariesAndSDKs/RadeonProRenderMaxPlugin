@@ -340,7 +340,12 @@ Synchronizer::Synchronizer(frw::Scope scope, INode *pSceneINode, SynchronizerBri
 	FASSERT(mParametersTracker.AddToTracker(PARAM_QUALITY_RAYCAST_EPSILON));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_ADAPTIVE_NOISE_THRESHOLD));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_ADAPTIVE_TILESIZE));
+	FASSERT(mParametersTracker.AddToTracker(PARAM_SAMPLES_MIN));
 	FASSERT(mParametersTracker.AddToTracker(PARAM_SAMPLES_MAX));
+	// Properties like PARAM_TM_OVERRIDE_MAX_TONEMAPPERS are tracked via mToneMapperCallback,
+	// and held in the ToneMapper Manager's paramblock.
+	// Properties like PARAM_BG_TYPE are tracked via mBackgroundCallback,
+	// and held in the Background Manager's paramblock (environment lighting params).
 }
 
 Synchronizer::~Synchronizer()
@@ -776,8 +781,9 @@ void Synchronizer::InsertModifyRPRToneMapper()
 
 void Synchronizer::InsertStopRPRToneMapper()
 {
+	// try turning it on and off again
+	// SQUEUE_RPRTONEMAP_START also performs an update like SQUEUE_RPRTONEMAP_MODIFY
 	mQueue.Remove(SQUEUE_RPRTONEMAP_START);
-	mQueue.Remove(SQUEUE_RPRTONEMAP_MODIFY);
 	mQueue.Insert(SQUEUE_RPRTONEMAP_STOP);
 }
 
@@ -929,6 +935,8 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 		(!synch->mLights.empty()) || (!synch->mLightShapes.empty());
 	bool removeDefaultLights = false;
 	bool addDefaultLights = false;
+	// TODO: hasLightSources is false when UITimerProc is first triggerd,
+	// light lists not yet populated
 	if (synch->mUsingDefaultLights && hasLightSources)
 	{
 		ClearEvent = true;
@@ -1206,6 +1214,8 @@ VOID CALLBACK Synchronizer::UITimerProc(_In_ HWND hwnd, _In_ UINT uMsg, _In_ UIN
 
 			case SQUEUE_RPRTONEMAP_START:
 			{
+				// Update tone mapper params, might be out of date or not yet translated
+				synch->UpdateToneMapper();
 				synch->mBridge->StartToneMapper();
 				synch->mToneMapperRunning = true;
 			}

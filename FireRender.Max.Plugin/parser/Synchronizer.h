@@ -38,6 +38,7 @@ public:
 	virtual void UnlockRenderThread() = 0;
 	virtual void StartToneMapper() = 0;
 	virtual void StopToneMapper() = 0;
+	virtual void SetToneMappingExposure(float toneMappingExposure) = 0; // sets the exposure
 	virtual void ClearFB() = 0; // resets frame buffer when something changes
 	virtual IRenderProgressCallback *GetProgressCB() = 0; // gets the progress callback
 	virtual IParamBlock2 *GetPBlock() = 0; // gets the renderer's parameters block
@@ -646,7 +647,7 @@ protected:
 	BgPropertyCallback mBackgroundCallback;
 	bool mToneMapperRunning = false;
 	//int mLightSources = 0;
-	bool mUsingDefaultLights = false;
+	bool mUsingDefaultLights = true; // true until lights are found in the scene to prove otherwise
 
 	ParamsTracker mParametersTracker; // to track generic parameters, especially those that max cannot be relied on with respect to notification messages.
 	

@@ -100,6 +100,9 @@ private:
 	Event frameBufferAlphaDisable;
 	frw::FrameBuffer frameBufferAlpha;
 	frw::FrameBuffer frameBufferAlphaResolve;
+	bool mAdaptiveEnabled;
+	frw::FrameBuffer frameBufferVariance;
+	frw::FrameBuffer frameBufferVarianceResolve;
 	CriticalSection bufSec;
 	Event eRestart;
 
@@ -115,10 +118,8 @@ private:
 	bool regionRender = false;
 	CriticalSection ctxSec;
 
-	CriticalSection tmSec;
-	Event tmChanged; // fired when useTm is being changed
-	bool useTm; // true if tm is starting, false if stopped
-	bool usingTm = false; // true if tm is currently being used, false if not
+	CriticalSection toneMapperSec;
+	Event toneMapperChanged; // fired when useMaxToneMapper is being changed
 	
 	ActiveShader *activeShader;
 
@@ -154,18 +155,23 @@ public:
 
 	inline void StartToneMapper()
 	{
-		tmSec.Lock();
-		useTm = true;
-		tmSec.Unlock();
-		tmChanged.Fire();
+		toneMapperSec.Lock();
+		useMaxTonemapper = false;
+		toneMapperSec.Unlock();
+		toneMapperChanged.Fire();
 	}
 
 	inline void StopToneMapper()
 	{
-		tmSec.Lock();
-		useTm = false;
-		tmSec.Unlock();
-		tmChanged.Fire();
+		toneMapperSec.Lock();
+		useMaxTonemapper = true;
+		toneMapperSec.Unlock();
+		toneMapperChanged.Fire();
+	}
+
+	inline void SetToneMappingExposure(float val)
+	{
+		exposure = val;
 	}
 
 	inline void EnableAlphaBuffer(bool enable)
@@ -211,7 +217,7 @@ public:
 	}
 
 	explicit ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::Scope rscope, ActiveShadeBitmapWriter *pwriter,
-		bool initialAlpha,
+		bool initialAlpha, bool initialAdaptive,
 		int priority = THREAD_PRIORITY_NORMAL, const char* name = "ActiveShadeRenderCore");
 
 	void Worker() override;
@@ -357,6 +363,11 @@ bool ActiveShadeRenderCore::DumpFrameBuffer(bool force)
 		alphaData = frameBufferAlphaResolve.GetPixelData();
 	}
 
+	if( frameBufferVariance )
+	{
+		frameBufferVariance.Resolve(frameBufferVarianceResolve, true);
+	}
+
 	float exposure = IsReal(this->exposure) ? this->exposure : 1.f;
 	CompositeFrameBuffersToBitmap(colorData, alphaData, outputBitmap, exposure, isNormals, false);
 
@@ -368,7 +379,9 @@ bool ActiveShadeRenderCore::DumpFrameBuffer(bool force)
 	return true;
 }
 
-ActiveShadeRenderCore::ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::Scope rscope, ActiveShadeBitmapWriter *pwriter, bool initialAlpha, int priority, const char* name)
+ActiveShadeRenderCore::ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::Scope rscope, ActiveShadeBitmapWriter *pwriter,
+	bool initialAlpha, bool initialAdaptive,
+	int priority, const char* name)
 	: BaseThread(name, priority)
 	, mRenderThreadExit(false)
 	, activeShader(pActiveShader)
@@ -377,6 +390,7 @@ ActiveShadeRenderCore::ActiveShadeRenderCore(ActiveShader *pActiveShader, frw::S
 	, eRestart(true)
 	, mShaderCacheReady(false)
 	, mAlphaEnabled(initialAlpha)
+	, mAdaptiveEnabled(initialAdaptive)
 	, passesDone(0)
 	, restartsDone(0)
 	, terminationReached(false)
@@ -523,11 +537,8 @@ void ActiveShadeRenderCore::Worker()
 		outputBitmap = activeShader->GetOutputBitmap().load();
 		if (outputBitmap)
 		{
-			if (tmChanged.Wait(0))
+			if (toneMapperChanged.Wait(0))
 			{
-				tmSec.Lock();
-				usingTm = useTm;
-				tmSec.Unlock();
 			}
 
 			if (frameBufferAlphaEnable.Wait(0) && !mAlphaEnabled)
@@ -568,6 +579,16 @@ void ActiveShadeRenderCore::Worker()
 					scope.DestroyFrameBuffer(FramebufferTypeId_AlphaResolve);
 					frameBufferAlphaResolve.Reset();
 				}
+				if (frameBufferVariance)
+				{
+					scope.DestroyFrameBuffer(FrameBufferTypeId_Variance);
+					frameBufferVariance.Reset();
+				}
+				if (frameBufferVarianceResolve)
+				{
+					scope.DestroyFrameBuffer(FrameBufferTypeId_VarianceResolve);
+					frameBufferVarianceResolve.Reset();
+				}
 
 				// Set color buffer
 				frameBufferMain = scope.GetFrameBuffer(w, h, FramebufferTypeId_Color);
@@ -587,6 +608,15 @@ void ActiveShadeRenderCore::Worker()
 					frameBufferAlphaResolve = scope.GetFrameBuffer(w, h, FramebufferTypeId_AlphaResolve);
 					res = scope.GetContext().SetAOV(frameBufferAlpha, RPR_AOV_OPACITY);
 				}
+
+				// Set variance buffer
+				if (mAdaptiveEnabled)
+				{
+					frameBufferVariance = scope.GetFrameBuffer(w, h, FrameBufferTypeId_Variance);
+					frameBufferVarianceResolve = scope.GetFrameBuffer(w, h, FrameBufferTypeId_VarianceResolve);
+					res = scope.GetContext().SetAOV(frameBufferVariance, RPR_AOV_VARIANCE);
+				}
+
 				if (res != RPR_SUCCESS)
 				{
 					TheManager->Max()->Log()->LogEntry(SYSLOG_WARN, NO_DIALOG, L"Radeon ProRender - Warning", L"rprContextSetAOV(ALPHA) returned '%d'\n", res);
@@ -649,6 +679,12 @@ void ActiveShadeRenderCore::Worker()
 			{
 				frameBufferAlpha.Clear();
 				frameBufferAlphaResolve.Clear();
+			}
+
+			if( frameBufferVariance )
+			{
+				frameBufferVariance.Clear();
+				frameBufferVarianceResolve.Clear();
 			}
 
 			clearFramebuffer = false;
@@ -753,6 +789,17 @@ void ActiveShadeRenderCore::Worker()
 		scope.DestroyFrameBuffer(FramebufferTypeId_AlphaResolve);
 		frameBufferAlphaResolve.Reset();
 	}
+
+	if (frameBufferVariance)
+	{
+		scope.DestroyFrameBuffer(FrameBufferTypeId_Variance);
+		frameBufferVariance.Reset();
+	}
+	if (frameBufferVarianceResolve)
+	{
+		scope.DestroyFrameBuffer(FrameBufferTypeId_VarianceResolve);
+		frameBufferVarianceResolve.Reset();
+	}
 }
 
 void ActiveShadeRenderCore::Restart()
@@ -817,7 +864,8 @@ void ActiveShader::Begin()
 	context.SetParameter("iterations", GetFromPb<int>(pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
 	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
-	context.SetParameter("as.threshold", GetFromPb<float>(pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD));
+	const float adaptiveThreshold = GetFromPb<float>(pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD);
+	context.SetParameter("as.threshold", adaptiveThreshold);
 	context.SetParameter("as.tilesize", GetFromPb<int>(pblock, PARAM_ADAPTIVE_TILESIZE));
 	context.SetParameter("as.minspp", GetFromPb<int>(pblock, PARAM_SAMPLES_MIN));
 
@@ -855,7 +903,12 @@ void ActiveShader::Begin()
 	BOOL alphaEnabled;
 	BgManagerMax::TheManager.GetProperty(PARAM_BG_ENABLEALPHA, alphaEnabled);
 
-	mRenderThread = new ActiveShadeRenderCore(this, scope, writer, bool_cast(alphaEnabled));
+	// Disable Adaptive Sampling with the CMJ sampler, if noise threshold is zero
+	bool isAdaptiveEnabled = (adaptiveThreshold > 0);
+
+	// TODO: support region mode and denoiser
+
+	mRenderThread = new ActiveShadeRenderCore(this, scope, writer, bool_cast(alphaEnabled), isAdaptiveEnabled );
 	mRenderThread->SetLimitType(renderLimitType);
 	mRenderThread->SetTimeLimit(timeLimit);
 	mRenderThread->SetPassLimit(passLimit);
@@ -1359,6 +1412,12 @@ void ActiveShadeSynchronizerBridge::StopToneMapper()
 {
 	if (mActiveShader->mRenderThread)
 		mActiveShader->mRenderThread->StopToneMapper();
+}
+
+void ActiveShadeSynchronizerBridge::SetToneMappingExposure(float val)
+{
+	if (mActiveShader->mRenderThread)
+		mActiveShader->mRenderThread->SetToneMappingExposure(val);
 }
 
 void ActiveShadeSynchronizerBridge::ClearFB()

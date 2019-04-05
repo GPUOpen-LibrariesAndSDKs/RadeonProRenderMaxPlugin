@@ -73,6 +73,7 @@ public:
 
 	bool isShadowCatcherEnabled;
 	bool isAlphaEnabled;
+	bool isAdaptiveEnabled;
 
 	// termination
 	std::atomic<int> passLimit;
@@ -156,7 +157,8 @@ public:
 	bool CopyFrameDataToBitmap(::Bitmap* bitmap);
 	void RenderStamp(Bitmap* DstBuffer, std::unique_ptr<ProductionRenderCore::FrameDataBuffer>& frameData) const;
 
-	explicit ProductionRenderCore(frw::Scope rscope, int width, int height, bool bRenderAlpha, bool denoiserEnabled,
+	explicit ProductionRenderCore(frw::Scope rscope, int width, int height,
+		bool bRenderAlpha, bool bDenoiserEnabled, bool bAdaptiveEnabled,
 		int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
 
 	void Worker() override;
@@ -253,7 +255,10 @@ void ProductionRenderCore::SaveFrameData()
 			frameBufferAlpha.Resolve(frameBufferAlphaResolve);
 		}
 
-		frameBufferVariance.Resolve(frameBufferVarianceResolve,true);
+		if( isAdaptiveEnabled )
+		{	// Resolve the Variance AOV, used for Adaptive Sampling with the CMJ sampler
+			frameBufferVariance.Resolve(frameBufferVarianceResolve, true);
+		}
 
 		rprCopyFrameDataDoneEvent.Reset();
 		RPRCopyFrameData();
@@ -287,7 +292,8 @@ bool ProductionRenderCore::CopyFrameDataToBitmap(::Bitmap* bitmap)
 	return true;
 }
 
-ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int height, bool bRenderAlpha, bool denoiserEnabled,
+ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int height,
+	bool bRenderAlpha, bool bDenoiserEnabled, bool bAdaptiveEnabled,
 	int priority, const char* name) :
 		BaseThread(name, priority),
 		scope(rscope),
@@ -319,6 +325,7 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 	ctx.SetAOV(frameBufferColor, RPR_AOV_COLOR);
 
 	isAlphaEnabled = bRenderAlpha;
+	isAdaptiveEnabled = bAdaptiveEnabled;
 
 	//Find first shadow catcher shader
 	isShadowCatcherEnabled = scope.GetShadowCatcherShader().IsValid();
@@ -350,7 +357,7 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 	}
 
 	// additional frame buffers for denoising
-	if (denoiserEnabled)
+	if (bDenoiserEnabled)
 	{
 		frameBufferShadingNormal = scope.GetFrameBuffer(width, height, FramebufferTypeId_ShadingNormal);
 		ctx.SetAOV(frameBufferShadingNormal, RPR_AOV_SHADING_NORMAL);
@@ -369,10 +376,13 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 		ctx.SetAOV(frameBufferDiffuseAlbedo, RPR_AOV_DIFFUSE_ALBEDO);
 	}
 
-	// additional frame buffer for Adaptive Sampling, used with the CMJ sampler
-	frameBufferVariance = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Variance);
-	frameBufferVarianceResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_VarianceResolve);
-	ctx.SetAOV(frameBufferVariance, RPR_AOV_VARIANCE);
+	// Set the Variance AOV, used for Adaptive Sampling with the CMJ sampler
+	if (bAdaptiveEnabled)
+	{
+		frameBufferVariance = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Variance);
+		frameBufferVarianceResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_VarianceResolve);
+		ctx.SetAOV(frameBufferVariance, RPR_AOV_VARIANCE);
+	}
 }
 
 // Shadow catcher Impl
@@ -529,7 +539,10 @@ void ProductionRenderCore::Worker()
 				frameBufferBackground.Clear();
 			}
 
-			frameBufferVariance.Clear();
+			if( isAdaptiveEnabled )
+			{
+				frameBufferVariance.Clear();
+			}
 
 			clearFramebuffer = false;
 		}
@@ -999,7 +1012,8 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 	context.SetParameter("iterations", GetFromPb<int>(parameters.pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
 	context.SetParameter("preview", 0);
-	context.SetParameter("as.threshold", GetFromPb<float>(parameters.pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD));
+	data->adaptiveThreshold = GetFromPb<float>(parameters.pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD);
+	context.SetParameter("as.threshold", data->adaptiveThreshold);
 	context.SetParameter("as.tilesize", GetFromPb<int>(parameters.pblock, PARAM_ADAPTIVE_TILESIZE));
 	context.SetParameter("as.minspp", GetFromPb<int>(parameters.pblock, PARAM_SAMPLES_MIN));
 
@@ -1086,13 +1100,17 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		bRenderAlpha = true;
 
 	// setup Denoiser
-	bool isDenoiserEnabled = false;
+	bool bDenoiserEnabled = false;
 	DenoiserType denoiserType = DenoiserNone;
 
-	std::tie(isDenoiserEnabled, denoiserType) = IsDenoiserEnabled(parameters.pblock);
+	std::tie(bDenoiserEnabled, denoiserType) = IsDenoiserEnabled(parameters.pblock);
+
+	// Disable Adaptive Sampling with the CMJ sampler, if noise threshold is zero
+	bool bAdaptiveEnabled = (data->adaptiveThreshold > 0);
 
 	// create frame buffer
-	data->renderThread = new ProductionRenderCore(scope, renderWidth, renderHeight, bool_cast(bRenderAlpha), bool_cast(isDenoiserEnabled));
+	data->renderThread = new ProductionRenderCore(scope, renderWidth, renderHeight,
+		bool_cast(bRenderAlpha), bDenoiserEnabled, bAdaptiveEnabled);
 
 	// Render Elements
 	auto renderElementMgr = parameters.rendParams.GetRenderElementMgr();
@@ -1329,7 +1347,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		std::vector<rpr_scene> scenes{ scene };
 
 		std::string ext;
-		int extStart = exportFilename.rfind(L'.');
+		int extStart = (int)exportFilename.rfind(L'.');
 
 		if (extStart != std::string::npos)
 		{
@@ -1387,7 +1405,8 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	data->renderThread->useMaxTonemapper = isShadowCatcherEnabled ? false : !overrideTonemappers;
 	data->renderThread->regionMode = (parameters.rendParams.rendType == RENDTYPE_REGION);
 	data->isAlphaEnabled = bool_cast(bRenderAlpha);
-	data->isDenoiserEnabled = isDenoiserEnabled;
+	data->isDenoiserEnabled = bDenoiserEnabled;
+	data->isAdaptiveEnabled = bAdaptiveEnabled;
 
 	if (data->renderThread->regionMode)
 	{
@@ -1405,7 +1424,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	}
 
 	// denoiser setup procedure uses frame buffers created in ProductionRenderCore
-	if (isDenoiserEnabled)
+	if (bDenoiserEnabled)
 	{
 		SetupDenoiser(context, data, renderWidth, renderHeight, denoiserType, parameters.pblock);
 		data->renderThread->SetDenoiser(data->mDenoiser.get());
@@ -1609,7 +1628,11 @@ void PRManagerMax::PostProcessAOVs(const RenderParameters& parameters, frw::Scop
 				if (fb.Handle())
 				{
 					frw::FrameBuffer fbResolve = scope.GetFrameBuffer(renderWidth, renderHeight, GetFramebufferTypeIdForAOVResolve(aov));
-					fb.Resolve(fbResolve);
+
+					if( GetFramebufferTypeIdForAOVResolve(aov) == FrameBufferTypeId_VarianceResolve )
+						fb.Resolve(fbResolve, true); // Special case: Variance needs a "normalize only" resolve
+					else // Normal case
+						fb.Resolve(fbResolve);
 
 					std::vector<float> colorData = fbResolve.GetPixelData();
 

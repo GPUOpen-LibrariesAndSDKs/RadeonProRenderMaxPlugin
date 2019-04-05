@@ -151,7 +151,8 @@ private:
 		bool isToneOperatorPreviewRender;
 		bool isAlphaEnabled;
 		bool isDenoiserEnabled;
-		float adaptiveThresh;
+		bool isAdaptiveEnabled;
+		float adaptiveThreshold;
 
 		class ProductionRenderCore* renderThread;
 		std::thread* helperThread;
@@ -173,6 +174,8 @@ private:
 			isToneOperatorPreviewRender(false),
 			isAlphaEnabled(false),
 			isDenoiserEnabled(false),
+			isAdaptiveEnabled(true),
+			adaptiveThreshold(0.0f),
 
 			renderThread(nullptr),
 			helperThread(nullptr),

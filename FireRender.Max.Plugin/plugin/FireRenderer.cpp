@@ -284,6 +284,33 @@ int FireRenderer::Open(INode* scene, INode* vnode, ViewParams* viewPar, RendPara
 
 #if MAX_PRODUCT_YEAR_NUMBER >= 2017
 
+bool FireRenderer::HasRequirement(Requirement requirement)
+{
+	switch( int(requirement) )
+	{
+	case kRequirement_NoVFB:
+		// We do not have our own VFB, so we require 3ds Max to show its default one
+		return false;
+	case kRequirement_DontSaveRenderOutput:
+		// We want 3ds Max to save the render output
+		return false;
+	case kRequirement_Wants32bitFPOutput:
+		// We require 3ds Max to give us 32 bit floating point frame buffer
+		return true;
+	case kRequirement_WantsObjectSelection:
+		// We can render even if there is no object selection made
+		return false;
+	case kRequirement_NoGBufferForToneOpPreview:
+		// for some reason 3ds Max 2016 is already asking about this even though the value is not defined until 2017
+		return true;
+	case kRequirement_SupportsConcurrentRendering:
+		// We can run multiple renderer instances simultaneously
+		return true;
+	default:
+		STOP;
+	}
+}
+
 IInteractiveRender* FireRenderer::GetIInteractiveRender()
 {
 	if (!activeShader)

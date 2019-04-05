@@ -136,7 +136,7 @@ public:
 
 #if MAX_PRODUCT_YEAR_NUMBER >= 2017
 	PauseSupport IsPauseSupported() const MAX2017_OVERRIDE { return PauseSupport::None;	}
-	bool HasRequirement(Requirement requirement) override { return false; }
+	bool HasRequirement(Requirement requirement) override;
 
 	bool IsStopSupported() const MAX2017_OVERRIDE { return false; }
 	void StopRendering() MAX2017_OVERRIDE { }

@@ -10,6 +10,7 @@
 #pragma once
 
 #include "parser/Synchronizer.h"
+#include "ParamBlock.h"
 #include <interactiverender.h>
 #include <atomic>
 
@@ -40,6 +41,7 @@ public:
 	void UnlockRenderThread() override;
 	void StartToneMapper() override;
 	void StopToneMapper() override;
+	void SetToneMappingExposure(float exposure) override;
 	void ClearFB() override;
 	IRenderProgressCallback *GetProgressCB() override;
 	IParamBlock2 *GetPBlock() override;

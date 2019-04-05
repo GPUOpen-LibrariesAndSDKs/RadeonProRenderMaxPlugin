@@ -63,7 +63,6 @@ void Synchronizer::UpdateToneMapper()
 		renderMode == RPR_RENDER_MODE_DIRECT_ILLUMINATION ||
 		renderMode == RPR_RENDER_MODE_DIRECT_ILLUMINATION_NO_SHADOW);
 	
-	float exposure = _interactiveToneMapping_exposure;
 	bool isNormals = _interactiveToneMapping_isNormals;
 	bool shouldToneMap = _interactiveToneMapping_shouldToneMap;
 
@@ -171,6 +170,9 @@ void Synchronizer::UpdateToneMapper()
 	default:
 		break;
 	}
+
+	// Pass the exposure value to Production renderer and ActiveShade for image post-processing
+	mBridge->SetToneMappingExposure(_interactiveToneMapping_exposure);
 }
 
 FIRERENDER_NAMESPACE_END;
