@@ -1505,30 +1505,35 @@ INT_PTR FireRenderParamDlg::CScripts::DlgProc(UINT msg, WPARAM wParam, LPARAM lP
 						{
 							case RPR_CONVERT_MATERIALS_FROM_VRAY_TO_PRORENDER:
 							{
-								success = ExecuteMAXScriptScript(
-											L"for o in geometry do											 \n"
-											L"(																 \n"
-											L"	if classof o.material == VRayMtl do							 \n"
-											L"	(															 \n"
-											L"		tt = Rpr_Uber_Material()								 \n"
-											L"		tt.DiffuseColorTexmap = o.material.texmap_diffuse		 \n"
-											L"		tt.DiffuseColor = o.material.diffuse					 \n"
-											L"		tt.UseGlossy = true										 \n"
-											L"		o.material = tt											 \n"
-											L"	)															 \n"
-											L"	if classof o.material == Multimaterial then					 \n"
-											L"	for m = 1 to o.material.numsubs do							 \n"
-											L"	(															 \n"
-											L"		if classof o.material[m] == VRayMtl do					 \n"
-											L"		(														 \n"
-											L"			tt = Rpr_Uber_Material()							 \n"
-											L"			tt.DiffuseColorTexmap = o.material[m].texmap_diffuse \n"
-											L"			tt.DiffuseColor = o.material[m].diffuse				 \n"
-											L"			tt.UseGlossy = true									 \n"
-											L"			o.material[m] = tt									 \n"
-											L"		)														 \n"
-											L"	)															 \n"
-											L")																 \n");
+								// initialize modules path string for conversion scripts
+								std::wstring modulePath = GetModuleFolder();
+
+								size_t pos = modulePath.rfind(L"plug-ins");
+								if (pos == std::wstring::npos)
+								{
+									success = false;
+									break;
+								}
+
+								// locate conversion script
+								std::wstring filename;
+								filename.assign(modulePath, 0, pos);
+								filename.append(L"data\\SceneConvertionScripts\\vray2rpr.ms");
+								std::wifstream scriptFileStream(filename);
+								if (!scriptFileStream)
+								{
+									success = false;
+									break;
+								}
+
+								// load script to string
+								std::wstring scriptString ((std::istreambuf_iterator<wchar_t>
+									(scriptFileStream.rdbuf())), 
+									std::istreambuf_iterator<wchar_t>()
+								);
+
+								// execute script
+								success = ExecuteMAXScriptScript(scriptString.c_str());
 							}
 							break;
 						}
@@ -1571,10 +1576,7 @@ INT_PTR FireRenderParamDlg::CScripts::DlgProc(UINT msg, WPARAM wParam, LPARAM lP
 
 void FireRenderParamDlg::CScripts::InitDialog()
 {
-	//Render device
-
-	// disabled because shouldn't be in UI according to JIRA ticket
-#ifdef VRAY_MATERIAL_CONVERTION_ENABLED
+	// Convert VRay to RPR
 	LRESULT n;
 	HWND renderScript = GetDlgItem(mHwnd, IDC_RENDER_SCRIPTS);
 	FASSERT(renderScript);
@@ -1582,7 +1584,6 @@ void FireRenderParamDlg::CScripts::InitDialog()
 	n = SendMessage(renderScript, CB_ADDSTRING, 0L, (LPARAM)_T("Convert Vray materials to ProRender materials"));
 	SendMessage(renderScript, CB_SETITEMDATA, n, RPR_CONVERT_MATERIALS_FROM_VRAY_TO_PRORENDER);
 	mIsReady = true;
-#endif
 }
 
 void FireRenderParamDlg::CScripts::DestroyDialog()

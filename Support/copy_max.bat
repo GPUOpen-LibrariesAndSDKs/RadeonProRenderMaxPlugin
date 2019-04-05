@@ -50,9 +50,6 @@ set ImageLibFiles=^
 	"ThirdParty\RadeonProImageProcessing\Windows\lib\libcrypto-1_1-x64.dll"^
 	"ThirdParty\RadeonProImageProcessing\Windows\lib\MIOpen.dll"^
 	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonProML.dll"
-
-set ImageLibMlModels=^
-	"ThirdParty\RadeonProImageProcessing\models"
 	
 set GltfFiles=^
 	"ThirdParty\RadeonProRender-GLTF\Win\lib\ProRenderGLTF.dll"
@@ -73,13 +70,11 @@ for %%b in (%PluginBundle%) do (
 )
 
 :: copy Image Library ML models
-set ImgLibModels=ImageLibMlModels
+xcopy "ThirdParty\RadeonProImageProcessing\models" "%DIST_PATH%\data\models" /S /Y /I
 
-for %%b in (%ImgLibModels%) do (
-	for %%a in (!%%b!) do ( 
-		xcopy %%a "%DIST_PATH%\data\models" /S /Y /I
-	)
-)
+:: copy scene convertion scripts
+if not exist "%DIST_PATH%\data\SceneConvertionScripts" mkdir "%DIST_PATH%\data\SceneConvertionScripts"
+copy /Y "ThirdParty\SceneConvertionScripts\vray2rpr.ms" "%DIST_PATH%\data\SceneConvertionScripts\vray2rpr.ms"
 
 :: Copy plugin itself
 xcopy %PLUGIN_PATH% "%DIST_PATH%\plug-ins\%MAX_VERSION%\*" /S /Y /I

@@ -25,6 +25,7 @@ if exist %ThirdPartyDir% (
     xcopy /S /Y /I %ThirdPartyDir%\RadeonProImageProcessing\* RadeonProImageProcessing
     xcopy /S /Y /I "%ThirdPartyDir%\RadeonProRender SDK\*" "RadeonProRender SDK"
     xcopy /S /Y /I %ThirdPartyDir%\RadeonProRender-GLTF\* RadeonProRender-GLTF
+    xcopy /S /Y /I %ThirdPartyDir%\SceneConvertionScripts\* SceneConvertionScripts
 
 ) else ( 
     echo Cannot update as %ThirdPartyDir% missing
