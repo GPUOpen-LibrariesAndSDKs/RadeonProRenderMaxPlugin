@@ -647,7 +647,7 @@ protected:
 	BgPropertyCallback mBackgroundCallback;
 	bool mToneMapperRunning = false;
 	//int mLightSources = 0;
-	bool mUsingDefaultLights = true; // true until lights are found in the scene to prove otherwise
+	bool mUsingDefaultLights = false;
 
 	ParamsTracker mParametersTracker; // to track generic parameters, especially those that max cannot be relied on with respect to notification messages.
 	

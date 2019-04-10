@@ -864,7 +864,10 @@ void ActiveShader::Begin()
 	context.SetParameter("iterations", GetFromPb<int>(pblock, PARAM_CONTEXT_ITERATIONS));
 	context.SetParameter("pdfthreshold", 0.f);
 	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
-	const float adaptiveThreshold = GetFromPb<float>(pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD);
+	// TODO: ActiveShade produces artifacts with Adaptive Sampling, with black squares appearing in noisy dark areas
+	// Temporary fix, set Adaptive Sampling threshold to 0 for ActiveShade
+	const float adaptiveThreshold = 0;
+	//const float adaptiveThreshold = GetFromPb<float>(pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD);
 	context.SetParameter("as.threshold", adaptiveThreshold);
 	context.SetParameter("as.tilesize", GetFromPb<int>(pblock, PARAM_ADAPTIVE_TILESIZE));
 	context.SetParameter("as.minspp", GetFromPb<int>(pblock, PARAM_SAMPLES_MIN));

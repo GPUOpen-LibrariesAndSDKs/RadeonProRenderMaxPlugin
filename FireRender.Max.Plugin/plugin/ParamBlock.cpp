@@ -501,18 +501,6 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	PARAM_CONTEXT_ITERATIONS, _T("iterations"), TYPE_INT, 0, 0, // effectively the same parameter as aasamples
 	p_default, 1, p_range, 1, INT_MAX /*RPR_MAX_AA_GRID_SIZE*/, PB_END,
 
-    PARAM_ADAPTIVE_NOISE_THRESHOLD, _T("adaptiveNoiseThreshold"), TYPE_FLOAT, 0, 0,
-    p_range, 0.0, 1.0, p_default, 0.1, PB_END,
-
-    PARAM_ADAPTIVE_TILESIZE, _T("adaptiveTileSize"), TYPE_INT, 0, 0,
-    p_range, 1, INT_MAX, p_default, 4, PB_END,
-
-    PARAM_SAMPLES_MIN, _T("samplesMin"), TYPE_INT, 0, 0,
-    p_range, 1, 65536, p_default, 16, PB_END,
-
-	PARAM_SAMPLES_MIN, _T("samplesMax"), TYPE_INT, 0, 0,
-	p_range, 0, INT_MAX, p_default, 16, PB_END,
-
 PB_END);
 
 
