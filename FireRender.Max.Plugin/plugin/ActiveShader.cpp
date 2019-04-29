@@ -758,7 +758,7 @@ void ActiveShadeRenderCore::Worker()
 					if (passesDone == passLimit)
 						terminationReached.Fire();
 				}
-				else if( (termination == TerminationCriteria::Termination_Time) ||
+				if( (termination == TerminationCriteria::Termination_Time) ||
 					     (termination == TerminationCriteria::Termination_PassesOrTime) )
 				{
 					if (timer.GetElapsed() >= timeLimit)

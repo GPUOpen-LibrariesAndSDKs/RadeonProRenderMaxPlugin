@@ -289,7 +289,7 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	// RPR_RENDER_LIMIT_UNLIMITED		0x03
 	// RPR_RENDER_LIMIT_PASS_OR_TIME	0x04
 	PARAM_RENDER_LIMIT, _T("renderLimit"), TYPE_INT, 0, 0,
-	p_range, RPR_RENDER_LIMIT_PASS, RPR_RENDER_LIMIT_UNLIMITED, p_default, RPR_RENDER_LIMIT_UNLIMITED,
+	p_range, TerminationCriteria::enum_first, TerminationCriteria::enum_last, p_default, TerminationCriteria::Termination_None,
 	p_accessor, &theSamplingAccessor,
 	PB_END,
 
@@ -670,13 +670,13 @@ void SamplingAccessor::Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int t
 			int samplesMax = pblock->GetInt(PARAM_SAMPLES_MAX);
 			int timeLimit = pblock->GetInt(PARAM_TIME_LIMIT);
 			if ((samplesMax <= 0) && (timeLimit <= 0))
-				v.i = RPR_RENDER_LIMIT_UNLIMITED;
+				v.i = TerminationCriteria::Termination_None;
 			else if (samplesMax <= 0)
-				v.i = RPR_RENDER_LIMIT_TIME;
+				v.i = TerminationCriteria::Termination_Time;
 			else if (timeLimit <= 0)
-				v.i = RPR_RENDER_LIMIT_PASS;
+				v.i = TerminationCriteria::Termination_Passes;
 			else
-				v.i = RPR_RENDER_LIMIT_PASS_OR_TIME;
+				v.i = TerminationCriteria::Termination_PassesOrTime;
 		}
 		break;
 	}
@@ -702,27 +702,27 @@ void SamplingAccessor::Set(PB2Value& v, ReferenceMaker* owner, ParamID id, int t
 		break;
 
 	case PARAM_RENDER_LIMIT:
-		if( v.i == RPR_RENDER_LIMIT_UNLIMITED )
+		if( v.i == TerminationCriteria::Termination_None )
 		{
 			pblock->SetValue(PARAM_SAMPLES_MAX,0,0);
 			pblock->SetValue(PARAM_TIME_LIMIT, 0, 0);
 		}
-		else if( v.i == RPR_RENDER_LIMIT_TIME )
+		else if( v.i == TerminationCriteria::Termination_Time )
 		{
 			pblock->SetValue(PARAM_SAMPLES_MAX, 0, 0);
 		}
-		else if( v.i == RPR_RENDER_LIMIT_PASS )
+		else if( v.i == TerminationCriteria::Termination_Passes )
 		{
 			pblock->SetValue(PARAM_TIME_LIMIT, 0, 0);
 		}
 
-		if( (v.i == RPR_RENDER_LIMIT_TIME) || (v.i == RPR_RENDER_LIMIT_PASS_OR_TIME) )
+		if( (v.i == TerminationCriteria::Termination_Time) || (v.i == TerminationCriteria::Termination_PassesOrTime) )
 		{
 			if (pblock->GetInt(PARAM_TIME_LIMIT) == 0) // Set time limit to default nonzero if necessary
 				pblock->SetValue(PARAM_TIME_LIMIT, 0, desc->GetParamDef(PARAM_TIME_LIMIT).def.i);
 		}
 
-		if( (v.i == RPR_RENDER_LIMIT_PASS) || (v.i == RPR_RENDER_LIMIT_PASS_OR_TIME) )
+		if( (v.i == TerminationCriteria::Termination_Passes) || (v.i == TerminationCriteria::Termination_PassesOrTime) )
 		{
 			if (pblock->GetInt(PARAM_SAMPLES_MAX) == 0) // Set max samples to default nonzero if necessary
 				pblock->SetValue(PARAM_SAMPLES_MAX, 0, desc->GetParamDef(PARAM_SAMPLES_MAX).def.i);

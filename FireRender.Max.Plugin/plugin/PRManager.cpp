@@ -974,18 +974,18 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 		int renderLimitType = GetFromPb<int>(parameters.pblock, PARAM_RENDER_LIMIT);
 		switch (renderLimitType)
 		{
-		case RPR_RENDER_LIMIT_PASS:
+		case TerminationCriteria::Termination_Passes:
 			data->termCriteria = Termination_Passes;
 			data->passLimit = GetFromPb<int>(parameters.pblock, PARAM_PASS_LIMIT);
 			break;
-		case RPR_RENDER_LIMIT_TIME:
+		case TerminationCriteria::Termination_Time:
 			data->termCriteria = Termination_Time;
 			data->timeLimit = GetFromPb<int>(parameters.pblock, PARAM_TIME_LIMIT);
 			break;
-		case RPR_RENDER_LIMIT_UNLIMITED:
+		case TerminationCriteria::Termination_None:
 			data->termCriteria = Termination_None;
 			break;
-		case RPR_RENDER_LIMIT_PASS_OR_TIME:
+		case TerminationCriteria::Termination_PassesOrTime:
 			data->termCriteria = Termination_PassesOrTime;
 			data->passLimit = GetFromPb<int>(parameters.pblock, PARAM_PASS_LIMIT);
 			data->timeLimit = GetFromPb<int>(parameters.pblock, PARAM_TIME_LIMIT);

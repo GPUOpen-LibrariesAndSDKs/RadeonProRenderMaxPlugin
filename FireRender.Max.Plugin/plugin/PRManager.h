@@ -32,14 +32,6 @@ FIRERENDER_NAMESPACE_BEGIN
 class FireRenderer;
 class ProductionRenderCore;
 
-enum TerminationCriteria
-{
-	Termination_None,
-	Termination_Passes,
-	Termination_Time,
-	Termination_PassesOrTime
-};
-
 // render elements
 enum FramebufferTypeId
 {

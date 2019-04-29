@@ -26,10 +26,15 @@ enum PbDescVersion
 #define RPR_QUALITY_PRESET_PRODUCTION 0x1
 #define RPR_QUALITY_PRESET_PREVIEW 0x2
 
-#define RPR_RENDER_LIMIT_PASS			0x01
-#define RPR_RENDER_LIMIT_TIME			0x02
-#define RPR_RENDER_LIMIT_UNLIMITED		0x03
-#define RPR_RENDER_LIMIT_PASS_OR_TIME	0x04
+enum TerminationCriteria
+{
+	enum_first					= 1,
+	Termination_Passes			= 1,
+	Termination_Time			= 2,
+	Termination_None			= 3,
+	Termination_PassesOrTime	= 4,
+	enum_last					= 4
+};
 
 #define DEFAULT_RENDER_STAMP _T("Radeon ProRender for 3ds Max %b | %h | Time: %pt | Passes: %pp | Objects: %so | Lights: %sl")
 
