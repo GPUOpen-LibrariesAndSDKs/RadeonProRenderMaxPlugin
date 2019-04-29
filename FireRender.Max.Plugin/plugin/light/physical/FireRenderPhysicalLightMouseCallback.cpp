@@ -46,6 +46,7 @@ void FireRenderPhysicalLight::CreateCallBack::ProcessMouseClicked(ViewExp *vpt, 
 		INode* thisNode = FindNodeRef(m_light);
 		FASSERT(thisNode);
 		m_light->SetThisNode(thisNode);
+		m_light->BeginPreview();
 		mat.SetTrans(vpt->SnapPoint(m, m, NULL, SNAP_IN_3D));
 
 		// get light mode

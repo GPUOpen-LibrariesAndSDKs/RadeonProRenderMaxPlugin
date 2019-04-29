@@ -224,6 +224,7 @@ public:
 	FRPhysicalLight_AreaLight_LightShape GetLightShapeMode(const TimeValue& time) const;
 	FRPhysicalLight_LightType GetLightType(const TimeValue& time) const;
 
+	void BeginPreview(void);
 	void FinishPreview(void);
 	void BeginTargetPreview(void);
 	void FinishTargetPreview(void);

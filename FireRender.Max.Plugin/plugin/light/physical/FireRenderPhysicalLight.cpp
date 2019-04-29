@@ -45,7 +45,7 @@ INode* FindNodeRef(ReferenceTarget *rt)
 }
 
 FireRenderPhysicalLight::FireRenderPhysicalLight()
-	: m_isPreview(true)
+	: m_isPreview(false)
 	, m_isTargetPreview(false)
 	, m_isNotifyMoveLight(false)
 	, m_isNotifyMoveTarget(false)
@@ -76,6 +76,11 @@ const TCHAR* FIRERENDER_PHYSICALLIGHT_TARGET_NODE_NAME = _T("Physical Light targ
 Class_ID FireRenderPhysicalLight::ClassID()
 {
 	return FIRERENDER_PHYSICALLIGHT_CLASS_ID;
+}
+
+void FireRenderPhysicalLight::BeginPreview(void)
+{
+	m_isPreview = true;
 }
 
 void FireRenderPhysicalLight::FinishPreview(void)
