@@ -71,8 +71,12 @@ public:
 		int passesDone;
 	};
 
+	int width;
+	int height;
+
 	bool isShadowCatcherEnabled;
 	bool isAlphaEnabled;
+	bool isDenoiserEnabled;
 	bool isAdaptiveEnabled;
 
 	// termination
@@ -161,6 +165,8 @@ public:
 		bool bRenderAlpha, bool bDenoiserEnabled, bool bAdaptiveEnabled,
 		int priority = THREAD_PRIORITY_NORMAL, const char* name = "ProductionRenderCore");
 
+	void InitFramebuffers();
+
 	void Worker() override;
 
 	void Done(TerminationResult res, rpr_int err)
@@ -232,7 +238,7 @@ void ProductionRenderCore::SaveFrameData()
 {
 	try
 	{
-		if (isShadowCatcherEnabled)
+		if( frameBufferComposite )
 		{
 			// calculate picture composed of rendered image and several aov's (including shadow catcher)
 			CompositeOutput(false);
@@ -250,12 +256,12 @@ void ProductionRenderCore::SaveFrameData()
 			}
 		}
 
-		if (isAlphaEnabled)
+		if( frameBufferAlpha )
 		{
 			frameBufferAlpha.Resolve(frameBufferAlphaResolve);
 		}
 
-		if( isAdaptiveEnabled )
+		if( frameBufferVariance )
 		{	// Resolve the Variance AOV, used for Adaptive Sampling with the CMJ sampler
 			frameBufferVariance.Resolve(frameBufferVarianceResolve, true);
 		}
@@ -298,6 +304,11 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 		BaseThread(name, priority),
 		scope(rscope),
 		eRestart(true),
+		width(width),
+		height(height),
+		isAlphaEnabled(bRenderAlpha),
+		isDenoiserEnabled(bDenoiserEnabled),
+		isAdaptiveEnabled(bAdaptiveEnabled),
 		bImmediateAbort(false)
 {
 	// termination
@@ -317,6 +328,15 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 	useMaxTonemapper = true;
 	regionMode = false;
 
+	// Setup AOVs - first pass (apply AOVs for denoiser, required BEFORE translation)
+	InitFramebuffers();
+}
+
+// Creates framebuffer and applies mandatory AOVs - called in two passes
+// First pass to apply AOVs for denoiser, required BEFORE translation
+// Second pass to apply AOVs for Shadow Catcher, fails unless AFTER translation
+void ProductionRenderCore::InitFramebuffers()
+{
 	frw::Context ctx = scope.GetContext();
 
 	// Set color buffer
@@ -324,25 +344,43 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 	frameBufferColorResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_ColorResolve);
 	ctx.SetAOV(frameBufferColor, RPR_AOV_COLOR);
 
-	isAlphaEnabled = bRenderAlpha;
-	isAdaptiveEnabled = bAdaptiveEnabled;
+	// TODO: Remove this?  Maybe unnecessary if safe to apply AOV framebuffers twice
+	bool hadFrameBufferShadowCatcher = (bool)frameBufferShadowCatcher;
+	bool hadFrameBufferBackground = (bool)frameBufferBackground;
+	bool hadFrameBufferDepth =(bool) frameBufferDepth;
+	bool hadFrameBufferComposite = (bool)frameBufferComposite;
+	bool hadFrameBufferCompositeResolve = (bool)frameBufferCompositeResolve;
+	bool hadFrameBufferAlpha = (bool)frameBufferAlpha;
+	bool hadFrameBufferAlphaResolve = (bool)frameBufferAlphaResolve;
+	bool hadFrameBufferShadingNormal = (bool)frameBufferShadingNormal;
+	bool hadFrameBufferWorldCoordinate = (bool)frameBufferWorldCoordinate;
+	bool hadFrameBufferObjectId = (bool)frameBufferObjectId;
+	bool hadFrameBufferDiffuseAlbedo = (bool)frameBufferDiffuseAlbedo;
+	bool hadFrameBufferDiffuseAlbedoResolve = (bool)frameBufferDiffuseAlbedoResolve;
+	bool hadFrameBufferVariance = (bool)frameBufferVariance;
+	bool hadFrameBufferVarianceResolve = (bool)frameBufferVarianceResolve;
 
-	//Find first shadow catcher shader
+	//Find shadow catcher shader
+	//Fails on first pass before translation, works on second pass after translation
 	isShadowCatcherEnabled = scope.GetShadowCatcherShader().IsValid();
 
 	if (isShadowCatcherEnabled) 
 	{
-		// Set shadow buffer
-		frameBufferShadowCatcher = scope.GetFrameBuffer(width, height, FrameBufferTypeId_ShadowCatcher);
-		ctx.SetAOV(frameBufferShadowCatcher, RPR_AOV_SHADOW_CATCHER);
-
 		// Set background buffer
-		frameBufferBackground = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Background);
-		ctx.SetAOV(frameBufferBackground, RPR_AOV_BACKGROUND);
+		if( !frameBufferShadowCatcher )
+			frameBufferShadowCatcher = scope.GetFrameBuffer(width, height, FrameBufferTypeId_ShadowCatcher);
+		if( !frameBufferBackground )
+			frameBufferBackground = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Background);
+
+		// Set depth buffer
+		if( !frameBufferDepth )
+			frameBufferDepth = scope.GetFrameBuffer(width, height, FramebufferTypeId_Depth);
 
 		// buffers for results
-		frameBufferComposite = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Composite);
-		frameBufferCompositeResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_CompositeResolve);
+		if( !frameBufferComposite )
+			frameBufferComposite = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Composite);
+		if( !frameBufferCompositeResolve )
+			frameBufferCompositeResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_CompositeResolve);
 
 		isAlphaEnabled = true;
 		useMaxTonemapper = false;
@@ -351,38 +389,58 @@ ProductionRenderCore::ProductionRenderCore(frw::Scope rscope, int width, int hei
 	// Set alpha buffer
 	if (isAlphaEnabled)
 	{
-		frameBufferAlpha = scope.GetFrameBuffer(width, height, FramebufferTypeId_Alpha);
-		frameBufferAlphaResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_AlphaResolve);
-		ctx.SetAOV(frameBufferAlpha, RPR_AOV_OPACITY);
+		if( !frameBufferAlpha )
+			frameBufferAlpha = scope.GetFrameBuffer(width, height, FramebufferTypeId_Alpha);
+		if( !frameBufferAlphaResolve )
+			frameBufferAlphaResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_AlphaResolve);
 	}
 
 	// additional frame buffers for denoising
-	if (bDenoiserEnabled)
+	if (isDenoiserEnabled)
 	{
-		frameBufferShadingNormal = scope.GetFrameBuffer(width, height, FramebufferTypeId_ShadingNormal);
-		ctx.SetAOV(frameBufferShadingNormal, RPR_AOV_SHADING_NORMAL);
-
-		frameBufferDepth = scope.GetFrameBuffer(width, height, FramebufferTypeId_Depth);
-		ctx.SetAOV(frameBufferDepth, RPR_AOV_DEPTH);
-
-		frameBufferWorldCoordinate = scope.GetFrameBuffer(width, height, FramebufferTypeId_WorldCoordinate);
-		ctx.SetAOV(frameBufferWorldCoordinate, RPR_AOV_WORLD_COORDINATE);
-
-		frameBufferObjectId = scope.GetFrameBuffer(width, height, FramebufferTypeId_ObjectId);
-		ctx.SetAOV(frameBufferObjectId, RPR_AOV_OBJECT_ID);
-
-		frameBufferDiffuseAlbedo = scope.GetFrameBuffer(width, height, FramebufferTypeId_DiffuseAlbedo);
-		frameBufferDiffuseAlbedoResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_DiffuseAlbedoResolve);
-		ctx.SetAOV(frameBufferDiffuseAlbedo, RPR_AOV_DIFFUSE_ALBEDO);
+		if( !frameBufferShadingNormal )
+			frameBufferShadingNormal = scope.GetFrameBuffer(width, height, FramebufferTypeId_ShadingNormal);
+		if( !frameBufferDepth )
+			frameBufferDepth = scope.GetFrameBuffer(width, height, FramebufferTypeId_Depth);
+		if( !frameBufferWorldCoordinate )
+			frameBufferWorldCoordinate = scope.GetFrameBuffer(width, height, FramebufferTypeId_WorldCoordinate);
+		if( !frameBufferObjectId )
+			frameBufferObjectId = scope.GetFrameBuffer(width, height, FramebufferTypeId_ObjectId);
+		if( !frameBufferDiffuseAlbedo )
+			frameBufferDiffuseAlbedo = scope.GetFrameBuffer(width, height, FramebufferTypeId_DiffuseAlbedo);
+		if( !frameBufferDiffuseAlbedoResolve )
+			frameBufferDiffuseAlbedoResolve = scope.GetFrameBuffer(width, height, FramebufferTypeId_DiffuseAlbedoResolve);
 	}
 
 	// Set the Variance AOV, used for Adaptive Sampling with the CMJ sampler
-	if (bAdaptiveEnabled)
+	if (isAdaptiveEnabled)
 	{
-		frameBufferVariance = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Variance);
-		frameBufferVarianceResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_VarianceResolve);
-		ctx.SetAOV(frameBufferVariance, RPR_AOV_VARIANCE);
+		// Set shadow buffer
+		if( !frameBufferVariance )
+			frameBufferVariance = scope.GetFrameBuffer(width, height, FrameBufferTypeId_Variance);
+		if( !frameBufferVarianceResolve )
+			frameBufferVarianceResolve = scope.GetFrameBuffer(width, height, FrameBufferTypeId_VarianceResolve);
 	}
+
+	// TODO: Safe to apply AOV framebuffers twice, for the two passes?
+	if( frameBufferShadowCatcher && !hadFrameBufferShadowCatcher )
+		ctx.SetAOV(frameBufferShadowCatcher, RPR_AOV_SHADOW_CATCHER);
+	if( frameBufferBackground && !hadFrameBufferBackground )
+		ctx.SetAOV(frameBufferBackground, RPR_AOV_BACKGROUND);
+	if( frameBufferAlpha && !hadFrameBufferAlpha )
+		ctx.SetAOV(frameBufferAlpha, RPR_AOV_OPACITY);
+	if( frameBufferShadingNormal && !hadFrameBufferShadingNormal )
+		ctx.SetAOV(frameBufferShadingNormal, RPR_AOV_SHADING_NORMAL);
+	if( frameBufferDepth && !hadFrameBufferDepth )
+		ctx.SetAOV(frameBufferDepth, RPR_AOV_DEPTH);
+	if( frameBufferWorldCoordinate && !hadFrameBufferWorldCoordinate )
+		ctx.SetAOV(frameBufferWorldCoordinate, RPR_AOV_WORLD_COORDINATE);
+	if( frameBufferObjectId && !hadFrameBufferObjectId )
+		ctx.SetAOV(frameBufferObjectId, RPR_AOV_OBJECT_ID);
+	if( frameBufferDiffuseAlbedo && !hadFrameBufferDiffuseAlbedo )
+		ctx.SetAOV(frameBufferDiffuseAlbedo, RPR_AOV_DIFFUSE_ALBEDO);
+	if( frameBufferVariance && !hadFrameBufferVariance )
+		ctx.SetAOV(frameBufferVariance, RPR_AOV_VARIANCE);
 }
 
 // Shadow catcher Impl
@@ -423,9 +481,6 @@ void ProductionRenderCore::CompositeOutput(bool flip)
 	RprComposite compositeShadowCatcher(context.Handle(), RPR_COMPOSITE_FRAMEBUFFER);
 	compositeShadowCatcher.SetInputFb("framebuffer.input", frameBufferShadowCatcher.Handle());
 
-	RprComposite compositeOne(context.Handle(), RPR_COMPOSITE_CONSTANT);
-	compositeOne.SetInput4f("constant.input", 1.0f, 0.0f, 0.0f, 0.0f);
-
 	//Find first shadow catcher shader
 	frw::Shader shadowCatcherShader = scope.GetShadowCatcherShader();
 	assert(shadowCatcherShader);
@@ -450,7 +505,7 @@ void ProductionRenderCore::CompositeOutput(bool flip)
 
 	RprComposite compositeShadowCatcherNorm(context.Handle(), RPR_COMPOSITE_NORMALIZE);
 	compositeShadowCatcherNorm.SetInputC("normalize.color", compositeShadowCatcher);
-	compositeShadowCatcherNorm.SetInputC("normalize.shadowcatcher", compositeOne);
+	rprCompositeSetInput1u(compositeShadowCatcherNorm, "normalize.aovtype", RPR_AOV_SHADOW_CATCHER);
 
 	RprComposite compositeSCWeight(context.Handle(), RPR_COMPOSITE_ARITHMETIC);
 	compositeSCWeight.SetInputC("arithmetic.color0", compositeShadowCatcherNorm);
@@ -484,6 +539,8 @@ void ProductionRenderCore::Worker()
 	passesDone = 0;
 	__time64_t startedAt = time(0);
 
+	// Setup AOVs - second pass (apply AOVs for Shadow Catcher, fails unless AFTER translation)
+	InitFramebuffers();
 	bool clearFramebuffer = true;
 
 	int xmin = 0, ymin = 0, xmax = 0, ymax = 0;
@@ -528,18 +585,22 @@ void ProductionRenderCore::Worker()
 		{
 			frameBufferColor.Clear();
 
-			if (isAlphaEnabled)
+			if( frameBufferAlpha )
 			{
 				frameBufferAlpha.Clear();
 			}
 
-			if (isShadowCatcherEnabled)
+			if( frameBufferShadowCatcher )
 			{
 				frameBufferShadowCatcher.Clear();
+			}
+
+			if( frameBufferBackground )
+			{
 				frameBufferBackground.Clear();
 			}
 
-			if( isAdaptiveEnabled )
+			if( frameBufferVariance )
 			{
 				frameBufferVariance.Clear();
 			}
@@ -1094,11 +1155,6 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	BOOL bRenderAlpha;
 	parameters.pblock->GetValue(TRPARAM_BG_ENABLEALPHA, 0, bRenderAlpha, Interval());
 
-	bool isShadowCatcherEnabled = scope.GetShadowCatcherShader().IsValid();
-
-	if (isShadowCatcherEnabled)
-		bRenderAlpha = true;
-
 	// setup Denoiser
 	bool bDenoiserEnabled = false;
 	DenoiserType denoiserType = DenoiserNone;
@@ -1391,6 +1447,10 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		data->bRenderThreadDone = true;
 		return returnValue;
 	}
+
+	bool isShadowCatcherEnabled = scope.GetShadowCatcherShader().IsValid();
+	if (isShadowCatcherEnabled)
+		bRenderAlpha = true;
 
 	// setup ProductionRenderCore data
 	data->renderThread->term = data->termCriteria;
