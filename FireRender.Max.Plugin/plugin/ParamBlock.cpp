@@ -109,7 +109,8 @@ ParamBlockDesc2 FIRE_MAX_PBDESC(
 	PB_END,
 
 	PARAM_SAMPLES_MIN, _T("samplesMin"), TYPE_INT, 0, 0,
-	p_range, 1, INT_MAX, p_default, 16,
+	p_range, 2, INT_MAX, p_default, 16,
+	p_accessor, &theSamplingAccessor,
 	PB_END,
 
 	PARAM_SAMPLES_MAX, _T("samplesMax"), TYPE_INT, 0, 0,
@@ -651,6 +652,14 @@ void SamplingAccessor::Get(PB2Value& v, ReferenceMaker* owner, ParamID id, int t
 	IParamBlock2 *pblock = owner->GetParamBlock(0);
 	switch (id)
 	{
+	case PARAM_SAMPLES_MIN:
+		{
+			// for older scenes saved before the p_range defined minimum of 2,
+			// need to enforce manually, otherwise scene may render as black
+			v.i = MAX( v.i, 2 ); // enforce minimum of 2; 
+		}
+		break;
+
 	case PARAM_PASS_LIMIT:
 		{
 			int samplesMax = pblock->GetInt(PARAM_SAMPLES_MAX);
