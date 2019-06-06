@@ -415,7 +415,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 		FRPBRMTL_NORMAL_MUL);
 	toUseMap = (map != nullptr);
 
-#if (RPR_API_VERSION < 0x010031000)
+#if (RPR_API_COMPAT < 0x010031000)
 	if (toUseMap && mul > 0.0f)
 	{
 		value = materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP), mul);

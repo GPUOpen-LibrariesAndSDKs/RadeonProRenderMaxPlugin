@@ -296,7 +296,7 @@ EXPORT_TO_MAX int LibInitialize()
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(OrenNayarMtl)::ClassDescInstance);
 	gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(DiffuseRefractionMtl)::ClassDescInstance);
 	
-	if (RPR_API_VERSION > 0x010000094)
+	if (RPR_API_COMPAT > 0x010000094)
 	{
 		gClassInstances.push_back(&FireRender::FRMTLCLASSNAME(FresnelSchlickMtl)::ClassDescInstance);
 	}

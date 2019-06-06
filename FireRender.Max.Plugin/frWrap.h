@@ -34,9 +34,21 @@
 #include <memory>
 #include <set>
 
+// Version naming patch: RPR_API_COMPAT
+// Staring with core 1.335 (now styled as 1.33.5) the API version values are formatted differently
+// Old format, 1.334  -> 0x0010033400, and 1.332.1 -> 0x0010032201
+// New format, 1.33.5 -> 0x0000103305
+// Patch adds two zeros to end of the new format, 1.33.5 -> 0x0010330500
+// As a result, greater / less comparison still works in all cases,
+// new values compare greater than old values, for example 0x0010330500 > 0x0010033400
+#ifdef RPR_VERSION_MAJOR_MINOR_REVISION
+#define RPR_API_COMPAT (RPR_VERSION_MAJOR_MINOR_REVISION<<8)
+#else
+#define RPR_API_COMPAT RPR_API_VERSION;
+#endif
 
 // AMDMAX-232 there seems to be some issue with the ID of nodes from DOT3
-#if RPR_API_VERSION == 0x010000098 || RPR_API_VERSION == 0x010000096
+#if RPR_API_COMPAT == 0x010000098 || RPR_API_COMPAT == 0x010000096
 #undef RPR_MATERIAL_NODE_OP_DOT3
 #define RPR_MATERIAL_NODE_OP_DOT3 0xB
 #endif
@@ -715,7 +727,7 @@ namespace frw
 
 		void SetPrimaryVisibility(bool visible)
 		{
-#if RPR_API_VERSION >= 0x010032000
+#if RPR_API_COMPAT >= 0x010032000
 			rpr_int res = rprShapeSetVisibilityFlag(Handle(), RPR_SHAPE_VISIBILITY_PRIMARY_ONLY_FLAG, visible);
 #else
 			rpr_int res = rprShapeSetVisibilityPrimaryOnly(Handle(), visible);
@@ -766,7 +778,7 @@ namespace frw
 #endif
 		void SetShadowFlag(bool castsShadows)
 		{
-#if RPR_API_VERSION >= 0x010033000
+#if RPR_API_COMPAT >= 0x010033000
 			auto res = rprShapeSetVisibilityFlag(Handle(),RPR_SHAPE_VISIBILITY_SHADOW, castsShadows );
 #else
 			auto res = rprShapeSetShadow(Handle(), castsShadows);
@@ -776,7 +788,7 @@ namespace frw
 
 		void SetShadowCatcherFlag(bool shadowCatcher)
 		{
-#if RPR_API_VERSION >= 0x010000109
+#if RPR_API_COMPAT >= 0x010000109
 			auto res = rprShapeSetShadowCatcher(Handle(), shadowCatcher);
 			FCHECK(res);
 #endif

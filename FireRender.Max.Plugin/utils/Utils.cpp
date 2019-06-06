@@ -801,12 +801,17 @@ bool GetProductAndVersion(std::wstring& strProductName, std::wstring& strProduct
 		cachedProductVersion = (LPCTSTR)pvProductVersion;
 
 		// get core information
+#ifdef RPR_VERSION_MAJOR_MINOR_REVISION
+		std::wostringstream oss;
+		oss << RPR_VERSION_MAJOR << "." << RPR_VERSION_MINOR << RPR_VERSION_REVISION;
+#else
 		int mj = (RPR_API_VERSION & 0xFFFF00000) >> 28;
 		int mn = (RPR_API_VERSION & 0xFFFFF) >> 8;
 
 		std::wostringstream oss;
 
 		oss << std::hex << mj << "." << mn;
+#endif
 
 		cachedCoreVersion = oss.str();
 	}

@@ -32,7 +32,12 @@ using namespace std;
 namespace
 {
     const std::string kTab = "    "; // default 4spaces tab for xml writer
-    const int kVersion = RPR_API_VERSION;
+
+#ifdef RPR_VERSION_MAJOR_MINOR_REVISION
+	const int kVersion = RPR_VERSION_MAJOR_MINOR_REVISION;
+#else
+	const int kVersion = RPR_API_VERSION;
+#endif
     const std::map<int, std::string> kMaterialTypeNames{ { RPR_MATERIAL_NODE_DIFFUSE, "DIFFUSE" },
     { RPR_MATERIAL_NODE_MICROFACET, "MICROFACET" },
     { RPR_MATERIAL_NODE_REFLECTION, "REFLECTION" },

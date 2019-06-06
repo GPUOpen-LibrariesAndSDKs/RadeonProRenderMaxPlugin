@@ -108,7 +108,11 @@ void ScopeManagerMax::SetupCacheFolder()
 {
 	std::ostringstream oss;
 
+#ifdef RPR_VERSION_MAJOR_MINOR_REVISION
+	oss << std::hex << RPR_VERSION_MAJOR_MINOR_REVISION;
+#else
 	oss << std::hex << RPR_API_VERSION;
+#endif
 
 	std::string versionedCacheFolder = oss.str();
 	std::string dataStoreFolder = ToAscii(GetDataStoreFolder());
@@ -809,7 +813,11 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 	}
 
 	rpr_context context = nullptr;
+#ifdef RPR_VERSION_MAJOR_MINOR_REVISION
+	rpr_int res = rprCreateContext(RPR_VERSION_MAJOR_MINOR_REVISION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
+#else
 	rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
+#endif
 	
 	switch (res)
 	{
