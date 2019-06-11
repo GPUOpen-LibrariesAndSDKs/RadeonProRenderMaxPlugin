@@ -47,9 +47,11 @@ set AxfFiles=^
 	
 set ImageLibFiles=^
 	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonImageFilters64.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\libcrypto-1_1-x64.dll"^
 	"ThirdParty\RadeonProImageProcessing\Windows\lib\MIOpen.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonProML.dll"
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\OpenImageDenoise.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonProML.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\tbb-4233fe.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\tbbmalloc-4233fe.dll"
 	
 set GltfFiles=^
 	"ThirdParty\RadeonProRender-GLTF\Win\lib\ProRenderGLTF.dll"
