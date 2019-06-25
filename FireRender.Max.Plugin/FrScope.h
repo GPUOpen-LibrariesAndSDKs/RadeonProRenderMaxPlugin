@@ -36,7 +36,8 @@ class Cache
 	T defaultValue;
 
 public:
-	std::map<K, Entry> map;
+	typedef std::map<K, Entry> EntryMap;
+	EntryMap map;
 
 	bool enabled = true;
 
@@ -201,6 +202,10 @@ public:
 
 	// just clear out stuff
 	void Clear(int which = CACHE_ALL);
+
+	// Garbage collect, delete objects in the cache not referenced elsewhere
+	// TODO: Use 3ds Max validity intervals to determine cache entry lifespan
+	void gc();
 
 	// A child scope will destroy all its objects on close
 	Scope CreateChildScope() const;

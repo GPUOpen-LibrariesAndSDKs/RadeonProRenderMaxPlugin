@@ -44,7 +44,7 @@
 #ifdef RPR_VERSION_MAJOR_MINOR_REVISION
 #define RPR_API_COMPAT (RPR_VERSION_MAJOR_MINOR_REVISION<<8)
 #else
-#define RPR_API_COMPAT RPR_API_VERSION;
+#define RPR_API_COMPAT RPR_API_VERSION
 #endif
 
 // AMDMAX-232 there seems to be some issue with the ID of nodes from DOT3
@@ -392,6 +392,13 @@ namespace frw
 			m = std::make_shared<Data>();
 		}
 
+		// Number of references to the data, including this object
+		// For garbage collection, to find objects in the cache not referenced elsewhere
+		long use_count()
+		{
+			return m.use_count();
+		}
+
 		bool operator==(const Object& rhs) const { return m.get() == rhs.m.get(); }
 		bool operator<(const Object& rhs) const { return (size_t)m.get() < (size_t)rhs.m.get(); };
 
@@ -673,7 +680,7 @@ namespace frw
 					: (x == rhs.x && y == rhs.y && z == rhs.z && w == rhs.w));
 		}
 
-			// quick best value check
+		// quick best value check
 		Value operator|(const Value &rhs) const
 		{
 			return *this ? *this : rhs;

@@ -1353,6 +1353,9 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	// synchronize scene
 	parser->Synchronize(true);
 
+	// Garbage collect, delete objects in the cache not referenced elsewhere
+	// TODO: Maybe delete entire cache after render, to reduce memory leaks further (trading performance)
+	scope.gc();
 
 	// during exporting proccess - "fake" rendering is called to set up the rpr context
 	// ExportState::IsEnable is set up to ture if scene is exported and skip actual rendring or false if it is usual rendering 
