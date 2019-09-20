@@ -32,7 +32,6 @@ set CoreFiles=^
 	"ThirdParty\RadeonProRender SDK\Win\bin\Tahoe64.dll"^
 	"ThirdParty\RadeonProRender SDK\Win\bin\RadeonProRender64.dll"^
 	"ThirdParty\RadeonProRender SDK\Win\bin\RprLoadStore64.dll"^
-	"ThirdParty\RadeonProRender SDK\Win\bin\RprSupport64.dll"^
 	"ThirdParty\RadeonProRender SDK\Win\bin\OpenImageIO_RPR.dll"
 
 set EmbreeFiles=^

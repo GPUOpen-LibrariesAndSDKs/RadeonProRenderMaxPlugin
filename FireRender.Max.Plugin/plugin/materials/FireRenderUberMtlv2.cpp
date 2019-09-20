@@ -1056,9 +1056,10 @@ void FRMTLCLASSNAME(UberMtlv2)::SetupMaterial(MaterialParser& mtlParser, frw::Sh
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 	
+#if (RPR_API_COMPAT < 0x010034000)
 	if ( value.IsNode() ) // a map must be connected
 		shader.xSetValue(RPRX_UBER_MATERIAL_DISPLACEMENT, value);
-
+#endif
 	// MATERIAL BUMP
 	parameters = GetParametersNoColor(FRUBERMTLV2_MAT_BUMP_USEMAP, FRUBERMTLV2_MAT_BUMP_MAP, FRUBERMTLV2_MAT_BUMP_MUL);
 

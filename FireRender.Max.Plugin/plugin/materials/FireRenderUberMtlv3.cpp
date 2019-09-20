@@ -934,7 +934,9 @@ frw::Shader FRMTLCLASSNAME(UberMtlv3)::getShader(const TimeValue t, MaterialPars
 // Displacement
 	if ( isEnabled(FRUBERMTLV3_DISPLACEMENT_ENABLE) )
 	{
+#if (RPR_API_COMPAT < 0x010034000)
 		setMap(RPRX_UBER_MATERIAL_DISPLACEMENT, FRUBERMTLV3_DISPLACEMENT_MAP, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP);
+#endif
 	}
 
 	return shader;

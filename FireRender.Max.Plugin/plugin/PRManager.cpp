@@ -1425,17 +1425,12 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 		if ("gltf" == ext)
 		{
-#if (RPR_API_COMPAT >= 0x010032500)
-			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size(), 0);
-#else
-			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, contextEx, &scenes[0], scenes.size());
-#endif
+			int statusExport = rprExportToGLTF(exportFilename.c_str(), context, matSystem, &scenes[0], scenes.size(), 0);
 			exportOk = statusExport == GLTF_SUCCESS;
 		}
 		else if ("rpr" == ext)
 		{
 #if (RPR_API_COMPAT >= 0x010032400)
-
 			unsigned int exportFlags = (exportState.IsUseExternalFiles) ? RPRLOADSTORE_EXPORTFLAG_EXTERNALFILES : 0;
 			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0, exportFlags);
 #else

@@ -145,11 +145,11 @@ namespace frw
 		ShaderTypeWard = RPR_MATERIAL_NODE_WARD,
 		ShaderTypeAdd = RPR_MATERIAL_NODE_ADD,
 		ShaderTypeBlend = RPR_MATERIAL_NODE_BLEND,
-		ShaderTypeStandard = RPR_MATERIAL_NODE_STANDARD,
+		ShaderTypeStandard = RPR_MATERIAL_NODE_UBERV2,
 		ShaderTypePassthrough = RPR_MATERIAL_NODE_PASSTHROUGH,
 		ShaderTypeOrenNayer = RPR_MATERIAL_NODE_ORENNAYAR,
 		ShaderTypeDiffuseRefraction = RPR_MATERIAL_NODE_DIFFUSE_REFRACTION,
-		ShaderTypeUber = RPR_MATERIAL_NODE_STANDARD,
+		ShaderTypeUber = RPR_MATERIAL_NODE_UBERV2,
 		ShaderTypeVolume = RPR_MATERIAL_NODE_VOLUME
 	};
 

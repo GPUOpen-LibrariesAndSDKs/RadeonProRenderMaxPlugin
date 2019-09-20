@@ -248,8 +248,10 @@ bool ParseRPRX(
 			{
 				//check if the node is RPR or RPRX
 				rpr_bool materialIsRPRX = false;
-				status = rprxIsMaterialRprx(contextX,valueN,nullptr,&materialIsRPRX); if (status != RPR_SUCCESS) { return false; };
 
+#if (RPR_API_COMPAT < 0x010034000)
+				status = rprxIsMaterialRprx(contextX,valueN,nullptr,&materialIsRPRX); if (status != RPR_SUCCESS) { return false; };
+#endif
 				if ( materialIsRPRX )
 				{
 					//having a Uber material linked as an input of another Uber Material doesn't make sense and is not managed by
@@ -372,8 +374,8 @@ bool exportMat(Mtl *max_mat, INode* node,const std::wstring &path)
 #endif
 #if (RPR_API_COMPAT < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_BUMP,"bump"));
+		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_DISPLACEMENT, "displacement"));
 #endif
-		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_DISPLACEMENT,"displacement"));
 
 #if (RPR_API_COMPAT < 0x010031000)
 		g_rprxParamList.push_back(RPRX_DEFINE_PARAM_MATERIAL(RPRX_UBER_MATERIAL_SSS_ABSORPTION_COLOR,"sss.absorptionColor"));

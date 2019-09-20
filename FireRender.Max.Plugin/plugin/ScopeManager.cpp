@@ -794,44 +794,32 @@ bool ScopeManagerMax::CreateContext(rpr_creation_flags createFlags, rpr_context&
 	rpr_int plugins[] = { tahoePluginID };
 	size_t pluginCount = sizeof(plugins) / sizeof(plugins[0]);
 
-	rpr_context_properties* contextProperties = nullptr;
-	rpr_context_properties ctxProperties[5] = { 0 };
+	std::vector<rpr_context_properties> ctxProperties;
 
-	ctxProperties[0] = (rpr_context_properties) RPR_CONTEXT_CREATEPROP_SAMPLER_TYPE;
-	ctxProperties[1] = (rpr_context_properties) RPR_CONTEXT_SAMPLER_TYPE_CMJ;
-	ctxProperties[2] = (rpr_context_properties) 0;
-	contextProperties = ctxProperties;
+	ctxProperties.push_back((rpr_context_properties) RPR_CONTEXT_SAMPLER_TYPE);
+	ctxProperties.push_back((rpr_context_properties) RPR_CONTEXT_SAMPLER_TYPE_CMJ);
 
 	if ( (createFlags & RPR_CREATION_FLAGS_ENABLE_CPU) && 
 		cpuInfo.isCpuThreadsNumOverriden && cpuInfo.numCpuThreads > 0)
 	{
-        ctxProperties[2] = (rpr_context_properties) RPR_CONTEXT_CREATEPROP_CPU_THREAD_LIMIT;
-        ctxProperties[3] = (rpr_context_properties) cpuInfo.numCpuThreads;
-		ctxProperties[4] = (rpr_context_properties) 0;
-
+		ctxProperties.push_back((rpr_context_properties) RPR_CONTEXT_CPU_THREAD_LIMIT);
+		ctxProperties.push_back((rpr_context_properties) cpuInfo.numCpuThreads);
 		debugPrint( "RPR_CONTEXT_CREATEPROP_CPU_THREAD_LIMIT : " + std::to_string(cpuInfo.numCpuThreads) );
 	}
 
-	rpr_context context = nullptr;
-#ifdef RPR_VERSION_MAJOR_MINOR_REVISION
-	rpr_int res = rprCreateContext(RPR_VERSION_MAJOR_MINOR_REVISION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
-#else
-	rpr_int res = rprCreateContext(RPR_API_VERSION, plugins, pluginCount, createFlags, contextProperties, mCacheFolder.c_str(), &context);
-#endif
-	
-	switch (res)
-	{
-	case RPR_SUCCESS:
-		result = context;
-		return true;
+	ctxProperties.push_back((rpr_context_properties) 0);
 
-	case RPR_ERROR_UNSUPPORTED:
-		return false;
+	rpr_context context = nullptr;
+
+	rpr_int res = rprCreateContext(RPR_VERSION_MAJOR_MINOR_REVISION, plugins, pluginCount, createFlags,
+		ctxProperties.data(), mCacheFolder.c_str(), &result);
+	
+	if (res != RPR_SUCCESS)
+	{
+		AssertImpl((std::wstring(L"rprCreateContext returned error:") + std::to_wstring(res)).c_str(), _T(__FILE__), __LINE__);
 	}
 
-	AssertImpl((std::wstring(L"rprCreateContext returned error:") + std::to_wstring(res)).c_str(), _T(__FILE__), __LINE__);
-	
-	return false;
+	return RPR_SUCCESS == res;
 }
 
 FIRERENDER_NAMESPACE_END

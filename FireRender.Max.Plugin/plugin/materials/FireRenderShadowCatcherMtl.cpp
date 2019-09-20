@@ -191,8 +191,10 @@ frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getShader(const TimeValue t, Mater
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
 
+#if (RPR_API_COMPAT < 0x010034000)
 	if (value.IsNode()) // a map must be connected
 		shader.xSetValue(RPRX_UBER_MATERIAL_DISPLACEMENT, value);
+#endif
 
 	// Shadow
 	// - Color
