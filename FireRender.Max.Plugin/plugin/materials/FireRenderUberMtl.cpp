@@ -11,13 +11,7 @@
 #include "parser\MaterialParser.h"
 #include "maxscript\mxsplugin\mxsPlugin.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
-
-namespace
-{
-	static constexpr float RoughnessMin = 0.f;
-	static constexpr float RoughnessMax = 1.f;
-}
+FIRERENDER_NAMESPACE_BEGIN
 
 IMPLEMENT_FRMTLCLASSDESC(UberMtl)
 
@@ -32,119 +26,198 @@ static ParamBlockDesc2 pbDesc(
 	// DIFFUSE
 	// DiffuseLevel is actually the refraction level, cause it mixes diffuse with refraction
 	FRUBERMTL_DIFFLEVEL, _T("RefractionLevel"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.f, p_range, 0.f, 1.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_DIFFLEVEL, IDC_UBER_DIFFLEVEL_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 0.f,
+	p_range, 0.f, 1.f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_DIFFLEVEL, IDC_UBER_DIFFLEVEL_S, SPIN_AUTOSCALE,
+	PB_END,
 		
 	FRUBERMTL_DIFFLEVEL_TEXMAP, _T("RefractionLevelTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_DIFFLEVEL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DIFFLEVEL_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_DIFFLEVEL,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DIFFLEVEL_T,
+	PB_END,
 	
 	FRUBERMTL_DIFFCOLOR, _T("DiffuseColor"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(0.5f, 0.5f, 0.5f), p_ui, TYPE_COLORSWATCH, IDC_UBER_DIFFCOLOR, PB_END,
+	p_default, Color(0.5f, 0.5f, 0.5f),
+	p_ui, TYPE_COLORSWATCH, IDC_UBER_DIFFCOLOR,
+	PB_END,
 
 	FRUBERMTL_DIFFCOLOR_TEXMAP, _T("DiffuseColorTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_DIFFCOLOR, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DIFFCOLOR_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_DIFFCOLOR,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DIFFCOLOR_T,
+	PB_END,
 
 	FRUBERMTL_DIFFNORMAL, _T("DiffuseNormal"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_DIFFNORMAL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DIFFNORMAL, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_DIFFNORMAL,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DIFFNORMAL,
+	PB_END,
 	
 	// GLOSSY REFLECTIONS
 	FRUBERMTL_GLOSSYUSE, _T("UseGlossy"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, FALSE, p_ui, TYPE_SINGLECHEKBOX, IDC_UBER_GLOSSYUSE, PB_END,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_UBER_GLOSSYUSE,
+	PB_END,
 
 	FRUBERMTL_GLOSSYCOLOR, _T("ReflColor"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_UBER_GLOSSYCOLOR, PB_END,
+	p_default, Color(1.0f, 1.0f, 1.0f),
+	p_ui, TYPE_COLORSWATCH, IDC_UBER_GLOSSYCOLOR,
+	PB_END,
 
 	FRUBERMTL_GLOSSYCOLOR_TEXMAP, _T("ReflColorTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYCOLOR, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYCOLOR_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYCOLOR,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYCOLOR_T,
+	PB_END,
 	
 	FRUBERMTL_GLOSSYROTATION, _T("ReflRotation"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.f, p_range, 0.f, 1.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYROTATION, IDC_UBER_GLOSSYROTATION_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 0.f,
+	p_range, 0.f, 1.f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYROTATION, IDC_UBER_GLOSSYROTATION_S, SPIN_AUTOSCALE,
+	PB_END,
 
 	FRUBERMTL_GLOSSYROTATION_TEXMAP, _T("ReflRotationTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYROTATION, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYROTATION_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYROTATION,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYROTATION_T,
+	PB_END,
 		
 	FRUBERMTL_GLOSSYROUGHNESS_X, _T("ReflRoughnessX"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.1f, p_range, RoughnessMin, RoughnessMax, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYROUGHNESSX, IDC_UBER_GLOSSYROUGHNESSX_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 0.1f,
+	p_range, 0.0f, 1.0f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYROUGHNESSX, IDC_UBER_GLOSSYROUGHNESSX_S, SPIN_AUTOSCALE,
+	PB_END,
 
 	FRUBERMTL_GLOSSYROUGHNESS_X_TEXMAP, _T("ReflRoughnessXTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYROUGHNESS_X, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYROUGHNESSX_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYROUGHNESS_X,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYROUGHNESSX_T,
+	PB_END,
 
 	FRUBERMTL_GLOSSYROUGHNESS_Y, _T("ReflRoughnessY"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.1f, p_range, RoughnessMin, RoughnessMax, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYROUGHNESSY, IDC_UBER_GLOSSYROUGHNESSY_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 0.1f,
+	p_range, 0.0f, 1.0f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYROUGHNESSY, IDC_UBER_GLOSSYROUGHNESSY_S, SPIN_AUTOSCALE,
+	PB_END,
 
 	FRUBERMTL_GLOSSYROUGHNESS_Y_TEXMAP, _T("ReflRoughnessYTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYROUGHNESS_Y, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYROUGHNESSY_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYROUGHNESS_Y,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYROUGHNESSY_T,
+	PB_END,
 	
 	FRUBERMTL_GLOSSYIOR, _T("ReflIor"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 1.5f, p_range, 1.f, 999.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYIOR, IDC_UBER_GLOSSYIOR_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 1.5f,
+	p_range, 1.f, 999.f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_GLOSSYIOR, IDC_UBER_GLOSSYIOR_S, SPIN_AUTOSCALE,
+	PB_END,
 		
 	FRUBERMTL_GLOSSYNORMAL, _T("ReflNormal"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYNORMAL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYNORMAL, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_GLOSSYNORMAL,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_GLOSSYNORMAL,
+	PB_END,
 
 	// CLEARCOAT
 	FRUBERMTL_CCUSE, _T("UseClearCoat"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, FALSE, p_ui, TYPE_SINGLECHEKBOX, IDC_UBER_CCUSE, PB_END,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_UBER_CCUSE,
+	PB_END,
 
 	FRUBERMTL_CCCOLOR, _T("ClearCoatColor"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_UBER_CCCOLOR, PB_END,
+	p_default, Color(1.0f, 1.0f, 1.0f),
+	p_ui, TYPE_COLORSWATCH, IDC_UBER_CCCOLOR,
+	PB_END,
 
 	FRUBERMTL_CCCOLOR_TEXMAP, _T("ClearCoatColorTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_CCCOLOR, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_CCCOLOR_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_CCCOLOR,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_CCCOLOR_T,
+	PB_END,
 
 	FRUBERMTL_CCIOR, _T("ClearCoatIor"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 2.4f, p_range, 1.f, 999.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_CCIOR, IDC_UBER_CCIOR_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 2.4f,
+	p_range, 1.f, 999.f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_CCIOR, IDC_UBER_CCIOR_S, SPIN_AUTOSCALE,
+	PB_END,
 
 	FRUBERMTL_CCNORMAL, _T("ClearCoatNormal"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_CCNORMAL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_CCNORMAL, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_CCNORMAL,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_CCNORMAL,
+	PB_END,
 
 	// REFRACTION
 	FRUBERMTL_REFRCOLOR, _T("RefrColor"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_UBER_REFRCOLOR, PB_END,
+	p_default, Color(1.0f, 1.0f, 1.0f),
+	p_ui, TYPE_COLORSWATCH, IDC_UBER_REFRCOLOR,
+	PB_END,
 
 	FRUBERMTL_REFRCOLOR_TEXMAP, _T("RefrColorTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_REFRCOLOR, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_REFRCOLOR_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_REFRCOLOR,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_REFRCOLOR_T,
+	PB_END,
 
 	FRUBERMTL_REFRROUGHNESS, _T("RefrRoughness"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.f, p_range, RoughnessMin, RoughnessMax, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_REFRROUGHNESS, IDC_UBER_REFRROUGHNESS_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 0.f,
+	p_range, 0.0f, 1.0f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_REFRROUGHNESS, IDC_UBER_REFRROUGHNESS_S, SPIN_AUTOSCALE,
+	PB_END,
 
 	FRUBERMTL_REFRROUGHNESS_TEXMAP, _T("RefrRoughnessTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_REFRROUGHNESS, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_REFRROUGHNESS_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_REFRROUGHNESS, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_REFRROUGHNESS_T,
+	PB_END,
 
 	FRUBERMTL_REFRIOR, _T("RefrIor"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 1.52f, p_range, 1.f, 999.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_REFRIOR, IDC_UBER_REFRIOR_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 1.52f,
+	p_range, 1.f, 999.f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_REFRIOR, IDC_UBER_REFRIOR_S, SPIN_AUTOSCALE,
+	PB_END,
 
 	FRUBERMTL_REFRNORMAL, _T("RefrNormal"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_REFRNORMAL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_REFRNORMAL, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_REFRNORMAL,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_REFRNORMAL,
+	PB_END,
 
 	// TRANSPARENCY
 	FRUBERMTL_TRANSPLEVEL, _T("TranspLevel"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.f, p_range, 0.f, 1.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_TRANSPLEVEL, IDC_UBER_TRANSPLEVEL_S, SPIN_AUTOSCALE, PB_END,
+	p_default, 0.f,
+	p_range, 0.f, 1.f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_UBER_TRANSPLEVEL, IDC_UBER_TRANSPLEVEL_S, SPIN_AUTOSCALE,
+	PB_END,
 
 	FRUBERMTL_TRANSPLEVEL_TEXMAP, _T("TranspLevelTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_TRANSPLEVEL, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_TRANSPLEVEL_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_TRANSPLEVEL,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_TRANSPLEVEL_T,
+	PB_END,
 
 	FRUBERMTL_TRANSPCOLOR, _T("TranspColor"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_UBER_TRANSPCOLOR, PB_END,
+	p_default, Color(1.0f, 1.0f, 1.0f),
+	p_ui, TYPE_COLORSWATCH, IDC_UBER_TRANSPCOLOR,
+	PB_END,
 
 	FRUBERMTL_TRANSPCOLOR_TEXMAP, _T("TranspColorTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_TRANSPCOLOR, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_TRANSPCOLOR_T, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_TRANSPCOLOR,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_TRANSPCOLOR_T,
+	PB_END,
 
 	// DISPLACEMENT
 	FRUBERMTL_DISPLACEMENT, _T("Displacement"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_DISPLACEMENT, p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DISPLACEMENT, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_DISPLACEMENT,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_UBER_DISPLACEMENT,
+	PB_END,
 
 	// FLAGS
 	FRUBERMTL_FRUBERCAUSTICS, _T("Caustics"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, TRUE, p_ui, TYPE_SINGLECHEKBOX, IDC_UBERCAUSTICS, PB_END,
+	p_default, TRUE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_UBERCAUSTICS,
+	PB_END,
 
 	FRUBERMTL_FRUBERSHADOWCATCHER, _T("ShadowCatcher"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, FALSE, p_ui, TYPE_SINGLECHEKBOX, IDC_UBERSHADOWCATCHER, PB_END,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_UBERSHADOWCATCHER,
+	PB_END,
 
 	// VOLUME AND SCATTERING
 	FRUBERMTL_USEVOLUME, _T("UseVolume"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, FALSE, p_ui, TYPE_SINGLECHEKBOX, IDC_USEVOLUME, PB_END,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_USEVOLUME,
+	PB_END,
 
 	FRUBERMTL_COLOR, _T("absorptionColor"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_ABSORPTION_COLOR,
+	p_default, Color(1.0f, 1.0f, 1.0f),
+	p_ui, TYPE_COLORSWATCH, IDC_ABSORPTION_COLOR,
 	PB_END,
 
 	FRUBERMTL_COLORTEXMAP, _T("absorptionColorTexmap"), TYPE_TEXMAP, 0, 0,
@@ -158,29 +231,36 @@ static ParamBlockDesc2 pbDesc(
 	p_subtexno, FRUBERMTL_TEXMAP_DISTANCE, p_ui, TYPE_TEXMAPBUTTON, IDC_DISTANCE_TEXMAP, PB_END,
 
 	FRUBERMTL_EMISSIONMULTIPLIER, _T("emissionMultiplier"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.0f, p_range, 0.f, 9999999.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_EMISSION_MULTIPLIER, IDC_EMISSION_MULTIPLIER_S, SPIN_AUTOSCALE,
+	p_default, 0.0f,
+	p_range, 0.f, 9999999.f,
+	p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_EMISSION_MULTIPLIER, IDC_EMISSION_MULTIPLIER_S, SPIN_AUTOSCALE,
 	PB_END,
 
 	FRUBERMTL_EMISSIONCOLOR, _T("emissionColor"), TYPE_RGBA, P_ANIMATABLE, 0,
-	p_default, Color(1.0f, 1.0f, 1.0f), p_ui, TYPE_COLORSWATCH, IDC_EMISSION_COLOR,
+	p_default, Color(1.0f, 1.0f, 1.0f),
+	p_ui, TYPE_COLORSWATCH, IDC_EMISSION_COLOR,
 	PB_END,
 
 	FRUBERMTL_EMISSIONCOLORTEXMAP, _T("emissionColorTexmap"), TYPE_TEXMAP, 0, 0,
-	p_subtexno, FRUBERMTL_TEXMAP_EMISSION, p_ui, TYPE_TEXMAPBUTTON, IDC_EMISSION_TEXMAP, PB_END,
+	p_subtexno, FRUBERMTL_TEXMAP_EMISSION,
+	p_ui, TYPE_TEXMAPBUTTON, IDC_EMISSION_TEXMAP, PB_END,
 
 	FRUBERMTL_SCATTERINGDIRECTION, _T("phase"), TYPE_FLOAT, P_ANIMATABLE, 0,
-	p_default, 0.0f, p_range, -1.f, 1.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_SCATTERING_PHASE, IDC_SCATTERING_PHASE_S, SPIN_AUTOSCALE,
+	p_default, 0.0f,
+	p_range, -1.f, 1.f, p_ui, TYPE_SPINNER, EDITTYPE_FLOAT, IDC_SCATTERING_PHASE, IDC_SCATTERING_PHASE_S, SPIN_AUTOSCALE,
 	p_tooltip, IDS_FR_MTL_VOLUME_PHASE_TTP,
 	PB_END,
 
 	FRUBERMTL_MULTISCATTERING, _T("multiscatter"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, TRUE, p_ui, TYPE_SINGLECHEKBOX, IDC_MULTISCATTER,
+	p_default, TRUE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_MULTISCATTER,
 	p_tooltip, IDS_FR_MTL_VOLUME_MULTISCATTER_TTP,
 	PB_END,
 
 	// invert transparency map (to use opacity maps)
 	FRUBERMTL_INVERTTRANSPMAP, _T("invertTranspMap"), TYPE_BOOL, P_ANIMATABLE, 0,
-	p_default, FALSE, p_ui, TYPE_SINGLECHEKBOX, IDC_UBER_INVERTMAP,
+	p_default, FALSE,
+	p_ui, TYPE_SINGLECHEKBOX, IDC_UBER_INVERTMAP,
 	p_tooltip, IDS_STRING265,
 	PB_END,
 
@@ -236,14 +316,14 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getVolumeShader(const TimeValue t, Material
 			theDistance = ms.ValueMul(mtlParser.createMap(distanceTexmap, MAP_FLAG_NOGAMMA), frw::Value(distance));
 
 		// scattering
-		material.SetValue("sigmas", ms.ValueDiv(theColor, theDistance));
+		material.SetValue(RPR_MATERIAL_INPUT_SCATTERING, ms.ValueDiv(theColor, theDistance));
 		
 		// absorption
-		material.SetValue("sigmaa", ms.ValueDiv(ms.ValueSub(frw::Value(1), theColor), theDistance));
+		material.SetValue(RPR_MATERIAL_INPUT_ABSORBTION, ms.ValueDiv(ms.ValueSub(frw::Value(1), theColor), theDistance));
 
 		// phase and multi on/off
-		material.SetValue("g", frw::Value(GetFromPb<float>(pblock, FRUBERMTL_SCATTERINGDIRECTION)));
-		material.SetValue("multiscatter", GetFromPb<BOOL>(pblock, FRUBERMTL_MULTISCATTERING) ? frw::Value(1.0f) : frw::Value(0.0f));
+		material.SetValue(RPR_MATERIAL_INPUT_G, frw::Value(GetFromPb<float>(pblock, FRUBERMTL_SCATTERINGDIRECTION)));
+		material.SetValue(RPR_MATERIAL_INPUT_MULTISCATTER, GetFromPb<BOOL>(pblock, FRUBERMTL_MULTISCATTERING) ? frw::Value(1.0f) : frw::Value(0.0f));
 
 		// emission
 		const Color emissionColor = GetFromPb<Color>(pblock, FRUBERMTL_EMISSIONCOLOR);
@@ -254,7 +334,7 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getVolumeShader(const TimeValue t, Material
 			theEmission = mtlParser.createMap(emissionTexmap, MAP_FLAG_WANTSHDR);
 
 		float emissionMultiplier = GetFromPb<float>(pblock, FRUBERMTL_EMISSIONMULTIPLIER);
-		material.SetValue("emission", ms.ValueMul(theEmission, frw::Value(emissionMultiplier)));
+		material.SetValue(RPR_MATERIAL_INPUT_EMISSION, ms.ValueMul(theEmission, frw::Value(emissionMultiplier)));
 
 		if (emissionMultiplier > 0.f)
 			material.SetEmissiveFlag(true);
@@ -320,55 +400,55 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 		frw::Value color(diffuseColor.r, diffuseColor.g, diffuseColor.b);
 		if (diffuseColorTexmap)
 			color = mtlParser.createMap(diffuseColorTexmap, 0);
-		material.SetValue("diffuse.color", color);
+		material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, color);
 
 		if (diffuseNormalTexmap)
-			material.SetValue("diffuse.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, diffuseNormalTexmap, 1.f, mtlParser));
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, diffuseNormalTexmap, 1.f, mtlParser));
 	}
 
 	// GLOSSY (uses microfacet for now, will use ward)
 	{
 		if (!reflUse)
-			material.SetValue("weights.glossy2diffuse", frw::Value(0.f));
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, frw::Value(0.f));
 		else
 		{
 			frw::Value color(reflColor.r, reflColor.g, reflColor.b);
 			if (reflColorTexmap)
 				color = mtlParser.createMap(reflColorTexmap, 0);
-			material.SetValue("glossy.color", color);
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_COLOR, color);
 			
 			frw::Value roughx(reflRoughnessX, reflRoughnessX, reflRoughnessX);
 			if (reflRoughnessXTexmap)
 				roughx = mtlParser.createMap(reflRoughnessXTexmap, MAP_FLAG_NOGAMMA);
-			material.SetValue("roughness_x", ms.ValueAdd(roughx, 0.000001f));
+			material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS_X, ms.ValueAdd(roughx, 0.000001f));
 			
 			frw::Value roughy(reflRoughnessY, reflRoughnessY, reflRoughnessY);
 			if (reflRoughnessYTexmap)
 				roughy = mtlParser.createMap(reflRoughnessYTexmap, MAP_FLAG_NOGAMMA);
-			material.SetValue("roughness_y", ms.ValueAdd(roughy, 0.000001f));
+			material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS_Y, ms.ValueAdd(roughy, 0.000001f));
 
 			if (reflNormalTexmap)
-				material.SetValue("glossy.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, reflNormalTexmap, 1.f, mtlParser));
+				material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, reflNormalTexmap, 1.f, mtlParser));
 
-			material.SetValue("weights.glossy2diffuse", ms.ValueFresnel(reflIOR));
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, ms.ValueFresnel(reflIOR));
 		}
 	}
 
 	// CLEARCOAT (specular reflections)
 	{
 		if (!ccUse)
-			material.SetValue("weights.clearcoat2glossy", frw::Value(0.f));
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_WEIGHT, frw::Value(0.f));
 		else
 		{
 			frw::Value color(ccColor.r, ccColor.g, ccColor.b);
 			if (ccColorTexmap)
 				color = mtlParser.createMap(ccColorTexmap, 0);
-			material.SetValue("clearcoat.color", color);
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_COLOR, color);
 
 			if (ccNormalTexmap)
-				material.SetValue("clearcoat.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, ccNormalTexmap, 1.f, mtlParser));
+				material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, ccNormalTexmap, 1.f, mtlParser));
 
-			material.SetValue("weights.clearcoat2glossy", ms.ValueFresnel(ccIOR));
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_WEIGHT, ms.ValueFresnel(ccIOR));
 		}
 	}
 
@@ -377,23 +457,23 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 		frw::Value color(refrColor.r, refrColor.g, refrColor.b);
 		if (refrColorTexmap)
 			color = mtlParser.createMap(refrColorTexmap, 0);
-		material.SetValue("refraction.color", color);
+		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_COLOR, color);
 				
 		if (refrNormalTexmap)
-			material.SetValue("refraction.normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, refrNormalTexmap, 1.f, mtlParser));
+			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, refrNormalTexmap, 1.f, mtlParser));
 
-		material.SetValue("refraction.ior", frw::Value(refrIOR));
+		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_IOR, frw::Value(refrIOR));
 
 		frw::Value rough(refrRoughness, refrRoughness, refrRoughness);
 		if (refrRoughnessTexmap)
 			rough = mtlParser.createMap(refrRoughnessTexmap, MAP_FLAG_NOGAMMA);
-		material.SetValue("refraction.roughness", rough);
+		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_ROUGHNESS, rough);
 
 		frw::Value weight(diffuseLevel, diffuseLevel, diffuseLevel);
 		if (diffuseLevelTexmap)
 			weight = mtlParser.createMap(diffuseLevelTexmap, MAP_FLAG_NOGAMMA);
 		weight = ms.ValueSub(1.0, weight);
-		material.SetValue("weights.diffuse2refraction", weight);
+		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_WEIGHT, weight);
 	}
 
 	// TRANSPARENCY
@@ -401,7 +481,7 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 		frw::Value color(transpColor.r, transpColor.g, transpColor.b);
 		if (transpColorTexmap)
 			color = mtlParser.createMap(transpColorTexmap, 0);
-		material.SetValue("transparency.color", color);
+		material.SetValue(RPR_UBER_MATERIAL_INPUT_TRANSPARENCY, color);
 
 		frw::Value weight(transpLevel, transpLevel, transpLevel);
 		if (transpLevelTexmap)
@@ -411,10 +491,10 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 			if (invert)
 				weight = ms.ValueSub(frw::Value(1.0), weight);
 		}
-		material.SetValue("weights.transparency", weight);
+		material.SetValue(RPR_UBER_MATERIAL_INPUT_TRANSPARENCY, weight);
 	}
 
     return material;
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

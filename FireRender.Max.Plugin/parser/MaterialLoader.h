@@ -1,3 +1,5 @@
+#if 0
+
 /*********************************************************************************************************************************
 * Radeon ProRender for 3ds Max plugin
 * Copyright (c) 2017 AMD
@@ -51,3 +53,5 @@ void ExportMaterials(
 bool ImportMaterials(const std::string& filename, rpr_context context, rpr_material_system sys, rpr_material_node** out_materials, int* out_mat_count);
 
 #endif //MATERIAL_LOADER_H_
+
+#endif

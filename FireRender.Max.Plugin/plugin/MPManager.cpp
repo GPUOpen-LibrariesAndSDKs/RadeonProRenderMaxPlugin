@@ -116,7 +116,7 @@ void MPManagerMax::renderingThreadProc(int width, int height, std::vector<float>
 		return;
 	}
 
-	res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
+	res = rprContextSetParameterByKey1u(scope.GetContext().Handle(), RPR_CONTEXT_PREVIEW, 1);
 	FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextSetParameter1u");
 
 	if (res != RPR_SUCCESS)

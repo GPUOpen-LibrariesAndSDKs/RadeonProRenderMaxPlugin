@@ -1163,7 +1163,7 @@ void SceneParser::AddParsedNodes(const ParsedNodes& parsedNodes)
 					if (currentMtl == DISABLED_MATERIAL)
 					{
 						auto diffuse = frw::DiffuseShader(mtlParser.materialSystem);
-						diffuse.SetValue("color", frw::Value(0.f));
+						diffuse.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(0.f));
 						shape.SetShader(diffuse);
 					}
 					else if (auto shader = mtlParser.createShader(currentMtl, parsedNode.node, parsedNode.invalidationTimestamp != 0))
@@ -1555,14 +1555,14 @@ Mtl* SceneParser::parseMaterialPreview(frw::Shader& surfaceShader, frw::Shader& 
 				if (root == DISABLED_MATERIAL)
 				{
 					surfaceShader = frw::DiffuseShader(mtlParser.materialSystem);
-					surfaceShader.SetValue("color", frw::Value(0.f));
+					surfaceShader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(0.f));
 				}
 				else
 				surfaceShader = mtlParser.createShader(root, actual.node);
 
 				if(!surfaceShader && !volumeShader) {
 					surfaceShader = frw::DiffuseShader(scope);
-					surfaceShader.SetValue("color", frw::Value(1, 0, 0, 1));
+					surfaceShader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(1, 0, 0, 1));
 				}
 
 				if(!surfaceShader && volumeShader) {
@@ -1680,15 +1680,15 @@ void ApplyFRGround(frw::Scope& scope, frw::MaterialSystem& materialSystem, Mater
 
 		frw::Shader reflection(ms, frw::ShaderTypeMicrofacet);
 
-		reflection.SetValue("roughness", frw::Value(parsedGround.reflectionsRoughness));
+		reflection.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, frw::Value(parsedGround.reflectionsRoughness));
 
-		reflection.SetValue("color", frw::Value(
+		reflection.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(
 			parsedGround.reflectionsColor.r,
 			parsedGround.reflectionsColor.g,
 			parsedGround.reflectionsColor.b));
 
 		frw::Shader transparency(ms, frw::ShaderTypeTransparent);
-		transparency.SetValue("color", frw::Value(1.0f));
+		transparency.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(1.0f));
 
 		Point3 p = parsedGround.tm.GetTrans();
 
@@ -1706,7 +1706,7 @@ void ApplyFRGround(frw::Scope& scope, frw::MaterialSystem& materialSystem, Mater
 
 		frw::Shader test(ms, frw::ShaderTypeEmissive);
 
-		test.SetValue("color", distAlpha);
+		test.SetValue(RPR_MATERIAL_INPUT_COLOR, distAlpha);
 
 		scene.Attach(shape);
 	}

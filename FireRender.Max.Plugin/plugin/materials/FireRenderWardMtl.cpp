@@ -85,7 +85,7 @@ frw::Shader FRMTLCLASSNAME(WardMtl)::getShader(const TimeValue t, MaterialParser
 	frw::Value color(diffuseColor.r, diffuseColor.g, diffuseColor.b);
 	if (diffuseTexmap)
 		color = mtlParser.createMap(diffuseTexmap, 0);
-	material.SetValue("color", color);
+	material.SetValue(RPR_MATERIAL_INPUT_COLOR, color);
 
 	frw::Value roughnessxv(roughnessx, roughnessx, roughnessx);
 	if (roughnessXTexmap)
@@ -99,12 +99,12 @@ frw::Shader FRMTLCLASSNAME(WardMtl)::getShader(const TimeValue t, MaterialParser
 	if (rotationTexmap)
 		rotationv = mtlParser.createMap(rotationTexmap, MAP_FLAG_NOGAMMA);
 
-	material.SetValue("rotation", rotationv);
-	material.SetValue("roughness_x", roughnessxv);
-	material.SetValue("roughness_y", roughnessyv);
+	material.SetValue(RPR_MATERIAL_INPUT_ROTATION, rotationv);
+	material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS_X, roughnessxv);
+	material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS_Y, roughnessyv);
 
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue(RPR_MATERIAL_INPUT_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

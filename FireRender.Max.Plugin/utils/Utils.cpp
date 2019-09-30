@@ -483,16 +483,17 @@ void DumpFRContents(const rpr_material_node& node)
 	// For each parameter
 	for (int i = 0; i < num_params; ++i)
 	{
+		std::string name;
+/*
 		// Get name
 		size_t name_length = 0;
 		status = rprMaterialNodeGetInputInfo(node, i, RPR_MATERIAL_NODE_INPUT_NAME_STRING, 0, NULL, &name_length);
 		assert(status == RPR_SUCCESS);
 
-		std::string name;
 		name.resize(name_length + 1);
 		status = rprMaterialNodeGetInputInfo(node, i, RPR_MATERIAL_NODE_INPUT_NAME_STRING, name_length, &name[0], NULL);
 		assert(status == RPR_SUCCESS);
-
+*/
 		// Output parameter info
 		std::wstring wname = ToUnicode(name);
 		DebugPrint(L"Parameter: %s", wname.c_str());
@@ -548,6 +549,7 @@ void DumpFRParms(const rpr_material_node& node)
 
 	DebugPrint(L"Number of shader parameters: %d\n", num_params);
 
+#if 0
 	// For each parameter
 	for (int i = 0; i < num_params; ++i)
 	{
@@ -565,6 +567,7 @@ void DumpFRParms(const rpr_material_node& node)
 		std::wstring wname = ToUnicode(name);
 		DebugPrint(L"Parameter: %s\n", wname.c_str());
 	}
+#endif
 }
 
 Bitmap* RenderTextToBitmap(const MCHAR* text)

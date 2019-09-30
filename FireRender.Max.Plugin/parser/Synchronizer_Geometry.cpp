@@ -514,7 +514,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 						float r = float(color & 0x000000ff) * 1.f / 255.f;
 						float g = float((color & 0x0000ff00) >> 8) * 1.f / 255.f;
 						float b = float((color & 0x00ff0000) >> 16) * 1.f / 255.f;
-						shader.SetValue("color", frw::Value(r, g, b));
+						shader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(r, g, b));
 					}
 					shape.SetShader(shader);
 				}
@@ -524,7 +524,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 					{
 						// disabled materials appear black
 						shader = frw::DiffuseShader(mtlParser.materialSystem);
-						shader.SetValue("color", frw::Value(0.f));
+						shader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(0.f));
 						mShaderCache.insert(std::make_pair(currentMtl, shader));
 					}
 					shape.SetShader(shader);
@@ -542,7 +542,7 @@ void Synchronizer::RebuildGeometry(const std::list<INode *> &nodes)
 					if (!shader)
 					{
 						shader = frw::DiffuseShader(mtlParser.materialSystem);
-						shader.SetValue("color", frw::Value(0., 0., 0.)); // signal something's wrong
+						shader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(0., 0., 0.)); // signal something's wrong
 						mShaderCache.insert(std::make_pair(currentMtl, shader));
 					}
 
@@ -799,7 +799,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 				float r = float(color & 0x000000ff) * 1.f / 255.f;
 				float g = float((color & 0x0000ff00) >> 8) * 1.f / 255.f;
 				float b = float((color & 0x00ff0000) >> 16) * 1.f / 255.f;
-				shader.SetValue("color", frw::Value(r, g, b));
+				shader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(r, g, b));
 			}
 			shape->Get().SetShader(shader);
 		}
@@ -808,7 +808,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 			if (!shader)
 			{
 				shader = frw::DiffuseShader(mtlParser.materialSystem);
-				shader.SetValue("color", frw::Value(0.f));
+				shader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(0.f));
 				mShaderCache.insert(std::make_pair(currentMtl, shader));
 			}
 			shape->Get().SetShader(shader);
@@ -826,7 +826,7 @@ bool Synchronizer::ResetMaterial(INode *node)
 			if (!shader)
 			{
 				shader = frw::DiffuseShader(mtlParser.materialSystem);
-				shader.SetValue("color", frw::Value(0., 0., 0.));
+				shader.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(0., 0., 0.));
 				mShaderCache.insert(std::make_pair(currentMtl, shader));
 			}
 

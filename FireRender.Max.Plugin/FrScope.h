@@ -93,9 +93,6 @@ class Scope
 		Context context;
 		MaterialSystem materialSystem;
 
-		rprx_context contextEx;
-		bool bOwnContextEx;
-
 		struct CacheStruct
 		{
 			Cache<size_t, Image> image;
@@ -138,11 +135,6 @@ public:
 	Context GetContext() const
 	{
 		return m ? m->context : Context();
-	}
-
-	rprx_context GetContextEx() const
-	{
-		return m ? m->contextEx : nullptr;
 	}
 
 	int GetNextUnusedMaterialKey()

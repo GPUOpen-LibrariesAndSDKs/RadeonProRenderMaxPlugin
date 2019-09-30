@@ -11,7 +11,7 @@
 
 #include "parser\MaterialParser.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 namespace
 {
@@ -368,7 +368,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	const frw::MaterialSystem& materialSystem = mtlParser.materialSystem;
 	const frw::Scope& scope = mtlParser.GetScope();
 
-	frw::Shader shader(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);
+	frw::Shader shader(scope.GetMaterialSystem(), frw::ShaderTypeUber);
 
 	Texmap* map = nullptr;
 	Color color(0.0f, 0.0f, 0.0f);
@@ -379,14 +379,13 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	bool toUseMap = false;
 
 	// DIFFUSE COLOR & CAVITY
-	std::tie(map, color) = GetParameters(FRPBRMTL_BASE_COLOR_MAP,
-		FRPBRMTL_BASE_COLOR);
+	std::tie(map, color) = GetParameters(FRPBRMTL_BASE_COLOR_MAP, FRPBRMTL_BASE_COLOR);
 	toUseMap = map != nullptr;
 	
 	diffuseColorValue = value = toUseMap ? mtlParser.createMap(map, MAP_FLAG_NOFLAGS) : color;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, 1.0f);
-	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_WEIGHT, 1.0f);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, value);
 
 	// ROUGHNESS
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_ROUGHNESS_MAP,
@@ -394,9 +393,9 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 	toUseMap = map != nullptr;
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
-	shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_ROUGHNESS, value);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_ROUGHNESS, value);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_ROUGHNESS, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_ROUGHNESS, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_ROUGHNESS, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_ROUGHNESS, value);
 
 	// METALNESS
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_METALNESS_MAP,
@@ -405,30 +404,22 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, value);
 	
-	shader.xSetParameterU(RPRX_UBER_MATERIAL_REFLECTION_MODE, RPRX_UBER_MATERIAL_REFLECTION_MODE_METALNESS);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_METALNESS, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_MODE, RPR_UBER_MATERIAL_IOR_MODE_METALNESS);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_METALNESS, value);
 
 	// MATERIAL NORMAL
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_NORMAL_MAP,
 		FRPBRMTL_NORMAL_MUL);
 	toUseMap = (map != nullptr);
 
-#if (RPR_API_COMPAT < 0x010031000)
-	if (toUseMap && mul > 0.0f)
-	{
-		value = materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP), mul);
-		shader.xSetValue(RPRX_UBER_MATERIAL_NORMAL, value);
-	}
-#else
 	if (toUseMap)
 	{
 		value = materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP), 1.0f);
-		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_NORMAL, value);
-		shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_NORMAL, value);
+		shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_NORMAL, value);
+		shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_NORMAL, value);
 	}
-#endif
 
 	// EMISSIVE
 	std::tie(map, color) = GetParameters(FRPBRMTL_EMISSIVE_COLOR_MAP,
@@ -437,7 +428,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? mtlParser.createMap(map, MAP_FLAG_NOFLAGS) : color;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_COLOR, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_EMISSION_COLOR, value);
 
 
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_EMISSIVE_WEIGHT_MAP,
@@ -446,7 +437,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_EMISSION_WEIGHT, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_EMISSION_WEIGHT, value);
 
 	// GLASS
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_GLASS_MAP,
@@ -455,8 +446,8 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_WEIGHT, value);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_COLOR, frw::Value(1.0f, 1.0f, 1.0f));
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_WEIGHT, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_COLOR, frw::Value(1.0f, 1.0f, 1.0f));
 
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_GLASS_IOR_MAP,
 		FRPBRMTL_GLASS_IOR_MUL);
@@ -464,7 +455,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFRACTION_IOR, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_IOR, value);
 
 
 	// SPECULAR
@@ -474,8 +465,8 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_WEIGHT, value);
-	shader.xSetValue(RPRX_UBER_MATERIAL_REFLECTION_COLOR, diffuseColorValue);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_COLOR, diffuseColorValue);
 
 	// SSS
 	std::tie(map, mul) = GetParametersNoColor(FRPBRMTL_SSS_WEIGHT_MAP,
@@ -484,7 +475,7 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOGAMMA), mul) : mul;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_WEIGHT, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_SSS_WEIGHT, value);
 
 	std::tie(map, color) = GetParameters(FRPBRMTL_SSS_COLOR_MAP,
 		FRPBRMTL_SSS_COLOR);
@@ -492,11 +483,11 @@ frw::Shader FRMTLCLASSNAME(PbrMtl)::getShader(const TimeValue t, MaterialParser&
 
 	value = toUseMap ? mtlParser.createMap(map, MAP_FLAG_NOFLAGS) : color;
 
-	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_COLOR, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_SSS_SCATTER_COLOR, value);
 
 	Point3 subsurfaceRadius = GetFromPb<Point3>(pblock, FRPBRMTL_SSS_SCATTER_DIST);
 	value = frw::Value(subsurfaceRadius);
-	shader.xSetValue(RPRX_UBER_MATERIAL_SSS_SCATTER_DISTANCE, value);
+	shader.SetValue(RPR_UBER_MATERIAL_INPUT_SSS_SCATTER_DISTANCE, value);
 
 	return shader;
 }
@@ -519,4 +510,4 @@ std::tuple<Texmap*, float> FRMTLCLASSNAME(PbrMtl)::GetParametersNoColor(FRPbrMtl
 	return std::make_tuple(map, mul);
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

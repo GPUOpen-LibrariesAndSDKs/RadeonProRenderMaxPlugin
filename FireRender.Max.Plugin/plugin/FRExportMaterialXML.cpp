@@ -1,3 +1,5 @@
+#if 0
+
 /*********************************************************************************************************************************
 * Radeon ProRender for 3ds Max plugin
 * Copyright (C) 2017 AMD
@@ -531,4 +533,5 @@ Value* exportFrMat_cf(Value** arg_list, int count)
 	else
 		return &empty;
 }
-///
+
+#endif

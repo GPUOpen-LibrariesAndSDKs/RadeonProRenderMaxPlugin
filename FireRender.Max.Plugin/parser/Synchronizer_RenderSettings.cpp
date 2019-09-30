@@ -11,7 +11,7 @@
 #include "plugin/TmManager.h"
 #include "plugin/CamManager.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 {
@@ -24,40 +24,40 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 			case PARAM_MAX_RAY_DEPTH:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("maxRecursion", v.mSimpleValue.int_val);
+				context.SetParameter(RPR_CONTEXT_MAX_RECURSION, v.mSimpleValue.int_val);
 			}
 			break;
 
 			case PARAM_RENDER_MODE:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("rendermode", v.mSimpleValue.int_val);
+				context.SetParameter(RPR_CONTEXT_RENDER_MODE, v.mSimpleValue.int_val);
 			}
 			break;
 
 			case PARAM_IMAGE_FILTER:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("imagefilter.type", v.mSimpleValue.int_val);
+				context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_TYPE, v.mSimpleValue.int_val);
 			}
 			break;
 
 			case PARAM_USE_TEXTURE_COMPRESSION:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("texturecompression", v.mSimpleValue.int_val);
+				context.SetParameter(RPR_CONTEXT_TEXTURE_COMPRESSION, v.mSimpleValue.int_val);
 			}
 			break;
 
 			case PARAM_IMAGE_FILTER_WIDTH:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("imagefilter.box.radius", v.mSimpleValue.float_val);
-				context.SetParameter("imagefilter.gaussian.radius", v.mSimpleValue.float_val);
-				context.SetParameter("imagefilter.triangle.radius", v.mSimpleValue.float_val);
-				context.SetParameter("imagefilter.mitchell.radius", v.mSimpleValue.float_val);
-				context.SetParameter("imagefilter.lanczos.radius", v.mSimpleValue.float_val);
-				context.SetParameter("imagefilter.blackmanharris.radius", v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_BOX_RADIUS, v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_GAUSSIAN_RADIUS, v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_TRIANGLE_RADIUS, v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_MITCHELL_RADIUS, v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_LANCZOS_RADIUS, v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_BLACKMANHARRIS_RADIUS, v.mSimpleValue.float_val);
 			}
 			break;
 
@@ -68,10 +68,10 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 				{
 					float irradianceClamp = FLT_MAX;
 					mBridge->GetPBlock()->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
-					context.SetParameter("radianceclamp", irradianceClamp);
+					context.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, irradianceClamp);
 				}
 				else
-					context.SetParameter("radianceclamp", FLT_MAX);
+					context.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, FLT_MAX);
 			}
 			break;
 
@@ -82,7 +82,7 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 				if (useIrradianceClamp)
 				{
 					auto v = mParametersTracker.GetParam(pp);
-					context.SetParameter("radianceclamp", v.mSimpleValue.float_val);
+					context.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, v.mSimpleValue.float_val);
 				}
 			}
 			break;
@@ -90,7 +90,7 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 			case PARAM_CONTEXT_ITERATIONS:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("iterations", v.mSimpleValue.int_val);
+				context.SetParameter(RPR_CONTEXT_ITERATIONS, v.mSimpleValue.int_val);
 			}
 
 			case PARAM_TIME_LIMIT:
@@ -117,32 +117,32 @@ void Synchronizer::UpdateRenderSettings(const std::vector<int> &changes)
 			case PARAM_QUALITY_RAYCAST_EPSILON:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("raycastepsilon", v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_RAY_CAST_EPISLON, v.mSimpleValue.float_val);
 			}
 			break;
 
 			case PARAM_ADAPTIVE_NOISE_THRESHOLD:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("as.threshold", v.mSimpleValue.float_val);
+				context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_THRESHOLD, v.mSimpleValue.float_val);
 			}
 			break;
 
 			case PARAM_ADAPTIVE_TILESIZE:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("as.tilesize", v.mSimpleValue.int_val);
+				context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_TILE_SIZE, v.mSimpleValue.int_val);
 			}
 			break;
 
 			case PARAM_SAMPLES_MIN:
 			{
 				auto v = mParametersTracker.GetParam(pp);
-				context.SetParameter("as.minspp", v.mSimpleValue.int_val);
+				context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_MIN_SPP, v.mSimpleValue.int_val);
 			}
 			break;
 		}
 	}
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

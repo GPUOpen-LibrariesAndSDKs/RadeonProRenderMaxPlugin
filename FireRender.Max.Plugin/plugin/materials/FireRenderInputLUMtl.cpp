@@ -19,11 +19,12 @@ FRMTLCLASSDESCNAME(InputLUMtl) FRMTLCLASSNAME(InputLUMtl)::ClassDescInstance;
 
 // All parameters of the material plugin. See FIRE_MAX_PBDESC definition for notes on backwards compatibility
 static ParamBlockDesc2 pbDesc(
-	0, _T("InputLUMtlPbdesc"), 0, &FRMTLCLASSNAME(InputLUMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION, FIRERENDERMTLVER_LATEST, 0,
-    //rollout
+	0, _T("InputLUMtlPbdesc"), 0, &FRMTLCLASSNAME(InputLUMtl)::ClassDescInstance, P_AUTO_CONSTRUCT + P_AUTO_UI + P_VERSION,
+	FIRERENDERMTLVER_LATEST, 0,
+	//rollout
 	IDD_FIRERENDER_INPUTLUMTL, IDS_FR_MTL_INPUTLU, 0, 0, NULL,
 
-	InputLUMtl_VALUE, _T("value"), TYPE_INT, P_ANIMATABLE, 0,
+	InputLUMtl_VALUE, _T("input"), TYPE_INT, P_ANIMATABLE, 0,
 	p_default, 0,
 	p_ui, TYPE_INT_COMBOBOX, IDC_INPUTLU_VALUE, 4,
 	IDS_INPUTLU_VALUE_0, IDS_INPUTLU_VALUE_1, IDS_INPUTLU_VALUE_2, IDS_INPUTLU_VALUE_3,

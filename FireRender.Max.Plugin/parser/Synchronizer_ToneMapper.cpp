@@ -11,7 +11,7 @@
 #include "plugin/TmManager.h"
 #include "plugin/CamManager.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 void Synchronizer::UpdateToneMapper()
 {
@@ -94,9 +94,10 @@ void Synchronizer::UpdateToneMapper()
 	{
 	case frw::ToneMappingTypeNone:
 		break;
+
 	case frw::ToneMappingTypeSimplified:
 	{
-		context.SetParameter("tonemapping.type", RPR_TONEMAPPING_OPERATOR_NONE);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_TYPE, RPR_TONEMAPPING_OPERATOR_NONE);
 
 		float exposure = _tonemapping_simplified_exposure;
 		float contrast = _tonemapping_simplified_contrast;
@@ -142,10 +143,10 @@ void Synchronizer::UpdateToneMapper()
 			context.Attach(mGammaCorrection);
 		}
 
-		context.SetParameter("tonemapping.type", RPR_TONEMAPPING_OPERATOR_PHOTOLINEAR);
-		context.SetParameter("tonemapping.photolinear.sensitivity", _tonemapping_photolinear_iso * 0.01f);
-		context.SetParameter("tonemapping.photolinear.fstop", _tonemapping_photolinear_fstop);
-		context.SetParameter("tonemapping.photolinear.exposure", 1.0f / _tonemapping_photolinear_shutterspeed);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_TYPE, RPR_TONEMAPPING_OPERATOR_PHOTOLINEAR);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_SENSITIVITY, _tonemapping_photolinear_iso * 0.01f);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_FSTOP, _tonemapping_photolinear_fstop);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_EXPOSURE, 1.0f / _tonemapping_photolinear_shutterspeed);
 		break;
 
 	case frw::ToneMappingTypeNonLinear:
@@ -161,10 +162,10 @@ void Synchronizer::UpdateToneMapper()
 			context.Attach(mGammaCorrection);
 		}
 
-		context.SetParameter("tonemapping.type", RPR_TONEMAPPING_OPERATOR_REINHARD02);
-		context.SetParameter("tonemapping.reinhard02.prescale", _tonemapping_reinhard02_prescale);
-		context.SetParameter("tonemapping.reinhard02.postscale", _tonemapping_reinhard02_postscale);
-		context.SetParameter("tonemapping.reinhard02.burn", _tonemapping_reinhard02_burn);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_TYPE, RPR_TONEMAPPING_OPERATOR_REINHARD02);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_REINHARD02_PRE_SCALE, _tonemapping_reinhard02_prescale);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_REINHARD02_POST_SCALE, _tonemapping_reinhard02_postscale);
+		context.SetParameter(RPR_CONTEXT_TONE_MAPPING_REINHARD02_BURN, _tonemapping_reinhard02_burn);
 		break;
 
 	default:
@@ -175,4 +176,4 @@ void Synchronizer::UpdateToneMapper()
 	mBridge->SetToneMappingExposure(_interactiveToneMapping_exposure);
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

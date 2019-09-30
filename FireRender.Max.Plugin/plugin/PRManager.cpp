@@ -20,7 +20,6 @@
 #include "TMManager.h"
 #include "RadeonProRender.h"
 #include "RprLoadStore.h"
-#include "RprSupport.h"
 #include <wingdi.h>
 #include <math.h>
 #include <shlobj.h>
@@ -1060,34 +1059,34 @@ int PRManagerMax::Open(FireRenderer *pRenderer, HWND hWnd, RendProgressCallback*
 	auto context = scope.GetContext();
 
 	const float filterRadius = GetFromPb<float>(parameters.pblock, PARAM_IMAGE_FILTER_WIDTH);
-	context.SetParameter("texturecompression", GetFromPb<int>(parameters.pblock, PARAM_USE_TEXTURE_COMPRESSION));
-	context.SetParameter("rendermode", GetFromPb<int>(parameters.pblock, PARAM_RENDER_MODE));
-	context.SetParameter("maxRecursion", GetFromPb<int>(parameters.pblock, PARAM_MAX_RAY_DEPTH));
-	context.SetParameter("imagefilter.type", GetFromPb<int>(parameters.pblock, PARAM_IMAGE_FILTER));
-	context.SetParameter("imagefilter.box.radius", filterRadius);
-	context.SetParameter("imagefilter.gaussian.radius", filterRadius);
-	context.SetParameter("imagefilter.triangle.radius", filterRadius);
-	context.SetParameter("imagefilter.mitchell.radius", filterRadius);
-	context.SetParameter("imagefilter.lanczos.radius", filterRadius);
-	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);
-	context.SetParameter("iterations", GetFromPb<int>(parameters.pblock, PARAM_CONTEXT_ITERATIONS));
-	context.SetParameter("pdfthreshold", 0.f);
-	context.SetParameter("preview", 0);
+	context.SetParameter(RPR_CONTEXT_TEXTURE_COMPRESSION, GetFromPb<int>(parameters.pblock, PARAM_USE_TEXTURE_COMPRESSION));
+	context.SetParameter(RPR_CONTEXT_RENDER_MODE, GetFromPb<int>(parameters.pblock, PARAM_RENDER_MODE));
+	context.SetParameter(RPR_CONTEXT_MAX_RECURSION, GetFromPb<int>(parameters.pblock, PARAM_MAX_RAY_DEPTH));
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_TYPE, GetFromPb<int>(parameters.pblock, PARAM_IMAGE_FILTER));
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_BOX_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_GAUSSIAN_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_TRIANGLE_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_MITCHELL_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_LANCZOS_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_BLACKMANHARRIS_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_ITERATIONS, GetFromPb<int>(parameters.pblock, PARAM_CONTEXT_ITERATIONS));
+	context.SetParameter(RPR_CONTEXT_PDF_THRESHOLD, 0.f);
+	context.SetParameter(RPR_CONTEXT_PREVIEW, 0);
 	data->adaptiveThreshold = GetFromPb<float>(parameters.pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD);
-	context.SetParameter("as.threshold", data->adaptiveThreshold);
-	context.SetParameter("as.tilesize", GetFromPb<int>(parameters.pblock, PARAM_ADAPTIVE_TILESIZE));
-	context.SetParameter("as.minspp", GetFromPb<int>(parameters.pblock, PARAM_SAMPLES_MIN));
+	context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_THRESHOLD, data->adaptiveThreshold);
+	context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_TILE_SIZE, GetFromPb<int>(parameters.pblock, PARAM_ADAPTIVE_TILESIZE));
+	context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_MIN_SPP, GetFromPb<int>(parameters.pblock, PARAM_SAMPLES_MIN));
 
 
 	float raycastEpsilon = GetFromPb<float>(parameters.pblock, PARAM_QUALITY_RAYCAST_EPSILON);
-	context.SetParameter("raycastepsilon", raycastEpsilon);
+	context.SetParameter(RPR_CONTEXT_RAY_CAST_EPISLON, raycastEpsilon);
 
 	BOOL useIrradianceClamp = FALSE;
 	float irradianceClamp = FLT_MAX;
 	parameters.pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());
 	if (useIrradianceClamp)
 		parameters.pblock->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
-	context.SetParameter("radianceclamp", irradianceClamp);
+	context.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, irradianceClamp);
 
 	BroadcastNotification(NOTIFY_PRE_RENDER, &parameters.rendParams);
 	
@@ -1234,7 +1233,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 			{
 				case frw::ToneMappingTypeSimplified:
 				{
-					context.SetParameter("tonemapping.type", RPR_TONEMAPPING_OPERATOR_NONE);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_TYPE, RPR_TONEMAPPING_OPERATOR_NONE);
 
 					float exposure, contrast;
 					int whitebalance;
@@ -1270,10 +1269,10 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_PHOTOLINEAR_ISO, iso); FASSERT(res);
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_PHOTOLINEAR_FSTOP, fstop); FASSERT(res);
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, shutterspeed); FASSERT(res);
-					context.SetParameter("tonemapping.type", RPR_TONEMAPPING_OPERATOR_PHOTOLINEAR);
-					context.SetParameter("tonemapping.photolinear.sensitivity", iso * 0.01f);
-					context.SetParameter("tonemapping.photolinear.fstop", fstop);
-					context.SetParameter("tonemapping.photolinear.exposure", 1.0f / shutterspeed);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_TYPE, RPR_TONEMAPPING_OPERATOR_PHOTOLINEAR);
+					context.SetParameter(FR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_SENSITIVITY, iso * 0.01f);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_FSTOP, fstop);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_EXPOSURE, 1.0f / shutterspeed);
 				}
 				break;
 				case frw::ToneMappingTypeNonLinear:
@@ -1288,10 +1287,10 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_REINHARD_PRESCALE, reinhard02Prescale); FASSERT(res);
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_REINHARD_POSTSCALE, reinhard02Postscale); FASSERT(res);
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_REINHARD_BURN, reinhard02Burn); FASSERT(res);
-					context.SetParameter("tonemapping.type", RPR_TONEMAPPING_OPERATOR_REINHARD02);
-					context.SetParameter("tonemapping.reinhard02.prescale", reinhard02Prescale);
-					context.SetParameter("tonemapping.reinhard02.postscale", reinhard02Postscale);
-					context.SetParameter("tonemapping.reinhard02.burn", reinhard02Burn);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_TYPE, RPR_TONEMAPPING_OPERATOR_REINHARD02);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_REINHARD02_PRE_SCALE, reinhard02Prescale);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_REINHARD02_POST_SCALE, reinhard02Postscale);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_REINHARD02_BURN, reinhard02Burn);
 				}
 				break;
 			}
@@ -1334,13 +1333,13 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 	}
 
 #ifdef SWITCH_AXES
-	res = context.SetParameter("xflip", 1);
+	res = context.SetParameter(RPR_CONTEXT_X_FLIP, 1);
 	FCHECK(res);
-	res = context.SetParameter("yflip", 1);
+	res = context.SetParameter(RPR_CONTEXT_Y_FLIP, 1);
 	FCHECK(res);
 #else
-	context.SetParameter("xflip", 0);
-	context.SetParameter("yflip", 1);
+	context.SetParameter(RPR_CONTEXT_X_FLIP, 0);
+	context.SetParameter(RPR_CONTEXT_Y_FLIP, 1);
 #endif
 
 	auto camera = context.CreateCamera(); // Create a camera - we can do it from scratch for every frame as it does nto leak memory
@@ -1400,7 +1399,6 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 		frw::Scope scope = ScopeManagerMax::TheManager.GetScope(data->scopeId);
 		rpr_context context = scope.GetContext().Handle();
-		rprx_context contextEx = scope.GetContextEx();
 		rpr_material_system matSystem = scope.GetMaterialSystem().Handle();
 		rpr_scene scene = scope.GetScene().Handle();
 		std::vector<rpr_scene> scenes{ scene };

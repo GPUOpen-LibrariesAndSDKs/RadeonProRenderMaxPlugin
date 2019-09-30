@@ -62,13 +62,13 @@ frw::Shader FRMTLCLASSNAME(RefractionMtl)::getShader(const TimeValue t, Material
 	frw::Value color(diffuseColor.r, diffuseColor.g, diffuseColor.b);
 	if (diffuseTexmap)
 		color = mtlParser.createMap(diffuseTexmap, 0);
-	material.SetValue("color", color);
+	material.SetValue(RPR_MATERIAL_INPUT_COLOR, color);
 
 	frw::Value iorv(ior, ior, ior);
-	material.SetValue("ior", iorv);
+	material.SetValue(RPR_MATERIAL_INPUT_IOR, iorv);
 	
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue(RPR_MATERIAL_INPUT_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

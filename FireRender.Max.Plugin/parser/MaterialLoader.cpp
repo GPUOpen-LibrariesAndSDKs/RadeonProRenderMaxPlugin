@@ -1,3 +1,5 @@
+#if 0
+
 /*********************************************************************************************************************************
 * Radeon ProRender for 3ds Max plugin
 * Copyright (c) 2017 AMD
@@ -968,3 +970,5 @@ bool ImportMaterials(const std::string& filename, rpr_context context, rpr_mater
     }
     return true;
 }
+
+#endif

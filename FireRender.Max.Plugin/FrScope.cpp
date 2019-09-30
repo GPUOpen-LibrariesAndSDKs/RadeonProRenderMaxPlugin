@@ -185,7 +185,6 @@ Scope Scope::CreateLocalScope() const
 {
 	assert(m);
 	Scope child(m->context.Handle(), false);
-	child.m->contextEx = m->contextEx;
 	child.m->materialSystem = m->materialSystem;
 	child.m->parent = m;
 	child.m->scene = m->scene;
@@ -203,31 +202,14 @@ Scope Scope::ParentScope(bool orSelf) const
 	return Scope();
 }
 
-
-
-
-
-
-Scope::Data::Data(Context c, bool bCreateContextEx /*= false*/)
-:context(c), materialSystem(c)
+Scope::Data::Data(Context c, bool bCreateContextEx /*= false*/) :
+	context(c), materialSystem(c)
 {
-	bOwnContextEx = bCreateContextEx && c.DestroyOnDelete();
-	if (bOwnContextEx)
-	{
-		auto res = rprxCreateContext(materialSystem.Handle(), RPRX_FLAGS_ENABLE_LOGGING, &contextEx);
-		FCHECK(res);
-	}
 }
 
-Scope::Data::Data(Context c, MaterialSystem ms, bool bCreateContextEx /*= false*/)
-:context(c), materialSystem(ms)
+Scope::Data::Data(Context c, MaterialSystem ms, bool bCreateContextEx /*= false*/) :
+	context(c), materialSystem(ms)
 {
-	bOwnContextEx = bCreateContextEx && c.DestroyOnDelete();
-	if (bOwnContextEx)
-	{
-		auto res = rprxCreateContext(materialSystem.Handle(), RPRX_FLAGS_ENABLE_LOGGING, &contextEx);
-		FCHECK(res);
-	}
 }
 
 Scope::Data::~Data()
@@ -239,11 +221,4 @@ Scope::Data::~Data()
 	cache.image.Clear();
 
 	scene.Reset(); // destroy scene before deleting context
-
-	if (contextEx && bOwnContextEx)
-	{
-		auto res = rprxDeleteContext(contextEx);
-		FCHECK(res);
-		DebugPrint(L"\tDeleted RPRX context %08X\n", contextEx);
-	}	
 }

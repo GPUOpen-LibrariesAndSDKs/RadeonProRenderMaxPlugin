@@ -13,7 +13,7 @@
 #include "FireRenderDisplacementMtl.h"
 #include "ScopeManager.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 void Synchronizer::RebuildUsersOfMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild)
 {
@@ -248,11 +248,8 @@ void Synchronizer::UpdateMaterial(Mtl *pMat, std::vector<INode*> &nodesToRebuild
 					}
 				}
 			}
-			// Perform a commit as the last step
-			if( sharedShaderCreated && (lastShape.get()!=nullptr) )
-				sharedShader.Commit();
 		}
 	}
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

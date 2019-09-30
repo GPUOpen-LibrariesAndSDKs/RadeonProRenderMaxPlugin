@@ -513,7 +513,7 @@ void ActiveShadeRenderCore::Worker()
 	normalizationFilter = frw::PostEffect(scope.GetContext(), frw::PostEffectTypeNormalization);
 	scope.GetContext().Attach(normalizationFilter);
 
-	rpr_int res = rprContextSetParameter1u(scope.GetContext().Handle(), "preview", 1);
+	rpr_int res = rprContextSetParameterByKey1u(scope.GetContext().Handle(), RPR_CONTEXT_PREVIEW, 1);
 	FCHECK_CONTEXT(res, scope.GetContext().Handle(), "rprContextSetParameter1u");
 
 	// render all passes, unless the render is cancelled (and even then render at least a single pass)
@@ -850,27 +850,27 @@ void ActiveShader::Begin()
 	scene.SetCamera(camera[0]);
 
 	// Set up some basic rendering parameters in Radeon ProRender
-	context.SetParameter("texturecompression", GetFromPb<int>(pblock, PARAM_USE_TEXTURE_COMPRESSION));
-	context.SetParameter("rendermode", GetFromPb<int>(pblock, PARAM_RENDER_MODE));
-	context.SetParameter("maxRecursion", GetFromPb<int>(pblock, PARAM_MAX_RAY_DEPTH));
-	context.SetParameter("imagefilter.type", GetFromPb<int>(pblock, PARAM_IMAGE_FILTER));
+	context.SetParameter(RPR_CONTEXT_TEXTURE_COMPRESSION, GetFromPb<int>(pblock, PARAM_USE_TEXTURE_COMPRESSION));
+	context.SetParameter(RPR_CONTEXT_RENDER_MODE, GetFromPb<int>(pblock, PARAM_RENDER_MODE));
+	context.SetParameter(RPR_CONTEXT_MAX_RECURSION, GetFromPb<int>(pblock, PARAM_MAX_RAY_DEPTH));
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_TYPE, GetFromPb<int>(pblock, PARAM_IMAGE_FILTER));
 	const float filterRadius = GetFromPb<float>(pblock, PARAM_IMAGE_FILTER_WIDTH);
-	context.SetParameter("imagefilter.box.radius", filterRadius);
-	context.SetParameter("imagefilter.gaussian.radius", filterRadius);
-	context.SetParameter("imagefilter.triangle.radius", filterRadius);
-	context.SetParameter("imagefilter.mitchell.radius", filterRadius);
-	context.SetParameter("imagefilter.lanczos.radius", filterRadius);
-	context.SetParameter("imagefilter.blackmanharris.radius", filterRadius);
-	context.SetParameter("iterations", GetFromPb<int>(pblock, PARAM_CONTEXT_ITERATIONS));
-	context.SetParameter("pdfthreshold", 0.f);
-	context.SetParameter("raycastepsilon", GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_BOX_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_GAUSSIAN_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_TRIANGLE_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_MITCHELL_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_LANCZOS_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_IMAGE_FILTER_BLACKMANHARRIS_RADIUS, filterRadius);
+	context.SetParameter(RPR_CONTEXT_ITERATIONS, GetFromPb<int>(pblock, PARAM_CONTEXT_ITERATIONS));
+	context.SetParameter(RPR_CONTEXT_PDF_THRESHOLD, 0.f);
+	context.SetParameter(RPR_CONTEXT_RAY_CAST_EPISLON, GetFromPb<float>(pblock, PARAM_QUALITY_RAYCAST_EPSILON));
 	// TODO: ActiveShade produces artifacts with Adaptive Sampling, with black squares appearing in noisy dark areas
 	// Temporary fix, set Adaptive Sampling threshold to 0 for ActiveShade
 	const float adaptiveThreshold = 0;
 	//const float adaptiveThreshold = GetFromPb<float>(pblock, PARAM_ADAPTIVE_NOISE_THRESHOLD);
-	context.SetParameter("as.threshold", adaptiveThreshold);
-	context.SetParameter("as.tilesize", GetFromPb<int>(pblock, PARAM_ADAPTIVE_TILESIZE));
-	context.SetParameter("as.minspp", GetFromPb<int>(pblock, PARAM_SAMPLES_MIN));
+	context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_THRESHOLD, adaptiveThreshold);
+	context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_TILE_SIZE, GetFromPb<int>(pblock, PARAM_ADAPTIVE_TILESIZE));
+	context.SetParameter(RPR_CONTEXT_ADAPTIVE_SAMPLING_MIN_SPP, GetFromPb<int>(pblock, PARAM_SAMPLES_MIN));
 
 	BOOL useIrradianceClamp = FALSE;
 	pblock->GetValue(PARAM_USE_IRRADIANCE_CLAMP, 0, useIrradianceClamp, Interval());
@@ -878,10 +878,10 @@ void ActiveShader::Begin()
 	{
 		float irradianceClamp = FLT_MAX;
 		pblock->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
-		context.SetParameter("radianceclamp", irradianceClamp);
+		context.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, irradianceClamp);
 	}
 	else
-		context.SetParameter("radianceclamp", FLT_MAX);
+		context.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, FLT_MAX);
 
 	pViewExp = &GetCOREInterface()->GetActiveViewExp();
 	mViewID = pViewExp->GetViewID();
@@ -890,8 +890,8 @@ void ActiveShader::Begin()
 	viewParams = ViewExp2viewParams(*pViewExp, outCam);
 	mIfr->fireRenderer->isToneOperatorPreviewRender = false;
 
-	context.SetParameter("xflip", 0);
-	context.SetParameter("yflip", 1);
+	context.SetParameter(RPR_CONTEXT_X_FLIP, 0);
+	context.SetParameter(RPR_CONTEXT_Y_FLIP, 1);
 	
 	int renderLimitType;
 	pblock->GetValue(PARAM_RENDER_LIMIT, 0, renderLimitType, Interval());

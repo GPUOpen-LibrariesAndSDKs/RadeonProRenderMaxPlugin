@@ -59,9 +59,9 @@ frw::Shader FRMTLCLASSNAME(ReflectionMtl)::getShader(const TimeValue t, Material
 	if (diffuseTexmap)
 		color = mtlParser.createMap(diffuseTexmap, 0);
 
-	material.SetValue("color", color);
+	material.SetValue(RPR_MATERIAL_INPUT_COLOR, color);
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue(RPR_MATERIAL_INPUT_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 		
     return material;
 }

@@ -72,11 +72,11 @@ frw::Shader FRMTLCLASSNAME(DiffuseRefractionMtl)::getShader(const TimeValue t, M
 	if (roughnessTexmap)
 		roughnessv = mtlParser.createMap(roughnessTexmap, MAP_FLAG_NOGAMMA);
 
-	material.SetValue("color", color);
-	material.SetValue("roughness", roughnessv);
+	material.SetValue(RPR_MATERIAL_INPUT_COLOR, color);
+	material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, roughnessv);
 	
 	if (normalTexmap)
-		material.SetValue("normal", FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
+		material.SetValue(RPR_MATERIAL_INPUT_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, normalTexmap, 1.f, mtlParser));
 	
     return material;
 }

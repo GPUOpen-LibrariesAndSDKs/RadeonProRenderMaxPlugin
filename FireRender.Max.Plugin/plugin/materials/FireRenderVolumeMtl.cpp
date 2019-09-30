@@ -10,7 +10,7 @@
 #include "parser\MaterialParser.h"
 #include "maxscript\mxsplugin\mxsPlugin.h"
 
-FIRERENDER_NAMESPACE_BEGIN;
+FIRERENDER_NAMESPACE_BEGIN
 
 IMPLEMENT_FRMTLCLASSDESC(VolumeMtl)
 
@@ -90,14 +90,14 @@ frw::Shader FRMTLCLASSNAME(VolumeMtl)::getVolumeShader(const TimeValue t, Materi
 		theDistance = ms.ValueMul(mtlParser.createMap(distanceTexmap, MAP_FLAG_NOGAMMA), frw::Value(distance));
 	
 	// scattering
-	material.SetValue("sigmas", ms.ValueDiv(theColor, theDistance));
+	material.SetValue(RPR_MATERIAL_INPUT_SCATTERING, ms.ValueDiv(theColor, theDistance));
 
 	// absorption
-	material.SetValue("sigmaa", ms.ValueDiv(ms.ValueSub(frw::Value(1), theColor), theDistance));
+	material.SetValue(RPR_MATERIAL_INPUT_ABSORBTION, ms.ValueDiv(ms.ValueSub(frw::Value(1), theColor), theDistance));
 
 	// phase and multi on/off
-	material.SetValue("g", frw::Value(GetFromPb<float>(pblock, FRVolumeMtl_ScatteringDirection)));
-	material.SetValue("multiscatter", GetFromPb<BOOL>(pblock, FRVolumeMtl_MultiScattering) ? frw::Value(1.0f) : frw::Value(0.0f));
+	material.SetValue(RPR_MATERIAL_INPUT_G, frw::Value(GetFromPb<float>(pblock, FRVolumeMtl_ScatteringDirection)));
+	material.SetValue(RPR_MATERIAL_INPUT_MULTISCATTER, GetFromPb<BOOL>(pblock, FRVolumeMtl_MultiScattering) ? frw::Value(1.0f) : frw::Value(0.0f));
 
 	// emission
 	const Color emissionColor = GetFromPb<Color>(pblock, FRVolumeMtl_EmissionColor);
@@ -106,8 +106,7 @@ frw::Shader FRMTLCLASSNAME(VolumeMtl)::getVolumeShader(const TimeValue t, Materi
 	if (emissionTexmap)
 		theEmission = mtlParser.createMap(emissionTexmap, MAP_FLAG_WANTSHDR);
 
-	material.SetValue("emission",
-		ms.ValueMul(theEmission, frw::Value(GetFromPb<float>(pblock, FRVolumeMtl_EmissionMultiplier))));
+	material.SetValue(RPR_MATERIAL_INPUT_EMISSION, ms.ValueMul(theEmission, frw::Value(GetFromPb<float>(pblock, FRVolumeMtl_EmissionMultiplier))));
 
     return material;
 }
@@ -119,4 +118,4 @@ frw::Shader FRMTLCLASSNAME(VolumeMtl)::getShader(const TimeValue t, MaterialPars
 	return frw::Shader(ms, frw::ShaderTypeTransparent);
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

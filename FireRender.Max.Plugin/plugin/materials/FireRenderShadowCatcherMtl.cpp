@@ -163,7 +163,7 @@ frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getShader(const TimeValue t, Mater
 	const frw::MaterialSystem& materialSystem = mtlParser.materialSystem;
 	const frw::Scope& scope = mtlParser.GetScope();
 
-	frw::Shader shader(scope.GetContext(), scope.GetContextEx(), RPRX_MATERIAL_UBER);
+	frw::Shader shader(scope.GetMaterialSystem(), frw::ShaderTypeUber);
 
 	bool useMapFlag = false;
 	Texmap* map = nullptr;
@@ -179,22 +179,12 @@ frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getShader(const TimeValue t, Mater
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA | MAP_FLAG_NORMALMAP);
 
-#if (RPR_API_COMPAT < 0x010031000)
-	if (value.IsNode()) // a map must be connected
-		shader.xSetValue(RPRX_UBER_MATERIAL_NORMAL, value);
-#endif
-
 	// Displacement Map
 	float displacementMul = 0.0f;
 	parameters = GetParameters(FRSHADOWCATCHER_DISPLACE_USEMAP, FRSHADOWCATCHER_DISPLACE_MAP,
 		FRSHADOWCATCHER_DISPLACE, FRSHADOWCATCHER_DISPLACE_MUL);
 
 	value = SetupShaderOrdinary(mtlParser, parameters, MAP_FLAG_NOGAMMA);
-
-#if (RPR_API_COMPAT < 0x010034000)
-	if (value.IsNode()) // a map must be connected
-		shader.xSetValue(RPRX_UBER_MATERIAL_DISPLACEMENT, value);
-#endif
 
 	// Shadow
 	// - Color
@@ -224,15 +214,15 @@ frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getShader(const TimeValue t, Mater
 
 		value = canUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOFLAGS), color) : color;
 
-		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_COLOR, value);
+		shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, value);
 
 		// - background weight
 		float backgroundColorWeight = GetFromPb<float>(pblock, FRSHADOWCATCHER_BACKGROUND_WEIGHT_MUL);
-		shader.xSetValue(RPRX_UBER_MATERIAL_DIFFUSE_WEIGHT, value);
+		shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_WEIGHT, value);
 
 		// - background alpha
 		float backgroundColorAlpha = GetFromPb<float>(pblock, FRSHADOWCATCHER_BACKGROUND_ALPHA_MUL);
-		shader.xSetValue(RPRX_UBER_MATERIAL_TRANSPARENCY, value);
+		shader.SetValue(RPR_UBER_MATERIAL_INPUT_TRANSPARENCY, value);
 	}
 
 	shader.SetShadowCatcher(true);

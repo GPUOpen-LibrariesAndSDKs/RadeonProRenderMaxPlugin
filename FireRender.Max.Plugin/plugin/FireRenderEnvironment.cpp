@@ -132,7 +132,7 @@ static ParamBlockDesc2 paramBlock(0, _T("EnvironmentPbDesc"), 0, &desc, P_AUTO_C
 	p_default, TRUE, 
 	p_end,
 	
-	FREnvironment_RADIUS, _T("radius"), TYPE_FLOAT, P_INVISIBLE | P_OBSOLETE | P_RESET_DEFAULT, 0,
+	FREnvironment_RADIUS, _T("input radius"), TYPE_FLOAT, P_INVISIBLE | P_OBSOLETE | P_RESET_DEFAULT, 0,
 	p_default, 0.0,
 	p_range, 0.0, FLT_MAX,
 	p_end,

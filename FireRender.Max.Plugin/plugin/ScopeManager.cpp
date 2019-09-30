@@ -227,10 +227,10 @@ ScopeID ScopeManagerMax::CreateScope(IParamBlock2 *pblock)
 		{
 			float irradianceClamp = FLT_MAX;
 			pblock->GetValue(PARAM_IRRADIANCE_CLAMP, 0, irradianceClamp, Interval());
-			ctx.SetParameter("radianceclamp", irradianceClamp);
+			ctx.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, irradianceClamp);
 		}
 		else
-			ctx.SetParameter("radianceclamp", FLT_MAX);
+			ctx.SetParameter(RPR_CONTEXT_RADIANCE_CLAMP, FLT_MAX);
 	}
 
 	if (!theScope.IsValid())
@@ -318,11 +318,11 @@ void ScopeManagerMax::EnableRPRTrace(IParamBlock2 *pblock, bool enable)
 			}
 		}
 
-		rpr_int res = rprContextSetParameterString(nullptr, "tracingfolder", ToAscii(traceFolder).c_str());
+		rpr_int res = rprContextSetParameterByKeyString(nullptr, RPR_CONTEXT_TRACING_PATH, ToAscii(traceFolder).c_str());
 		FCHECK(res); // Able to call FCHECK_CONTEXT() will nullptr for context?
 	}
 
-	auto res = rprContextSetParameter1u(nullptr, "tracing", enable ? 1 : 0);
+	auto res = rprContextSetParameterByKey1u(nullptr, RPR_CONTEXT_TRACING_ENABLED, enable ? 1 : 0);
 	FCHECK(res); // Able to call FCHECK_CONTEXT() will nullptr for context?
 }
 

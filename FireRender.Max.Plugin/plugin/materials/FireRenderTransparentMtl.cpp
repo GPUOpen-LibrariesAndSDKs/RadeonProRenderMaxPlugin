@@ -53,7 +53,7 @@ frw::Shader FRMTLCLASSNAME(TransparentMtl)::getShader(const TimeValue t, Materia
 	if (diffuseTexmap)
 		color = mtlParser.createMap(diffuseTexmap, 0);
 
-	material.SetValue("color", color);
+	material.SetValue(RPR_MATERIAL_INPUT_COLOR, color);
 		
     return material;
 }
