@@ -1,22 +1,21 @@
-#include "precompiled.h"
 #include "RprExporter.h"
 #include "Common.h"
 #include "FireRenderer.h"
 #include "PRManager.h"
 #include "ClassDescs.h"
+#include "RprLoadStore.h"
 
-#include <wchar.h>
+FIRERENDER_NAMESPACE_BEGIN
 
-FIRERENDER_NAMESPACE_BEGIN;
-
-class RprExporterClassDesc :public ClassDesc {
+class RprExporterClassDesc :public ClassDesc
+{
 public:
 	int				IsPublic() { return 1; }
 	void*			Create(BOOL loading = FALSE) { return new RprExporter; }
 	const TCHAR*	ClassName() { return _T("RprExporter"); }
 	SClass_ID		SuperClassID() { return SCENE_EXPORT_CLASS_ID; }
 	Class_ID		ClassID() { return FireRender::EXPORTER_MAX_CLASSID; }
-	const TCHAR*	Category() { return _T("");; }
+	const TCHAR*	Category() { return _T(""); }
 };
 
 
@@ -75,38 +74,8 @@ const MCHAR * RprExporter::OtherMessage2()
 	return _T("");
 }
 
-
-inline bool NumberStringEdit(TCHAR * io_string, size_t n)
-{
-	std::wstring wstr(io_string);
-
-	bool isChanged = false;
-
-
-	while (!wstr.empty() && wstr[0] == _T('0'))
-	{
-		wstr = std::wstring(wstr.begin() + 1, wstr.end());
-		isChanged = true;
-	}
-
-	if (wstr.empty())
-	{
-		wstr = _T("0");
-		isChanged = true;
-	}
-
-	if (isChanged)
-	{
-		wcscpy_s(io_string, n, wstr.c_str());
-	}
-
-	return isChanged;
-}
-
-
 INT_PTR CALLBACK ExportDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-
 	switch (message)
 	{
 	case WM_INITDIALOG:
@@ -114,6 +83,25 @@ INT_PTR CALLBACK ExportDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 		SetFocus(GetDlgItem(hWnd, IDOK));
 
 		SendDlgItemMessage(hWnd, IDC_RADIO_SINGLE_FRAME, BM_SETCHECK, 1, 0);
+
+		// setup compression combo
+		std::vector<std::pair<const wchar_t*, std::uint32_t>> comboboxItemsDesc =
+		{
+			{ L"None", 0 },
+			{ L"Level 1", RPRLOADSTORE_EXPORTFLAG_COMPRESS_IMAGE_LEVEL_1 },
+			{ L"Level 2", RPRLOADSTORE_EXPORTFLAG_COMPRESS_IMAGE_LEVEL_2 },
+			{ L"Level 3", RPRLOADSTORE_EXPORTFLAG_COMPRESS_IMAGE_LEVEL_2 | RPRLOADSTORE_EXPORTFLAG_COMPRESS_FLOAT_TO_HALF_NORMALS | RPRLOADSTORE_EXPORTFLAG_COMPRESS_FLOAT_TO_HALF_UV }
+		};
+
+		HWND combo = GetDlgItem(hWnd, IDC_EXPORT_COMRESSION);
+
+		for (size_t i = 0; i < comboboxItemsDesc.size(); i++)
+		{
+			ComboBox_AddString(combo, comboboxItemsDesc[i].first);
+			ComboBox_SetItemData(combo, i, comboboxItemsDesc[i].second);
+		}
+
+		ComboBox_SetCurSel(combo, 1);
 
 		break;
 	}
@@ -131,24 +119,34 @@ INT_PTR CALLBACK ExportDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 			}
 			return FALSE;
 		}
+
 		case IDC_RADIO_SEQUENCE_OF_FRAMES:
 		{
 			switch (HIWORD(wParam))
 			{
-			case BN_CLICKED:
-				
+			case BN_CLICKED:				
 				break;
 			}
 			return FALSE;
 		}
+
 		case IDOK:
 		{
-			PRManagerMax & prManager = PRManagerMax::TheManager;
+			PRManagerMax& prManager = PRManagerMax::TheManager;
 			prManager.EnableUseExternalFiles(SendDlgItemMessage(hWnd, IDC_EXPORT_USEEXPTERNAL_FILES, BM_GETCHECK, 0, 0));
 			prManager.SetIsExportCurrentFrame(SendDlgItemMessage(hWnd, IDC_RADIO_SINGLE_FRAME, BM_GETCHECK, 1, 0));
+
+			{
+				HWND combo = GetDlgItem(hWnd, IDC_EXPORT_COMRESSION);
+				int selection = ComboBox_GetCurSel(combo);
+				std::uint32_t itemData = ComboBox_GetItemData(combo, selection);
+				prManager.SetExportCompressionFlags(itemData);
+			}
+
 			EndDialog(hWnd, wParam);
 			return TRUE;
 		}
+
 		case IDCANCEL:
 			EndDialog(hWnd, wParam);
 			return TRUE;
@@ -163,17 +161,18 @@ INT_PTR CALLBACK ExportDlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lP
 	}
 
 	return FALSE;
-};
+}
 
 int RprExporter::DoExport(const MCHAR * name, ExpInterface * ei, Interface * i, BOOL suppressPrompts, DWORD options)
 {
 	Interface11* ip = GetCOREInterface11();
+	
 	if (!ip)
 	{
 		return FALSE;
 	}
 
-	Renderer * renderer = ip->GetCurrentRenderer();
+	Renderer* renderer = ip->GetCurrentRenderer();
 	FireRenderClassDesc firerendererDesc;
 
 	if (!(renderer->ClassID() == firerendererDesc.ClassID() && renderer->SuperClassID() == firerendererDesc.SuperClassID()))
@@ -188,11 +187,11 @@ int RprExporter::DoExport(const MCHAR * name, ExpInterface * ei, Interface * i, 
 	if (IDOK == DialogBoxParam(FireRender::fireRenderHInstance, MAKEINTRESOURCE(IDD_FIRERENDER_EXPORT), GetCOREInterface()->GetMAXHWnd(), ExportDlgProc, NULL))
 	{
 		Interface11* ip = GetCOREInterface11();
+		
 		if (!ip)
 		{
 			return FALSE;
 		}
-
 
 		PRManagerMax & prManager = PRManagerMax::TheManager;
 		prManager.EnableExportState(true);
@@ -221,4 +220,4 @@ int RprExporter::DoExport(const MCHAR * name, ExpInterface * ei, Interface * i, 
 	return TRUE;
 }
 
-FIRERENDER_NAMESPACE_END;
+FIRERENDER_NAMESPACE_END

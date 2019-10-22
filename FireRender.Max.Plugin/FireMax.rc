@@ -1978,7 +1978,7 @@ BEGIN
                     "SpinnerControl",WS_DISABLED | WS_TABSTOP,101,119,9,11
 END
 
-IDD_FIRERENDER_EXPORT DIALOGEX 0, 0, 254, 101
+IDD_FIRERENDER_EXPORT DIALOGEX 0, 0, 251, 96
 STYLE DS_SETFONT | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Export"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -1986,12 +1986,15 @@ BEGIN
     DEFPUSHBUTTON   "Export",IDOK,133,73,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,187,73,50,14
     CONTROL         "Use external files",IDC_EXPORT_USEEXPTERNAL_FILES,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,55,71,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,60,71,10
     CONTROL         "Export single frame at current time",IDC_RADIO_SINGLE_FRAME,
-                    "Button",BS_AUTORADIOBUTTON,23,19,190,10
+                    "Button",BS_AUTORADIOBUTTON,14,11,226,10
     CONTROL         "Export sequence configured in the Render Setup dialog",IDC_RADIO_SEQUENCE_OF_FRAMES,
-                    "Button",BS_AUTORADIOBUTTON,23,32,196,10
+                    "Button",BS_AUTORADIOBUTTON,14,26,222,10
+    COMBOBOX        IDC_EXPORT_COMRESSION,77,42,92,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Compression",IDC_STATIC,14,42,58,8
 END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2022,6 +2025,14 @@ BEGIN
     END
 
     IDD_FIRERENDER_IES_LIGHT_VOLUME, DIALOG
+    BEGIN
+    END
+
+    IDD_RENDER_CAMERASETTINGS, DIALOG
+    BEGIN
+    END
+
+    IDD_AUTOTESTING, DIALOG
     BEGIN
     END
 
@@ -2059,6 +2070,10 @@ BEGIN
     END
 
     IDD_RENDER_TONEMAPPING, DIALOG
+    BEGIN
+    END
+
+    IDD_CITYSEARCH, DIALOG
     BEGIN
     END
 
@@ -2200,9 +2215,9 @@ BEGIN
     IDD_FIRERENDER_EXPORT, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 247
+        RIGHTMARGIN, 244
         TOPMARGIN, 7
-        BOTTOMMARGIN, 94
+        BOTTOMMARGIN, 89
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2594,6 +2609,7 @@ BEGIN
     0
 END
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
@@ -2736,6 +2752,19 @@ BEGIN
 0x6445, 0x6567, 0x4f20, 0x6c6e, 0x0079, 
     IDC_UBER3_DISPLACEMENT_BOUNDARY_INTEROP_TYPE, 0x403, 16, 0
 0x6445, 0x6567, 0x4120, 0x646e, 0x4320, 0x726f, 0x656e, 0x0072, 
+    0
+END
+
+IDD_FIRERENDER_EXPORT DLGINIT
+BEGIN
+    IDC_EXPORT_COMRESSION, 0x403, 5, 0
+0x6f4e, 0x656e, "\000" 
+    IDC_EXPORT_COMRESSION, 0x403, 8, 0
+0x654c, 0x6576, 0x206c, 0x0031, 
+    IDC_EXPORT_COMRESSION, 0x403, 8, 0
+0x654c, 0x6576, 0x206c, 0x0032, 
+    IDC_EXPORT_COMRESSION, 0x403, 8, 0
+0x654c, 0x6576, 0x206c, 0x0033, 
     0
 END
 

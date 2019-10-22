@@ -1417,8 +1417,6 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 
 		std::transform(ext.begin(), ext.end(), ext.begin(), std::tolower);
 		
-		
-		
 		bool exportOk = true;
 
 		if ("gltf" == ext)
@@ -1428,12 +1426,9 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 		}
 		else if ("rpr" == ext)
 		{
-#if (RPR_API_COMPAT >= 0x010032400)
 			unsigned int exportFlags = (exportState.IsUseExternalFiles) ? RPRLOADSTORE_EXPORTFLAG_EXTERNALFILES : 0;
+			exportFlags |= exportState.compressionFlags;
 			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0, exportFlags);
-#else
-			rpr_int statusExport = rprsExport(exportFilename.c_str(), context, scene, 0, 0, 0, 0, 0, 0);
-#endif
 			exportOk = statusExport == RPR_SUCCESS;
 		}
 
@@ -1936,6 +1931,11 @@ bool PRManagerMax::GetIsExportCurrentFrame()
 void PRManagerMax::SetIsExportCurrentFrame(bool state)
 {
 	exportState.IsExportCurrentFrame = state;
+}
+
+void PRManagerMax::SetExportCompressionFlags(std::uint32_t flags)
+{
+	exportState.compressionFlags = flags;
 }
 
 void PRManagerMax::SetExportName(const std::wstring & fileName)

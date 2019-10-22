@@ -126,6 +126,8 @@ public:
 
 	void SetExportName(const std::wstring & fileName);
 
+	void SetExportCompressionFlags(std::uint32_t flags);
+
 	static const MCHAR* GetStampHelp();
 
 private:
@@ -185,6 +187,7 @@ private:
 		bool IsEnable = false;
 		bool IsUseExternalFiles = false;
 		bool IsExportCurrentFrame = false;
+		std::uint32_t compressionFlags = 0;
 		std::wstring FileName;
 	} exportState;
 	
