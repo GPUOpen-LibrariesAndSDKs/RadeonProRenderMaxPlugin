@@ -18,6 +18,7 @@
 #include <iomanip>
 #include <vector>
 #include <codecvt>
+#include <experimental/filesystem>
 
 #pragma comment(lib,"Version.lib")
 
@@ -107,7 +108,6 @@ std::wstring GetDataStoreFolder()
 	return TheManager->GetDir(APP_PLUGCFG_DIR) + std::wstring(DATA_FOLDER_NAME);
 }
 
-
 std::wstring GetModuleFolder()
 {
 	std::wstring pluginPath;
@@ -124,16 +124,42 @@ std::wstring GetModuleFolder()
 			std::vector<wchar_t> buffer(pathSize);
 
 			GetModuleFileName(hModule, &buffer[0], pathSize);
+			DWORD rc = GetLastError();
 
-			if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+			if (ERROR_INSUFFICIENT_BUFFER == rc)
 			{
 				pathSize *= 2;
 			}
-			else
+			else if (ERROR_SUCCESS == rc)
 			{
 				pluginPath.assign(buffer.data());
 				break;
 			}
+		}
+	}
+
+	// in case we deal with a link, a real name of the module must be obtained
+	DWORD fa = GetFileAttributes(pluginPath.c_str());
+	bool isLink = fa & FILE_ATTRIBUTE_REPARSE_POINT;
+
+	if (isLink)
+	{
+		HANDLE file = (HANDLE)CreateFile(pluginPath.c_str(), GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		
+		if (file != INVALID_HANDLE_VALUE)
+		{
+			// return value includes the size of the terminating null character
+			int neededSize = GetFinalPathNameByHandle(file, 0, 0, VOLUME_NAME_NT);
+			std::vector<wchar_t> buffer(neededSize);
+			// return value does not include the size of the terminating null character
+			int actualSize = GetFinalPathNameByHandle(file, buffer.data(), neededSize, 0);
+
+			if (actualSize > 0)
+			{
+				pluginPath.assign(buffer.data());
+			}
+
+			CloseHandle(file);
 		}
 	}
 

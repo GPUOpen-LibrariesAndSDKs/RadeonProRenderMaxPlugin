@@ -61,13 +61,8 @@
 #include "PRManager.h"
 #include "utils\Utils.h"
 
-#ifdef FIREMAX_DEBUG
-#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RadeonProRender64.lib") // no 'D' suffix as no debug lib supplied
-#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
-#else
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RadeonProRender64.lib") 
 #pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
-#endif
 
 #pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/AxFDecoding_r.lib")
 #pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/FreeImage.lib")
@@ -76,96 +71,69 @@
 #pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/libboost_regex-vc140-mt-1_62.lib")
 #pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/libboost_system-vc140-mt-1_62.lib")
 
-#if MAX_PRODUCT_YEAR_NUMBER == 2013
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/maxutil.lib")
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/core.lib")
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/paramblk2.lib")
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/bmm.lib")
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/geom.lib")
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/mesh.lib")
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/poly.lib")
-#   pragma comment (lib, "plugins/maxsdk 2013/x64/lib/gup.lib")
-#elif MAX_PRODUCT_YEAR_NUMBER == 2014
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/maxutil.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/core.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/paramblk2.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/bmm.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/geom.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/mesh.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/poly.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/gfx.lib")
-#   pragma comment (lib, "plugins/maxsdk 2014/lib/x64/Release/gup.lib")
-#elif MAX_PRODUCT_YEAR_NUMBER == 2015
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/maxutil.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/core.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/paramblk2.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/bmm.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/geom.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/mesh.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/poly.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/gfx.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/gup.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/GraphicsDriver.lib")
-#   pragma comment (lib, "plugins/maxsdk 2015/lib/x64/Release/DefaultRenderItems.lib")
-#else
-#   pragma comment (lib, "Release/maxutil.lib")
-#   pragma comment (lib, "Release/core.lib")
-#   pragma comment (lib, "Release/paramblk2.lib")
-#   pragma comment (lib, "Release/bmm.lib")
-#   pragma comment (lib, "Release/geom.lib")
-#   pragma comment (lib, "Release/mesh.lib")
-#   pragma comment (lib, "Release/poly.lib")
-#   pragma comment (lib, "Release/gfx.lib")
-#   pragma comment (lib, "Release/GraphicsDriver.lib")
-#   pragma comment (lib, "Release/DefaultRenderItems.lib")
-#   pragma comment (lib, "Release/maxscrpt.lib")
-#   pragma comment (lib, "Release/gup.lib")
-#   pragma comment (lib, "Release/ManipSys.lib")
-#endif
+#pragma comment (lib, "Release/maxutil.lib")
+#pragma comment (lib, "Release/core.lib")
+#pragma comment (lib, "Release/paramblk2.lib")
+#pragma comment (lib, "Release/bmm.lib")
+#pragma comment (lib, "Release/geom.lib")
+#pragma comment (lib, "Release/mesh.lib")
+#pragma comment (lib, "Release/poly.lib")
+#pragma comment (lib, "Release/gfx.lib")
+#pragma comment (lib, "Release/GraphicsDriver.lib")
+#pragma comment (lib, "Release/DefaultRenderItems.lib")
+#pragma comment (lib, "Release/maxscrpt.lib")
+#pragma comment (lib, "Release/gup.lib")
+#pragma comment (lib, "Release/ManipSys.lib")
 
 extern "C" void DisableGltfExport();
-
 
 HINSTANCE FireRender::fireRenderHInstance;
 
 // This is the required signature for some of the functions to be loaded by 3ds Max when the DLL is loaded
 #define EXPORT_TO_MAX extern "C" __declspec(dllexport)
 
-namespace {
+namespace
+{
 	std::vector<ClassDesc*> gClassInstances;
-
 };
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, ULONG fdwReason, LPVOID /*lpvReserved*/) {
-    if (fdwReason == DLL_PROCESS_ATTACH) {
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, ULONG fdwReason, LPVOID /*lpvReserved*/)
+{
+    if (fdwReason == DLL_PROCESS_ATTACH)
+	{
         // Save the HINSTANCE of this plugin
         FireRender::fireRenderHInstance = hinstDLL;
         DisableThreadLibraryCalls(hinstDLL);
-    }
+	}
+
     return true;
 }
 
 /// Returns a description that is displayed in 3ds Max plugin manager
-EXPORT_TO_MAX const TCHAR* LibDescription() {
+EXPORT_TO_MAX const TCHAR* LibDescription()
+{
     return _T("Radeon ProRender for 3ds Max(R)");
 }
 
-
 /// Tells 3ds Max how many plugins are implemented in this DLL. Determines the indices with which LibClassDesc is called later
-EXPORT_TO_MAX int LibNumberClasses() {
+EXPORT_TO_MAX int LibNumberClasses()
+{
 	return int_cast(gClassInstances.size());
 }
 
 /// Returns the class descriptors for all plugins implemented in this DLL
-EXPORT_TO_MAX ClassDesc* LibClassDesc(int i) {
+EXPORT_TO_MAX ClassDesc* LibClassDesc(int i)
+{
 	if (i < gClassInstances.size())
 		return gClassInstances[i];
-        FASSERT(false);
-        return NULL;
-    }
+
+	FASSERT(false);
+    return NULL;
+}
 
 /// Has to always return Get3DSMAXVersion()
-EXPORT_TO_MAX ULONG LibVersion() {
+EXPORT_TO_MAX ULONG LibVersion()
+{
     return Get3DSMAXVersion();
 }
 
@@ -175,16 +143,6 @@ ClassDesc2& GetAOVElementClassDesc(int);
 /// Called by 3ds Max immediately after 3ds Max loads the plugin. Any initialization should be done here (and not in DllMain)
 EXPORT_TO_MAX int LibInitialize()
 {
-	HMODULE hModule = NULL;
-
-	if ( !GetModuleHandleEx(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-		(LPTSTR) &LibInitialize, &hModule) )
-	{
-		MessageBox(0, L"Failed to get module handle. Plugin will not be loaded.", L"Radeon ProRender", MB_OK | MB_ICONEXCLAMATION);
-
-		return 0;
-	}
-
 	std::wstring pluginPath = FireRender::GetModuleFolder();
 
 	if ( pluginPath.empty() )
@@ -340,15 +298,17 @@ EXPORT_TO_MAX int LibInitialize()
 }
 
 /// Called by 3ds Max immediately before the plugin is unloaded (e.g. when closing the application)
-EXPORT_TO_MAX int LibShutdown() {
+EXPORT_TO_MAX int LibShutdown()
+{
     return true;
 }
 
-TCHAR *GetString(int id)
+TCHAR* GetString(int id)
 {
 	static TCHAR buf[1024];
 
 	if( FireRender::fireRenderHInstance )
 		return ( LoadString( FireRender::fireRenderHInstance, id, buf, _countof(buf) ) ? buf : NULL );
+
 	return NULL;
 }
