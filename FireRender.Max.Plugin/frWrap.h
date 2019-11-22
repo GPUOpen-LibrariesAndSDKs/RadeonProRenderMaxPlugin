@@ -2715,8 +2715,8 @@ namespace frw
 		rpr_int status = rprImageGetInfo(img, RPR_IMAGE_DESC, sizeof(desc), &desc, nullptr);
 		FCHECK(status);
 
-		fr_image_format format;
-		status = frImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr);
+		rpr_image_format format;
+		status = rprImageGetInfo(img, RPR_IMAGE_FORMAT, sizeof(format), &format, nullptr);
 		FCHECK(status);
 		
 		return format.num_components == 1;

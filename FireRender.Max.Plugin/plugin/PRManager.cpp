@@ -1270,7 +1270,7 @@ int PRManagerMax::Render(FireRenderer* pRenderer, TimeValue t, ::Bitmap* frontBu
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_PHOTOLINEAR_FSTOP, fstop); FASSERT(res);
 					res = TmManagerMax::TheManager.GetProperty(PARAM_TM_PHOTOLINEAR_SHUTTERSPEED, shutterspeed); FASSERT(res);
 					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_TYPE, RPR_TONEMAPPING_OPERATOR_PHOTOLINEAR);
-					context.SetParameter(FR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_SENSITIVITY, iso * 0.01f);
+					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_SENSITIVITY, iso * 0.01f);
 					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_FSTOP, fstop);
 					context.SetParameter(RPR_CONTEXT_TONE_MAPPING_PHOTO_LINEAR_EXPOSURE, 1.0f / shutterspeed);
 				}

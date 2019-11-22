@@ -45,13 +45,11 @@ set AxfFiles=^
 	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"
 	
 set ImageLibFiles=^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonImageFilters64.dll"^
 	"ThirdParty\RadeonProImageProcessing\Windows\lib\MIOpen.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\OpenImageDenoise.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonProML.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\tbb-4233fe.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\tbbmalloc-4233fe.dll"
-	
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonImageFilters64.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonML-DirectML.dll"^
+	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonML-MIOpen.dll"
+
 set GltfFiles=^
 	"ThirdParty\RadeonProRender-GLTF\Win\lib\ProRenderGLTF.dll"
 

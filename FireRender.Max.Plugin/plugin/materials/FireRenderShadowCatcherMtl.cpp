@@ -214,15 +214,15 @@ frw::Shader FRMTLCLASSNAME(ShadowCatcherMtl)::getShader(const TimeValue t, Mater
 
 		value = canUseMap ? materialSystem.ValueMul(mtlParser.createMap(map, MAP_FLAG_NOFLAGS), color) : color;
 
-		shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, value);
+		shader.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_COLOR, value);
 
 		// - background weight
 		float backgroundColorWeight = GetFromPb<float>(pblock, FRSHADOWCATCHER_BACKGROUND_WEIGHT_MUL);
-		shader.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_WEIGHT, value);
+		shader.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_WEIGHT, value);
 
 		// - background alpha
 		float backgroundColorAlpha = GetFromPb<float>(pblock, FRSHADOWCATCHER_BACKGROUND_ALPHA_MUL);
-		shader.SetValue(RPR_UBER_MATERIAL_INPUT_TRANSPARENCY, value);
+		shader.SetValue(RPR_MATERIAL_INPUT_UBER_TRANSPARENCY, value);
 	}
 
 	shader.SetShadowCatcher(true);

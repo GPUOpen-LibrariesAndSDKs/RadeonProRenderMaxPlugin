@@ -400,22 +400,22 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 		frw::Value color(diffuseColor.r, diffuseColor.g, diffuseColor.b);
 		if (diffuseColorTexmap)
 			color = mtlParser.createMap(diffuseColorTexmap, 0);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, color);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_COLOR, color);
 
 		if (diffuseNormalTexmap)
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, diffuseNormalTexmap, 1.f, mtlParser));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, diffuseNormalTexmap, 1.f, mtlParser));
 	}
 
 	// GLOSSY (uses microfacet for now, will use ward)
 	{
 		if (!reflUse)
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, frw::Value(0.f));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_WEIGHT, frw::Value(0.f));
 		else
 		{
 			frw::Value color(reflColor.r, reflColor.g, reflColor.b);
 			if (reflColorTexmap)
 				color = mtlParser.createMap(reflColorTexmap, 0);
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_COLOR, color);
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_COLOR, color);
 			
 			frw::Value roughx(reflRoughnessX, reflRoughnessX, reflRoughnessX);
 			if (reflRoughnessXTexmap)
@@ -428,27 +428,27 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 			material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS_Y, ms.ValueAdd(roughy, 0.000001f));
 
 			if (reflNormalTexmap)
-				material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, reflNormalTexmap, 1.f, mtlParser));
+				material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, reflNormalTexmap, 1.f, mtlParser));
 
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, ms.ValueFresnel(reflIOR));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_WEIGHT, ms.ValueFresnel(reflIOR));
 		}
 	}
 
 	// CLEARCOAT (specular reflections)
 	{
 		if (!ccUse)
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_WEIGHT, frw::Value(0.f));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_COATING_WEIGHT, frw::Value(0.f));
 		else
 		{
 			frw::Value color(ccColor.r, ccColor.g, ccColor.b);
 			if (ccColorTexmap)
 				color = mtlParser.createMap(ccColorTexmap, 0);
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_COLOR, color);
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_COATING_COLOR, color);
 
 			if (ccNormalTexmap)
-				material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, ccNormalTexmap, 1.f, mtlParser));
+				material.SetValue(RPR_MATERIAL_INPUT_UBER_COATING_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, ccNormalTexmap, 1.f, mtlParser));
 
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_WEIGHT, ms.ValueFresnel(ccIOR));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_COATING_WEIGHT, ms.ValueFresnel(ccIOR));
 		}
 	}
 
@@ -457,23 +457,23 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 		frw::Value color(refrColor.r, refrColor.g, refrColor.b);
 		if (refrColorTexmap)
 			color = mtlParser.createMap(refrColorTexmap, 0);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_COLOR, color);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_COLOR, color);
 				
 		if (refrNormalTexmap)
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, refrNormalTexmap, 1.f, mtlParser));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_NORMAL, FRMTLCLASSNAME(NormalMtl)::translateGenericBump(t, refrNormalTexmap, 1.f, mtlParser));
 
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_IOR, frw::Value(refrIOR));
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_IOR, frw::Value(refrIOR));
 
 		frw::Value rough(refrRoughness, refrRoughness, refrRoughness);
 		if (refrRoughnessTexmap)
 			rough = mtlParser.createMap(refrRoughnessTexmap, MAP_FLAG_NOGAMMA);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_ROUGHNESS, rough);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_ROUGHNESS, rough);
 
 		frw::Value weight(diffuseLevel, diffuseLevel, diffuseLevel);
 		if (diffuseLevelTexmap)
 			weight = mtlParser.createMap(diffuseLevelTexmap, MAP_FLAG_NOGAMMA);
 		weight = ms.ValueSub(1.0, weight);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_WEIGHT, weight);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_WEIGHT, weight);
 	}
 
 	// TRANSPARENCY
@@ -481,7 +481,7 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 		frw::Value color(transpColor.r, transpColor.g, transpColor.b);
 		if (transpColorTexmap)
 			color = mtlParser.createMap(transpColorTexmap, 0);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_TRANSPARENCY, color);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_TRANSPARENCY, color);
 
 		frw::Value weight(transpLevel, transpLevel, transpLevel);
 		if (transpLevelTexmap)
@@ -491,7 +491,7 @@ frw::Shader FRMTLCLASSNAME(UberMtl)::getShader(const TimeValue t, MaterialParser
 			if (invert)
 				weight = ms.ValueSub(frw::Value(1.0), weight);
 		}
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_TRANSPARENCY, weight);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_TRANSPARENCY, weight);
 	}
 
     return material;

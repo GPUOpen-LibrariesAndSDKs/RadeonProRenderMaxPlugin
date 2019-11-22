@@ -499,7 +499,7 @@ void MPManagerMax::InitializeScene(IParamBlock2 *pblock)
 
 		rpr_int status = rprsListImportedImages(NULL, 0, &nbImages); FCHECK(status);
 		imageList.resize(nbImages);
-		status = rprsListImportedImages(imageList.data(), sizeof(fr_image)*nbImages, NULL); FCHECK(status);
+		status = rprsListImportedImages(imageList.data(), sizeof(rpr_image)*nbImages, NULL); FCHECK(status);
 		
 		status = rprsListImportedShapes(NULL, 0, &nbShapes); FASSERT(status == RPR_SUCCESS);
 		shapeList.resize(nbShapes);

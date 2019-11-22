@@ -1781,10 +1781,10 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 		{
 			float bumpAmount = GetFromPb<float>(pb, Corona::MTLP_MAPAMOUNT_BUMP);
 			bumpMap = FRMTLCLASSNAME(NormalMtl)::translateGenericBump(mT, normalTexmap, bumpAmount, *this);
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_NORMAL, bumpMap);
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_NORMAL, bumpMap);
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_NORMAL, bumpMap);
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_NORMAL, bumpMap);
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_NORMAL, bumpMap);
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_COATING_NORMAL, bumpMap);
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_NORMAL, bumpMap);
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_NORMAL, bumpMap);
 		}
 	}
 
@@ -1799,27 +1799,27 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 
 	// DIFFUSE
 	if (diffuseColorMap.IsNull())
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, materialSystem.ValueMul(diffuseColor, lDiffuse));
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_COLOR, materialSystem.ValueMul(diffuseColor, lDiffuse));
 	else
 	{
 		frw::Value diff(materialSystem.ValueMul(diffuseColor, lDiffuse));
 		frw::Value difftex(materialSystem.ValueMul(diffuseColorMap, lDiffuse));
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, materialSystem.ValueBlend(diff, difftex, diffuseColorMap_mapAmount));
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_COLOR, materialSystem.ValueBlend(diff, difftex, diffuseColorMap_mapAmount));
 	}
 
 	// REFRACTION
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_WEIGHT, frw::Value(1.f - lRefract));
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_WEIGHT, frw::Value(1.f - lRefract));
 
 	if (refractColorMap.IsNull())
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_COLOR, materialSystem.ValueMul(refractColor, lRefract));
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_COLOR, materialSystem.ValueMul(refractColor, lRefract));
 	else
 	{
 		frw::Value refr(materialSystem.ValueMul(refractColor, lRefract));
 		frw::Value refrtex(materialSystem.ValueMul(refractColorMap, lRefract));
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_COLOR, materialSystem.ValueBlend(refr, refrtex, refractColorMap_mapAmount));
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_COLOR, materialSystem.ValueBlend(refr, refrtex, refractColorMap_mapAmount));
 	}
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_ROUGHNESS, materialSystem.ValueSub(frw::Value(1.f), glossinessRefraction));
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_IOR, ior);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_ROUGHNESS, materialSystem.ValueSub(frw::Value(1.f), glossinessRefraction));
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_IOR, ior);
 
 	// REFLECTION
 	if (lReflect > 0.f)
@@ -1840,27 +1840,27 @@ frw::Shader MaterialParser::parseCoronaMtl(Mtl* mtl)
 		frw::Value reflColor(materialSystem.ValueMul(reflectColor, lReflect));
 
 		if (reflectColorMap.IsNull())
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_COLOR, materialSystem.ValueMul(reflectColor, lReflect));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_COLOR, materialSystem.ValueMul(reflectColor, lReflect));
 		else
 		{
 			frw::Value refl(materialSystem.ValueMul(reflectColor, lReflect));
 			frw::Value refltex(materialSystem.ValueMul(reflectColorMap, lReflect));
-			material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_COLOR, materialSystem.ValueBlend(refl, refltex, reflectColorMap_mapAmount));
+			material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_COLOR, materialSystem.ValueBlend(refl, refltex, reflectColorMap_mapAmount));
 		}
 
 		material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS_X, roughness);
 		material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS_Y, roughness);
 
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, materialSystem.ValueFresnel(fresnelIor));
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_WEIGHT, materialSystem.ValueFresnel(fresnelIor));
 	}
 	else
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, frw::Value(0.f));
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_WEIGHT, frw::Value(0.f));
 
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_COATING_WEIGHT, frw::Value(0.f));
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_COATING_WEIGHT, frw::Value(0.f));
 
 	// OPACITY
 	//material.SetValue("transparency.color", opacityColor);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_TRANSPARENCY, materialSystem.ValueSub(frw::Value(1.0), lOpacity));
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_TRANSPARENCY, materialSystem.ValueSub(frw::Value(1.0), lOpacity));
 
 	DumpFRContents(material.Handle());
 

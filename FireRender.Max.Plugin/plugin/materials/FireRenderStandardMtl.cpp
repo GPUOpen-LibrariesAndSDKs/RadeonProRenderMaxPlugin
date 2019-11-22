@@ -165,39 +165,39 @@ frw::Shader FRMTLCLASSNAME(StandardMtl)::getShader(const TimeValue t, MaterialPa
 	GETSHADERFLOAT_NOMAP(emissionIntensity, FRStandardMtl_EMISSION_INTENSITY, t)
 	GETSHADERFLOAT(mtlParser, emissionWeight, FRStandardMtl_EMISSION_WEIGHT, FRStandardMtl_EMISSION_WEIGHT_TEXMAP, t)
 
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_COLOR, diffuse);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_ROUGHNESS, diffuseRoughness);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_WEIGHT, diffuseWeight);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_COLOR, diffuse);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_ROUGHNESS, diffuseRoughness);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_WEIGHT, diffuseWeight);
 	
 	if (diffuseNormalTexmap)
 	{
 		frw::Value normalMap = mtlParser.createMap(diffuseNormalTexmap, MAP_FLAG_NORMALMAP);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_DIFFUSE_NORMAL, normalMap);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_DIFFUSE_NORMAL, normalMap);
 	}
 
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_COLOR, reflect);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_IOR, reflectIOR);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_ROUGHNESS, reflectRoughness);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_WEIGHT, reflectWeight);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_COLOR, reflect);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_IOR, reflectIOR);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_ROUGHNESS, reflectRoughness);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_WEIGHT, reflectWeight);
 
 	if (reflectNormalTexmap)
 	{
 		frw::Value normalMap = mtlParser.createMap(reflectNormalTexmap, MAP_FLAG_NORMALMAP);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFLECTION_NORMAL, normalMap);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFLECTION_NORMAL, normalMap);
 	}
 
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_COLOR, refract);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_IOR, refractIOR);
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_WEIGHT, refractWeight);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_COLOR, refract);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_IOR, refractIOR);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_WEIGHT, refractWeight);
 	
 	if (refractNormalTexmap)
 	{
 		frw::Value normalMap = mtlParser.createMap(refractNormalTexmap, MAP_FLAG_NORMALMAP);
-		material.SetValue(RPR_UBER_MATERIAL_INPUT_REFRACTION_NORMAL, normalMap);
+		material.SetValue(RPR_MATERIAL_INPUT_UBER_REFRACTION_NORMAL, normalMap);
 	}
 
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_EMISSION_COLOR, ms.ValueMul(emissionIntensity, emission));
-	material.SetValue(RPR_UBER_MATERIAL_INPUT_EMISSION_WEIGHT, emissionWeight);
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_EMISSION_COLOR, ms.ValueMul(emissionIntensity, emission));
+	material.SetValue(RPR_MATERIAL_INPUT_UBER_EMISSION_WEIGHT, emissionWeight);
 
 	if (emissionWeight_direct > 0.f)
 		material.SetEmissiveFlag(true);

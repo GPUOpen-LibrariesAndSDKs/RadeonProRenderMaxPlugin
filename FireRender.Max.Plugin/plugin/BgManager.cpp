@@ -1159,10 +1159,10 @@ frw::Image BgManagerMax::GenerateSky(frw::Scope &scope, IParamBlock2 *pb, const 
 		::TheManager->DelBitmap(sky_bmap);
 #endif
 
-		fr_image_desc imgDesc = {};
+		rpr_image_desc imgDesc = {};
 		imgDesc.image_width = SKYENV_WIDTH;
 		imgDesc.image_height = SKYENV_HEIGHT;
-		mSkyImage = frw::Image(scope, { 3, FR_COMPONENT_TYPE_FLOAT32 }, imgDesc, mSkyBuffer);
+		mSkyImage = frw::Image(scope, { 3, RPR_COMPONENT_TYPE_FLOAT32 }, imgDesc, mSkyBuffer);
 	}
 
 	return mSkyImage;
