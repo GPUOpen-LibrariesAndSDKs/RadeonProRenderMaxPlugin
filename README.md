@@ -1,6 +1,6 @@
 # Radeon ProRender Max Plugin
 
-Development requires 3dsMax 2017 or later.
+Development requires 3dsMax 2018 or later.
 
 ## Build Environment
 
@@ -8,19 +8,18 @@ Projects expect to find Max SDKs and binaries via environment variables (if they
 set them to appropriate values)
 
 Samples:
-	ADSK_3DSMAX_SDK_2017=C:\Program Files\Autodesk\3ds Max 2017 SDK\maxsdk
 	ADSK_3DSMAX_SDK_2018=C:\Program Files\Autodesk\3ds Max 2018 SDK\maxsdk
 	ADSK_3DSMAX_SDK_2019=C:\Program Files\Autodesk\3ds Max 2019 SDK\maxsdk
 	ADSK_3DSMAX_SDK_2020=C:\Program Files\Autodesk\3ds Max 2020 SDK\maxsdk
-	ADSK_3DSMAX_x64_2017=C:\Program Files\Autodesk\3ds Max 2017\
 	ADSK_3DSMAX_x64_2018=C:\Program Files\Autodesk\3ds Max 2018\
 	ADSK_3DSMAX_x64_2019=C:\Program Files\Autodesk\3ds Max 2019\
 	ADSK_3DSMAX_x64_2020=C:\Program Files\Autodesk\3ds Max 2020\
 
 ## ThirdParty libraries
 
-External dependencies must be included in the repository's ThirdParty directory. Please check the README in the ThirdParty directory
-to see how to acquire the required libraries.
+There is ThirdParty repository included to the project as a submodule. Please update submodules:
+
+`git submodule update --init -f --recursive`
 
 ## To compile a release
 
