@@ -43,6 +43,8 @@ extern HINSTANCE hInstance;
 
 FIRERENDER_NAMESPACE_BEGIN
 
+std::shared_ptr<float[]> testBuf;
+
 static Event PRManagerMaxDone(false);
 
 inline std::wstring makeExportFileName(const std::wstring & name, const unsigned int nFrame)
@@ -250,6 +252,13 @@ void ProductionRenderCore::SaveFrameData()
 			if (mDenoiser)
 			{
 				frameBufferDiffuseAlbedo.Resolve(frameBufferDiffuseAlbedoResolve);
+
+				size_t fbSize;
+				int res = rprFrameBufferGetInfo(frameBufferColorResolve.Handle(), RPR_FRAMEBUFFER_DATA, 0, NULL, &fbSize);
+				FCHECK(res);
+
+				res = rprFrameBufferGetInfo(frameBufferColorResolve.Handle(), RPR_FRAMEBUFFER_DATA, fbSize, testBuf.get(), NULL);
+				FCHECK(res);
 
 				mDenoiser->Run();
 			}
@@ -1810,13 +1819,16 @@ void PRManagerMax::SetupDenoiser(frw::Context context, PRManagerMax::Data* data,
 	const rpr_framebuffer fbDiffuseAlbedo = data->renderThread->frameBufferDiffuseAlbedoResolve.Handle();
 	const rpr_framebuffer fbTrans = fbObjectId;
 
+	testBuf = std::shared_ptr<float[]>(new float[imageWidth*imageHeight*4], std::default_delete<float[]>());
+
 	data->mDenoiser.reset( new ImageFilter(context.Handle(), imageWidth, imageHeight, mMlModelPath.c_str()));
 	ImageFilter& filter = *data->mDenoiser;
 
 	if (DenoiserBilateral == type)
 	{
 		filter.CreateFilter(RifFilterType::BilateralDenoise);
-		filter.AddInput(RifColor, fbColor, 0.3f);
+		//filter.AddInput(RifColor, fbColor, 0.3f);
+		filter.AddInput(RifColor, testBuf, imageWidth*imageHeight*4*sizeof(float), 0.3f);
 		filter.AddInput(RifNormal, fbShadingNormal, 0.01f);
 		filter.AddInput(RifWorldCoordinate, fbWorldCoord, 0.01f);
 
