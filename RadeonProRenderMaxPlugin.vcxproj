@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug-2017|x64">
-      <Configuration>Debug-2017</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug-2018|x64">
       <Configuration>Debug-2018</Configuration>
       <Platform>x64</Platform>
@@ -15,10 +11,6 @@
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug-2020|x64">
       <Configuration>Debug-2020</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release-2017|x64">
-      <Configuration>Release-2017</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release-2018|x64">
@@ -43,10 +35,6 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'" Label="Configuration">
-    <PlatformToolset>v140</PlatformToolset>
-    <UseDebugLibraries>true</UseDebugLibraries>
-  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'" Label="Configuration">
     <PlatformToolset>v140</PlatformToolset>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -62,11 +50,6 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <MaxSDK>$(ADSK_3DSMAX_SDK_2020)</MaxSDK>
     <MAX_VERSION>2020</MAX_VERSION>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'" Label="Configuration">
-    <PlatformToolset>v140</PlatformToolset>
-    <UseDebugLibraries>false</UseDebugLibraries>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release-2018|x64'" Label="Configuration">
     <PlatformToolset>v140</PlatformToolset>
@@ -107,14 +90,8 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'" Label="PropertySheets">
-    <Import Project="$(ProjectDir)\PropertySheets\Max2017.props" />
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'" Label="PropertySheets">
     <Import Project="$(ProjectDir)\PropertySheets\Max2018.props" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'" Label="PropertySheets">
-    <Import Project="$(ProjectDir)\PropertySheets\Max2017.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release-2018|x64'" Label="PropertySheets">
     <Import Project="$(ProjectDir)\PropertySheets\Max2018.props" />
@@ -141,31 +118,6 @@
     <IntDir>$(ProjectDir)\bin\intermediate\$(Configuration)\</IntDir>
     <TargetExt>.dlr</TargetExt>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">
-    <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>FIREMAX_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <MinimalRebuild>false</MinimalRebuild>
-      <FloatingPointModel>Fast</FloatingPointModel>
-      <OpenMPSupport>true</OpenMPSupport>
-      <ExceptionHandling>Async</ExceptionHandling>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
-    </Link>
-    <PostBuildEvent />
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -233,34 +185,6 @@
       <AdditionalDependencies>wbemuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
       <AdditionalLibraryDirectories>$(MaxSdkLib);$(MaxSdkDir)lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-    <PostBuildEvent />
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">
-    <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <FloatingPointModel>Fast</FloatingPointModel>
-      <OpenMPSupport>true</OpenMPSupport>
-      <ExceptionHandling>Async</ExceptionHandling>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
-      <ForcedIncludeFiles>precompiled.h</ForcedIncludeFiles>
-    </ClCompile>
-    <Link>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>wbemuuid.lib;\Release\ManipSys.lib;$(ADSK_3DSMAX_SDK_2017)\lib\x64\Release\ManipSys.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>RadeonProRender64.dll;RprLoadStore64.dll;ProRenderGLTF.dll;RadeonImageFilters64.dll</DelayLoadDLLs>
     </Link>
     <PostBuildEvent />
     <ResourceCompile>
@@ -547,16 +471,12 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release-2019|x64'">precompiled.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-2020|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release-2020|x64'">precompiled.h</PrecompiledHeaderFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug-2017|x64'">precompiled.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug-2018|x64'">precompiled.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-2019|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug-2019|x64'">precompiled.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-2020|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug-2020|x64'">precompiled.h</PrecompiledHeaderFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release-2017|x64'">precompiled.h</PrecompiledHeaderFile>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release-2018|x64'">Create</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release-2018|x64'">precompiled.h</PrecompiledHeaderFile>
     </ClCompile>
@@ -564,7 +484,7 @@
     <ClCompile Include="FireRender.Max.Plugin\utils\KelvinToColor.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\utils\Thread.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\utils\Utils.cpp" />
-    <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp" />
+    <ClCompile Include="RadeonProRenderSDK\RadeonProRender\rprTools\RprTools.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\RadeonProRenderLogo.bmp" />

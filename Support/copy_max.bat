@@ -28,30 +28,28 @@ set DataFiles=^
 	"Support\*.frs"^
 	"Support\*.dat"
 
-set CoreFiles=^
-	"ThirdParty\RadeonProRender SDK\Win\bin\Tahoe64.dll"^
-	"ThirdParty\RadeonProRender SDK\Win\bin\RadeonProRender64.dll"^
-	"ThirdParty\RadeonProRender SDK\Win\bin\RprLoadStore64.dll"^
-	"ThirdParty\RadeonProRender SDK\Win\bin\OpenImageIO_RPR.dll"
+set RprPath="RadeonProRenderSDK\RadeonProRender\binWin64"
 
-set EmbreeFiles=^
-	"..\RadeonProRenderPkgPlugin\MaxPkg\support\origindll\embree.dll"^
-	"..\RadeonProRenderPkgPlugin\MaxPkg\support\origindll\tbb.dll"^
-	"..\RadeonProRenderPkgPlugin\MaxPkg\support\origindll\tbbmalloc.dll"
+set CoreFiles=^
+	"%RprPath%\Tahoe64.dll"^
+	"%RprPath%\RadeonProRender64.dll"^
+	"%RprPath%\RprLoadStore64.dll"^
+	"%RprPath%\ProRenderGLTF.dll"
+
+set RifPath="RadeonProImageProcessingSDK\radeonimagefilters-1.4.3-2839b0-Windows-rel"
+	
+set RifLibFiles=^
+	"%RifPath%\bin\MIOpen.dll"^
+	"%RifPath%\bin\RadeonImageFilters64.dll"^
+	"%RifPath%\bin\RadeonML-DirectML.dll"^
+	"%RifPath%\bin\RadeonML-MIOpen.dll"
+
+set AfxPath="ThirdParty\AxfPackage\ReleaseDll\AxfDll"
 
 set AxfFiles=^
-	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxfConverter.dll"^
-	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\AxFDecoding_r.dll"^
-	"ThirdParty\AxfPackage\ReleaseDll\AxfDll\FreeImage.dll"
-	
-set ImageLibFiles=^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\MIOpen.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonImageFilters64.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonML-DirectML.dll"^
-	"ThirdParty\RadeonProImageProcessing\Windows\lib\RadeonML-MIOpen.dll"
-
-set GltfFiles=^
-	"ThirdParty\RadeonProRender-GLTF\Win\lib\ProRenderGLTF.dll"
+	"%AfxPath%\AxfConverter.dll"^
+	"%AfxPath%\AxFDecoding_r.dll"^
+	"%AfxPath%\FreeImage.dll"
 
 ::make distribution folder with files for installer
 if not exist %DIST_PATH% md %DIST_PATH%
@@ -60,7 +58,7 @@ for %%a in (%DataFiles%) do (
 	xcopy %%a "%DIST_PATH%\data\*" /S /Y /I
 )
 
-set PluginBundle=CoreFiles EmbreeFiles AxfFiles GltfFiles ImageLibFiles
+set PluginBundle=CoreFiles RifLibFiles AxfFiles
 
 for %%b in (%PluginBundle%) do (
 	for %%a in (!%%b!) do ( 
@@ -69,7 +67,7 @@ for %%b in (%PluginBundle%) do (
 )
 
 :: copy Image Library ML models
-xcopy "ThirdParty\RadeonProImageProcessing\models" "%DIST_PATH%\data\models" /S /Y /I
+xcopy "RadeonProImageProcessingSDK\models" "%DIST_PATH%\data\models" /S /Y /I
 
 :: copy scene convertion scripts
 if not exist "%DIST_PATH%\data\SceneConvertionScripts" mkdir "%DIST_PATH%\data\SceneConvertionScripts"

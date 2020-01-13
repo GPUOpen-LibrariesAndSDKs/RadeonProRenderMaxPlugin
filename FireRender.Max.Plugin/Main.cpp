@@ -61,16 +61,6 @@
 #include "PRManager.h"
 #include "utils\Utils.h"
 
-#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RadeonProRender64.lib") 
-#pragma comment (lib, "ThirdParty/RadeonProRender SDK/Win/lib/RprLoadStore64.lib")
-
-#pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/AxFDecoding_r.lib")
-#pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/FreeImage.lib")
-#pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/libboost_filesystem-vc140-mt-1_62.lib")
-#pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/libboost_program_options-vc140-mt-1_62.lib")
-#pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/libboost_regex-vc140-mt-1_62.lib")
-#pragma comment (lib, "ThirdParty/AxfPackage/ReleaseDll/AxfLib/libboost_system-vc140-mt-1_62.lib")
-
 #pragma comment (lib, "Release/maxutil.lib")
 #pragma comment (lib, "Release/core.lib")
 #pragma comment (lib, "Release/paramblk2.lib")
@@ -183,10 +173,6 @@ EXPORT_TO_MAX int LibInitialize()
 
 		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 	
-		{ L"tbb.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
-		{ L"tbbmalloc.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
-		{ L"embree.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
-
 		{ L"FreeImage.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
 		{ L"AxFDecoding_r.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
 		{ L"AxfConverter.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL }, // Dependent on "AxFDecoding_r.dll" and "FreeImage.dll"

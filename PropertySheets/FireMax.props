@@ -11,17 +11,16 @@
 		</PostBuildEvent>
 		<ClCompile>
 			<AdditionalIncludeDirectories>FireRender.Max.Plugin;FireRender.Max.Plugin\plugin;FireRender.Max.Plugin\plugin\light;FireRender.Max.Plugin\plugin\materials;FireRender.Components\cpp\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalIncludeDirectories>ThirdParty\RadeonProRender SDK\Win;ThirdParty\RadeonProRender SDK\Win\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>RadeonProRenderSDK\RadeonProRender\inc;RadeonProRenderSDK\RadeonProRender\rprTools;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalIncludeDirectories>ThirdParty\AxfPackage\AxfInclude\;ThirdParty\AxfPackage\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalIncludeDirectories>ThirdParty\Expat 2.1.0\Source\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalIncludeDirectories>ThirdParty\RadeonProRender-GLTF\Win\inc\;ThirdParty\json\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalIncludeDirectories>ThirdParty\RadeonProImageProcessing\Windows\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>RadeonProImageProcessingSDK\radeonimagefilters-1.4.3-2839b0-Windows-rel\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>MAX_PLUGIN;XML_UNICODE_WCHAR_T;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 		</ClCompile>
 		<Link>
-			<AdditionalLibraryDirectories>ThirdParty\RadeonProRender-GLTF\Win\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalLibraryDirectories>ThirdParty\RadeonProImageProcessing\Windows\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalDependencies>ProRenderGLTF.lib;RadeonImageFilters64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalLibraryDirectories>RadeonProRenderSDK\RadeonProRender\libWin64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<AdditionalLibraryDirectories>RadeonProImageProcessingSDK\radeonimagefilters-1.4.3-2839b0-Windows-rel\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+			<AdditionalDependencies>RadeonProRender64.lib;RprLoadStore64.lib;ProRenderGLTF.lib;RadeonImageFilters64.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 	<ItemGroup/>

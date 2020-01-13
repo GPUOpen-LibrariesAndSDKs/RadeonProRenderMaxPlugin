@@ -447,7 +447,7 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\Hosek\ArHosekSkyModel.cpp">
       <Filter>Plugin\Hosek</Filter>
     </ClCompile>
-    <ClCompile Include="ThirdParty\RadeonProRender SDK\Win\RprTools.cpp">
+    <ClCompile Include="RadeonProRenderSDK\RadeonProRender\rprTools\RprTools.cpp">
       <Filter>RprTools</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\LookAtTarget.cpp">

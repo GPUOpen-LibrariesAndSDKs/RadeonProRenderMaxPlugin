@@ -29,11 +29,11 @@ process has been finished successfully 3ds Max configuration file will be patche
 
 ## Debugging
 
-Once the project has been built (recommend starting with Debug-2017)
+Once the project has been built
 	Verify (or set) the paths in your Project->Debugging settings. Note that these values are stored in ".user" settings file.
-	Set appropriate paths for different configurations, e.g. for Debug-2017 you will probably need:
-		Debugging->Command = C:\Program Files\Autodesk\3ds Max 2017\3dsmax.exe
-		Debugging->Working directory = C:\Program Files\Autodesk\3ds Max 2017
+	Set appropriate paths for different configurations, e.g. for Debug-2018 you will probably need:
+		Debugging->Command = C:\Program Files\Autodesk\3ds Max 2018\3dsmax.exe
+		Debugging->Working directory = C:\Program Files\Autodesk\3ds Max 2018
 
 Now run using F5, and Max should launch, hopefully loading the plugin. To test if plugin binary is being detected, you can put a breakpoint
 on LibInitialize() function in main.cpp, and it should be hit during Max startup.
