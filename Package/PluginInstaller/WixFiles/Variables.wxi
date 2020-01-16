@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Include>
+
+<?define ProductLongName="Radeon ProRender for Autodesk 3ds Max®" ?>
+<?define ProductName="Radeon ProRender" ?>
+<?define PluginName="RadeonProRender3dsMax" ?>
+<?define ProductsFolder="RadeonProRenderPlugins" ?>
+<?define Manufacturer="AMD" ?>
+<?define Version="$(env.MAX_PLUGIN_VERSION)" ?>
+<?define UpgradeCode="7f8554b2-80f1-423e-9aac-3fad27f6b627" ?>
+
+<?define WebPageMainSite="http://pro.radeon.com/en-us/software/prorender/" ?>
+<?define WebPageDocumentation="http://pro.radeon.com/en-us/software/prorender/" ?>
+
+<?define InstallerDll=../output/PluginInstallerDll/PluginInstallerDll.dll ?>
+
+</Include>

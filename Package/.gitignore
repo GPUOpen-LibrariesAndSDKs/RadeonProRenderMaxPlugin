@@ -1,0 +1,9 @@
+.vs/
+output/
+system/
+PluginInstaller/bin/
+PluginInstaller/obj/
+PluginInstaller/Generated/
+*.msi
+*.VC.db
+*.user
