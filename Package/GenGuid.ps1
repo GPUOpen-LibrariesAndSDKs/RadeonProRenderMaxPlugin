@@ -1,0 +1,1 @@
+return [guid]::NewGuid().ToString()

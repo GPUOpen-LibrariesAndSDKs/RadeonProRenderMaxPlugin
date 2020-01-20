@@ -5,7 +5,7 @@
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
 	xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
 	
-<Product Id="2123d7b4-e801-4ac3-95b3-c73b4a29c818" Name="$(var.ProductLongName)" Language="1033" Version="$(var.Version)"
+<Product Id="$(env.RPR_MAX_PLUGIN_GUID)" Name="$(var.ProductLongName)" Language="1033" Version="$(var.Version)"
 	Manufacturer="$(var.Manufacturer)" UpgradeCode="$(var.UpgradeCode)">
 
 	<Package InstallerVersion="405" Platform="x64" Compressed="yes" InstallScope="perMachine"/>
@@ -24,6 +24,29 @@
 	<Binary Id='InstallerDll' SourceFile='$(var.InstallerDll)' />
 
 	<CustomAction Id='PostInstall' BinaryKey='InstallerDll' DllEntry='postInstall' Return="ignore" />
+
+
+
+	<CustomAction Id="AddSymbolicLinkMax2018" Directory="AUTODESK_MAX2018_FOLDER_PLUGINS" 
+		ExeCommand='cmd /c mklink "[AUTODESK_MAX2018_FOLDER_PLUGINS]RadeonProRenderMaxPlugin.dlr" "[MAX2018_FOLDER]RadeonProRenderMaxPlugin.dlr"'
+		Execute="deferred" Impersonate="no" Return="ignore" />	
+	<CustomAction Id="DelSymbolicLinkMax2018" Directory="AUTODESK_MAX2018_FOLDER_PLUGINS"
+		ExeCommand='cmd /c del "[AUTODESK_MAX2018_FOLDER_PLUGINS]RadeonProRenderMaxPlugin.dlr"'
+		Execute="deferred" Impersonate="no" Return="ignore" />
+	<CustomAction Id="AddSymbolicLinkMax2019" Directory="AUTODESK_MAX2019_FOLDER_PLUGINS" 
+		ExeCommand='cmd /c mklink "[AUTODESK_MAX2019_FOLDER_PLUGINS]RadeonProRenderMaxPlugin.dlr" "[MAX2019_FOLDER]RadeonProRenderMaxPlugin.dlr"'
+		Execute="deferred" Impersonate="no" Return="ignore" />	
+	<CustomAction Id="DelSymbolicLinkMax2019" Directory="AUTODESK_MAX2019_FOLDER_PLUGINS"
+		ExeCommand='cmd /c del "[AUTODESK_MAX2019_FOLDER_PLUGINS]RadeonProRenderMaxPlugin.dlr"'
+		Execute="deferred" Impersonate="no" Return="ignore" />
+	<CustomAction Id="AddSymbolicLinkMax2020" Directory="AUTODESK_MAX2020_FOLDER_PLUGINS" 
+		ExeCommand='cmd /c mklink "[AUTODESK_MAX2020_FOLDER_PLUGINS]RadeonProRenderMaxPlugin.dlr" "[MAX2020_FOLDER]RadeonProRenderMaxPlugin.dlr"'
+		Execute="deferred" Impersonate="no" Return="ignore" />	
+	<CustomAction Id="DelSymbolicLinkMax2020" Directory="AUTODESK_MAX2020_FOLDER_PLUGINS"
+		ExeCommand='cmd /c del "[AUTODESK_MAX2020_FOLDER_PLUGINS]RadeonProRenderMaxPlugin.dlr"'
+		Execute="deferred" Impersonate="no" Return="ignore" />
+
+
 	
 	<Property Id="OLD_VERSION_INSTALLED" Value="NotFound">
  		<RegistrySearch Id="OldVersionSearch" Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RadeonProRenderMaxPlugin"
@@ -34,18 +57,6 @@
 		<![CDATA[OLD_VERSION_INSTALLED = "NotFound"]]>
 	</Condition>
 
-	<Property Id="CACHE_PATH_2018">
-		<RegistrySearch Id="RegSearchForCache2018" Root="HKCU" Key="Software\AMD\RadeonProRender\Max" Type="raw" Name="CachePath2018" />
-	</Property>
-
-	<Property Id="CACHE_PATH_2019">
-		<RegistrySearch Id="RegSearchForCache2019" Root="HKCU" Key="Software\AMD\RadeonProRender\Max" Type="raw" Name="CachePath2019" />
-	</Property>
-
-	<Property Id="CACHE_PATH_2020">
-		<RegistrySearch Id="RegSearchForCache2020" Root="HKCU" Key="Software\AMD\RadeonProRender\Max" Type="raw" Name="CachePath2020" />
-	</Property>
-	
 	<UI Id="MyWixUI_Mondo">
 		<UIRef Id="WixUI_Wizard" />
 		<UIRef Id="WixUI_ErrorProgressText" />
@@ -59,8 +70,25 @@
 		<InstallInitialize/>
 		<CreateFolders/>
 		<InstallFiles/>
+		<Custom Action="AddSymbolicLinkMax2018" Before="InstallFinalize">
+			<![CDATA[(&Product2018=3 OR !Product2018=3) AND NOT (&Product2018=2)]]>
+		</Custom>
+		<Custom Action="DelSymbolicLinkMax2018" Before="InstallFinalize">
+			REMOVE~="ALL" OR <![CDATA[(&Product2018 = 2) AND (!Product2018 = 3)]]>
+		</Custom>
+		<Custom Action="AddSymbolicLinkMax2019" Before="InstallFinalize">
+			<![CDATA[(&Product2019=3 OR !Product2019=3) AND NOT (&Product2019=2)]]>
+		</Custom>
+		<Custom Action="DelSymbolicLinkMax2019" Before="InstallFinalize">
+			REMOVE~="ALL" OR <![CDATA[(&Product2019 = 2) AND (!Product2019 = 3)]]>
+		</Custom>
+		<Custom Action="AddSymbolicLinkMax2020" Before="InstallFinalize">
+			<![CDATA[(&Product2020=3 OR !Product2020=3) AND NOT (&Product2020=2)]]>
+		</Custom>
+		<Custom Action="DelSymbolicLinkMax2020" Before="InstallFinalize">
+			REMOVE~="ALL" OR <![CDATA[(&Product2020 = 2) AND (!Product2020 = 3)]]>
+		</Custom>
 		<InstallFinalize/>
-
 	</InstallExecuteSequence>
 
 	
@@ -68,6 +96,17 @@
 	<Directory Id="TARGETDIR" Name="SourceDir">
 
 		<Directory Id="ProgramFiles64Folder">
+			<Directory Id="AUTODESK_FOLDER" Name="Autodesk">
+				<Directory Id="AUTODESK_MAX2018_FOLDER" Name="3ds Max 2018">
+					<Directory Id="AUTODESK_MAX2018_FOLDER_PLUGINS" Name="Plugins"/>
+				</Directory>
+				<Directory Id="AUTODESK_MAX2019_FOLDER" Name="3ds Max 2019">
+					<Directory Id="AUTODESK_MAX2019_FOLDER_PLUGINS" Name="Plugins"/>
+				</Directory>
+				<Directory Id="AUTODESK_MAX2020_FOLDER" Name="3ds Max 2020">
+					<Directory Id="AUTODESK_MAX2020_FOLDER_PLUGINS" Name="Plugins"/>
+				</Directory>
+			</Directory>
 			<Directory Id="AMD" Name="$(var.Manufacturer)">
 				<Directory Id="PRODUCTS_FOLDER" Name="$(var.ProductsFolder)">
 					<Directory Id="MAX_FOLDER" Name="Max">
@@ -78,40 +117,6 @@
 						</Directory>
 						<Directory Id="DR_DATA" Name="data"/>
 						<Directory Id="DR_BIN" Name="bin"/>
-					</Directory>
-				</Directory>
-			</Directory>
-		</Directory>
-
-		<Directory Id="LocalAppDataFolder">
-			<Directory Id="APPLOCAL_AUTODESK" Name="Autodesk">
-				<Directory Id="APPLOCAL_3DSMAX" Name="3dsMax">
-					<Directory Id="APPLOCAL_MAX2018" Name="2018 - 64bit">
-						<Directory Id="APPLOCAL_2018_ENU" Name="ENU">
-							<Directory Id="APPLOCAL_2018_EN_US" Name="en-US">
-								<Directory Id="APPLOCAL_2018_PLUGCFG" Name="plugcfg">
-									<Directory Id="APPLOCAL_2018_RPR" Name="Radeon ProRender"/>
-								</Directory>
-							</Directory>
-						</Directory>
-					</Directory>
-					<Directory Id="APPLOCAL_MAX2019" Name="2019 - 64bit">
-						<Directory Id="APPLOCAL_2019_ENU" Name="ENU">
-							<Directory Id="APPLOCAL_2019_EN_US" Name="en-US">
-								<Directory Id="APPLOCAL_2019_PLUGCFG" Name="plugcfg">
-									<Directory Id="APPLOCAL_2019_RPR" Name="Radeon ProRender"/>
-								</Directory>
-							</Directory>
-						</Directory>
-					</Directory>
-					<Directory Id="APPLOCAL_MAX2020" Name="2020 - 64bit">
-						<Directory Id="APPLOCAL_2020_ENU" Name="ENU">
-							<Directory Id="APPLOCAL_2020_EN_US" Name="en-US">
-								<Directory Id="APPLOCAL_2020_PLUGCFG" Name="plugcfg">
-									<Directory Id="APPLOCAL_2020_RPR" Name="Radeon ProRender"/>
-								</Directory>
-							</Directory>
-						</Directory>
 					</Directory>
 				</Directory>
 			</Directory>
@@ -127,42 +132,18 @@
 	<DirectoryRef Id="MAX2018_FOLDER">
 		<Component Id="RadeonProRender2018" Guid="f9c1913a-16d7-495c-b3bd-6720010078fa" Permanent="no" SharedDllRefCount="no" Transitive="no" Win64="yes">
 			<File Id="RadeonProRenderMaxPlugin2018" DiskId="1" Hidden="no" ReadOnly="no" TrueType="no" System="no" Vital="yes" Name="RadeonProRenderMaxPlugin.dlr" Source="..\..\dist\plug-ins\2018\RadeonProRenderMaxPlugin.dlr"/>
-
-			<IniFile Id="Ini2018.Remove" Action="removeLine" Directory="APPLOCAL_2018_ENU" Name="Plugin.UserSettings.ini" Section="Directories" Key="AMD Radeon ProRender"/>
-			<IniFile Id="Ini2018.Add" Action="addTag" Directory="APPLOCAL_2018_ENU" Name="Plugin.UserSettings.ini" Section="Directories" Key="AMD Radeon ProRender" Value="[MAX2018_FOLDER]"/>
-
-			<CreateFolder Directory="APPLOCAL_2018_RPR"/>
-
-			<RegistryValue Root="HKCU" Key="Software\AMD\RadeonProRender\Max" Name="CachePath2018" Type="string" Value="[APPLOCAL_2018_RPR]" KeyPath="yes" />
-			<util:RemoveFolderEx On="uninstall" Property="CACHE_PATH_2018" />
 		</Component>
 	</DirectoryRef>
 
 	<DirectoryRef Id="MAX2019_FOLDER">
 		<Component Id="RadeonProRender2019" Guid="ea0e9b5a-4323-4969-b3ac-fb64901f3428" Permanent="no" SharedDllRefCount="no" Transitive="no" Win64="yes">
 			<File Id="RadeonProRenderMaxPlugin2019" DiskId="1" Hidden="no" ReadOnly="no" TrueType="no" System="no" Vital="yes" Name="RadeonProRenderMaxPlugin.dlr" Source="..\..\dist\plug-ins\2019\RadeonProRenderMaxPlugin.dlr"/>
-
-			<IniFile Id="Ini2019.Delete" Action="removeLine" Directory="APPLOCAL_2019_ENU" Name="Plugin.UserSettings.ini" Section="Directories" Key="AMD Radeon ProRender"/>
-			<IniFile Id="Ini2019.Add" Action="addTag" Directory="APPLOCAL_2019_ENU" Name="Plugin.UserSettings.ini" Section="Directories" Key="AMD Radeon ProRender" Value="[MAX2019_FOLDER]"/>
-
-			<CreateFolder Directory="APPLOCAL_2019_RPR"/>
-
-			<RegistryValue Root="HKCU" Key="Software\AMD\RadeonProRender\Max" Name="CachePath2019" Type="string" Value="[APPLOCAL_2019_RPR]" KeyPath="yes" />
-			<util:RemoveFolderEx On="uninstall" Property="CACHE_PATH_2019" />
 		</Component>
 	</DirectoryRef>
 
 	<DirectoryRef Id="MAX2020_FOLDER">
 		<Component Id="RadeonProRender2020" Guid="8e727d56-09e6-4226-83d5-92c158768a83" Permanent="no" SharedDllRefCount="no" Transitive="no" Win64="yes">
 			<File Id="RadeonProRenderMaxPlugin2020" DiskId="1" Hidden="no" ReadOnly="no" TrueType="no" System="no" Vital="yes" Name="RadeonProRenderMaxPlugin.dlr" Source="..\..\dist\plug-ins\2020\RadeonProRenderMaxPlugin.dlr"/>
-
-			<IniFile Id="Ini2020.Delete" Action="removeLine" Directory="APPLOCAL_2020_ENU" Name="Plugin.UserSettings.ini" Section="Directories" Key="AMD Radeon ProRender"/>
-			<IniFile Id="Ini2020.Add" Action="addTag" Directory="APPLOCAL_2020_ENU" Name="Plugin.UserSettings.ini" Section="Directories" Key="AMD Radeon ProRender" Value="[MAX2020_FOLDER]"/>
-
-			<CreateFolder Directory="APPLOCAL_2020_RPR"/>
-
-			<RegistryValue Root="HKCU" Key="Software\AMD\RadeonProRender\Max" Name="CachePath2020" Type="string" Value="[APPLOCAL_2020_RPR]" KeyPath="yes" />
-			<util:RemoveFolderEx On="uninstall" Property="CACHE_PATH_2020" />
 		</Component>
 	</DirectoryRef>
 

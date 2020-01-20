@@ -2,6 +2,13 @@
 
 setlocal enabledelayedexpansion
 
+:gen_guid
+for /f %%v in ('powershell -executionPolicy bypass -file GenGuid.ps1') do (
+	set RPR_MAX_PLUGIN_GUID=%%v
+)
+
+echo Generated new GUID for installer: %RPR_MAX_PLUGIN_GUID%
+
 :get_plugin_version
 for /f %%v in ('powershell -executionPolicy bypass -file GetVersion.ps1') do (
 	set MAX_PLUGIN_VERSION=%%v
