@@ -42,7 +42,6 @@
     <Folder Include="WixFiles" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="WixFiles\CheckHardwareDlg.wxs" />
     <Compile Include="WixFiles\PluginFinishDlg.wxs" />
     <Compile Include="WixFiles\PluginWelcomeDlg.wxs" />
     <Compile Include="WixFiles\Product.wxs" />

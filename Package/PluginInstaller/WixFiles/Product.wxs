@@ -23,7 +23,6 @@
 
 	<Binary Id='InstallerDll' SourceFile='$(var.InstallerDll)' />
 
-	<CustomAction Id='HardwareCheck' BinaryKey='InstallerDll' DllEntry='hardwareCheck' Return="ignore" />
 	<CustomAction Id='PostInstall' BinaryKey='InstallerDll' DllEntry='postInstall' Return="ignore" />
 	
 	<Property Id="OLD_VERSION_INSTALLED" Value="NotFound">
