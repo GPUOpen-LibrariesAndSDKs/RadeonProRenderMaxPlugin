@@ -120,6 +120,12 @@
 	</Directory>
 
 	<!-- Step 2: Add files to your installer package -->
+	<DirectoryRef Id="MAX_FOLDER">
+		<Component Id="Notices" Guid="d7020acd-f575-4755-8697-0ca3eabce90c" Permanent="no" SharedDllRefCount="no" Transitive="no" Win64="yes">
+			<File Id="NoticesFile" DiskId="1" Hidden="no" ReadOnly="no" TrueType="no" System="no" Vital="yes" Name="notices.txt" Source="..\notices.txt" />
+		</Component>
+	</DirectoryRef>
+
 	<DirectoryRef Id="DR_BIN"/>
 
 	<DirectoryRef Id="DR_DATA"/>
@@ -170,8 +176,9 @@
 	<Feature Id="Product" Title="$(var.ProductName)" Description="$(var.ProductLongName)" Level="1" Display="expand">
 
 		<Feature Id="RprCore" Title="Radeon ProRender Core" Description="$(var.ProductLongName) Core" Level="1" Absent="disallow" AllowAdvertise="no">
-			<ComponentGroupRef Id="CG_BIN"/>
-			<ComponentGroupRef Id="CG_DATA"/>
+			<ComponentRef Id="Notices" />
+			<ComponentGroupRef Id="CG_BIN" />
+			<ComponentGroupRef Id="CG_DATA" />
 		</Feature>
 
 		<Feature Id="Product2018" Title="Support Max 2018" Description="$(var.ProductLongName) 2018" Level="1">
