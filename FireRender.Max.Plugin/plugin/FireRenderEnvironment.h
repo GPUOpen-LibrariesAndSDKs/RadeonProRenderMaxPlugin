@@ -1,12 +1,15 @@
-/*********************************************************************************************************************************
-* Radeon ProRender for 3ds Max plugin
-* Copyright (c) 2017 AMD
-* All Rights Reserved
-*
-* Custom environment 3ds MAX scene node (compass). The environment node allows to manually rotate the environment (or define the
-* North direction for the sky system). If the environment node is deleted, the Radeon ProRender custom environment is
-* deactivated, and the renderer will use the current 3ds max environment settings instead.
-*********************************************************************************************************************************/
+/**********************************************************************
+Copyright 2020 Advanced Micro Devices, Inc
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+********************************************************************/
 
 FIRERENDER_NAMESPACE_BEGIN
 ClassDesc2* GetFireRenderEnvironmentDesc();
