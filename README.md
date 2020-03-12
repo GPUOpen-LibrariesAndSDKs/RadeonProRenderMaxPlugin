@@ -17,7 +17,21 @@ Samples:
 
 ## ThirdParty libraries
 
-There is ThirdParty repository included to the project as a submodule. Please update submodules:
+Plugin includes 4 submodules:
+RadeonProRender SDK:
+git@github.com:Radeon-Pro/RadeonProRenderSDK.git
+
+Shared components
+Image Processing Library:
+git@github.com:Radeon-Pro/RadeonProImageProcessingSDK.git
+
+Shared Components:
+git@github.com:Radeon-Pro/RadeonProRenderSharedComponents.git
+
+ThirdParty components and miscellaneous tools
+git@github.com:Radeon-Pro/RadeonProRenderThirdPartyComponents.git
+
+All of them are included via SSH protocol. You will need to create and install SSH keys
 
 `git submodule update --init -f --recursive`
 
