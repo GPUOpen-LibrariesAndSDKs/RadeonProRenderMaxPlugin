@@ -180,10 +180,6 @@ EXPORT_TO_MAX int LibInitialize()
 
 		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 	
-		{ L"FreeImage.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
-		{ L"AxFDecoding_r.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
-		{ L"AxfConverter.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL }, // Dependent on "AxFDecoding_r.dll" and "FreeImage.dll"
-		
 		{ L"ProRenderGLTF.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
 	};
 

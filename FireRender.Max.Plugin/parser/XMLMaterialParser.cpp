@@ -41,10 +41,6 @@ limitations under the License.
 #include "XMLMaterialParser.h"
 
 
-extern "C" {
-	#include "AxfConverterDll.h"
-}
-
 FIRERENDER_NAMESPACE_BEGIN;
 
 #define LRPR_MATERIAL_NODE_DIFFUSE L"DIFFUSE"
@@ -89,26 +85,10 @@ public:
 	~FRMaterialImporter() {
 	}
 
-	const bool doesAxfConverterDllExists()
-	{
-		HINSTANCE hGetProcIDDLL = LoadLibrary(_T("AxfConverter.dll"));
-		
-		if (hGetProcIDDLL)
-		{
-			FreeLibrary(hGetProcIDDLL);
-			return true;
-		}
-		else
-			return false;
-	}
-
 	// Number of extensions supported
 	int ExtCount() override
 	{
-		if (doesAxfConverterDllExists())
-			return 2;
-		else
-			return 1;
+		return 1;
 	}
 
 	// Extension #n
@@ -122,22 +102,12 @@ public:
 
 	// Long ASCII description
 	const TCHAR *LongDesc() override {
-		if (doesAxfConverterDllExists()) {
-			return _T("Radeon ProRender Materials and Appearance eXchange Format");
-		}
-		else {
-			return _T("Radeon ProRender Materials");
-		}
+		return _T("Radeon ProRender Materials");
 	}
 
 	// Short ASCII description
 	const TCHAR *ShortDesc() override {
-		if (doesAxfConverterDllExists()) {
-			return _T("Radeon ProRender and Appearance eXchange Format Materials");
-		}
-		else {
-			return _T("Radeon ProRender Materials");
-		}
+		return _T("Radeon ProRender Materials");
 	}
 
 	// ASCII Author name
@@ -261,8 +231,6 @@ public:
 	// Do the actual import
 	int DoImport(const TCHAR *pFilename, ImpInterface *i, Interface *gi, BOOL suppressPrompts = FALSE)
 	{
-		TCHAR axfXmlFilePath[255];
-
 		TCHAR curLocale[256];
 		GetLocaleInfo( LOCALE_CUSTOM_DEFAULT, LC_NUMERIC, curLocale, 256);
 		_wsetlocale(LC_NUMERIC, L"en-US");
@@ -273,38 +241,8 @@ public:
 		
 		TString tStringFileName(tcharFileName);
 
-		bool isAxf = tStringFileName.find(L".axf") != -1;
-
-		if (isAxf) {
-			//convert axf to rpr xml using conversion dll:
-			HINSTANCE hGetProcIDDLL = LoadLibrary(_T("AxfConverter.dll"));
-
-			if (hGetProcIDDLL) {
-
-				AxfConvertFile convertFile = (AxfConvertFile)GetProcAddress(hGetProcIDDLL, "convertAxFFile");
-				
-				char xmlFilePath[255];
-				
-				convertFile(ToAscii(pFilename).c_str(), xmlFilePath);
-
-				FreeLibrary(hGetProcIDDLL);
-
-				bool xmlCreated = strlen(xmlFilePath) != 0;
-				if (xmlCreated) {
-					std::wstring fileName = ToUnicode(xmlFilePath);
-					wcsncpy_s(axfXmlFilePath, fileName.c_str(), 255);
-				}
-				else {
-					return IMPEXP_FAIL;
-				}
-			}
-			else {
-				return IMPEXP_FAIL;
-			}
-		}
-
 		std::wstring data;
-		if (LoadUtf8FileToString((isAxf) ? axfXmlFilePath : pFilename, data))
+		if (LoadUtf8FileToString(pFilename, data))
 		{
 			if (!data.empty())
 			{
@@ -661,7 +599,7 @@ public:
 									BOOL sm = ::TheManager->SilentMode();
 									::TheManager->SetSilentMode(TRUE);
 									
-									std::wstring location((isAxf) ? axfXmlFilePath : pFilename);
+									std::wstring location(pFilename);
 									auto pos = location.find_last_of('\\');
 									if (pos == std::wstring::npos)
 										pos = location.find_last_of('/');
