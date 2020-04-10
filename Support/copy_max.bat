@@ -36,20 +36,13 @@ set CoreFiles=^
 	"%RprPath%\RprLoadStore64.dll"^
 	"%RprPath%\ProRenderGLTF.dll"
 
-set RifPath="RadeonProImageProcessingSDK\radeonimagefilters-1.4.3-2839b0-Windows-rel"
+set RifPath="RadeonProImageProcessingSDK\Windows"
 	
 set RifLibFiles=^
 	"%RifPath%\bin\MIOpen.dll"^
 	"%RifPath%\bin\RadeonImageFilters64.dll"^
 	"%RifPath%\bin\RadeonML-DirectML.dll"^
 	"%RifPath%\bin\RadeonML-MIOpen.dll"
-
-set AfxPath="ThirdParty\AxfPackage\ReleaseDll\AxfDll"
-
-set AxfFiles=^
-	"%AfxPath%\AxfConverter.dll"^
-	"%AfxPath%\AxFDecoding_r.dll"^
-	"%AfxPath%\FreeImage.dll"
 
 ::make distribution folder with files for installer
 if not exist %DIST_PATH% md %DIST_PATH%
@@ -58,7 +51,7 @@ for %%a in (%DataFiles%) do (
 	xcopy %%a "%DIST_PATH%\data\*" /S /Y /I
 )
 
-set PluginBundle=CoreFiles RifLibFiles AxfFiles
+set PluginBundle=CoreFiles RifLibFiles
 
 for %%b in (%PluginBundle%) do (
 	for %%a in (!%%b!) do ( 
