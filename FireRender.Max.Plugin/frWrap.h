@@ -947,6 +947,8 @@ namespace frw
 		public:
 			Image image;
 			std::vector<Shape> portals;
+
+			std::map<int, EnvironmentLight> overrides;
 		};
 	public:
 		EnvironmentLight(rpr_light h, const Context &context) : Light(h, context, new Data()) {}
@@ -957,6 +959,13 @@ namespace frw
 		}
 		void SetImage(Image img);
 		void AttachPortal(Shape shape);
+
+		void SetEnvironmentOverride(int e, EnvironmentLight light)
+		{
+			auto res = rprEnvironmentLightSetEnvironmentLightOverride(Handle(), e, light.Handle());
+			FCHECK(res);
+			data().overrides[e] = light;
+		}
 	};
 
 	class IESLight : public Light
@@ -1009,10 +1018,9 @@ namespace frw
 			DECLARE_OBJECT_DATA;
 		public:
 			Camera camera;
-			Light background;
-			Light backgroundReflOverride;
-			Light backgroundRefrOverride;
 			Image backgroundImage;
+			EnvironmentLight environmentLight;
+			Context* pFrwContext;
 
 			int mEmissiveLightCount = 0;
 			int mShapeCount = 0;
@@ -1020,7 +1028,10 @@ namespace frw
 		};
 
 	public:
-		Scene(rpr_scene h, const Context &context) : Object(h, context, true, new Data()) {}
+		Scene(rpr_scene h, Context &context) : Object(h, context, true, new Data())
+		{
+			data().pFrwContext = &context;
+		}
 
 		void Attach(Shape v)
 		{
@@ -1041,6 +1052,18 @@ namespace frw
 			FCHECK(res);
 
 			data().mLightCount++;
+		}
+
+		void Attach(EnvironmentLight envLight)
+		{
+			data().environmentLight = envLight;
+			Attach(static_cast<Light>(envLight));
+		}
+
+		void Detach(EnvironmentLight envLight)
+		{
+			data().environmentLight = EnvironmentLight();
+			Detach(static_cast<Light>(envLight));
 		}
 
 		void Detach(Shape v)
@@ -1086,10 +1109,8 @@ namespace frw
 			// clear local data
 			Data& d = data();
 			d.camera = Camera();
-			d.background = Light();
-			d.backgroundReflOverride = Light();
-			d.backgroundRefrOverride = Light();
 			d.backgroundImage = Image();
+			d.environmentLight = EnvironmentLight();
 
 			data().mEmissiveLightCount = data().mLightCount = data().mShapeCount = 0;
 		}
@@ -1189,22 +1210,24 @@ namespace frw
 
 		void SetBackground(EnvironmentLight v)
 		{
-			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_BACKGROUND, v.Handle()); FCHECK(res);
-			data().background = v;
+			EnsureEnvLightExists();
+			data().environmentLight.SetEnvironmentOverride(RPR_ENVIRONMENT_LIGHT_OVERRIDE_BACKGROUND, v);
 		}
 
 		void SetBackgroundReflectionsOverride(EnvironmentLight v)
 		{
-			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_REFLECTION, v.Handle()); FCHECK(res);
-			data().backgroundReflOverride = v;
+			EnsureEnvLightExists();
+			data().environmentLight.SetEnvironmentOverride(RPR_ENVIRONMENT_LIGHT_OVERRIDE_REFLECTION, v);
 		}
 
 		void SetBackgroundRefractionsOverride(EnvironmentLight v)
 		{
-			auto res = rprSceneSetEnvironmentOverride(Handle(), RPR_SCENE_ENVIRONMENT_OVERRIDE_REFRACTION, v.Handle()); FCHECK(res);
-			data().backgroundRefrOverride = v;
+			EnsureEnvLightExists();
+			data().environmentLight.SetEnvironmentOverride(RPR_ENVIRONMENT_LIGHT_OVERRIDE_REFRACTION, v);
 		}
 
+		private:
+			void EnsureEnvLightExists();
 	};
 
 	class Context : public Object

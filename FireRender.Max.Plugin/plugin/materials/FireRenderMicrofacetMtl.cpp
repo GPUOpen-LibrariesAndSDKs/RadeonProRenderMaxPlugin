@@ -78,7 +78,7 @@ frw::Shader FRMTLCLASSNAME(MicrofacetMtl)::getShader(const TimeValue t, Material
 	{
 		material = frw::Shader(ms, frw::ShaderTypeMicrofacet);
 		roughnessv = mtlParser.createMap(roughnessTexmap, MAP_FLAG_NOGAMMA);
-		material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, roughnessv);
+		material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, ms.ValuePow(roughnessv, 0.5));
 	}
 	else
 	{
@@ -89,7 +89,7 @@ frw::Shader FRMTLCLASSNAME(MicrofacetMtl)::getShader(const TimeValue t, Material
 		else
 		{
 			material = frw::Shader(ms, frw::ShaderTypeMicrofacet);
-			material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, roughnessv);
+			material.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, ms.ValuePow(roughnessv, 0.5));
 		}
 	}
 	

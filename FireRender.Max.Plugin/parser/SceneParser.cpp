@@ -1686,7 +1686,7 @@ void ApplyFRGround(frw::Scope& scope, frw::MaterialSystem& materialSystem, Mater
 
 		frw::Shader reflection(ms, frw::ShaderTypeMicrofacet);
 
-		reflection.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, frw::Value(parsedGround.reflectionsRoughness));
+		reflection.SetValue(RPR_MATERIAL_INPUT_ROUGHNESS, materialSystem.ValuePow(frw::Value(parsedGround.reflectionsRoughness), 0.5));
 
 		reflection.SetValue(RPR_MATERIAL_INPUT_COLOR, frw::Value(
 			parsedGround.reflectionsColor.r,

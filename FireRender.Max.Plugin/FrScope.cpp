@@ -227,3 +227,11 @@ Scope::Data::~Data()
 
 	scene.Reset(); // destroy scene before deleting context
 }
+
+void Scene::EnsureEnvLightExists()
+{
+	if (!data().environmentLight)
+	{
+		data().environmentLight = data().pFrwContext->CreateEnvironmentLight();
+	}
+}
