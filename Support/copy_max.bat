@@ -39,10 +39,10 @@ set CoreFiles=^
 set RifPath="RadeonProImageProcessingSDK\Windows"
 	
 set RifLibFiles=^
-	"%RifPath%\bin\MIOpen.dll"^
-	"%RifPath%\bin\RadeonImageFilters64.dll"^
-	"%RifPath%\bin\RadeonML-DirectML.dll"^
-	"%RifPath%\bin\RadeonML-MIOpen.dll"
+	"%RifPath%\MIOpen.dll"^
+	"%RifPath%\RadeonImageFilters64.dll"^
+	"%RifPath%\RadeonML-DirectML.dll"^
+	"%RifPath%\RadeonML-MIOpen.dll"
 
 ::make distribution folder with files for installer
 if not exist %DIST_PATH% md %DIST_PATH%
