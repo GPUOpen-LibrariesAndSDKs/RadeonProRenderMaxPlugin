@@ -273,23 +273,11 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderShadowCatcherMtl.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.h">
-      <Filter>FireRender.Components\IESLight</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Components\cpp\IESLight\IESprocessor.h">
-      <Filter>FireRender.Components\IESLight</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Components\cpp\PluginContext\PluginContext.h">
-      <Filter>FireRender.Components\PluginContext</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\RprComposite.h">
       <Filter>Plugin</Filter>
     </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.h">
       <Filter>Plugin\materials</Filter>
-    </ClInclude>
-    <ClInclude Include="FireRender.Components\cpp\ImageFilter\ImageFilter.h">
-      <Filter>FireRender.Components\ImageFilter</Filter>
     </ClInclude>
     <ClInclude Include="version.h" />
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLight.h">
@@ -319,9 +307,6 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\light\IESLightParameter.h">
       <Filter>Plugin\light\ies</Filter>
     </ClInclude>
-    <ClInclude Include="FireRender.Components\cpp\SunPosition\SPA.h">
-      <Filter>FireRender.Components\SunPosition</Filter>
-    </ClInclude>
     <ClInclude Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtlv3.h">
       <Filter>Plugin\materials</Filter>
     </ClInclude>
@@ -332,6 +317,11 @@
     <ClInclude Include="FireRender.Max.Plugin\plugin\RprExporter.h">
       <Filter>Plugin</Filter>
     </ClInclude>
+    <ClInclude Include="RadeonProRenderSharedComponents\src\IESLight\IESLightRepresentationCalc.h" />
+    <ClInclude Include="RadeonProRenderSharedComponents\src\IESLight\IESprocessor.h" />
+    <ClInclude Include="RadeonProRenderSharedComponents\src\ImageFilter\ImageFilter.h" />
+    <ClInclude Include="RadeonProRenderSharedComponents\src\PluginContext\PluginContext.h" />
+    <ClInclude Include="RadeonProRenderSharedComponents\src\SunPosition\SPA.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FireRender.Max.Plugin\FireMax.rc" />
@@ -546,21 +536,9 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\RprComposite.cpp">
       <Filter>Plugin</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Components\cpp\IESLight\IESLightRepresentationCalc.cpp">
-      <Filter>FireRender.Components\IESLight</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Components\cpp\IESLight\IESprocessor.cpp">
-      <Filter>FireRender.Components\IESLight</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Components\cpp\PluginContext\PluginContext.cpp">
-      <Filter>FireRender.Components\PluginContext</Filter>
-    </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\MaxScriptHandler.cpp" />
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderColourCorrectionMtl.cpp">
       <Filter>Plugin\materials</Filter>
-    </ClCompile>
-    <ClCompile Include="FireRender.Components\cpp\ImageFilter\ImageFilter.cpp">
-      <Filter>FireRender.Components\ImageFilter</Filter>
     </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\physical\FireRenderPhysicalLight.cpp">
       <Filter>Plugin\light\physical</Filter>
@@ -601,9 +579,6 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\light\FireRenderIESLightImpl.cpp">
       <Filter>Plugin\light\ies</Filter>
     </ClCompile>
-    <ClCompile Include="FireRender.Components\cpp\SunPosition\SPA.cpp">
-      <Filter>FireRender.Components\SunPosition</Filter>
-    </ClCompile>
     <ClCompile Include="FireRender.Max.Plugin\plugin\materials\FireRenderUberMtlv3.cpp">
       <Filter>Plugin\materials</Filter>
     </ClCompile>
@@ -614,6 +589,11 @@
     <ClCompile Include="FireRender.Max.Plugin\plugin\RprExporter.cpp">
       <Filter>Plugin</Filter>
     </ClCompile>
+    <ClCompile Include="RadeonProRenderSharedComponents\src\IESLight\IESLightRepresentationCalc.cpp" />
+    <ClCompile Include="RadeonProRenderSharedComponents\src\IESLight\IESprocessor.cpp" />
+    <ClCompile Include="RadeonProRenderSharedComponents\src\ImageFilter\ImageFilter.cpp" />
+    <ClCompile Include="RadeonProRenderSharedComponents\src\PluginContext\PluginContext.cpp" />
+    <ClCompile Include="RadeonProRenderSharedComponents\src\SunPosition\SPA.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="FireRender.Max.Plugin\resource\RadeonProRenderLogo.bmp">

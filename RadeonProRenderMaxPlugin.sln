@@ -16,7 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Docs", "Docs", "{A3C85371-E
 		Docs\Shader params.txt = Docs\Shader params.txt
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "expatw_static", "ThirdParty\Expat 2.1.0\Source\lib\expatw_static.vcxproj", "{EF133AA3-21E3-465C-89CA-3C346591B55C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "expatw_static", "RadeonProRenderSharedComponents\Expat_2.1.0\Source\lib\expatw_static.vcxproj", "{EF133AA3-21E3-465C-89CA-3C346591B55C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

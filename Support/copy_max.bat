@@ -63,8 +63,8 @@ for %%b in (%PluginBundle%) do (
 xcopy "RadeonProImageProcessingSDK\models" "%DIST_PATH%\data\models" /S /Y /I
 
 :: copy scene convertion scripts
-if not exist "%DIST_PATH%\data\SceneConvertionScripts" mkdir "%DIST_PATH%\data\SceneConvertionScripts"
-copy /Y "ThirdParty\SceneConvertionScripts\vray2rpr.ms" "%DIST_PATH%\data\SceneConvertionScripts\vray2rpr.ms"
+if not exist "%DIST_PATH%\data\SceneConversionScripts" mkdir "%DIST_PATH%\data\SceneConversionScripts"
+copy /Y "RadeonProRenderSharedComponents\SceneConversionScripts\vray2rpr.ms" "%DIST_PATH%\data\SceneConversionScripts\vray2rpr.ms"
 
 :: Copy plugin itself
 xcopy %PLUGIN_PATH% "%DIST_PATH%\plug-ins\%MAX_VERSION%\*" /S /Y /I

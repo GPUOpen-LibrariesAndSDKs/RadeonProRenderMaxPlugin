@@ -10,10 +10,9 @@
 			<Command>Support/copy_max.bat "$(Configuration)"</Command>
 		</PostBuildEvent>
 		<ClCompile>
-			<AdditionalIncludeDirectories>FireRender.Max.Plugin;FireRender.Max.Plugin\plugin;FireRender.Max.Plugin\plugin\light;FireRender.Max.Plugin\plugin\materials;FireRender.Components\cpp\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>FireRender.Max.Plugin;FireRender.Max.Plugin\plugin;FireRender.Max.Plugin\plugin\light;FireRender.Max.Plugin\plugin\materials;RadeonProRenderSharedComponents\src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalIncludeDirectories>RadeonProRenderSDK\RadeonProRender\inc;RadeonProRenderSDK\RadeonProRender\rprTools;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalIncludeDirectories>ThirdParty\AxfPackage\AxfInclude\;ThirdParty\AxfPackage\include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-			<AdditionalIncludeDirectories>ThirdParty\Expat 2.1.0\Source\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+			<AdditionalIncludeDirectories>RadeonProRenderSharedComponents\Expat_2.1.0\Source\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<AdditionalIncludeDirectories>RadeonProImageProcessingSDK\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
 			<PreprocessorDefinitions>MAX_PLUGIN;XML_UNICODE_WCHAR_T;XML_STATIC;COMPILED_FROM_DSP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
 		</ClCompile>
