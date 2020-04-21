@@ -232,6 +232,7 @@ void Scene::EnsureEnvLightExists()
 {
 	if (!data().environmentLight)
 	{
-		data().environmentLight = data().pFrwContext->CreateEnvironmentLight();
+		Context frwContext(data().context);
+		data().environmentLight = frwContext.CreateEnvironmentLight();
 	}
 }

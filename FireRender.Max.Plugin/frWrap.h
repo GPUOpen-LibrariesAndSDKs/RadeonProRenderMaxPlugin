@@ -1020,7 +1020,6 @@ namespace frw
 			Camera camera;
 			Image backgroundImage;
 			EnvironmentLight environmentLight;
-			Context* pFrwContext;
 
 			int mEmissiveLightCount = 0;
 			int mShapeCount = 0;
@@ -1030,7 +1029,6 @@ namespace frw
 	public:
 		Scene(rpr_scene h, Context &context) : Object(h, context, true, new Data())
 		{
-			data().pFrwContext = &context;
 		}
 
 		void Attach(Shape v)
