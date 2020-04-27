@@ -19,7 +19,7 @@
 		<Link>
 			<AdditionalLibraryDirectories>RadeonProRenderSDK\RadeonProRender\libWin64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
 			<AdditionalLibraryDirectories>RadeonProImageProcessingSDK\Windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-			<AdditionalDependencies>RadeonProRender64.lib;RprLoadStore64.lib;ProRenderGLTF.lib;RadeonImageFilters64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+			<AdditionalDependencies>RadeonProRender64.lib;RprLoadStore64.lib;ProRenderGLTF.lib;RadeonImageFilters.lib;%(AdditionalDependencies)</AdditionalDependencies>
 		</Link>
 	</ItemDefinitionGroup>
 	<ItemGroup/>
