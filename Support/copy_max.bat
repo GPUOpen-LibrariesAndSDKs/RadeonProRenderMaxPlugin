@@ -40,7 +40,7 @@ set RifPath="RadeonProImageProcessingSDK\Windows"
 	
 set RifLibFiles=^
 	"%RifPath%\MIOpen.dll"^
-	"%RifPath%\RadeonImageFilters64.dll"^
+	"%RifPath%\RadeonImageFilters.dll"^
 	"%RifPath%\RadeonML-DirectML.dll"^
 	"%RifPath%\RadeonML-MIOpen.dll"
 
