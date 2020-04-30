@@ -178,7 +178,7 @@ EXPORT_TO_MAX int LibInitialize()
 		{ L"RadeonProRender64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 		{ L"RprLoadStore64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 
-		{ L"RadeonImageFilters64.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
+		{ L"RadeonImageFilters.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_ESSENTIAL },
 	
 		{ L"ProRenderGLTF.dll", HelperBinaryDescriptor::BINARY_STATUS::BINARY_OPTIONAL },
 	};
