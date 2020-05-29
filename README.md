@@ -1,6 +1,6 @@
 # Radeon ProRender Max Plugin
 
-Development requires 3dsMax 2018 or later.
+Development requires 3dsMax 2019 or later.
 
 ## Build Environment
 
@@ -8,12 +8,12 @@ Projects expect to find Max SDKs and binaries via environment variables (if they
 set them to appropriate values)
 
 Samples:
-	ADSK_3DSMAX_SDK_2018=C:\Program Files\Autodesk\3ds Max 2018 SDK\maxsdk
 	ADSK_3DSMAX_SDK_2019=C:\Program Files\Autodesk\3ds Max 2019 SDK\maxsdk
 	ADSK_3DSMAX_SDK_2020=C:\Program Files\Autodesk\3ds Max 2020 SDK\maxsdk
-	ADSK_3DSMAX_x64_2018=C:\Program Files\Autodesk\3ds Max 2018\
+	ADSK_3DSMAX_SDK_2021=C:\Program Files\Autodesk\3ds Max 2021 SDK\maxsdk
 	ADSK_3DSMAX_x64_2019=C:\Program Files\Autodesk\3ds Max 2019\
 	ADSK_3DSMAX_x64_2020=C:\Program Files\Autodesk\3ds Max 2020\
+	ADSK_3DSMAX_x64_2020=C:\Program Files\Autodesk\3ds Max 2021\
 
 ## ThirdParty libraries
 
@@ -41,9 +41,9 @@ process has been finished successfully 3ds Max configuration file will be patche
 
 Once the project has been built
 	Verify (or set) the paths in your Project->Debugging settings. Note that these values are stored in ".user" settings file.
-	Set appropriate paths for different configurations, e.g. for Debug-2018 you will probably need:
-		Debugging->Command = C:\Program Files\Autodesk\3ds Max 2018\3dsmax.exe
-		Debugging->Working directory = C:\Program Files\Autodesk\3ds Max 2018
+	Set appropriate paths for different configurations, e.g. for Debug-2019 you will probably need:
+		Debugging->Command = C:\Program Files\Autodesk\3ds Max 2019\3dsmax.exe
+		Debugging->Working directory = C:\Program Files\Autodesk\3ds Max 2019
 
 Now run using F5, and Max should launch, hopefully loading the plugin. To test if plugin binary is being detected, you can put a breakpoint
 on LibInitialize() function in main.cpp, and it should be hit during Max startup.
