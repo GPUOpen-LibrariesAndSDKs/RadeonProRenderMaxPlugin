@@ -40,6 +40,8 @@ limitations under the License.
 #include <memory>
 #include <set>
 
+#define RPR_AOV_MAX 0x20
+
 // Version naming patch: RPR_API_COMPAT
 // Staring with core 1.335 (now styled as 1.33.5) the API version values are formatted differently
 // Old format, 1.334  -> 0x0010033400, and 1.332.1 -> 0x0010032201
