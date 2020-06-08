@@ -633,13 +633,21 @@ bool createMesh(std::vector<frw::Shape>& result, bool& directlyVisible,
 				}
 			}
 
+			const rpr_int* niFloats = &ni[i][0];
+			const float* normalFloats = n[0];
+			if (ni[i][0] == -1)
+			{
+				niFloats = nullptr;
+				normalFloats = nullptr;
+			}
+
 			auto shape = context.CreateMeshEx(
 				v[0], v.size(), sizeof(v[0]),
-				n[0], n.size(), sizeof(n[0]),
+				normalFloats, normalFloats != nullptr ? n.size() : 0, sizeof(n[0]),
 				nullptr, 0, 0,
 				numChannels, texcoords, texcoordsNum, texcoordStride,
 				&vi[i][0], sizeof(vi[i][0]),
-				&ni[i][0], sizeof(ni[i][0]),
+				niFloats, sizeof(ni[i][0]),
 				texcoordIndices, texcoordIdxStride,
 				&vertNums[0],
 				currMeshFaces);
