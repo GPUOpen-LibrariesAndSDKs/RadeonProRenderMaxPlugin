@@ -11,7 +11,7 @@
 
 @echo off
 
-set maxVersions=2018 2019 2020
+set maxVersions=2019 2020 2021
 
 setlocal enabledelayedexpansion
 
